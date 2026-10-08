@@ -1,0 +1,3 @@
+# Ferramentas só de empacotamento (não vão para o programa). Gerar o .txt com hashes:
+#   uv pip compile --generate-hashes --python-version 3.13 installer/requirements-build.in -o installer/requirements-build.txt
+pyinstaller==6.11.1

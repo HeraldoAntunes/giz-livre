@@ -1,0 +1,13 @@
+# aulas do professor: ficam fora do Git (backup = copiar a pasta)
+quadros/
+# Python / empacotamento
+__pycache__/
+*.pyc
+.venv/
+.venv-build/
+build/
+dist/
+*.spec.bak
+*.tmp
+# configurações locais de ferramentas de desenvolvimento
+.claude/

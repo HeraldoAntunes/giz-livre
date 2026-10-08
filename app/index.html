@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Giz Livre</title>
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ GALERIA ============ -->
+<section id="gallery" hidden>
+  <header class="g-head">
+    <h1>Giz Livre</h1>
+    <div class="g-search"><span data-icon="search"></span><input id="gSearch" type="search" placeholder="Pesquisar quadros" aria-label="Pesquisar quadros"></div>
+    <select id="gSort" class="btn" aria-label="Ordenar"><option value="date">Mais recentes</option><option value="name">Nome (A–Z)</option></select>
+    <button id="gTablet" class="btn" title="Configurar e testar a mesa digitalizadora"><span data-icon="pen"></span>Caneta e escrita</button>
+    <button id="gImport" class="btn"><span data-icon="import"></span>Importar</button>
+    <button id="gAbout" class="btn" title="Versão, licença e aviso">Sobre</button>
+  </header>
+  <div id="gGrid" class="g-grid"></div>
+  <input id="gImportFile" type="file" accept="image/*,.lousa,.json,.pptx,.pdf" multiple hidden>
+  <input id="gSlideFile" type="file" accept=".pptx,.ppt,.ppsx,.pdf,application/pdf" hidden>
+</section>
+
+<!-- ============ QUADRO ============ -->
+<section id="board" hidden>
+  <canvas id="cv"></canvas>
+  <canvas id="ov"></canvas>
+  <textarea id="textEdit" spellcheck="false" hidden></textarea>
+
+  <div class="bar top-left">
+    <button class="ib" id="bBack" title="Voltar para a galeria"><span data-icon="back"></span></button>
+    <input id="bTitle" class="title" maxlength="80" placeholder="Sem título" aria-label="Título do quadro">
+    <span id="bStatus" class="status"></span>
+  </div>
+
+  <div class="bar ink" id="inkbar">
+    <button class="pen" data-tool="pen0"></button>
+    <button class="pen" data-tool="pen1"></button>
+    <button class="pen" data-tool="pen2"></button>
+    <button class="pen" data-tool="pen3"></button>
+    <button class="pen" data-tool="highlighter"></button>
+    <span class="sep"></span>
+    <button class="ib" data-tool="laser" title="Ponteiro laser"><span data-icon="laser"></span></button>
+    <button class="ib" data-tool="eraser" title="Borracha (E)"><span data-icon="eraser"></span></button>
+    <button class="ib" data-tool="lasso" title="Laço de seleção (L)"><span data-icon="lasso"></span></button>
+    <button class="ib" data-tool="select" title="Selecionar (V)"><span data-icon="select"></span></button>
+    <span class="sep"></span>
+    <button class="ib toggle" id="tRuler" title="Régua (R)"><span data-icon="ruler"></span></button>
+    <button class="ib toggle" id="tInkShape" title="Tinta para forma"><span data-icon="shapeInk"></span></button>
+    <button class="ib toggle" id="tBeautify" title="Embelezar ao escrever (liga/desliga)"><span data-icon="sparkle"></span></button>
+    <span class="sep"></span>
+    <button class="ib" id="tPaper" title="Folha e fundo (quadriculada, milimetrada, cartesiano…)"><span data-icon="paper"></span></button>
+    <button class="ib" id="tTools" title="Ferramentas do professor: lupa, transferidor, compasso, cortina, cronômetro, fórmulas…"><span data-icon="library"></span></button>
+  </div>
+
+  <div class="bar top-right">
+    <button class="ib" id="bUndo" title="Desfazer (Ctrl+Z)"><span data-icon="undo"></span></button>
+    <button class="ib" id="bRedo" title="Refazer (Ctrl+Y)"><span data-icon="redo"></span></button>
+    <button class="ib" id="bPresent" title="Apresentar (tela cheia, só a mini-bandeja)"><span data-icon="present"></span></button>
+    <button class="ib" id="bFull" title="Tela cheia"><span data-icon="fullscreen"></span></button>
+    <button class="ib" id="bMenu" title="Configurações"><span data-icon="more"></span></button>
+  </div>
+
+  <div class="bar create" id="createbar">
+    <button class="cb" data-create="text" title="Texto (T)"><span data-icon="text"></span><small>Texto</small></button>
+    <button class="cb" data-create="note" title="Nota adesiva"><span data-icon="note"></span><small>Nota</small></button>
+    <button class="cb" data-create="shapes" title="Formas"><span data-icon="shapes"></span><small>Formas</small></button>
+    <button class="cb" data-create="image" title="Imagem"><span data-icon="image"></span><small>Imagem</small></button>
+  </div>
+
+  <div class="bar zoom">
+    <button class="ib" id="zOut" title="Diminuir zoom"><span data-icon="zoomOut"></span></button>
+    <button class="zl" id="zLabel" title="Voltar a 100%">100%</button>
+    <button class="ib" id="zIn" title="Aumentar zoom"><span data-icon="zoomIn"></span></button>
+    <button class="ib" id="zFit" title="Ajustar à tela (Ctrl+0)"><span data-icon="fit"></span></button>
+  </div>
+
+  <div class="bar selbar" id="selbar" hidden>
+    <button class="ib" data-sel="edit" title="Editar texto"><span data-icon="edit"></span></button>
+    <button class="ib" data-sel="beautify" title="Embelezar escrita"><span data-icon="sparkle"></span></button>
+    <button class="ib" data-sel="original" title="Voltar ao original"><span data-icon="restore"></span></button>
+    <button class="ib" data-sel="ocr" title="Converter escrita em texto"><span data-icon="text"></span></button>
+    <button class="ib" data-sel="font" title="Fonte do texto"><span data-icon="edit"></span></button>
+    <button class="ib" data-sel="color" title="Cor"><span data-icon="color"></span></button>
+    <button class="ib" data-sel="duplicate" title="Duplicar (Ctrl+D)"><span data-icon="duplicate"></span></button>
+    <button class="ib" data-sel="copy" title="Copiar (Ctrl+C)"><span data-icon="copy"></span></button>
+    <button class="ib" data-sel="front" title="Trazer para a frente"><span data-icon="front"></span></button>
+    <button class="ib" data-sel="back" title="Enviar para trás"><span data-icon="back2"></span></button>
+    <button class="ib danger" data-sel="delete" title="Excluir (Del)"><span data-icon="trash"></span></button>
+  </div>
+
+  <input id="imgFile" type="file" accept="image/*" multiple hidden>
+  <input id="slideFile" type="file" accept=".pptx,.ppt,.ppsx,.pdf,application/pdf" hidden>
+
+  <div class="bar pagebar" id="pagebar" hidden>
+    <button class="ib" id="pgAll" title="Ver todas as páginas"><span data-icon="gallery"></span></button>
+    <button class="ib" id="pgPrev" title="Página anterior (PageUp)"><span data-icon="chevL"></span></button>
+    <span id="pgLabel" class="pglabel">Página 1 de 1</span>
+    <button class="ib" id="pgNext" title="Próxima página (PageDown)"><span data-icon="chevR"></span></button>
+    <button class="ib" id="pgAdd" title="Nova página no fim"><span data-icon="plus"></span></button>
+    <button class="ib" id="pgMore" title="Mais opções da página"><span data-icon="more"></span></button>
+  </div>
+
+  <div class="strip" id="strip" hidden>
+    <canvas id="stripCv"></canvas>
+    <div class="st-ctl">
+      <button class="ib" id="stLeft" title="Voltar a caixa"><span data-icon="chevL"></span></button>
+      <button class="ib" id="stRight" title="Avançar a caixa"><span data-icon="chevR"></span></button>
+      <button class="ib" id="stNewLine" title="Nova linha">↵</button>
+      <button class="ib" id="stHere" title="Marcar o início da linha aqui">⇤</button>
+      <button class="ib" id="stClose" title="Fechar a lupa"><span data-icon="close"></span></button>
+    </div>
+  </div>
+
+  <aside class="pagespanel" id="pagesPanel" hidden>
+    <div class="pp-head"><b>Páginas</b><button class="ib" id="ppAdd" title="Nova página"><span data-icon="plus"></span></button><button class="ib" id="ppClose" title="Fechar"><span data-icon="close"></span></button></div>
+    <div class="pp-list" id="ppList"></div>
+  </aside>
+
+  <div class="bar presentbar" id="presentbar" hidden>
+    <button class="ib pg-only" id="ppPrev" title="Anterior (←)"><span data-icon="chevL"></span></button>
+    <span id="ppLabel" class="pglabel pg-only">1 / 1</span>
+    <button class="ib pg-only" id="ppNext" title="Próxima (→)"><span data-icon="chevR"></span></button>
+    <span class="sep"></span>
+    <button class="ib dot" data-pt="pen0" title="Caneta 1"><i style="background:#222"></i></button>
+    <button class="ib dot" data-pt="pen1" title="Caneta 2"><i style="background:#e81224"></i></button>
+    <button class="ib dot" data-pt="pen2" title="Caneta 3"><i style="background:#0078d4"></i></button>
+    <button class="ib" data-pt="highlighter" title="Marca-texto"><span data-icon="sparkle"></span></button>
+    <button class="ib" data-pt="laser" title="Laser"><span data-icon="laser"></span></button>
+    <button class="ib" data-pt="eraser" title="Borracha"><span data-icon="eraser"></span></button>
+    <button class="ib" id="ppUndo" title="Desfazer"><span data-icon="undo"></span></button>
+    <span class="sep pg-only"></span>
+    <button class="ib pg-only" id="ppBlank" title="Página em branco depois desta (B)"><span data-icon="slideAdd"></span></button>
+    <button class="ib" id="ppExit" title="Sair da apresentação (Esc)"><span data-icon="close"></span></button>
+  </div>
+</section>
+
+<div class="pop" id="pop" hidden></div>
+<div id="toast" hidden></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
