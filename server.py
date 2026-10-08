@@ -57,7 +57,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.0.1"
+VERSAO = "1.0.2"
 ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)$")
 TIPOS = {"png": "image/png", "jpg": "image/jpeg"}

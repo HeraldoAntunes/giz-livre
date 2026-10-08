@@ -8,6 +8,8 @@ export const DEFAULT_TABLET = {
   gamma: 1,           // curva: <1 macia, >1 firme
   barrel: 'eraser',   // botão lateral: eraser | lasso | select | laser | pan | none
   touch: 'auto',      // dedo: auto | draw | pan
+  cursor: 'ponta',    // ponteiro da caneta na tela: ponta | mira | ponto | anel
+  cursorDraw: true,   // o ponteiro continua visível enquanto escreve
   // estabilizador (cada camada liga/desliga)
   stab: true, stabLevel: 'leve',
   lazy: false, lazyLen: 14,
@@ -19,6 +21,7 @@ export const DEFAULT_TABLET = {
 };
 
 const BARREL = [['eraser', 'Borracha'], ['lasso', 'Laço'], ['select', 'Selecionar'], ['laser', 'Ponteiro laser'], ['pan', 'Mover o quadro'], ['none', 'Nada (ferramenta atual)']];
+const CURSOR = [['ponta', 'Ponta de caneta'], ['mira', 'Mira (cruz fina)'], ['ponto', 'Ponto do tamanho da tinta'], ['anel', 'Bolinha com anel']];
 const TOUCH = [['auto', 'Automático (depois da caneta, o dedo só move)'], ['draw', 'Sempre desenha'], ['pan', 'Sempre move o quadro']];
 const chk = (id, on, label) => `<label class="tb-line"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}> ${label}</label>`;
 const opts = (list, v) => list.map(([k, n]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${n}</option>`).join('');
@@ -48,6 +51,7 @@ export function openTabletSettings(cfg, save) {
           <div class="tb-line"><small>Macia</small><input type="range" class="grow" id="tbGamma" min="0.4" max="2.2" step="0.1" value="${cfg.gamma}"><small>Firme</small></div>
           <div class="tb-line"><span>Botão lateral</span><select id="tbBarrel">${opts(BARREL, cfg.barrel)}</select></div>
           <div class="tb-line"><span>Dedo</span><select id="tbTouch">${opts(TOUCH, cfg.touch)}</select></div>
+          <div class="tb-line"><span>Ponteiro na tela</span><select id="tbCursor">${opts(CURSOR, cfg.cursor)}</select></div>
         </div>
       </div>
       <div class="tb-test">
@@ -90,7 +94,7 @@ export function openTabletSettings(cfg, save) {
       pfilter: $('#tbPf').checked, taper: $('#tbTaper').checked, smoothUp: $('#tbSmooth').checked,
       beautify: $('#tbBeauty').checked, beautifyLevel: $('#tbBLevel').value,
       pressure: $('#tbPress').checked, gamma: +$('#tbGamma').value,
-      barrel: $('#tbBarrel').value, touch: $('#tbTouch').value,
+      barrel: $('#tbBarrel').value, touch: $('#tbTouch').value, cursor: $('#tbCursor').value,
     });
     $('#tbLazyVal').textContent = cfg.lazyLen + ' px';
     save();

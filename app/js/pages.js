@@ -71,7 +71,7 @@ export function drawPages(ctx, board, view, w, h) {
 // renderiza a página i num canvas (escala = px de saída por px de mundo)
 export async function renderPage(board, i, scale = 2) {
   const L = board.layout, r = pageRect(L, i);
-  await R.imagesReady(board.items);
+  await R.imagesReady(board.items, R.isDark(board.background.color));
   const c = document.createElement('canvas');
   c.width = Math.round(r.w * scale); c.height = Math.round(r.h * scale);
   const ctx = c.getContext('2d');
@@ -85,8 +85,9 @@ export async function renderPage(board, i, scale = 2) {
 }
 
 // miniatura da galeria: 1ª página no modo páginas; conteúdo inteiro no modo livre
-export async function boardThumb(board, w = 480, h = 270) {
-  if (!isPages(board)) return R.renderToCanvas(board, { fit: { w, h }, pad: 30 });
+// box (opcional): região do mundo a mostrar (a que estava na tela); sem ela, encaixa tudo
+export async function boardThumb(board, w = 480, h = 270, box = null) {
+  if (!isPages(board)) return R.renderToCanvas(board, box ? { fit: { w, h }, pad: 0, box } : { fit: { w, h }, pad: 30 });
   const pg = await renderPage(board, 0, 1);
   const c = document.createElement('canvas');
   c.width = w; c.height = h;

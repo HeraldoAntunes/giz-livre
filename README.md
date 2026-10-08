@@ -36,7 +36,7 @@ O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa nã
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página:
 ```bash
-certutil -hashfile Instalar-GizLivre-1.0.1.exe SHA256
+certutil -hashfile Instalar-GizLivre-1.0.2.exe SHA256
 ```
 
 ## Como é
@@ -50,7 +50,8 @@ certutil -hashfile Instalar-GizLivre-1.0.1.exe SHA256
 - **Escrever:**
   - 4 canetas com pressão, estilos tinteiro, caligrafia e pincel;
   - marca-texto, ponteiro laser, borracha (de traço inteiro ou só onde passar);
-  - formas, texto, notas adesivas e imagens.
+  - formas (linha, seta simples, dupla e tracejada, retângulo, elipse, triângulo), texto, notas adesivas e imagens;
+  - **limpar a lousa** de uma vez (dá para desfazer).
 - **Mesa digitalizadora** (Wacom, XP-Pen, Huion, Gaomon, telas com caneta):
   - pressão, botão lateral e ponta-borracha;
   - **estabilizador contra tremido**;
@@ -68,6 +69,22 @@ certutil -hashfile Instalar-GizLivre-1.0.1.exe SHA256
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
   - **fórmulas LaTeX**;
   - biblioteca com **tabela periódica** e **vidrarias**.
+- **Biblioteca de formas técnicas**, com **702 formas** em 12 disciplinas, separadas em seções e com busca:
+  - fluxograma;
+  - setas e conectores;
+  - operações unitárias (P&ID);
+  - hidráulica;
+  - saneamento (ETA e ETE, com jarteste, UASB, lodo ativado e lagoas);
+  - laboratório (vidrarias, equipamentos e pictogramas de segurança);
+  - elétrica (inclusive NBR 5444);
+  - eletrônica (com portas lógicas);
+  - sistemas embarcados (placas de prototipagem, sensores e módulos);
+  - energias renováveis;
+  - estatística e gráficos;
+  - ícones gerais para aula.
+
+  Cada forma entra na cor escolhida, pode ser recolorida, movida e redimensionada, e a borracha a apaga.
+- **Barras móveis:** o cadeado destrava as barras para arrastar cada uma até onde preferir.
 - **Organização:** galeria com miniaturas, busca, salvamento automático, desfazer/refazer, exportar PNG/PDF/`.lousa`
   e importar imagens do Microsoft Whiteboard.
 
@@ -149,3 +166,18 @@ Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](CONTRIBUTING.md
 
 ## Licença
 [MIT](LICENSE) © 2026 Heraldo Antunes.
+
+### Autoria das formas e ícones
+Todas as formas da biblioteca (`app/js/shapes/`) e os desenhos de vidrarias e da tabela periódica (`app/js/library.js`)
+foram **desenhados para o Giz Livre**, como código SVG escrito no próprio projeto. Elas estão sob a mesma licença MIT do
+programa e podem ser usadas, modificadas e redistribuídas livremente.
+
+Nenhum desenho foi copiado de outras bibliotecas: nem do draw.io, nem do Visio, nem de pacotes de ícones ou da Wikimedia.
+Os símbolos técnicos seguem apenas as **convenções** das normas: ISO 5807 (fluxograma), ISA 5.1 e ISO 10628 (P&ID),
+IEC 60617 e ABNT NBR 5444 (elétrica), IEEE 91 (portas lógicas) e o GHS (pictogramas de segurança). As convenções
+descrevem como o símbolo deve ser; o desenho de cada forma é original.
+
+As placas de prototipagem aparecem como desenhos esquemáticos genéricos, só com o nome em texto e **sem logotipos**.
+Arduino, ESP32, Raspberry Pi e STM32 são marcas dos respectivos donos e aparecem apenas para identificar o tipo de placa.
+Os únicos ícones de terceiros são os da interface (Fluent UI System Icons, MIT), listados em
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

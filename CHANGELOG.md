@@ -1,5 +1,38 @@
 # Histórico de versões
 
+## 1.0.2 (08/10/2026)
+- **Biblioteca de formas técnicas** (Formas → abas por disciplina, com seções e busca sem acento): **702 formas**
+  desenhadas para o Giz Livre (licença MIT; ver "Autoria das formas e ícones" no README).
+  - Fluxograma.
+  - Setas e conectores.
+  - Operações unitárias.
+  - Hidráulica.
+  - Saneamento (ETA e ETE).
+  - Laboratório.
+  - Elétrica.
+  - Eletrônica.
+  - Sistemas embarcados.
+  - Energias renováveis.
+  - Estatística e gráficos.
+  - Ícones gerais.
+- **Formas:** entram na cor escolhida no próprio menu ou na cor da caneta, são recoloridas pela barra de seleção, e a
+  borracha apaga a forma ao passar sobre o desenho dela (não leva junto a forma de fundo ao apagar um traço por cima).
+- **Limpar a lousa:** botão de lixeira na barra superior e item no menu. Os slides importados ficam, e dá para desfazer.
+- **Miniatura da galeria:** mostra o que estava na tela ao sair do quadro, em vez de encolher tudo para caber um
+  rabisco perdido longe.
+- **Novas formas de desenhar:** linha tracejada, seta dupla e seta tracejada.
+- **Ponteiro da caneta no próprio menu da caneta.** Opção de mantê-lo visível enquanto escreve, ligada por padrão.
+- O instalador diz "para" em vez de "pra".
+- **Barras móveis:** o cadeado no canto superior direito destrava as barras. Arraste cada uma para onde quiser e trave
+  de novo. A posição fica guardada, e "Voltar ao padrão" desfaz tudo.
+- **Borracha mais rápida:** redesenha só a região apagada, não a tela inteira (cerca de 80 vezes menos desenho por
+  quadro num quadro cheio).
+- **Ponteiro da caneta com opções** (Caneta e escrita → Ponteiro na tela): ponta de caneta (novo padrão), mira, ponto
+  ou a bolinha antiga.
+- **Embelezar ao escrever** volta a vir desligado. Continua disponível no botão da barra e em "Embelezar escrita" na
+  seleção.
+- Correção: cores recentes, modo da borracha e outras escolhas se perdiam ao reabrir o programa.
+
 ## 1.0.1 (08/10/2026)
 - **Correções importantes:**
   - traços de **marca-texto** e de **mouse** quebravam o desenho do quadro (falha da 1.0.0);

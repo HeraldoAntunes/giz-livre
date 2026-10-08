@@ -15,6 +15,10 @@ na pasta `licencas\`.
 | **PyInstaller** (bootloader) | 6.11.1 | gera o `GizLivre.exe` | GPL 2.0 com exceção para o bootloader: permite distribuir o executável gerado sob qualquer licença | https://github.com/pyinstaller/pyinstaller |
 | **Inno Setup** (Jordan Russell e Martijn Laan) | 6.7.3 | gera o instalador | Licença do Inno Setup (uso gratuito, inclusive comercial) | https://jrsoftware.org/files/is/license.txt |
 
+**Formas e ícones da biblioteca:** não são de terceiros. As 702 formas de `app/js/shapes/` e os desenhos de
+`app/js/library.js` foram desenhados para o Giz Livre e estão sob a licença MIT do projeto (ver a seção "Autoria das
+formas e ícones" do README).
+
 O executável é gerado **sem** os módulos de SSL, bzip2, lzma e decimal do Python, porque o programa não os usa. Assim,
 OpenSSL, bzip2, xz e libmpdec não fazem parte do pacote.
 

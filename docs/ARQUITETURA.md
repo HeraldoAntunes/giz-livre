@@ -48,6 +48,8 @@ Detalhes em [SECURITY.md](../SECURITY.md).
 | `importer.js` | PowerPoint/PDF → páginas com o slide travado no fundo |
 | `tools.js` | cronômetro, fórmulas (KaTeX), chamada do reconhecimento de escrita |
 | `library.js` | tabela periódica e vidrarias em SVG |
+| `shapelib.js`, `shapes/*.js` | biblioteca de formas técnicas: um arquivo por disciplina (`{id, nome, secoes}`), formato e convenções em `shapes/base.js`; entra no quadro como imagem SVG na cor da caneta |
+| `bars.js` | barras móveis: cadeado, arrastar e posição guardada (`localStorage` `lousa.bars`) |
 | `tablet.js` | painel "Caneta e escrita" (mesa, estabilizador, teste e gravação de amostras) |
 | `ui.js`, `icons.js`, `fluent-icons.js`, `api.js`, `version.js` | utilidades, ícones, comunicação, versão |
 

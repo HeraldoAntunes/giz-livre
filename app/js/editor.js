@@ -25,6 +25,8 @@ import * as PG from './pages.js';
 import { slidesFromFile, slideItems, uploadAsset } from './importer.js';
 import { toggleTimer, formulaImage, validateLatex, previewLatex, recognizeInk } from './tools.js';
 import { LIBRARY, svgDataUrl } from './library.js';
+import { initBars, placeAll as placeBars, lockBars, resetBars } from './bars.js';
+import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg } from './shapelib.js';
 
 const PALETTE = ['#000000', '#7a7574', '#ffffff', '#e81224', '#f7630c', '#ffb900', '#fff100', '#8cbd18',
   '#16c60c', '#0b6a0b', '#00b7c3', '#0078d4', '#1b3a8c', '#886ce4', '#e3008c', '#8e562e'];
@@ -66,8 +68,11 @@ let pendingBeauty = [], beautyTimer = 0, beautyAnim = null; // embelezar escrita
 function loadCfg() {
   try {
     const c = JSON.parse(localStorage.getItem('lousa.cfg') || '{}');
-    return { tools: { ...structuredClone(DEFAULT_TOOLS), ...(c.tools || {}) }, tool: c.tool, inkShape: !!c.inkShape,
-      shapeFill: !!c.shapeFill, tablet: { ...DEFAULT_TABLET, ...(c.tablet || {}) } };
+    const tablet = { ...DEFAULT_TABLET, ...(c.tablet || {}) };
+    // 1.0.2: embelezar automático volta a desligado uma vez (o professor liga se quiser; o botão da seleção continua)
+    if ((c.migr || 0) < 2) tablet.beautify = false;
+    return { ...c, tools: { ...structuredClone(DEFAULT_TOOLS), ...(c.tools || {}) }, tool: c.tool, inkShape: !!c.inkShape,
+      shapeFill: !!c.shapeFill, tablet, migr: 2 };
   } catch { return { tools: structuredClone(DEFAULT_TOOLS), inkShape: false, tablet: { ...DEFAULT_TABLET } }; }
 }
 function saveCfg() {
@@ -110,6 +115,7 @@ export function initEditor() {
   $('bBack').onclick = async () => { await flush(); onBack(); };
   $('bUndo').onclick = undo;
   $('bRedo').onclick = redo;
+  $('bClear').onclick = clearBoard;
   $('bFull').onclick = toggleFullscreen;
   $('bMenu').onclick = () => openMenu($('bMenu'));
   $('bTitle').addEventListener('change', () => { S.board.title = $('bTitle').value.trim() || 'Sem título'; scheduleSave(); });
@@ -146,6 +152,7 @@ export function initEditor() {
   addEventListener('blur', resetInput);
   ov.addEventListener('lostpointercapture', e => { if (pointers.has(e.pointerId)) onUp(e); });
   fillIcons($('board'));
+  initBars();
 }
 
 export function openBoard(id, board, back) {
@@ -166,6 +173,7 @@ export function openBoard(id, board, back) {
   updatePageBar();
   syncToolbar();
   updateUndo();
+  placeBars();
   requestRender();
 }
 
@@ -188,13 +196,26 @@ export function requestRender(stat = true) {
   needOverlay = true;
   if (!raf) raf = requestAnimationFrame(frame);
 }
+// redesenha só um retângulo do mundo (borracha): com muitos traços, refazer a tela inteira a cada quadro travava
+let dirtyRect = null;
+function requestDirty(b) {
+  if (!dirtyRect) { dirtyRect = { ...b }; }
+  else {
+    const d = dirtyRect, x = Math.min(d.x, b.x), y = Math.min(d.y, b.y);
+    dirtyRect = { x, y, w: Math.max(d.x + d.w, b.x + b.w) - x, h: Math.max(d.y + d.h, b.y + b.h) - y };
+  }
+  if (!raf) raf = requestAnimationFrame(frame);
+}
 
 function frame() {
   raf = 0;
   if (!S) return;
+  const part = !needStatic && dirtyRect;
   if (needStatic) drawStatic();
+  else if (part) drawStatic(dirtyRect);
+  dirtyRect = null;
   if (needOverlay) drawOverlay();
-  if (strip && (needStatic || needOverlay)) drawStrip();
+  if (strip && (needStatic || needOverlay || part)) drawStrip();
   needStatic = needOverlay = false;
   if (laser.length) requestRender(false);
   if (beautyAnim) requestRender();
@@ -209,14 +230,25 @@ function previewItem(it) {
   return it;
 }
 
-function drawStatic() {
+const endsAt = (pc, pts) => pc[pc.length - 3] === pts[pts.length - 3] && pc[pc.length - 2] === pts[pts.length - 2];
+const pieceCache = new WeakMap(); // pedaço da borracha parcial → item estável (o contorno fica em cache no render)
+function drawStatic(clip) {
   const v = S.view;
+  ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (clip) {
+    const a = toScreen(clip.x, clip.y);
+    const x0 = Math.floor(a.x) - 2, y0 = Math.floor(a.y) - 2;
+    ctx.beginPath();
+    ctx.rect(x0, y0, Math.ceil(clip.w * v.zoom) + 5, Math.ceil(clip.h * v.zoom) + 5);
+    ctx.clip();
+  }
   if (PG.isPages(S.board)) PG.drawPages(ctx, S.board, v, W, H);
   else R.drawBackground(ctx, S.board.background, v, W, H);
   R.setDarkBackground(R.isDark(S.board.background.color));
   ctx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * v.x, dpr * v.y);
-  const vis = { x: -v.x / v.zoom, y: -v.y / v.zoom, w: W / v.zoom, h: H / v.zoom };
+  const vis = clip ? { x: clip.x - 3 / v.zoom, y: clip.y - 3 / v.zoom, w: clip.w + 6 / v.zoom, h: clip.h + 6 / v.zoom }
+    : { x: -v.x / v.zoom, y: -v.y / v.zoom, w: W / v.zoom, h: H / v.zoom };
   const erased = action?.type === 'erase' ? action.erased : null;
   let ta = 1;
   if (beautyAnim) { ta = (performance.now() - beautyAnim.t0) / 160; if (ta >= 1) { beautyAnim = null; ta = 1; } }
@@ -230,7 +262,14 @@ function drawStatic() {
       it = { ...it, text: '' };
     }
     const parts = action?.type === 'erase' ? action.parts?.get(it.id) : null;
-    if (parts) { for (const pc of parts) R.drawStroke(ctx, { ...it, pts: pc }); continue; }
+    if (parts) {
+      for (const pc of parts) {
+        let pi = pieceCache.get(pc);
+        if (!pi) { pi = { ...it, pts: pc, arrow: it.arrow && endsAt(pc, it.pts) }; pieceCache.set(pc, pi); }
+        R.drawStroke(ctx, pi, true);
+      }
+      continue;
+    }
     const from = beautyAnim?.from.get(it.id);
     if (from && it.pts.length === from.length) {
       const q = new Array(from.length);
@@ -239,7 +278,41 @@ function drawStatic() {
     }
     else R.drawItem(ctx, it);
   }
+  ctx.restore();
+}
 
+// ponteiro da caneta (coordenadas de tela). Contorno duplo (claro + escuro) para aparecer em qualquer fundo.
+// ponta: caneta inclinada com a ponta exatamente no ponto da escrita · mira: cruz fina · ponto: só a tinta · anel: bolinha antiga
+function drawPenCursor(x, y, c, kind) {
+  const r = Math.max(2, c.width / 2);
+  const outline = (w = 1.5) => {
+    octx.lineWidth = w + 2; octx.strokeStyle = 'rgba(255,255,255,.9)'; octx.stroke();
+    octx.lineWidth = w; octx.strokeStyle = 'rgba(0,0,0,.65)'; octx.stroke();
+  };
+  octx.save();
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  octx.lineJoin = 'round'; octx.lineCap = 'round';
+  if (kind === 'ponta') {
+    octx.translate(x, y); octx.rotate(Math.PI / 4);   // corpo para cima e à direita, como a caneta na mão
+    octx.beginPath(); octx.moveTo(0, 0); octx.lineTo(-4.5, -11); octx.lineTo(4.5, -11); octx.closePath();
+    octx.fillStyle = c.color; octx.fill(); outline(1.2);
+    octx.beginPath(); octx.roundRect(-4.5, -32, 9, 21, 2);
+    octx.fillStyle = '#ffffff'; octx.fill(); outline(1.2);
+    octx.beginPath(); octx.rect(-4.5, -16, 9, 4); octx.fillStyle = c.color; octx.fill();
+  } else if (kind === 'mira') {
+    const g = Math.max(3, r + 2), L = g + 7;
+    octx.beginPath();
+    octx.moveTo(x - L, y); octx.lineTo(x - g, y); octx.moveTo(x + g, y); octx.lineTo(x + L, y);
+    octx.moveTo(x, y - L); octx.lineTo(x, y - g); octx.moveTo(x, y + g); octx.lineTo(x, y + L);
+    outline(1.2);
+    octx.beginPath(); octx.arc(x, y, 1.6, 0, Math.PI * 2); octx.fillStyle = c.color; octx.fill();
+  } else {
+    if (kind === 'anel') { octx.beginPath(); octx.arc(x, y, r + 6, 0, Math.PI * 2); outline(1.5); }
+    octx.beginPath(); octx.arc(x, y, r, 0, Math.PI * 2);
+    octx.fillStyle = c.color; octx.fill();
+    octx.lineWidth = 1; octx.strokeStyle = R.isDark(c.color) ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.4)'; octx.stroke();
+  }
+  octx.restore();
 }
 
 function drawOverlay() {
@@ -298,19 +371,9 @@ function drawOverlay() {
     octx.restore();
   }
   drawSelection();
-  if (hover?.pen && !action && ov.className === 'c-none') {
-    // ponto da caneta pairando (a mesa digitalizadora não mostra cursor próprio)
-    // anel bem visível + miolo do tamanho da tinta (na Intuos o professor olha a tela, não a mesa)
-    const c = cfg.tools[tool] || cfg.tools.pen0;
-    const r = Math.max(2, c.width / 2), ring = r + 6;
-    octx.save();
-    octx.lineWidth = 3; octx.strokeStyle = 'rgba(255,255,255,.85)';
-    octx.beginPath(); octx.arc(hover.x, hover.y, ring, 0, Math.PI * 2); octx.stroke();
-    octx.lineWidth = 1.5; octx.strokeStyle = 'rgba(0,0,0,.6)'; octx.stroke();
-    octx.fillStyle = c.color;
-    octx.beginPath(); octx.arc(hover.x, hover.y, r, 0, Math.PI * 2); octx.fill();
-    octx.lineWidth = 1; octx.strokeStyle = R.isDark(c.color) ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.4)'; octx.stroke();
-    octx.restore();
+  if (hover?.pen && ov.className === 'c-none' && (!action || action.type === 'draw' && cfg.tablet.cursorDraw !== false)) {
+    // ponteiro da caneta pairando (a mesa digitalizadora não mostra cursor próprio; na Intuos o professor olha a tela)
+    drawPenCursor(hover.x, hover.y, cfg.tools[tool] || cfg.tools.pen0, cfg.tablet.cursor || 'ponta');
   }
   drawShades();
   if (tool === 'eraser' && hover && !spaceDown) {
@@ -354,7 +417,7 @@ function drawSelection() {
   if (action?.type === 'transform') { bar.hidden = true; return; }
   const single = sel.size === 1 ? byId([...sel][0]) : null;
   bar.querySelector('[data-sel="edit"]').hidden = !(single && (single.type === 'text' || single.type === 'note'));
-  bar.querySelector('[data-sel="color"]').hidden = [...sel].every(id => byId(id)?.type === 'image');
+  bar.querySelector('[data-sel="color"]').hidden = [...sel].every(id => { const it = byId(id); return it?.type === 'image' && !it.lib; });
   bar.querySelector('[data-sel="beautify"]').hidden = ![...sel].some(id => { const it = byId(id); return it && canBeautify(it); });
   bar.querySelector('[data-sel="original"]').hidden = ![...sel].some(id => byId(id)?.orig || byId(id)?.ink);
   bar.querySelector('[data-sel="ocr"]').hidden = serverInfo().ocr === false || ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
@@ -461,6 +524,14 @@ function toolClick(b) {
   setTool(t);
 }
 
+// opções do ponteiro (desenho em editor.drawPenCursor); ícones pequenos para o menu da caneta
+const CURSORS = [
+  ['ponta', 'Caneta', '<svg viewBox="0 0 24 24" width="22" height="22"><g transform="rotate(45 6 18)" fill="#fff" stroke="#333" stroke-width="1.2" stroke-linejoin="round"><path d="M6 18l-2.5-6h5z" fill="#333"/><rect x="3.5" y="0" width="5" height="12" rx="1"/></g></svg>'],
+  ['mira', 'Mira', '<svg viewBox="0 0 24 24" width="22" height="22" stroke="#333" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/><circle cx="12" cy="12" r="1.3" fill="#333"/></svg>'],
+  ['ponto', 'Ponto', '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="3" fill="#333"/></svg>'],
+  ['anel', 'Bolinha', '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>'],
+];
+
 function penPop(anchor, t) {
   const c = cfg.tools[t], hl = t === 'highlighter';
   const pal = hl ? HL_PALETTE : PALETTE, widths = hl ? HL_WIDTHS : PEN_WIDTHS;
@@ -475,7 +546,9 @@ function penPop(anchor, t) {
     <h4>Espessura</h4><div class="widths">${widths.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${w}"><i style="width:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;height:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;background:${c.color === '#ffffff' ? '#ccc' : c.color}"></i></button>`).join('')}</div>
     ${hl ? '' : `<h4>Estilo</h4><div class="seg">${styles.map(([k, n]) => `<button data-s="${k}" class="${k === st ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${st === 'calligraphy' ? `<div class="row"><small>Ângulo da pena</small><input type="range" id="pNib" min="0" max="90" value="${c.nib ?? 45}"><small id="pNibV">${c.nib ?? 45}°</small></div>` : ''}
-      <label class="row"><input type="checkbox" id="pArrow" ${c.arrow ? 'checked' : ''}> Ponta de seta no fim do traço</label>`}`,
+      <label class="row"><input type="checkbox" id="pArrow" ${c.arrow ? 'checked' : ''}> Ponta de seta no fim do traço</label>`}
+    <h4>Ponteiro da caneta na tela</h4><div class="seg cursors">${CURSORS.map(([k, n, svg]) => `<button data-k="${k}" class="${k === (cfg.tablet.cursor || 'ponta') ? 'on' : ''}" title="${n}">${svg}<small>${n}</small></button>`).join('')}</div>
+    <label class="row"><input type="checkbox" id="pCurDraw" ${cfg.tablet.cursorDraw !== false ? 'checked' : ''}> Manter o ponteiro visível enquanto escreve</label>`,
     p => {
       const reopen = () => { saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); };
       const setColor = col => { c.color = col; cfg.recent = [col, ...(cfg.recent || []).filter(x => x !== col)].slice(0, 12); reopen(); };
@@ -485,6 +558,8 @@ function penPop(anchor, t) {
       p.querySelectorAll('[data-s]').forEach(x => x.onclick = () => { c.style = x.dataset.s; reopen(); });
       const nibEl = p.querySelector('#pNib');
       if (nibEl) nibEl.oninput = () => { c.nib = +nibEl.value; p.querySelector('#pNibV').textContent = c.nib + '°'; saveCfg(); drawPrev(); };
+      p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { cfg.tablet.cursor = x.dataset.k; saveCfg(); p.querySelectorAll('[data-k]').forEach(y => y.classList.toggle('on', y === x)); });
+      p.querySelector('#pCurDraw').onchange = e => { cfg.tablet.cursorDraw = e.target.checked; saveCfg(); };
       const ar = p.querySelector('#pArrow');
       if (ar) ar.onchange = () => { c.arrow = ar.checked; saveCfg(); drawPrev(); };
       // pré-visualização do traço com a cor, espessura e estilo escolhidos
@@ -532,14 +607,78 @@ function notePop(anchor) {
     p => p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => { hidePop(); addNote(x.dataset.c); }), 'right');
 }
 
+// formas desenhadas arrastando; as variantes de linha/seta viram kind + {both, dash}
+const DRAW_KINDS = [['line', 'Linha'], ['lined', 'Linha tracejada'], ['arrow', 'Seta'], ['arrow2', 'Seta dupla'], ['arrowd', 'Seta tracejada'],
+  ['rect', 'Retângulo'], ['ellipse', 'Elipse'], ['triangle', 'Triângulo']];
+const SHAPE_COLORS = ['#000000', '#e81224', '#0078d4', '#16c60c', '#f7630c', '#886ce4', '#7a7574', '#ffffff'];
+const KIND_OF = { lined: { kind: 'line', dash: true }, arrow2: { kind: 'arrow', both: true }, arrowd: { kind: 'arrow', dash: true } };
+const isLineKind = k => ['line', 'arrow'].includes(KIND_OF[k]?.kind || k);
+
 function shapesPop(anchor) {
-  const kinds = [['line', 'Linha'], ['arrow', 'Seta'], ['rect', 'Retângulo'], ['ellipse', 'Elipse'], ['triangle', 'Triângulo']];
-  showPop(anchor, `<h4>Formas — arraste no quadro</h4><div class="shapes">${kinds.map(([k, n]) => `<button class="ib${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}</button>`).join('')}</div>
-    <label class="row"><input type="checkbox" id="sFill" ${cfg.shapeFill ? 'checked' : ''}> Preenchida (cor clara)</label>`,
+  const tab = SHAPE_GROUPS.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : SHAPE_GROUPS[0].id;
+  const groupHtml = id => SHAPE_GROUPS.find(g => g.id === id).secoes.map(([n, list]) => `<div class="shp-sec">${esc(n)}</div>${list.map(cell).join('')}`).join('');
+  const cell = ([id, n]) => `<button class="libitem shp" data-lib="${id}" title="${esc(n)}"><img src="${svgDataUrl(shapeSvg(id, '#323130').svg)}" alt=""><span>${esc(n)}</span></button>`;
+  showPop(anchor, `<h4>Desenhar — arraste no quadro</h4><div class="shapes">${DRAW_KINDS.map(([k, n]) => `<button class="ib${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}</button>`).join('')}</div>
+    <label class="row"><input type="checkbox" id="sFill" ${cfg.shapeFill ? 'checked' : ''}> Preenchida (cor clara)</label>
+    <h4>Biblioteca de formas</h4>
+    <div class="row shp-cor"><span>Cor:</span><button class="sw-txt${cfg.shapeColor ? '' : ' on'}" data-sc="" title="Usar a cor da caneta atual">da caneta</button>${SHAPE_COLORS.map(c => `<button class="sw${cfg.shapeColor === c ? ' on' : ''}" data-sc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>
+    <input class="shp-busca" id="sFind" placeholder="Procurar forma (ex.: válvula, bomba, resistor)…">
+    <div class="seg shp-tabs">${SHAPE_GROUPS.map(g => `<button data-tab="${g.id}" class="${g.id === tab ? 'on' : ''}">${g.nome}</button>`).join('')}</div>
+    <div class="libgrid shp-grid" id="sGrid">${groupHtml(tab)}</div>`,
     p => {
       p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; hidePop(); setTool('shape'); });
       p.querySelector('#sFill').onchange = e => { cfg.shapeFill = e.target.checked; saveCfg(); };
+      p.querySelectorAll('[data-sc]').forEach(x => x.onclick = () => {
+        cfg.shapeColor = x.dataset.sc || null; saveCfg();
+        p.querySelectorAll('[data-sc]').forEach(y => y.classList.toggle('on', y === x));
+      });
+      const grid = p.querySelector('#sGrid');
+      const bind = () => grid.querySelectorAll('[data-lib]').forEach(b => b.onclick = () => { hidePop(); insertLibShape(b.dataset.lib); });
+      p.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => {
+        cfg.shapeTab = x.dataset.tab; saveCfg();
+        p.querySelectorAll('[data-tab]').forEach(y => y.classList.toggle('on', y === x));
+        p.querySelector('#sFind').value = '';
+        grid.innerHTML = groupHtml(x.dataset.tab); grid.scrollTop = 0; bind();
+      });
+      const plain = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const find = p.querySelector('#sFind');
+      find.oninput = () => {
+        const q = plain(find.value.trim());
+        if (!q) return p.querySelector(`[data-tab="${cfg.shapeTab || tab}"]`).click();
+        p.querySelectorAll('[data-tab]').forEach(y => y.classList.remove('on'));
+        const hits = ALL_SHAPES.filter(s => plain(s[1]).includes(q));
+        grid.innerHTML = hits.length ? hits.map(cell).join('') : '<p class="muted">Nenhuma forma com esse nome.</p>'; bind();
+      };
+      find.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') hidePop(); });
+      bind();
     }, 'right');
+}
+
+// forma da biblioteca: entra no centro da tela, no tamanho natural, na cor da caneta, já selecionada
+function recolorLib(it, color) {
+  const m = shapeSvg(it.lib, color);
+  return m ? { ...it, tint: color, src: svgDataUrl(m.svg) } : it;
+}
+
+// apaga tudo de uma vez (slides travados ficam); dá para desfazer
+async function clearBoard() {
+  const keep = S.items.filter(i => i.locked);
+  if (keep.length === S.items.length) return toast('A lousa já está limpa');
+  if (!await confirmBox('Limpar a lousa', 'Apagar tudo o que está neste quadro? Os slides importados ficam. Dá para desfazer com Ctrl+Z.', 'Limpar', true)) return;
+  clearSel();
+  commit(keep);
+  toast('Lousa limpa. Ctrl+Z desfaz.');
+}
+
+function insertLibShape(id) {
+  const tint = cfg.shapeColor || textColor();
+  const m = shapeSvg(id, tint);
+  if (!m) return;
+  const z = S.view.zoom, c = toWorld(W / 2, H / 2), w = m.w / z, h = m.h / z;
+  const it = { id: newId(), type: 'image', src: svgDataUrl(m.svg), x: c.x - w / 2, y: c.y - h / 2, w, h, lib: id, tint };
+  commit([...S.items, it]);
+  sel = new Set([it.id]);
+  setTool('select');
 }
 
 // cor como aparece na tela (preto vira branco em fundo escuro)
@@ -610,7 +749,20 @@ function scheduleThumb(id) {
 async function saveThumbNow() {
   if (!S) return;
   const id = S.id, board = { ...S.board, items: S.items };
-  try { const c = await PG.boardThumb(board); await saveThumb(id, c.toDataURL('image/png')); } catch {}
+  const v = S.view, tela = { x: -v.x / v.zoom, y: -v.y / v.zoom, w: W / v.zoom, h: H / v.zoom };
+  // enquadra o que está desenhado na parte visível (um rabisco perdido longe não encolhe a prévia)
+  let box = null;
+  for (const i of S.items) {
+    const b = R.bbox(i);
+    if (!R.boxesTouch(b, tela)) continue;
+    const x0 = Math.max(b.x, tela.x), y0 = Math.max(b.y, tela.y), x1 = Math.min(b.x + b.w, tela.x + tela.w), y1 = Math.min(b.y + b.h, tela.y + tela.h);
+    box = box ? { x0: Math.min(box.x0, x0), y0: Math.min(box.y0, y0), x1: Math.max(box.x1, x1), y1: Math.max(box.y1, y1) } : { x0, y0, x1, y1 };
+  }
+  if (box) {
+    const pad = 30 / v.zoom, w = Math.max(box.x1 - box.x0 + 2 * pad, tela.w / 4), h = Math.max(box.y1 - box.y0 + 2 * pad, tela.h / 4);
+    box = { x: (box.x0 + box.x1) / 2 - w / 2, y: (box.y0 + box.y1) / 2 - h / 2, w, h };
+  }
+  try { const c = await PG.boardThumb(board, 480, 270, box); await saveThumb(id, c.toDataURL('image/png')); } catch {}
 }
 
 async function retryFailed() {
@@ -660,6 +812,7 @@ export async function flush() {
 // fecha o quadro: grava, atualiza a miniatura e desliga todos os timers (nada mais regrava este quadro)
 export async function closeBoard() {
   if (!S) return true;
+  lockBars();
   const ok = await flush();
   clearTimeout(thumbTimer); thumbTimer = 0;
   if (ok) await saveThumbNow();
@@ -784,7 +937,7 @@ function onDown(e) {
   if (e.pointerType === 'touch' && pointers.size > 1) return;
 
   const P = pt(e);
-  hover = { x: e.clientX, y: e.clientY };
+  hover = { x: e.clientX, y: e.clientY, pen: e.pointerType === 'pen' };
 
   // botão lateral da caneta (Windows Ink: botão 2 / buttons & 2) e ponta-borracha (botão 5 / buttons & 32)
   const eraserBtn = e.pointerType === 'pen' && (e.button === 5 || (e.buttons & 32));
@@ -988,6 +1141,7 @@ function onMove(e) {
         for (let i = 1; i <= n; i++) eraseAt(action.lx + (P.x - action.lx) * i / n, action.ly + (P.y - action.ly) * i / n);
         action.lx = P.x; action.ly = P.y;
       }
+      requestRender(false); // o círculo da borracha acompanha a caneta (a região apagada vai por requestDirty)
       break;
     case 'lasso': {
       const P = pt(e);
@@ -1007,7 +1161,7 @@ function onMove(e) {
       let x2 = P.x, y2 = P.y;
       const { x0, y0 } = action;
       if (e.shiftKey) {
-        if (shapeKind === 'line' || shapeKind === 'arrow') {
+        if (isLineKind(shapeKind)) {
           const a = Math.round(Math.atan2(y2 - y0, x2 - x0) / (Math.PI / 12)) * Math.PI / 12, r = Math.hypot(x2 - x0, y2 - y0);
           x2 = x0 + r * Math.cos(a); y2 = y0 + r * Math.sin(a);
         } else {
@@ -1018,7 +1172,7 @@ function onMove(e) {
       const ink = currentInk();
       action.item = {
         id: newId(), type: 'shape', kind: shapeKind, x1: x0, y1: y0, x2, y2, color: ink.color, width: Math.max(2, ink.width) / S.view.zoom,
-        fill: cfg.shapeFill && shapeKind !== 'line' && shapeKind !== 'arrow' ? lighten(ink.color) : null,
+        fill: cfg.shapeFill && !isLineKind(shapeKind) ? lighten(ink.color) : null, ...KIND_OF[shapeKind],
       };
       requestRender(false);
       break;
@@ -1089,7 +1243,7 @@ function onUp(e) {
           if (a.erased.has(i.id)) return [];
           const parts = a.parts?.get(i.id);
           if (!parts) return [i];
-          return parts.map((pc, k) => { const n = { ...i, id: k ? newId() : i.id, pts: pc }; delete n.orig; return n; });
+          return parts.map((pc, k) => { const n = { ...i, id: k ? newId() : i.id, pts: pc, arrow: i.arrow && endsAt(pc, i.pts) }; delete n.orig; return n; });
         }));
       } else requestRender();
       break;
@@ -1216,14 +1370,49 @@ function beautifyIfMovedOn(wx, wy) {
   if (wx > x1 + 1.0 * h || wy > y1 + 0.8 * h || wy < y0 - 1.5 * h) runAutoBeauty(true);
 }
 
+// forma da biblioteca: a borracha só apaga ao passar SOBRE o desenho dela (não em qualquer ponto do retângulo),
+// para não levar junto a forma de fundo quando se apaga um traço escrito por cima. Foto e slide ficam protegidos.
+const libMasks = new Map(); // lib → {w, h, a: alfa por pixel no tamanho natural}
+function libMask(it) {
+  if (libMasks.has(it.lib)) return libMasks.get(it.lib);
+  const img = R.loadedImage(it);
+  if (!img) return null;
+  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data, a = new Uint8Array(c.width * c.height);
+  for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3];
+  const m = { w: c.width, h: c.height, a };
+  libMasks.set(it.lib, m);
+  return m;
+}
+function hitLib(it, x, y, tol) {
+  if (it.type !== 'image' || !it.lib || it.locked) return false;
+  if (it.rot) { // desfaz o giro do ponto em torno do centro
+    const cx = it.x + it.w / 2, cy = it.y + it.h / 2, c = Math.cos(-it.rot), s = Math.sin(-it.rot);
+    [x, y] = [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c];
+  }
+  if (x < it.x - tol || x > it.x + it.w + tol || y < it.y - tol || y > it.y + it.h + tol) return false;
+  const m = libMask(it);
+  if (!m) return true; // imagem ainda carregando: vale o retângulo
+  const kx = m.w / it.w, ky = m.h / it.h, r = Math.max(1, Math.round(tol * kx * 0.6));
+  const u0 = Math.round((x - it.x) * kx), v0 = Math.round((y - it.y) * ky);
+  for (let v = v0 - r; v <= v0 + r; v += Math.max(1, r >> 1))
+    for (let u = u0 - r; u <= u0 + r; u += Math.max(1, r >> 1))
+      if (u >= 0 && v >= 0 && u < m.w && v < m.h && m.a[v * m.w + u] > 40) return true;
+  return false;
+}
+
 function eraseAt(x, y) {
   const tol = 12 / S.view.zoom;
-  let hit = false;
   if (cfg.eraserMode === 'partial') {
     // corta só os pontos dentro do círculo da borracha; o resto vira pedaços
     action.parts = action.parts || new Map();
     for (const it of S.items) {
-      if (it.type !== 'stroke' || action.erased.has(it.id) || !R.hitItem(it, x, y, tol, true) && !action.parts.has(it.id)) continue;
+      if (it.type !== 'stroke' || action.erased.has(it.id)) continue;
+      if (action.parts.has(it.id)) {
+        const b = R.bbox(it);
+        if (x < b.x - tol || x > b.x + b.w + tol || y < b.y - tol || y > b.y + b.h + tol) continue;
+      } else if (!R.hitItem(it, x, y, tol, true)) continue;
       const pieces = action.parts.get(it.id) || [it.pts];
       const r2 = (tol + it.width / 2) ** 2, out = [];
       let changed = false;
@@ -1235,17 +1424,15 @@ function eraseAt(x, y) {
         }
         if (run.length >= 6) out.push(run);
       }
-      if (changed) { action.parts.set(it.id, out); hit = true; }
+      if (changed) { action.parts.set(it.id, out); requestDirty(R.bbox(it)); } // o afinamento das pontas muda o pedaço inteiro
     }
-    for (const it of S.items) if (it.type === 'shape' && !action.erased.has(it.id) && R.hitItem(it, x, y, tol, true)) { action.erased.add(it.id); hit = true; }
-    if (hit) requestRender();
+    for (const it of S.items) if ((it.type === 'shape' && R.hitItem(it, x, y, tol, true) || hitLib(it, x, y, tol)) && !action.erased.has(it.id)) { action.erased.add(it.id); requestDirty(R.bbox(it)); }
     return;
   }
   for (const it of S.items) {
     if (action.erased.has(it.id)) continue;
-    if ((it.type === 'stroke' || it.type === 'shape') && R.hitItem(it, x, y, tol, true)) { action.erased.add(it.id); hit = true; }
+    if ((it.type === 'stroke' || it.type === 'shape') && R.hitItem(it, x, y, tol, true) || hitLib(it, x, y, tol)) { action.erased.add(it.id); requestDirty(R.bbox(it)); }
   }
-  if (hit) requestRender();
 }
 
 function topHit(x, y) {
@@ -1284,7 +1471,8 @@ function selAction(k, btn) {
       p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => {
         const c = x.dataset.c;
         commit(S.items.map(i => {
-          if (!ids.has(i.id) || i.type === 'image') return i;
+          if (!ids.has(i.id)) return i;
+          if (i.type === 'image') return i.lib ? recolorLib(i, c) : i;
           if (i.type === 'note') return notes ? { ...i, color: c } : i;
           const n = { ...i, color: c };
           if (i.type === 'shape' && i.fill) n.fill = lighten(c);
@@ -1501,10 +1689,13 @@ function openMenu(anchor) {
       <button data-a="pdf">${ICON.pdf} Exportar PDF</button>
       <button data-a="print">${ICON.print} Imprimir</button>
       <button data-a="png">${ICON.image} Exportar imagem (PNG)</button>
+      <button data-a="clear">${ICON.trash} Limpar a lousa</button>
+      <hr>
       <button data-a="pngT">${ICON.image} Exportar imagem sem fundo</button>
       <button data-a="lousa">${ICON.import} Exportar arquivo .lousa</button>
       <hr>
       <button data-a="tablet">${ICON.edit} Caneta e escrita</button>
+      <button data-a="bars">${ICON.lock} Barras na posição padrão</button>
       <button data-a="keys">${ICON.edit} Atalhos de teclado</button>
       <button data-a="about">${ICON.ok} Sobre o Giz Livre</button>
     </div>`, p => {
@@ -1516,11 +1707,13 @@ function openMenu(anchor) {
     p.querySelector('[data-a="present"]').onclick = () => { hidePop(); setPresent(true); };
     p.querySelector('[data-a="pages"]')?.addEventListener('click', () => { hidePop(); togglePagesPanel(true); });
     p.querySelector('[data-a="toA4"]')?.addEventListener('click', () => { hidePop(); convertToA4(); });
+    p.querySelector('[data-a="clear"]').onclick = () => { hidePop(); clearBoard(); };
     p.querySelector('[data-a="pngT"]').onclick = () => { hidePop(); exportPng(true); };
     p.querySelector('[data-a="lousa"]').onclick = () => { hidePop(); exportLousa(); };
     p.querySelector('[data-a="keys"]').onclick = () => { hidePop(); showKeys(); };
     p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
+    p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); resetBars(); toast('Barras de volta ao lugar padrão'); };
   });
 }
 
@@ -1789,6 +1982,7 @@ function pageMenu(anchor) {
 // modo apresentação: tela cheia, só a mini-bandeja; setas/PageDown passam a página
 function setPresent(on) {
   present = !!on;
+  if (present) lockBars();
   const b = $('board');
   b.classList.toggle('present', present);
   $('presentbar').hidden = !present;

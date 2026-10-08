@@ -8,6 +8,8 @@ const measureCtx = document.createElement('canvas').getContext('2d');
 
 // ---------- fundo (tipos de folha em paper.js) ----------
 export { drawBackground, isDark } from './paper.js';
+import { shapeSvg } from './shapelib.js';
+import { svgDataUrl } from './library.js';
 import { drawBackground, isDark } from './paper.js';
 
 // ---------- itens ----------
@@ -175,8 +177,11 @@ function drawShape(ctx, s) {
   ctx.lineWidth = s.width;
   shapePath(ctx, s);
   if (s.fill && s.kind !== 'line' && s.kind !== 'arrow') { ctx.fillStyle = s.fill; ctx.fill(); }
+  if (s.dash) ctx.setLineDash([s.width * 3, s.width * 2.5]);
   ctx.stroke();
+  ctx.setLineDash([]);
   if (s.kind === 'arrow') arrowHead(ctx, s.x1, s.y1, s.x2, s.y2, Math.max(14, s.width * 4), s.width);
+  if (s.kind === 'arrow' && s.both) arrowHead(ctx, s.x2, s.y2, s.x1, s.y1, Math.max(14, s.width * 4), s.width);
   ctx.restore();
 }
 
@@ -253,19 +258,36 @@ function drawNote(ctx, it) {
   ctx.restore();
 }
 
-function getImage(it) {
-  let img = imgCache.get(it.src);
+function getImage(it, src = it.src) {
+  let img = imgCache.get(src);
   if (!img) {
     img = new Image();
     img.onload = () => onImageLoad();
-    img.src = it.src;
-    imgCache.set(it.src, img);
+    img.src = src;
+    imgCache.set(src, img);
   }
   return img;
 }
 
+// forma da biblioteca ({lib, tint}): desenhada a partir da própria biblioteca na cor `tint`;
+// tinta preta em fundo escuro aparece branca (como o traço preto). Sem a forma na biblioteca, usa o `src` gravado.
+const libSrcCache = new Map();
+export function libSrc(id, color) {
+  const k = id + color;
+  if (!libSrcCache.has(k)) { const m = shapeSvg(id, color); libSrcCache.set(k, m ? svgDataUrl(m.svg) : null); }
+  return libSrcCache.get(k);
+}
+// imagem que de fato é desenhada (o PNG/PDF e a miniatura esperam por esta, não pelo src gravado)
+function srcOf(it) {
+  if (!it.lib) return it.src;
+  const t = it.tint ?? (it.src?.includes('%23000000') ? '#000000' : null);
+  if (!t) return it.src;
+  return libSrc(it.lib, darkBg && t === '#000000' ? '#ffffff' : t) || it.src;
+}
+// imagem já carregada do item (ou null) — a borracha usa para tocar só no desenho da forma
+export function loadedImage(it) { const img = getImage(it, srcOf(it)); return img.complete && img.naturalWidth ? img : null; }
 function drawImage(ctx, it) {
-  const img = getImage(it);
+  const img = getImage(it, srcOf(it));
   if (img.complete && img.naturalWidth) ctx.drawImage(img, it.x, it.y, it.w, it.h);
   else {
     ctx.fillStyle = 'rgba(0,0,0,0.06)';
@@ -273,11 +295,14 @@ function drawImage(ctx, it) {
   }
 }
 
-export function imagesReady(items) {
+export function imagesReady(items, dark = darkBg) {
+  const prev = darkBg; darkBg = dark;
+  try {
   return Promise.all(items.filter(i => i.type === 'image').map(i => {
-    const img = getImage(i);
+    const img = getImage(i, srcOf(i));
     return img.complete ? null : new Promise(r => { img.addEventListener('load', r); img.addEventListener('error', r); });
   }));
+  } finally { darkBg = prev; }
 }
 
 // ---------- geometria ----------
@@ -293,7 +318,7 @@ export function bbox(it) {
         if (p[i] < x1) x1 = p[i]; if (p[i] > x2) x2 = p[i];
         if (p[i + 1] < y1) y1 = p[i + 1]; if (p[i + 1] > y2) y2 = p[i + 1];
       }
-      const m = it.width * (it.pr ? 0.75 : 0.5) + (it.arrow ? it.width * 4 : 0);
+      const m = it.width * (it.style === 'calligraphy' ? 0.95 : it.pr ? 0.75 : 0.5) + (it.arrow ? it.width * 4 : 0);
       b = { x: x1 - m, y: y1 - m, w: x2 - x1 + 2 * m, h: y2 - y1 + 2 * m };
       break;
     }
@@ -488,9 +513,9 @@ export function recognizeShape(stroke) {
 // ---------- renderização para imagem (exportação / miniatura) ----------
 export async function renderToCanvas(board, opts = {}) {
   const items = board.items;
-  await imagesReady(items);
+  await imagesReady(items, !opts.transparent && isDark(board.background.color));
   const pad = opts.pad ?? 40;
-  const box = unionBox(items) || { x: 0, y: 0, w: 800, h: 500 };
+  const box = opts.box || unionBox(items) || { x: 0, y: 0, w: 800, h: 500 };
   const bx = box.x - pad, by = box.y - pad, bw = box.w + pad * 2, bh = box.h + pad * 2;
   let scale;
   if (opts.fit) scale = Math.min(opts.fit.w / bw, opts.fit.h / bh);

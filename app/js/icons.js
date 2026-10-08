@@ -41,6 +41,11 @@ export const ICON = {
   rect: s('<rect x="4" y="6" width="16" height="12" rx="1"/>'),
   ellipse: s('<ellipse cx="12" cy="12" rx="8.5" ry="6.5"/>'),
   triangle: s('<path d="M12 4l9 16H3z"/>'),
+  lined: s('<path d="M5 19L19 5" stroke-dasharray="3 3"/>'),
+  arrow2: s('<path d="M5 19L19 5M11 5h8v8M13 19H5v-8"/>'),
+  arrowd: s('<path d="M5 19L19 5" stroke-dasharray="3 3"/><path d="M11 5h8v8"/>'),
+  lock: s('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+  unlock: s('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.8"/>'),
 };
 
 // substitui pelos ícones oficiais da Microsoft (mesmo estilo do Whiteboard)

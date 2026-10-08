@@ -116,5 +116,24 @@ teste('tabela periódica tem 118 elementos e cabe inteira', () => {
   if (t.h < 800) throw new Error(`altura ${t.h} corta a linha dos actinídeos`);
 });
 
+// ------------------------------------------------------------------
+console.log('Formas técnicas (shapelib.js)');
+const SL = await mod('shapelib.js');
+teste('ids únicos e todos os grupos com formas', () => {
+  const ids = SL.ALL_SHAPES.map(s => s[0]);
+  igual(new Set(ids).size, ids.length, 'ids repetidos');
+  for (const g of SL.GROUPS) for (const [sec, list] of g.secoes) if (!list.length) throw new Error(`seção ${g.id}/${sec} vazia`);
+});
+teste('cada forma vira SVG bem formado na cor pedida', () => {
+  for (const [id] of SL.ALL_SHAPES) {
+    const m = SL.shapeSvg(id, '#e81224');
+    if (!(m.w > 0 && m.h > 0)) throw new Error(`${id}: tamanho inválido`);
+    if (m.svg.includes('#C')) throw new Error(`${id}: cor não aplicada`);
+    if (/NaN|undefined/.test(m.svg)) throw new Error(`${id}: número inválido no desenho`);
+    const abre = (m.svg.match(/<(g|text|svg)\b/g) || []).length, fecha = (m.svg.match(/<\/(g|text|svg)>/g) || []).length;
+    igual(abre, fecha, `${id}: tags desbalanceadas`);
+  }
+});
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);
