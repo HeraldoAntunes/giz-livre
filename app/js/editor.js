@@ -1,13 +1,26 @@
 // Editor do quadro: ferramentas, entrada (caneta/toque/mouse), seleção, régua, histórico e salvamento
+//
+// Índice (procure pelos marcadores "// ===== <seção> ====="):
+//   inicialização · desenho (camadas estática e de sobreposição) · régua · barra de ferramentas ·
+//   histórico e salvamento (autosave, token, gravação de emergência) · vista (zoom/pan) ·
+//   entrada do ponteiro (caneta/toque/mouse: onDown/onMove/onUp) · embelezar escrita · seleção ·
+//   texto e notas · imagens e colar · teclado · menu / exportação · páginas (caderno A4 / slides) ·
+//   ferramentas de professor (transferidor, compasso, cortina, holofote, lupa, fórmula, biblioteca, escrita→texto) ·
+//   plotar função
+//
+// Estado principal: S = { id, board, items, view }. Os itens são imutáveis: toda edição cria objeto novo e passa
+// por commit(items, layout?), que alimenta o desfazer. `action` guarda o gesto em andamento (draw, erase, lasso…).
+// window.__lousa expõe S/pending/action só para testes automatizados.
 import * as R from './render.js';
-import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader } from './api.js';
+import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo } from './api.js';
 import { ICON, penIcon } from './icons.js';
 import { fillIcons, toast, showPop, hidePop, confirmBox, infoBox, aboutBox, esc } from './ui.js';
 import { VERSION } from './version.js';
 import { DEFAULT_TABLET, openTabletSettings } from './tablet.js';
 import { createStabilizer, smoothPts, resampleN } from './stabilizer.js';
 import { beautify, canBeautify, restoreOriginal, box as ptsBox } from './beautify.js';
-import { PAPERS, ANCHORED } from './paper.js';
+import { PAPERS, ANCHORED, SIZE as PAPER_SIZE, CELL } from './paper.js';
+import { compile as compileFn, plotStrokes } from './plot.js';
 import * as PG from './pages.js';
 import { slidesFromFile, slideItems, uploadAsset } from './importer.js';
 import { toggleTimer, formulaImage, validateLatex, previewLatex, recognizeInk } from './tools.js';
@@ -344,7 +357,7 @@ function drawSelection() {
   bar.querySelector('[data-sel="color"]').hidden = [...sel].every(id => byId(id)?.type === 'image');
   bar.querySelector('[data-sel="beautify"]').hidden = ![...sel].some(id => { const it = byId(id); return it && canBeautify(it); });
   bar.querySelector('[data-sel="original"]').hidden = ![...sel].some(id => byId(id)?.orig || byId(id)?.ink);
-  bar.querySelector('[data-sel="ocr"]').hidden = ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
+  bar.querySelector('[data-sel="ocr"]').hidden = serverInfo().ocr === false || ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
   bar.querySelector('[data-sel="font"]').hidden = ![...sel].some(id => byId(id)?.type === 'text');
   bar.hidden = false;
   const bw = bar.offsetWidth, bh = bar.offsetHeight;
@@ -1832,6 +1845,7 @@ function toolsPop(anchor) {
     ['curtain', ICON.curtain, 'Cortina', 'esconde a parte de baixo; arraste a alça para revelar'],
     ['spot', ICON.spotlight, 'Holofote', 'escurece tudo menos o ponteiro'],
     ['timer', ICON.timer, 'Cronômetro', 'contagem regressiva com aviso sonoro'],
+    ['plot', ICON.grid, 'Plotar função', 'digite y = x^2 − 4 e o gráfico aparece no plano cartesiano'],
     ['formula', ICON.formula, 'Fórmula (LaTeX)', 'equações nítidas: \\frac{a}{b}, x^2, \\Delta H'],
     ['library', ICON.library, 'Biblioteca', 'tabela periódica e vidrarias de laboratório'],
     ['ocr', ICON.text, 'Converter escrita em texto', 'selecione a escrita com o laço antes'],
@@ -1851,6 +1865,7 @@ function toolAction(k) {
   else if (k === 'spot') spot = spot ? null : { r: 150 };
   else if (k === 'timer') toggleTimer();
   else if (k === 'formula') formulaDialog();
+  else if (k === 'plot') plotDialog();
   else if (k === 'library') libraryPop($('tTools'));
   else if (k === 'strip') toggleStrip();
   else if (k === 'ocr') { if (sel.size) inkToText([...sel]); else { setTool('lasso'); toast('Circule a escrita com o laço e toque em "Converter em texto"'); } }
@@ -2119,6 +2134,7 @@ function libraryPop(anchor) {
 
 // ---------- escrita → texto ----------
 async function inkToText(ids) {
+  if (serverInfo().ocr === false) return toast('A conversão de escrita em texto usa o reconhecedor do Windows e não está disponível neste sistema.', 6000);
   const strokes = S.items.filter(i => ids.includes(i.id) && i.type === 'stroke' && i.tool === 'pen');
   if (!strokes.length) return toast('Selecione a escrita (traços de caneta) com o laço');
   const z = S.view.zoom;
@@ -2178,4 +2194,85 @@ function fontPop(anchor) {
       }));
     });
   }, 'above');
+}
+
+
+// ================= plotar função =================
+// sistema de coordenadas do plano cartesiano da folha: origem, px por unidade e faixa visível (em unidades)
+function cartesianFrame() {
+  const bg = S.board.background, cell = CELL * (PAPER_SIZE[bg.size] || 1);
+  let o, area;
+  if (PG.isPages(S.board)) {
+    const r = PG.pageRect(S.board.layout, curPage());
+    o = { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+    area = r;
+  } else {
+    o = bg.origin || { x: 0, y: 0 };
+    const a = toWorld(0, 0), b = toWorld(W, H);
+    area = { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
+  }
+  return {
+    ox: o.x, oy: o.y, cell,
+    xmin: (area.x - o.x) / cell, xmax: (area.x + area.w - o.x) / cell,
+    ymin: (o.y - (area.y + area.h)) / cell, ymax: (o.y - area.y) / cell,
+  };
+}
+
+function plotDialog() {
+  const bg = S.board.background, isCart = bg.pattern === 'cartesian';
+  const d = document.createElement('dialog');
+  d.className = 'formula';
+  const ultimo = cfg.lastPlot || 'x^2 - 4';
+  d.innerHTML = `<div class="dlg-head"><h3>Plotar função</h3><button class="ib" data-a="x">${ICON.close}</button></div>
+    <label class="tb-line" style="font-size:18px">y = <input id="plIn" type="text" spellcheck="false" style="flex:1;font:18px Consolas,monospace;padding:6px 8px;border:1px solid #d1d1d1;border-radius:6px" value="${esc(ultimo)}"></label>
+    <div class="fx-chips">${['x^2 - 4', '2x + 1', '2sen(x)', 'cos(x)', 'raiz(x)', '1/x', 'abs(x)', 'ln(x)', 'e^x', '-x^2 + 3x'].map(c => `<button class="btn" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="tb-line"><span>x de</span><input id="plA" type="number" step="any" style="width:80px"><span>até</span><input id="plB" type="number" step="any" style="width:80px"><small>(vazio = toda a área visível)</small></div>
+    <label class="tb-line"><input type="checkbox" id="plLabel" checked> Escrever "y = …" ao lado do gráfico</label>
+    ${isCart ? '' : '<label class="tb-line"><input type="checkbox" id="plPaper" checked> Trocar a folha para plano cartesiano (a escala vem da malha)</label>'}
+    <div class="fx-err" id="plErr"></div>
+    <small class="tb-note">Use x, números (vírgula ou ponto), + − * / ^, parênteses e sen, cos, tg, raiz, abs, ln, log, exp, pi, e. Ex.: <b>0,5x^3 − 2x</b></small>
+    <div class="acts"><button class="btn" data-a="x">Cancelar</button><button class="btn primary" data-a="ok">Plotar</button></div>`;
+  document.body.appendChild(d);
+  const inp = d.querySelector('#plIn'), err = d.querySelector('#plErr');
+  const check = () => { try { compileFn(inp.value); err.textContent = ''; return true; } catch (e) { err.textContent = e.message; return false; } };
+  inp.addEventListener('input', check);
+  d.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') d.querySelector('[data-a="ok"]').click(); }));
+  d.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { inp.value = b.dataset.c; check(); inp.focus(); });
+  const close = () => { d.close(); d.remove(); };
+  d.querySelectorAll('[data-a="x"]').forEach(b => b.onclick = close);
+  d.querySelector('[data-a="ok"]').onclick = () => {
+    if (!check()) return;
+    const expr = inp.value.trim(), f = compileFn(expr);
+    let items = S.items;
+    if (!isCart && d.querySelector('#plPaper')?.checked) {
+      const patch = { pattern: 'cartesian' };
+      if (!PG.isPages(S.board)) { const c = toWorld(W / 2, H / 2); patch.origin = { x: Math.round(c.x), y: Math.round(c.y) }; }
+      S.board.background = { ...S.board.background, ...patch };
+      syncToolbar();
+    }
+    const fr = cartesianFrame();
+    const a = parseFloat(d.querySelector('#plA').value), b = parseFloat(d.querySelector('#plB').value);
+    const xmin = isFinite(a) ? a : fr.xmin, xmax = isFinite(b) ? b : fr.xmax;
+    if (!(xmax > xmin)) { err.textContent = 'O fim do intervalo precisa ser maior que o início.'; return; }
+    const ink = currentInk(), color = inkShown(ink.color) === '#ffffff' && !R.isDark(S.board.background.color) ? '#000000' : ink.color;
+    const novos = plotStrokes(f, { ...fr, xmin, xmax, color, width: Math.max(2.5, ink.width) / S.view.zoom, id: newId }).map(s => ({ ...s, plot: expr }));
+    if (!novos.length) { err.textContent = 'A função não tem pontos visíveis nesse intervalo.'; return; }
+    if (d.querySelector('#plLabel').checked) {
+      // rótulo perto do ponto mais alto à direita da curva
+      const ult = novos[novos.length - 1].pts, lx = ult[ult.length - 3], ly = ult[ult.length - 2];
+      const size = 26 / S.view.zoom, meas = document.createElement('canvas').getContext('2d');
+      const text = 'y = ' + expr.replace(/\*/g, '·').replace(/-/g, '−').replace(/\^2(?![\d.,])/g, '²').replace(/\^3(?![\d.,])/g, '³');
+      meas.font = `${size}px "Segoe Script"`;
+      novos.push({ id: newId(), type: 'text', x: lx + 8 / S.view.zoom, y: ly - size * 1.4, text, color, size, font: 'Segoe Script', w: meas.measureText(text).width + 4 });
+    }
+    cfg.lastPlot = expr; saveCfg();
+    commit([...items, ...novos]);
+    sel = new Set(novos.map(i => i.id));
+    setTool('select');
+    scheduleSave();
+    close();
+  };
+  d.showModal();
+  inp.focus(); inp.select();
+  check();
 }

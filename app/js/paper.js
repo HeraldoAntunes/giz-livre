@@ -7,7 +7,8 @@ export const PAPERS = [
 ];
 // folhas presas a uma origem (não se repetem pelo quadro inteiro)
 export const ANCHORED = new Set(['notebook', 'cartesian', 'polar', 'cornell']);
-const SIZE = { s: 0.6, m: 1, l: 1.6 };
+export const SIZE = { s: 0.6, m: 1, l: 1.6 };
+export const CELL = 40;   // lado do quadradinho da malha em tamanho M (px de mundo)
 const STRENGTH = { soft: 0.55, normal: 1, strong: 1.8 };
 
 export function isDark(hex) {

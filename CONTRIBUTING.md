@@ -9,7 +9,8 @@ Obrigado pelo interesse! O Giz Livre é software livre (MIT), feito para profess
   1. Sem dependências novas, sem build e sem frameworks: JavaScript puro no navegador e Python só com biblioteca padrão.
   2. Os itens do quadro são **imutáveis** (cada edição cria um objeto novo). O desfazer depende disso.
   3. Teste com `python server.py --sem-janela --porta 8799 --dados <pasta-temporária>`, para não mexer nos seus quadros.
-  4. Antes do *pull request*, rode `node --check` nos arquivos JS alterados.
+  4. Antes do *pull request*, rode `node tests/testes.mjs` (todos devem passar) e `node --check` nos arquivos JS
+     alterados. Para entender o código, leia `docs/ARQUITETURA.md`.
   5. Textos da interface em português do Brasil, com acentuação correta.
 
 Ao contribuir, você concorda em licenciar a sua contribuição sob a licença MIT do projeto.

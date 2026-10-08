@@ -41,6 +41,7 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | Letra mais bonita | botão ✦: Suave / Moderado / Forte; ajusta cada palavra assim que você passa para a próxima |
 | Escrita → texto | laço na escrita → botão **T** ("Converter em texto"); escolha uma fonte cursiva |
 | Ferramentas | botão **Ferramentas**: lupa de escrita, transferidor, compasso, cortina, holofote, cronômetro, fórmula LaTeX, tabela periódica, vidrarias |
+| Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… (troca a folha para plano cartesiano se precisar) |
 | Texto, nota, forma, imagem | coluna à esquerda (ou cole uma imagem com `Ctrl+V`) |
 | Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas |
 | Apresentar | botão **Apresentar**: setas ou passador mudam de slide; `B` = página em branco; `Esc` sai |

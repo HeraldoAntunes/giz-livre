@@ -16,7 +16,8 @@
   mais de 7 dias são apagadas sozinhas.
 - **Validação de entrada.** Identificadores sem `..` nem caminhos e JSON validado (rejeita `NaN`/`Infinity`) antes de
   gravar. O título é sempre texto.
-- **PowerPoint com cautela:**
+- **PowerPoint com cautela (no Windows, pelo PowerPoint; em qualquer sistema, pelo LibreOffice sem macros e com perfil
+  temporário próprio):**
   - só aceita `.pptx`/`.ppsx` (ZIP), recusa apresentações com macros e arquivos antigos ou protegidos por senha;
   - abre com macros desligadas à força (`AutomationSecurity = ForceDisable`), em modo somente leitura, sem janela, com o
     arquivo marcado como vindo da internet;

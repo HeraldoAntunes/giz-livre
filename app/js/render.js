@@ -36,9 +36,10 @@ export function drawItem(ctx, it) {
   }
 }
 
+// desenha o caminho suavizado do traço; `ctx` pode ser um contexto 2D ou um Path2D (cache)
 function strokePath(ctx, p) {
   const n = p.length / 3;
-  ctx.beginPath();
+  if (ctx.beginPath) ctx.beginPath();
   ctx.moveTo(p[0], p[1]);
   if (n === 2) { ctx.lineTo(p[3], p[4]); return; }
   for (let i = 1; i < n - 1; i++) {
@@ -207,6 +208,7 @@ function drawText(ctx, it) {
   ctx.fillStyle = it.color;
   ctx.font = `${it.size}px ${fontOf(it)}`;
   ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
   wrapText(it.text, it.size, it.w, fontOf(it)).forEach((l, i) => ctx.fillText(l, it.x, it.y + i * it.size * 1.3));
   ctx.restore();
 }
@@ -245,6 +247,7 @@ function drawNote(ctx, it) {
   ctx.fillStyle = '#252423';
   ctx.font = `${size}px ${FONT}`;
   ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
   const lines = wrapText(it.text, size, it.w - pad * 2);
   lines.forEach((l, i) => ctx.fillText(l, it.x + pad, it.y + pad + i * size * 1.25));
   ctx.restore();

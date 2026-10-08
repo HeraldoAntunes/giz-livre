@@ -1,5 +1,22 @@
 # Histórico de versões
 
+## 1.0.1 (08/10/2026)
+- **Correções importantes:**
+  - traços de **marca-texto** e de **mouse** quebravam o desenho do quadro (falha da 1.0.0);
+  - textos e notas apareciam deslocados no modo caderno/slides.
+- **Novo:** **Plotar função** (Ferramentas → Plotar função). Você digita `x^2 - 4`, `2sen(x)`, `1/x`… e o gráfico é
+  desenhado no plano cartesiano, na escala da grade, cortando as descontinuidades.
+- **Novo: Linux e macOS (experimental).**
+  - script `giz-livre.sh`;
+  - janela no Chrome/Chromium/Edge;
+  - PowerPoint convertido pelo **LibreOffice**, que também serve no Windows sem Office.
+- O botão "Converter em texto" só aparece onde existe o reconhecedor de escrita (Windows).
+- **Página do projeto:** capturas de tela, botão de download, requisitos por sistema, perguntas frequentes e modelos de
+  *issue*.
+- **Para desenvolvedores:**
+  - suíte de testes (`node tests/testes.mjs`, 31 testes);
+  - guia de arquitetura (`docs/ARQUITETURA.md`).
+
 ## 1.0.0 (08/10/2026): primeira versão pública
 - **Quadro:**
   - quadro livre infinito no estilo do Microsoft Whiteboard;

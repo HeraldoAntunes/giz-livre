@@ -1,12 +1,15 @@
 // Comunicação com o servidor local (server.py)
 // Todo pedido que altera dados leva o token da sessão (X-Lousa): bloqueia sites de fora (CSRF) e janelas antigas.
-let TOKEN = '';
+let TOKEN = '', INFO = {};
 export async function initSession() {
   const r = await fetch('/api/info');
   const j = await r.json();
   TOKEN = j.token || '';
+  INFO = j;
   return j;
 }
+// recursos que dependem do sistema: { pptx: 'powerpoint' | 'libreoffice' | null, ocr: bool, sistema }
+export const serverInfo = () => INFO;
 export async function wfetch(url, opts = {}) {
   const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Lousa': TOKEN } });
   if (r.status === 409) sessionLost('O Giz Livre foi reaberto por outra janela ou cópia. Recarregue esta página para continuar salvando.');

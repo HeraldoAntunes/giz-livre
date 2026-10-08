@@ -22,6 +22,8 @@ import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+WINDOWS = sys.platform == "win32"
+MAC = sys.platform == "darwin"
 CONGELADO = getattr(sys, "frozen", False)          # rodando como GizLivre.exe (PyInstaller)
 PACOTE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).resolve().parent
@@ -55,7 +57,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.0.0"
+VERSAO = "1.0.1"
 ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)$")
 TIPOS = {"png": "image/png", "jpg": "image/jpeg"}
@@ -191,7 +193,9 @@ class Handler(SimpleHTTPRequestHandler):
             lista.sort(key=lambda x: x["updated"], reverse=True)
             return self._json(lista)
         if rota == "/api/info":
-            return self._json({"versao": VERSAO, "dados": str(DADOS), "pptx": tem_powerpoint(), "token": TOKEN})
+            return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
+                               "pptx": "powerpoint" if tem_powerpoint() else ("libreoffice" if achar_libreoffice() else None),
+                               "ocr": WINDOWS})
         if rota == "/api/ping":
             return self._json({"ok": True})
         if rota.startswith("/api/boards/"):
@@ -430,12 +434,16 @@ try {
 
 
 def powerpoint_rodando() -> bool:
+    if not WINDOWS:
+        return False
     r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq POWERPNT.EXE", "/NH"], capture_output=True, text=True,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return "POWERPNT" in (r.stdout or "").upper()
 
 
 def tem_powerpoint() -> bool:
+    if not WINDOWS:
+        return False
     try:
         import winreg
         winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"PowerPoint.Application")
@@ -468,10 +476,45 @@ def registrar(e: Exception) -> None:
         print(f"[Lousa] {type(e).__name__}: {e}", file=sys.stderr)
 
 
+def achar_libreoffice() -> str | None:
+    for nome in ("soffice", "libreoffice"):
+        caminho = shutil.which(nome)
+        if caminho:
+            return caminho
+    for c in (os.path.expandvars(r"%ProgramFiles%\LibreOffice\program\soffice.exe"),
+              os.path.expandvars(r"%ProgramFiles(x86)%\LibreOffice\program\soffice.exe"),
+              "/Applications/LibreOffice.app/Contents/MacOS/soffice"):
+        if os.path.exists(c):
+            return c
+    return None
+
+
+def converter_pptx_libreoffice(conteudo: bytes, ext: str) -> bytes:
+    """PowerPoint -> PDF pelo LibreOffice (Linux, Mac ou Windows sem PowerPoint). A interface lê o PDF com o pdf.js."""
+    soffice = achar_libreoffice()
+    with tempfile.TemporaryDirectory(prefix="giz-pptx-", ignore_cleanup_errors=True) as tmp:
+        arq = Path(tmp) / ("apresentacao" + ext)
+        arq.write_bytes(conteudo)
+        perfil = (Path(tmp) / "perfil").as_uri()   # perfil próprio: não conflita com um LibreOffice aberto
+        try:
+            r = subprocess.run([soffice, "--headless", "--norestore", "--nolockcheck", f"-env:UserInstallation={perfil}",
+                                "--convert-to", "pdf", "--outdir", tmp, str(arq)],
+                               capture_output=True, timeout=180, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except subprocess.TimeoutExpired:
+            raise ValueError("O LibreOffice demorou demais para converter. Salve como PDF e importe o PDF.")
+        pdf = Path(tmp) / "apresentacao.pdf"
+        if r.returncode != 0 or not pdf.exists():
+            raise RuntimeError((r.stderr or r.stdout).decode("utf-8", "replace")[-300:])
+        return pdf.read_bytes()
+
+
 def converter_pptx(conteudo: bytes, nome: str = "", largura: int = 1920) -> dict:
     ext = checar_pptx(conteudo)
     if not tem_powerpoint():
-        raise ValueError("O PowerPoint não está instalado neste computador. Salve os slides como PDF e importe o PDF.")
+        if achar_libreoffice():
+            return {"pdf": base64.b64encode(converter_pptx_libreoffice(conteudo, ext)).decode("ascii")}
+        raise ValueError("Para abrir PowerPoint é preciso ter o PowerPoint ou o LibreOffice (gratuito) instalado. "
+                         "Outra saída: salve os slides como PDF e importe o PDF.")
     with tempfile.TemporaryDirectory(prefix="lousa-pptx-", ignore_cleanup_errors=True) as tmp:
         arq = Path(tmp) / ("apresentacao" + ext)
         arq.write_bytes(conteudo)
@@ -535,6 +578,8 @@ ConvertTo-Json -Compress -Depth 4 @{ palavras = $saida }
 
 
 def reconhecer_escrita(strokes: list) -> list:
+    if not WINDOWS:
+        raise ValueError("A conversão de escrita em texto usa o reconhecedor do Windows e não existe neste sistema.")
     with tempfile.TemporaryDirectory(prefix="lousa-ocr-") as tmp:
         entrada = Path(tmp) / "tracos.json"
         entrada.write_text(json.dumps({"strokes": [[round(float(v), 1) for v in tr] for tr in strokes]}), encoding="utf-8")
@@ -627,6 +672,8 @@ def pedir_saida(porta: int, info: dict) -> bool:
     # versão antiga (sem /api/sair): só mata se for mesmo umo Giz Livre e o professor concordar
     if not (info.get("lousa_antiga") or token):
         return False
+    if not WINDOWS:
+        return False
     if not confirmar(f"Há outra cópia do Giz Livre aberta (porta {porta}). Fechá-la para abrir esta?"):
         return False
     ps = (f"$c = Get-NetTCPConnection -LocalPort {porta} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; "
@@ -650,16 +697,27 @@ def confirmar(msg: str) -> bool:
 
 
 def abrir_janela(url: str) -> None:
-    candidatos = [
-        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
-        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
-    ]
+    """Abre o programa numa janela própria (modo app) do Edge/Chrome/Chromium; senão, no navegador padrão."""
+    if WINDOWS:
+        candidatos = [
+            os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+            os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+            os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+            os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+        ]
+    elif MAC:
+        candidatos = [f"/Applications/{a}.app/Contents/MacOS/{a}" for a in
+                      ("Google Chrome", "Microsoft Edge", "Chromium", "Brave Browser")]
+    else:
+        candidatos = [shutil.which(n) or "" for n in
+                      ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "brave-browser")]
     for exe in candidatos:
-        if os.path.exists(exe):
-            subprocess.Popen([exe, f"--app={url}", "--start-maximized"])
-            return
+        if exe and os.path.exists(exe):
+            try:
+                subprocess.Popen([exe, f"--app={url}", "--start-maximized"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return
+            except OSError:
+                continue
     webbrowser.open(url)
 
 

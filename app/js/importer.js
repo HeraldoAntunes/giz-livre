@@ -20,6 +20,12 @@ export async function slidesFromPptx(file, onProgress = () => {}) {
   const r = await wfetch('/api/pptx', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream', 'X-Nome-Arquivo': encodeURIComponent(file.name) }, body: file });
   const j = await r.json();
   if (!r.ok) throw new Error(j.erro || 'Falha ao converter o PowerPoint');
+  if (j.pdf) {
+    // sem PowerPoint (Linux, Mac ou Windows sem Office): o LibreOffice converteu para PDF, que o pdf.js lê
+    onProgress('Lendo os slides convertidos pelo LibreOffice…');
+    const bytes = Uint8Array.from(atob(j.pdf), c => c.charCodeAt(0));
+    return slidesFromPdf(new File([bytes], file.name.replace(/\.[^.]+$/, '') + '.pdf', { type: 'application/pdf' }), onProgress);
+  }
   const w = 1280, h = Math.round(1280 * j.height / j.width);
   return { size: { w, h }, srcs: j.slides, sizes: j.slides.map(() => ({ w, h })) };
 }

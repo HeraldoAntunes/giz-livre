@@ -1,5 +1,5 @@
 ﻿; Instalador do Giz Livre (Inno Setup 6). Gerado por installer\build.ps1.
-#define AppVer "1.0.0"
+#define AppVer "1.0.1"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]

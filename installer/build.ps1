@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path $PSScriptRoot -Parent
 Set-Location $raiz
-$versao = '1.0.0'
+$versao = '1.0.1'
 
 # 1) ambiente de build dedicado, recriado do zero, com dependências fixadas por hash
 $py313 = Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'

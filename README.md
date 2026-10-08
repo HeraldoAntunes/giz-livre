@@ -1,70 +1,100 @@
+<p align="center"><img src="docs/img/capa.png" alt="Giz Livre: lousa digital livre e offline" width="820"></p>
+
 # Giz Livre
 
 **Lousa digital livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.**
-Nasceu como substituta do Microsoft Whiteboard para Windows, descontinuado em outubro de 2026, e foi além: caderno A4,
-slides do PowerPoint com escrita por cima, ferramentas de professor e embelezamento da escrita.
+Nasceu como substituta do Microsoft Whiteboard para Windows (descontinuado em outubro de 2026) e foi além: caderno A4,
+slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, fórmulas e ferramentas de professor.
 
-- **Versão:** 1.0.0 (ver [CHANGELOG.md](CHANGELOG.md))
-- **Licença:** [MIT](LICENSE): uso, cópia, modificação e distribuição livres e gratuitos
-- **Sistema:** Windows 10/11 (o navegador Edge ou Chrome é usado como janela do programa)
+<p align="center">
+  <a href="https://github.com/HeraldoAntunes/giz-livre/releases/latest"><b>⬇ Baixar o Giz Livre para Windows</b></a>
+  &nbsp;·&nbsp; <a href="docs/GUIA-DE-USO.md">Guia de uso</a>
+  &nbsp;·&nbsp; <a href="#linux-e-macos-experimental">Linux e macOS</a>
+  &nbsp;·&nbsp; <a href="#perguntas-frequentes">Perguntas frequentes</a>
+</p>
 
-> **Aviso:** este é um projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de
-> qualquer tipo**. Os autores não se responsabilizam por perda de dados, danos ou mau uso. Faça backup dos seus quadros
-> (pasta `quadros`). O projeto não tem vínculo com a Microsoft, a Wacom nem outras empresas citadas.
+- **Grátis e livre:** licença [MIT](LICENSE). Use, copie e distribua à vontade, inclusive em escolas e redes de ensino.
+- **Sem internet, sem conta, sem anúncios:** os quadros ficam só no seu computador.
+- **Versão:** 1.0.1 ([novidades](CHANGELOG.md))
 
----
+> **Aviso:** projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de qualquer
+> tipo**. Faça backup dos seus quadros. Não há vínculo com a Microsoft, a Wacom nem outras marcas citadas.
 
-## Recursos
-- **Quadro livre infinito**, no estilo do Whiteboard:
-  - 4 canetas com pressão, marca-texto, ponteiro laser, borracha (de traço inteiro ou parcial), laço, seleção (mover,
-    redimensionar, girar), régua, formas e tinta→forma;
-  - notas adesivas, texto, imagens;
-  - desfazer/refazer e salvamento automático.
-- **Mesa digitalizadora** (Wacom, XP-Pen, Huion, Gaomon, telas com caneta):
-  - pressão via Windows Ink, botão lateral configurável e ponta-borracha;
-  - **estabilizador modular** contra tremido;
-  - painel de teste e diagnóstico.
-- **Escrita mais bonita:**
-  - embelezar automático (endireita a linha, corrige a inclinação, iguala altura e espaçamento);
-  - estilos tinteiro, caligrafia e pincel;
-  - **escrita à mão → texto** com fonte cursiva (reconhecedor do Windows, em português, offline).
-- **13 tipos de folha:** quadriculada, milimetrada, pontilhada, pautada, caderno, caligrafia, isométrica, hexagonal,
-  plano cartesiano, polar, pauta musical, Cornell.
-- **Caderno A4** (e A3, 16:9): páginas prontas para **imprimir e exportar PDF**.
-- **Slides:** abra um **PowerPoint** ou **PDF**; cada slide vira uma página para escrever por cima. **Modo apresentação**
-  passa com as setas ou com o passador.
-- **Ferramentas de professor:** lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote,
-  cronômetro, **fórmulas LaTeX** e biblioteca (tabela periódica, vidrarias).
-- **Privacidade:** tudo fica no seu computador. Sem internet, sem conta, sem telemetria.
+## Como baixar e instalar (Windows)
+1. Abra a página de **[downloads (Releases)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)**.
+2. Baixe o arquivo que serve para você:
 
-## Instalação
+   | Arquivo | Para quem |
+   |---|---|
+   | **`Instalar-GizLivre-x.y.z.exe`** ⭐ | **quase todo mundo.** Dois cliques e "Avançar": cria os atalhos e não pede senha de administrador |
+   | `GizLivre-x.y.z-portatil.zip` | quem quer levar num pendrive sem instalar: descompacte e abra `GizLivre.exe` |
+   | Código-fonte | só para quem vai estudar ou modificar o programa |
 
-### Opção 1: instalador (recomendado)
-1. Baixe `Instalar-GizLivre-1.0.0.exe` na página de *Releases*.
-2. Confira o SHA-256 (opcional, mas recomendado):
-   ```bash
-   certutil -hashfile Instalar-GizLivre-1.0.0.exe SHA256
-   ```
-   Compare com `SHA256SUMS.txt`.
-3. Rode o instalador. Ele **não precisa de administrador** e cria atalhos na Área de Trabalho e no Menu Iniciar.
-   Os quadros ficam em `Documentos\Giz Livre\quadros`.
+3. Abra pelo atalho **Giz Livre** na Área de Trabalho ou no Menu Iniciar.
 
 O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa não tem assinatura digital paga. Clique em
-*Mais informações → Executar assim mesmo*. Veja [SECURITY.md](SECURITY.md).
-
-### Opção 2: a partir do código (precisa de Python 3.10+)
+*Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
+`SHA256SUMS.txt` da mesma página:
 ```bash
-git clone <url-do-repositorio>
+certutil -hashfile Instalar-GizLivre-1.0.1.exe SHA256
 ```
-Depois dê dois cliques em `Giz Livre.bat`, ou rode:
+
+## Como é
+| Caderno A4 com plano cartesiano | Slides do PowerPoint anotados |
+|---|---|
+| ![Função quadrática num caderno A4 com plano cartesiano](docs/img/funcao-quadratica.png) | ![Slide do PowerPoint com anotações a caneta e marca-texto](docs/img/slides-anotados.png) |
+| **Química: tabela periódica, vidrarias e fórmula** | **Lousa verde com tinta branca** |
+| ![Quadro com tabela periódica, vidrarias e a fórmula da constante de equilíbrio](docs/img/quimica.png) | ![Lousa verde com fórmula e gráfico](docs/img/lousa-verde.png) |
+
+## Recursos
+- **Escrever:**
+  - 4 canetas com pressão, estilos tinteiro, caligrafia e pincel;
+  - marca-texto, ponteiro laser, borracha (de traço inteiro ou só onde passar);
+  - formas, texto, notas adesivas e imagens.
+- **Mesa digitalizadora** (Wacom, XP-Pen, Huion, Gaomon, telas com caneta):
+  - pressão, botão lateral e ponta-borracha;
+  - **estabilizador contra tremido**;
+  - painel de teste.
+- **Escrita mais bonita:**
+  - **embelezar escrita** (endireita a linha e iguala altura e espaço, sem trocar a sua letra);
+  - **escrita à mão → texto** em fonte cursiva (no Windows, offline).
+- **Folhas:** quadriculada, milimetrada, pontilhada, pautada, caderno, caligrafia, isométrica, hexagonal, plano
+  cartesiano, polar, pauta musical e Cornell, com fundo branco, creme, verde-lousa ou preto.
+- **Caderno A4** (e A3, 16:9): páginas prontas para **imprimir e exportar PDF**.
+- **Slides:** abra um **PowerPoint** ou **PDF**; cada slide vira uma página para escrever por cima. O **modo
+  apresentação** passa os slides com as setas ou com o passador.
+- **Ferramentas de professor:**
+  - **plotar função** (digite `x^2 - 4` e o gráfico aparece no plano cartesiano);
+  - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
+  - **fórmulas LaTeX**;
+  - biblioteca com **tabela periódica** e **vidrarias**.
+- **Organização:** galeria com miniaturas, busca, salvamento automático, desfazer/refazer, exportar PNG/PDF/`.lousa`
+  e importar imagens do Microsoft Whiteboard.
+
+## Sistemas
+| | Windows 10/11 | Linux (experimental) | macOS (experimental) |
+|---|---|---|---|
+| Instalador e atalhos | ✅ | — (rodar pelo código) | — (rodar pelo código) |
+| Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | ✅ testado no Ubuntu | ⚠️ não testado |
+| Pressão da caneta | ✅ (Windows Ink) | ✅ geralmente, no Chrome/Chromium | ⚠️ depende do driver |
+| Abrir PowerPoint (`.pptx`) | ✅ PowerPoint ou LibreOffice | ✅ com LibreOffice | ⚠️ com LibreOffice |
+| Abrir PDF | ✅ | ✅ | ✅ |
+| Escrita à mão → texto | ✅ | ❌ (usa o reconhecedor do Windows) | ❌ |
+
+É preciso ter o **Microsoft Edge** ou o **Google Chrome/Chromium** instalado; o programa abre numa janela própria deles.
+
+### Linux e macOS (experimental)
+Precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.
 ```bash
-python server.py
+git clone https://github.com/HeraldoAntunes/giz-livre.git
 ```
-Não há dependências: só a biblioteca padrão do Python.
+```bash
+cd giz-livre && ./giz-livre.sh
+```
+Os quadros ficam na pasta `quadros`, dentro da pasta do programa. Encontrou algum problema? Abra uma
+[issue](https://github.com/HeraldoAntunes/giz-livre/issues) contando o sistema e a mesa que você usa.
 
-## Uso rápido
-Veja o [Guia de uso](docs/GUIA-DE-USO.md). Os principais atalhos:
-
+## Atalhos de teclado
 | Tecla | Ação | Tecla | Ação |
 |---|---|---|---|
 | `1`–`4` / `P` | canetas | `E` | borracha |
@@ -75,41 +105,47 @@ Veja o [Guia de uso](docs/GUIA-DE-USO.md). Os principais atalhos:
 | `Ctrl+0` | ajustar à tela | `Tab` | modo aula (esconde as barras) |
 | `PageUp`/`PageDown` | página anterior/próxima | `F11` | tela cheia |
 
-### Mesa digitalizadora (Wacom)
-Em *Propriedades da Mesa Wacom* → **Mapeamento**:
-- marque **Usar Windows Ink**;
-- na Intuos (mesa sem tela), mapeie para **um monitor só** e marque **Forçar proporções**.
+No macOS, use `Cmd` no lugar de `Ctrl`. Os atalhos podem ser associados às teclas da mesa digitalizadora (ExpressKeys) no
+driver dela.
 
-Depois abra **Caneta e escrita** no Giz Livre e escreva na área de teste.
+## Perguntas frequentes
+**É de graça mesmo?** Sim. É software livre (licença MIT): pode usar, copiar, instalar em quantos computadores quiser e
+distribuir.
 
-### Trazer quadros do Microsoft Whiteboard
-Exporte cada quadro como imagem no Whiteboard. Na galeria do Giz Livre, use **Importar**: cada imagem vira um quadro.
+**Precisa de internet?** Não. Tudo funciona offline, e o programa não envia nada para fora do computador.
+
+**Onde ficam os meus quadros?** Na versão instalada, em `Documentos\Giz Livre\quadros`. Na portátil e no Linux/macOS,
+na pasta `quadros` ao lado do programa. Para fazer backup, copie essa pasta.
+
+**Funciona com a minha mesa digitalizadora?** Se ela funciona no Windows com o **Windows Ink** ligado no driver, funciona
+no Giz Livre. Veja o passo a passo no [Guia de uso](docs/GUIA-DE-USO.md#2-primeira-vez-com-mesa-digitalizadora-5-minutos).
+
+**Consigo usar os quadros do Microsoft Whiteboard?** Exporte cada quadro como imagem no Whiteboard e use **Importar** na
+galeria do Giz Livre: cada imagem vira um quadro em que dá para continuar escrevendo.
+
+**O antivírus reclamou. É seguro?** O executável passa pelo Microsoft Defender antes de cada publicação, e você pode
+conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há assinatura digital paga. Veja
+[SECURITY.md](SECURITY.md).
+
+**Posso usar na minha escola ou rede de ensino?** Pode, à vontade, mantendo o aviso de licença.
+
+**Encontrei um erro ou tenho uma ideia.** Abra uma [issue](https://github.com/HeraldoAntunes/giz-livre/issues/new/choose).
 
 ## Tecnologias
 - **Interface:** HTML, CSS e JavaScript puro (módulos ES), desenhada em `<canvas>`, sem build e sem frameworks.
-- **Servidor local:** Python, só biblioteca padrão (`http.server`), em `127.0.0.1`.
+- **Servidor local:** Python, só biblioteca padrão, em `127.0.0.1`, com proteção contra pedidos de outros sites.
 - **Bibliotecas embutidas:** pdf.js (Mozilla), KaTeX, Fluent UI System Icons (Microsoft). Ver
   [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-- **Recursos do Windows:** Windows Ink (caneta e reconhecimento de escrita) e PowerPoint via COM (opcional, para `.pptx`).
-- **Empacotamento:** PyInstaller (executável) e Inno Setup (instalador).
+- **Recursos do sistema (opcionais):**
+  - Windows Ink (caneta e reconhecimento de escrita);
+  - PowerPoint (COM) ou LibreOffice para `.pptx`.
+- **Empacotamento:** PyInstaller e Inno Setup.
 
-## Estrutura
-```
-server.py              servidor local (API dos quadros, PDF, PowerPoint, reconhecimento de escrita)
-app/                   interface (index.html, style.css, js/, vendor/)
-  js/editor.js         ferramentas, entrada da caneta, seleção, histórico, salvamento
-  js/render.js         desenho dos itens, contorno do traço, geometria
-  js/pages.js          caderno/slides, PDF e impressão
-  js/stabilizer.js     estabilizador do traço       js/beautify.js   embelezar escrita
-  js/paper.js          tipos de folha                js/tools.js      cronômetro, fórmulas, escrita→texto
-  js/importer.js       PowerPoint/PDF                js/library.js    tabela periódica e vidrarias
-installer/             receita do executável e do instalador
-docs/                  guia de uso
-```
+Para entender o código, veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 ## Contribuir
-Sugestões e correções são bem-vindas por *issues* e *pull requests*. Veja [CONTRIBUTING.md](CONTRIBUTING.md).
+Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](CONTRIBUTING.md) e a política de segurança em
+[SECURITY.md](SECURITY.md).
 
 ## Licença
-[MIT](LICENSE) © 2026 Heraldo Antunes. Software livre: pode usar, copiar, modificar e distribuir, inclusive em escolas e
-instituições, sem custo, mantendo o aviso de licença.
+[MIT](LICENSE) © 2026 Heraldo Antunes.

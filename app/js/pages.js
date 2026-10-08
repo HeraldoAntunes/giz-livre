@@ -63,6 +63,7 @@ export function drawPages(ctx, board, view, w, h) {
       ctx.fillStyle = dark ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.4)';
       ctx.font = '12px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       ctx.fillText(String(i + 1), sx + sw / 2, sy + sh + 6);
+      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';  // não vaza para o desenho dos itens
     }
   }
 }
