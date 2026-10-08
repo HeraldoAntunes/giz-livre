@@ -66,6 +66,8 @@ export function aboutBox(version) {
     <p style="margin:0 0 8px;font-size:12px;color:#616161">Fornecido "no estado em que se encontra", <b>sem garantia de qualquer
     tipo</b>. Os autores não se responsabilizam por perda de dados, danos ou mau uso. Faça backup da pasta <i>quadros</i>.
     Projeto independente, sem vínculo com Microsoft, Wacom ou outras marcas citadas.</p>
+    <p style="margin:0 0 8px;font-size:12px;color:#616161"><b>Desinstalar:</b> Menu Iniciar → "Desinstalar o Giz Livre", ou
+    Configurações do Windows → Aplicativos → Giz Livre. Os quadros (Documentos\\Giz Livre\\quadros) são mantidos.</p>
     <p style="margin:0;font-size:12px;color:#616161">Usa pdf.js (Apache 2.0), KaTeX (MIT) e Fluent UI System Icons (MIT).
     Funciona sem internet; nada é enviado para fora do computador.</p>`);
 }

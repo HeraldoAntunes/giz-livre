@@ -201,6 +201,7 @@ $('gSearch').addEventListener('input', renderGrid);
 $('gSort').addEventListener('change', renderGrid);
 $('gImport').onclick = () => $('gImportFile').click();
 $('gAbout').onclick = () => aboutBox(VERSION);
+$('gVer').textContent = 'versão ' + VERSION;
 $('gSlideFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await createFromSlides(f); });
 $('gTablet').onclick = () => openTabletSettings(tabletCfg(), saveTabletCfg);
 $('gImportFile').addEventListener('change', async e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) await importFiles(f); });

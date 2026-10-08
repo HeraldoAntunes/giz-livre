@@ -1,5 +1,5 @@
 ﻿; Instalador do Giz Livre (Inno Setup 6). Gerado por installer\build.ps1.
-#define AppVer "1.0.2"
+#define AppVer "1.0.3"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]
@@ -46,6 +46,7 @@ Source: "..\docs\GUIA-DE-USO.md"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 Name: "{autoprograms}\Giz Livre"; Filename: "{app}\GizLivre.exe"; Comment: "Lousa livre e offline para aulas"
 Name: "{autoprograms}\Giz Livre - pasta dos quadros"; Filename: "{userdocs}\Giz Livre\quadros"
+Name: "{autoprograms}\Desinstalar o Giz Livre"; Filename: "{uninstallexe}"; Comment: "Remove o programa; os quadros ficam guardados"
 Name: "{autodesktop}\Giz Livre"; Filename: "{app}\GizLivre.exe"; Tasks: desktopicon
 
 [Dirs]

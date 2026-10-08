@@ -36,7 +36,7 @@ O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa nã
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página:
 ```bash
-certutil -hashfile Instalar-GizLivre-1.0.2.exe SHA256
+certutil -hashfile Instalar-GizLivre-1.0.3.exe SHA256
 ```
 
 ## Como é

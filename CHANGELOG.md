@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.0.3 (08/10/2026)
+- A versão aparece ao lado do título, na galeria.
+- Atalho "Desinstalar o Giz Livre" no Menu Iniciar. A janela Sobre explica como desinstalar e lembra que os quadros
+  ficam guardados.
+
 ## 1.0.2 (08/10/2026)
 - **Biblioteca de formas técnicas** (Formas → abas por disciplina, com seções e busca sem acento): **702 formas**
   desenhadas para o Giz Livre (licença MIT; ver "Autoria das formas e ícones" no README).
