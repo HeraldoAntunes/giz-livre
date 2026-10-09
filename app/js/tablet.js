@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Painel "Caneta e escrita": mesa digitalizadora, estabilizador em camadas, embelezar escrita
 // e área de teste que diagnostica o driver (Windows Ink) e grava amostras brutas.
 import { createStabilizer } from './stabilizer.js';

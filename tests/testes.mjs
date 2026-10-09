@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Testes automáticos do Giz Livre (sem dependências).  Rodar:  node tests/testes.mjs
 // Cobrem as partes "puras" do programa: desenho dos traços, interpretador de funções, estabilizador,
 // embelezar escrita e tabela periódica. O navegador é simulado com o mínimo necessário.
@@ -68,6 +69,113 @@ teste('tan(x) é cortada nas descontinuidades', () => {
   const st = P.plotStrokes(P.compile('tan(x)'), { ox: 0, oy: 0, cell: 40, xmin: -5, xmax: 5, ymin: -5, ymax: 5, color: '#00f', width: 3, id: () => ++n });
   igual(st.length, 5, 'pedaços');
 });
+for (const [expr, x, esperado] of [['xsenx', Math.PI / 2, Math.PI / 2], ['2pix', 1, 2 * Math.PI], ['SEN(X)', Math.PI / 2, 1], ['eXp(0)', 0, 1], ['x2,5', 2, 5]]) {
+  teste(`compatível: ${expr}`, () => perto(P.compile(expr)(x), esperado, 1e-9, expr));
+}
+
+console.log('Parâmetros (plot.js)');
+teste('A·sen(w·x) com objeto e com array', () => {
+  const f = P.compile('Asen(wx)', { params: ['A', 'w'] });
+  perto(f(Math.PI / 4, { A: 3, w: 2 }), 3, 1e-9, 'objeto');
+  perto(f(Math.PI / 4, [3, 2]), 3, 1e-9, 'array');
+});
+teste('nomes com dígito e longos: C0·e^(−k·x), mu, sigma', () => {
+  perto(P.compile('C0*exp(-k*x)', { params: ['C0', 'k'] })(2, { C0: 10, k: 0.5 }), 10 * Math.exp(-1), 1e-9, 'C0');
+  perto(P.compile('2C0', { params: ['C0'] })(0, { C0: 4 }), 8, 1e-9, '2C0');
+  const n = P.compile('1/(sigma*raiz(2*pi))*exp(-(x - mu)^2/(2*sigma^2))', { params: ['mu', 'sigma'] });
+  perto(n(0, { mu: 0, sigma: 1 }), 1 / Math.sqrt(2 * Math.PI), 1e-12, 'normal');
+});
+teste('padrões v vêm do catálogo; f(x) sem valores usa o padrão', () => {
+  const f = P.compile('k*x', { params: [{ n: 'k', v: 3 }] });
+  perto(f(2), 6, 1e-12, 'padrão'); perto(f(2, { k: 5 }), 10, 1e-12, 'trocado');
+  igual(f.params.join(), 'k', 'params'); igual(f.usados.join(), 'k', 'usados');
+});
+teste('parâmetro não declarado continua erro; declarado não quebra sen/tg/exp', () => {
+  let erro = null; try { P.compile('k*x'); } catch (e) { erro = e; }
+  if (!erro) throw new Error('aceitou k sem declarar');
+  perto(P.compile('tg(t)', { params: ['t'] })(0, { t: Math.PI / 4 }), 1, 1e-9, 'tg com t');
+  perto(P.compile('exp(e)', { params: ['e'] })(0, { e: 0 }), 1, 1e-12, 'parâmetro e vence a constante');
+  perto(P.compile('xsenx', { params: ['s', 'n'] })(Math.PI / 2, {}), Math.PI / 2, 1e-9, 'sen não vira s·e·n');
+});
+for (const ruim of [['x', ['x']], ['1a', ['1a']], ['k', ['k', 'k']]]) {
+  teste(`recusa parâmetro inválido ${JSON.stringify(ruim[1])}`, () => { let erro = null; try { P.compile('x', { params: ruim[1] }); } catch (e) { erro = e; } if (!erro) throw new Error('aceitou'); });
+}
+teste('animação: valor vai e volta e a curva muda', () => {
+  const an = { n: 'a', min: 1, max: 3, periodo: 2 };
+  perto(P.animValue(an, 0), 1, 1e-12, 't=0'); perto(P.animValue(an, 1), 3, 1e-12, 'meio'); perto(P.animValue(an, 0.5), 2, 1e-12, 'quarto');
+  const f = P.compile('a*x', { params: ['a'] }), fr = { ox: 0, oy: 0, cell: 10, xmin: 0, xmax: 1, ymin: -5, ymax: 5 };
+  const q = P.animatedCurve(f, fr, { a: 1 }, an, 1);
+  igual(q.valor, 3, 'valor'); const l = q.linhas[0]; perto(l[l.length - 1], -30, 1e-9, 'y do fim (mundo)');
+});
+teste('fitFrame encaixa a faixa no retângulo com escalas separadas', () => {
+  const fr = P.fitFrame({ x: 0, y: 0, w: 1000, h: 500 }, [0, 20], [0, 250], 0);
+  perto(fr.ox, 0, 1e-9, 'ox'); perto(fr.oy, 500, 1e-9, 'oy'); perto(fr.cellX, 50, 1e-9, 'cellX'); perto(fr.cellY, 2, 1e-9, 'cellY');
+  let n = 0;
+  const st = P.plotStrokes(P.compile('L0*(1-exp(-k*x))', { params: ['L0', 'k'] }), { ...fr, color: '#000', width: 2, id: () => ++n, valores: { L0: 250, k: 0.23 } });
+  igual(st.length, 1, 'um traço');
+  const p = st[0].pts; perto(p[p.length - 2], 500 - 250 * (1 - Math.exp(-4.6)) * 2, 1e-6, 'y final');
+});
+
+console.log('Eixos desenhados (plot.js)');
+teste('eixos: duas setas e marcas, no formato de traço', () => {
+  let n = 0;
+  const fr = { ox: 500, oy: 300, cell: 40, xmin: -5, xmax: 5, ymin: -3, ymax: 3 };
+  const it = P.axesStrokes(fr, { color: '#000000', width: 2, id: () => 'e' + ++n, passoX: 1, passoY: 1 });
+  const setas = it.filter(i => i.arrow);
+  igual(setas.length, 2, 'setas');
+  igual(it.length, 2 + 10 + 6, 'eixos + marcas (sem a origem)');
+  for (const s of it) {
+    igual(s.type, 'stroke', 'tipo'); igual(s.tool, 'pen', 'ferramenta'); igual(s.pts.length % 3, 0, 'pts em trios');
+    if (s.pts.some(v => !isFinite(v))) throw new Error('coordenada inválida');
+    R.drawItem(ctxFalso(), s);
+  }
+  perto(setas[0].pts[1], 300, 1e-9, 'eixo x passa pela origem');
+  igual(new Set(it.map(i => i.id)).size, it.length, 'ids únicos');
+});
+teste('eixos com números e nomes; origem fora do quadro fica na borda', () => {
+  let n = 0;
+  const fr = P.fitFrame({ x: 0, y: 0, w: 800, h: 400 }, [273, 333], [1, 15]);
+  const it = P.axesStrokes(fr, { width: 2, id: () => ++n, rotulos: true, eixoX: 'T (K)', eixoY: 'k/kref' });
+  const textos = it.filter(i => i.type === 'text');
+  if (textos.length < 4) throw new Error('poucos rótulos');
+  if (!textos.some(t => t.text === 'T (K)')) throw new Error('sem nome do eixo x');
+  const ex = it.find(i => i.arrow);
+  perto(ex.pts[1], fr.oy - 1 * fr.cellY, 1e-9, 'eixo x na borda inferior (y = 1)');
+  igual(P.fmtNum(2.5), '2,5', 'vírgula'); igual(P.fmtNum(0.1 + 0.2), '0,3', 'sem ruído');
+});
+
+console.log('Catálogo de modelos (fnmodels.js)');
+const FM = await mod('fnmodels.js');
+teste('áreas com pelo menos 5 modelos e ids únicos', () => {
+  for (const a of FM.AREAS) if (a.modelos.length < 5) throw new Error(`${a.nome}: só ${a.modelos.length}`);
+  igual(new Set(FM.MODELOS.map(m => m.id)).size, FM.MODELOS.length, 'ids repetidos');
+});
+teste('todo modelo compila e dá número finito no meio do intervalo', () => {
+  for (const m of FM.MODELOS) {
+    let f;
+    try { f = P.compile(m.expr, { params: m.params }); } catch (e) { throw new Error(`${m.id}: ${e.message}`); }
+    const xm = (m.x[0] + m.x[1]) / 2, y = f(xm);
+    if (!isFinite(y)) throw new Error(`${m.id}: y(${xm}) = ${y}`);
+    for (const p of m.params) {
+      if (!(p.min <= p.v && p.v <= p.max && p.passo > 0)) throw new Error(`${m.id}.${p.n}: padrão fora da faixa`);
+      if (!f.usados.includes(p.n)) throw new Error(`${m.id}.${p.n}: parâmetro não usado na expressão`);
+    }
+    if (!(m.x[1] > m.x[0]) || (m.y && !(m.y[1] > m.y[0]))) throw new Error(`${m.id}: faixa inválida`);
+    if (!m.eixoX || !m.eixoY || !m.nota) throw new Error(`${m.id}: falta rótulo ou nota`);
+    if (m.anima && !m.params.some(p => p.n === m.anima)) throw new Error(`${m.id}: anima aponta para parâmetro inexistente`);
+  }
+});
+teste('valores conferidos: DBO5, Streeter-Phelps, Stokes, Arrhenius, Manning, NTC', () => {
+  const v = (id, x, val) => { const m = FM.modelo(id); return P.compile(m.expr, { params: m.params })(x, val); };
+  perto(v('dbo', 5), 250 * (1 - Math.exp(-1.15)), 1e-9, 'DBO5');
+  perto(v('streeter-phelps-deficit', 0), 1, 1e-12, 'D(0) = D0');
+  perto(v('stokes', 100), 9.81 * 1650 * 1e-8 / 0.018 * 1000, 1e-9, 'Stokes 100 µm (mm/s)');
+  perto(v('arrhenius', 293.15), 1, 1e-12, 'k/kref em Tref');
+  perto(v('manning', 1), 1 / 0.013 * Math.sqrt(0.001), 1e-9, 'Manning Rh = 1');
+  perto(v('ntc', 25), 10, 1e-9, 'NTC em T0');
+  perto(v('adc', 2.6), 2.5, 1e-12, 'ADC 3 bits');
+  perto(v('meia-onda', 12.5), 0, 1e-9, 'meia onda no semiciclo negativo');
+});
 
 // ------------------------------------------------------------------
 console.log('Estabilizador (stabilizer.js)');
@@ -132,6 +240,7 @@ teste('cada forma vira SVG bem formado na cor pedida', () => {
     if (/NaN|undefined/.test(m.svg)) throw new Error(`${id}: número inválido no desenho`);
     const abre = (m.svg.match(/<(g|text|svg)\b/g) || []).length, fecha = (m.svg.match(/<\/(g|text|svg)>/g) || []).length;
     igual(abre, fecha, `${id}: tags desbalanceadas`);
+    if (/<(?![a-zA-Z\/!?])/.test(m.svg) || /&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/i.test(m.svg)) throw new Error(`${id}: < ou & sem escape no texto (o navegador não abre)`);
   }
 });
 

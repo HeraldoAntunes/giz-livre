@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 import { T, head } from './base.js';
 
 // Símbolos de elétrica desenhados do zero, seguindo as convenções da IEC 60617 e da ABNT NBR 5444.
@@ -11,6 +12,128 @@ const CA = '<path d="M45 47 Q50 41 55 47 T65 47" stroke-width="1.8"/>';
 const CC = '<path d="M45 45 H65" stroke-width="1.8"/><path d="M45 50 H65" stroke-width="1.8" stroke-dasharray="3 3"/>';
 const parede = '<path d="M6 62 H74" stroke-width="4"/>';
 const tri = '<path d="M18 58 L62 58 L40 20 Z"/>';
+
+// ---------- mais formas: fontes, transformadores, proteção, comandos, unifilar ----------
+const lt = (x, y, s, size = 11) => T(x, y, s, size).replace('font-weight="600"', 'font-weight="500"');
+const X = (x, y) => `<path d="M${x - 5} ${y - 5} L${x + 5} ${y + 5} M${x + 5} ${y - 5} L${x - 5} ${y + 5}" stroke-width="2"/>`;
+const terra = (x, y) => `<path d="M${x} ${y} V${y + 6} M${x - 14} ${y + 6} H${x + 14} M${x - 9} ${y + 13} H${x + 9} M${x - 4} ${y + 20} H${x + 4}"/>`;
+const tres = (x, y) => `<path d="M${x - 9} ${y + 6} L${x - 3} ${y - 6} M${x - 3} ${y + 6} L${x + 3} ${y - 6} M${x + 3} ${y + 6} L${x + 9} ${y - 6}" stroke-width="1.6"/>`; // marca de 3 condutores
+// bobina vertical: n meias-voltas de raio r a partir de (x, y0); lado +1 = barriga para a direita
+const bob = (x, y0, n, r, lado) => `M${x} ${y0}` + Array.from({ length: n }, (_, i) => ` A${r} ${r} 0 0 ${lado > 0 ? 1 : 0} ${x} ${y0 + 2 * r * (i + 1)}`).join('');
+// três polos verticais (corrente de baixo para cima), lâmina aberta e acoplamento mecânico tracejado
+const polos = (xs, marca) => '<path d="' + xs.map(x => `M${x} 146 V110 L${x - 18} 72 M${x} 4 V66`).join(' ') + '"/>'
+  + xs.map(marca).join('') + `<path d="M${xs[0] - 9} 91 H${xs[2] - 9}" stroke-width="1.6" stroke-dasharray="5 4"/>`;
+// contato NA (120×80) acionado por um atuador desenhado acima, ligado pela haste tracejada
+const naAt = (atuador, y1 = 32) => `<path d="M4 66 H40 L82 44 M84 66 H116"/><path d="M61 55 V${y1}" stroke-width="1.6" stroke-dasharray="4 3"/>` + atuador;
+// paraquedas de temporização (retardo) preso à lâmina em (x, y)
+const retardo = (x, y) => `<path d="M${x} ${y} V22 M${x - 12} 22 A12 12 0 0 1 ${x + 12} 22" stroke-width="1.8"/>`;
+const caixa = (dentro) => '<path d="M50 4 V20 M50 60 V76"/><rect x="24" y="20" width="52" height="40"/>' + dentro;
+const disjU = (dentro = '') => '<path d="M30 4 V30 M30 70 V96"/><rect x="12" y="30" width="36" height="40"/>' + dentro;
+
+const FONTES2 = [
+  ['el-fontecc', 'Fonte de tensão CC', 110, 70, circ(T(43, 35, '+', 18) + T(68, 35, '−', 20))],
+  ['el-fonte3f', 'Fonte CA trifásica', 110, 70, circ(T(55, 35, '3~', 19))],
+  ['el-terralimpo', 'Terra sem ruído (limpo)', 70, 70, '<path d="M8 36 A27 27 0 0 0 62 36"/>' + '<path d="M35 4 V36 M15 36 H55 M22 46 H48 M29 56 H41"/>'],
+  ['el-bep', 'Barramento de equipotencialização (BEP)', 160, 74, '<rect x="10" y="26" width="140" height="12" fill="#C"/>'
+    + '<path d="M30 38 V62 M55 38 V62 M80 38 V62 M105 38 V62 M130 38 V62" stroke-width="2"/>'
+    + '<circle cx="30" cy="65" r="3"/><circle cx="55" cy="65" r="3"/><circle cx="80" cy="65" r="3"/><circle cx="105" cy="65" r="3"/><circle cx="130" cy="65" r="3"/>' + T(80, 13, 'BEP', 15)],
+  ['el-haste', 'Haste de aterramento', 80, 130, '<path d="M6 30 H74"/><path d="M14 30 L6 38 M26 30 L18 38 M58 30 L50 38 M70 30 L62 38" stroke-width="1.6"/>'
+    + '<path d="M37 14 V114 L40 124 L43 114 V14 Z" fill="#C"/><rect x="30" y="16" width="20" height="9"/><path d="M4 20 H30"/>'],
+];
+
+const TRAFOS = [
+  ['el-tc', 'Transformador de corrente (TC)', 130, 90, '<path d="M4 30 H126"/><circle cx="65" cy="30" r="18"/><path d="M58 46.6 V80 M72 46.6 V80"/>'
+    + lt(14, 16, 'P1') + lt(116, 16, 'P2') + lt(44, 76, 'S1') + lt(86, 76, 'S2')],
+  ['el-tp', 'Transformador de potencial (TP)', 100, 130, '<circle cx="45" cy="44" r="20"/><circle cx="45" cy="74" r="20"/><path d="M45 4 V24 M65 74 H96 M45 94 V102"/>'
+    + terra(45, 102) + lt(80, 64, 'S1') + lt(20, 12, 'P1')],
+  ['el-trafo3e', 'Transformador de três enrolamentos', 140, 110, '<circle cx="54" cy="40" r="24"/><circle cx="86" cy="40" r="24"/><circle cx="70" cy="68" r="24"/>'
+    + '<path d="M4 40 H30 M110 40 H136 M70 92 V106"/>'],
+  ['el-trafotap', 'Transformador com comutador (tap)', 140, 80, '<circle cx="56" cy="40" r="24"/><circle cx="84" cy="40" r="24"/><path d="M4 40 H32 M108 40 H136"/>'
+    + '<path d="M36 74 L96 14" stroke-width="1.8"/>' + head(101, 9, -45, 11)],
+  ['el-trafodyn', 'Transformador Δ-Yn (distribuição)', 150, 80, '<circle cx="61" cy="40" r="26"/><circle cx="89" cy="40" r="26"/><path d="M4 40 H35 M115 40 H146"/>'
+    + tres(18, 40) + tres(130, 40) + '<path d="M44 47 L52 32 L60 47 Z M98 39 V49 M98 39 L90 31 M98 39 L106 31" stroke-width="1.8"/>' + lt(107, 46, 'n', 12)],
+  ['el-trafoblind', 'Transformador com blindagem', 120, 112, `<path d="${bob(30, 20, 3, 10, 1)} M30 8 V20 M30 80 V92 ${bob(90, 20, 3, 10, -1)} M90 8 V20 M90 80 V92"/>`
+    + '<path d="M50 14 V86 M70 14 V86" stroke-width="1.8"/><path d="M60 10 V90" stroke-width="1.6" stroke-dasharray="4 3"/>'
+    + '<path d="M60 90 V95 M51 95 H69 M55 101 H65 M59 107 H61" stroke-width="1.8"/>'],
+  ['el-trafoct', 'Transformador com derivação central', 120, 100, `<path d="${bob(30, 20, 3, 10, 1)} M30 8 V20 M30 80 V92 ${bob(90, 20, 4, 7.5, -1)} M90 8 V20 M90 80 V92 M90 50 H116"/>`
+    + '<path d="M56 14 V86 M64 14 V86" stroke-width="1.8"/>' + lt(108, 40, 'CT', 10)],
+  ['el-reator', 'Reator (indutor de potência)', 90, 110, '<path d="M45 4 V55 H67 A22 22 0 1 0 45 77 V106"/>'],
+];
+
+const MAQS2 = [
+  maq('el-motor3', 'Motor de indução trifásico', 'M', T(55, 47, '3~', 14)),
+  maq('el-motorsinc', 'Motor síncrono', 'MS', CA),
+  maq('el-gerador3', 'Gerador síncrono trifásico', 'GS', T(55, 47, '3~', 14)),
+  ['el-motor3t', 'Motor trifásico (U V W)', 110, 100, '<circle cx="55" cy="66" r="30"/><path d="M35 43.6 V14 M55 36 V14 M75 43.6 V14"/>'
+    + '<circle cx="35" cy="10" r="3.5"/><circle cx="55" cy="10" r="3.5"/><circle cx="75" cy="10" r="3.5"/>'
+    + T(55, 60, 'M', 20) + T(55, 80, '3~', 14) + lt(24, 26, 'U') + lt(44, 26, 'V') + lt(86, 26, 'W')],
+];
+
+const PROTECAO = [
+  ['el-disj3', 'Disjuntor tripolar', 120, 150, polos([32, 62, 92], x => X(x, 66))],
+  ['el-disjtm', 'Disjuntor termomagnético', 160, 80, '<path d="M4 60 H46 L88 36 M94 60 H156"/>' + X(94, 60)
+    + '<path d="M67 48 V32 M51 26 V32 H93 V26" stroke-width="1.6" stroke-dasharray="4 3"/>'
+    + '<rect x="34" y="6" width="34" height="20" stroke-width="1.8"/><path d="M40 21 H46 V12 H56 V21 H62" stroke-width="1.6"/>'
+    + '<rect x="76" y="6" width="34" height="20" stroke-width="1.8"/>' + T(93, 16, 'I&gt;', 13)],
+  ['el-fussecc', 'Seccionador-fusível (NH)', 140, 60, '<path d="M4 44 H36 M106 44 H136 M106 36 V52"/><circle cx="36" cy="44" r="3" fill="#C"/>'
+    + '<g transform="rotate(-25 36 44)"><path d="M36 44 H104"/><rect x="50" y="37" width="40" height="14"/></g>'],
+  ['el-reletermico', 'Relé térmico (sobrecarga)', 100, 80, caixa('<path d="M34 48 H43 V32 H57 V48 H66" stroke-width="2"/>')],
+  ['el-relesobrecorr', 'Relé de sobrecorrente', 100, 80, caixa(T(50, 40, 'I &gt;', 18))],
+  ['el-contator3', 'Contator tripolar', 130, 150, polos([36, 70, 104], x => `<path d="M${x} 66 A7 7 0 0 1 ${x - 14} 66"/>`)],
+  ['el-comutador', 'Chave comutadora (1 polo, 2 posições)', 120, 70, '<path d="M4 35 H36 L80 17 M86 14 H116 M86 56 H116"/>'
+    + '<circle cx="36" cy="35" r="3" fill="#C"/><circle cx="86" cy="14" r="3" fill="#C"/><circle cx="86" cy="56" r="3" fill="#C"/>'],
+];
+
+const COMANDOS = [
+  ['el-bobtemp', 'Bobina temporizada (retardo)', 100, 90, '<rect x="34" y="28" width="52" height="34"/><path d="M60 4 V28 M60 62 V86"/>'
+    + '<rect x="14" y="28" width="20" height="34"/><path d="M14 28 L34 62 M34 28 L14 62" stroke-width="1.6"/>'],
+  ['el-contNAtemp', 'Contato NA temporizado', 120, 70, '<path d="M4 56 H40 L82 34 M84 56 H116"/>' + retardo(61, 45)],
+  ['el-contNFtemp', 'Contato NF temporizado', 120, 70, '<path d="M4 56 H40 L92 32 M80 56 V38 M80 56 H116"/>' + retardo(60, 46.8)],
+  ['el-botemerg', 'Botoeira de emergência (cogumelo)', 120, 80, '<path d="M4 52 H36 V64 M116 52 H84 V64 M30 64 H90"/>'
+    + '<path d="M60 64 V28" stroke-width="1.8" stroke-dasharray="4 3"/><path d="M38 28 A22 18 0 0 1 82 28 Z"/>'],
+  ['el-botNANF', 'Botoeira conjugada (NA + NF)', 120, 110, '<path d="M4 42 H36 V54 M116 42 H84 V54 M30 54 H90 M4 98 H36 V90 M116 98 H84 V90 M30 82 H90 M48 8 V18 H72 V8"/>'
+    + '<path d="M60 82 V18" stroke-width="1.8" stroke-dasharray="4 3"/>'],
+  ['el-fimcurso', 'Chave fim de curso (NA)', 120, 80, naAt('<path d="M50 12 H72 L61 32 Z"/>')],
+  ['el-pressostato', 'Pressostato (NA)', 120, 80, naAt('<rect x="46" y="8" width="30" height="24"/>' + T(61, 19, 'p', 17))],
+  ['el-termostato', 'Termostato (NA)', 120, 80, naAt('<rect x="46" y="8" width="30" height="24"/>' + T(61, 20, 'θ', 17))],
+  ['el-boia', 'Chave boia (nível)', 120, 80, naAt('<circle cx="61" cy="20" r="11"/><path d="M34 24 H48 M74 24 H88" stroke-width="1.6" stroke-dasharray="4 3"/>', 31)],
+];
+
+const UNIFILAR = [
+  ['el-u-barra', 'Barramento', 220, 44, '<path d="M8 14 H212" stroke-width="6"/><path d="M50 14 V40 M110 14 V40 M170 14 V40"/>'],
+  ['el-u-disj', 'Disjuntor (unifilar, quadrado)', 60, 100, disjU()],
+  ['el-u-religador', 'Religador', 60, 100, disjU(T(30, 50, 'R', 18))],
+  ['el-u-carga', 'Carga (seta)', 50, 92, '<path d="M25 4 V72"/>' + head(25, 88, 90, 16)],
+  ['el-u-rede', 'Rede / concessionária', 120, 90, '<rect x="20" y="8" width="80" height="44"/><path d="M60 52 V86"/>'
+    + '<path d="M20 30 L42 8 M20 52 L64 8 M42 52 L86 8 M64 52 L100 16 M86 52 L100 38" stroke-width="1.2"/>'],
+  ['el-u-capbanco', 'Banco de capacitores', 80, 110, '<path d="M40 4 V44 M40 54 V78"/><path d="M22 44 H58 M22 54 H58" stroke-width="3.5"/>'
+    + tres(40, 22) + terra(40, 78)],
+  ['el-u-aterres', 'Neutro aterrado por resistor', 60, 110, '<path d="M30 4 V24 M30 64 V78"/><rect x="20" y="24" width="20" height="40"/>' + terra(30, 78)],
+  ['el-u-impedancia', 'Impedância (Z)', 140, 40, '<path d="M4 20 H36 M104 20 H136"/><rect x="36" y="8" width="68" height="24"/>' + T(70, 20, 'Z', 17)],
+  ['el-u-linhapi', 'Linha (modelo π)', 240, 96, '<path d="M9 30 H70 M110 30 H124 M188 30 H231 M9 80 H231 M40 30 V52 M40 60 V80 M200 30 V52 M200 60 V80"/>'
+    + '<rect x="70" y="20" width="40" height="20"/><path d="M124 30 A8 8 0 0 1 140 30 A8 8 0 0 1 156 30 A8 8 0 0 1 172 30 A8 8 0 0 1 188 30"/>'
+    + '<path d="M28 52 H52 M28 60 H52 M188 52 H212 M188 60 H212" stroke-width="3"/>'
+    + '<circle cx="6" cy="30" r="3"/><circle cx="6" cy="80" r="3"/><circle cx="234" cy="30" r="3"/><circle cx="234" cy="80" r="3"/>'
+    + '<circle cx="40" cy="30" r="3" fill="#C" stroke="none"/><circle cx="200" cy="30" r="3" fill="#C" stroke="none"/><circle cx="40" cy="80" r="3" fill="#C" stroke="none"/><circle cx="200" cy="80" r="3" fill="#C" stroke="none"/>'
+    + lt(90, 10, 'R') + lt(156, 12, 'L') + lt(66, 66, 'C/2') + lt(174, 66, 'C/2')],
+];
+
+const MEDICAO2 = [
+  med('el-varmetro', 'Varímetro', 'var', 17),
+  med('el-cosfimetro', 'Cosfímetro', 'cos φ', 14),
+  med('el-megometro', 'Megôhmetro', 'MΩ', 18),
+  ['el-horimetro', 'Horímetro', 120, 70, '<rect x="30" y="10" width="60" height="50"/><path d="M4 35 H30 M90 35 H116"/>' + T(60, 35, 'h', 20)],
+  ['el-alicate', 'Alicate amperímetro', 90, 150, '<path d="M50.8 8.7 A26 26 0 1 1 39.2 8.7 L41.9 20.4 A14 14 0 1 0 48.1 20.4 Z"/><circle cx="45" cy="34" r="5" fill="#C" stroke="none"/>'
+    + '<rect x="22" y="60" width="46" height="84" rx="8"/><rect x="30" y="70" width="30" height="18" stroke-width="1.6"/>' + T(45, 79, 'A', 13)
+    + '<circle cx="45" cy="114" r="10" stroke-width="1.8"/><path d="M45 114 L51 107" stroke-width="1.8"/>'],
+];
+
+const PREDIAIS2 = [
+  ['el-intduplo', 'Interruptor de duas seções', 70, 60, '<circle cx="28" cy="34" r="18"/>' + T(28, 34, 'S2', 15) + T(56, 14, 'a,b', 13)],
+  ['el-intinterm', 'Interruptor intermediário (four-way)', 70, 60, '<circle cx="28" cy="34" r="19"/>' + T(28, 34, 'S4w', 12) + T(58, 14, 'a', 14)],
+  ['el-luzfluor', 'Luminária fluorescente', 120, 60, '<rect x="8" y="16" width="104" height="28"/><circle cx="60" cy="30" r="9"/><path d="M18 30 H51 M69 30 H102" stroke-width="1.6"/>'],
+  ['el-cxpassagem', 'Caixa de passagem', 70, 70, '<rect x="12" y="12" width="46" height="46"/><path d="M12 12 L58 58 M58 12 L12 58" stroke-width="1.6"/>'],
+];
 
 export default {
   id: 'eletrica', nome: 'Elétrica',
@@ -39,6 +162,7 @@ export default {
       ['el-terra', 'Terra', 60, 70, '<path d="M30 4 V36 M8 36 H52 M16 48 H44 M24 60 H36"/>'],
       ['el-massa', 'Massa / chassi', 60, 56, '<path d="M30 4 V30 M8 30 H52"/><path d="M16 30 L8 44 M30 30 L22 44 M44 30 L36 44" stroke-width="2"/>'],
       ['el-pe', 'Terra de proteção (PE)', 70, 84, '<circle cx="35" cy="50" r="28"/><path d="M35 4 V42 M19 42 H51 M25 52 H45 M31 62 H39"/>'],
+      ...FONTES2,
     ]],
     ['Medição', [
       med('el-amperimetro', 'Amperímetro', 'A'),
@@ -49,6 +173,7 @@ export default {
       ['el-galvanometro', 'Galvanômetro', 110, 70, circ('<path d="M44 48 L62 26" stroke-width="2"/>' + head(67, 20, -50, 10) + '<path d="M38 26 Q55 14 72 26" stroke-width="1.4"/>')],
       ['el-osciloscopio', 'Osciloscópio', 120, 80, '<rect x="16" y="8" width="88" height="64" rx="6"/><rect x="26" y="16" width="68" height="40" stroke-width="1.6"/><path d="M30 36 Q38 20 46 36 T62 36 T78 36 T94 36" stroke-width="1.8"/><circle cx="44" cy="64" r="3"/><circle cx="76" cy="64" r="3"/><path d="M4 40 H16 M104 40 H116"/>'],
       ['el-kwh', 'Medidor de energia (kWh)', 120, 70, '<rect x="30" y="10" width="60" height="50"/><path d="M4 35 H30 M90 35 H116"/>' + T(60, 35, 'kWh', 17)],
+      ...MEDICAO2,
     ]],
     ['Comando e proteção', [
       ['el-chave', 'Interruptor', 120, 50, '<path d="M4 38 H34 M86 38 H116 M38 36 L82 10"/><circle cx="36" cy="38" r="3" fill="#C"/><circle cx="84" cy="38" r="3" fill="#C"/>'],
@@ -63,6 +188,10 @@ export default {
       ['el-dr', 'DR (diferencial residual)', 140, 80, '<path d="M4 44 H40 L84 18 M88 44 H136"/><path d="M83 39 L93 49 M93 39 L83 49" stroke-width="2"/><ellipse cx="22" cy="44" rx="5" ry="12" stroke-width="2"/><path d="M22 56 V70 H62 V33" stroke-width="1.6" stroke-dasharray="4 3"/>' + T(110, 66, 'IΔn', 14)],
       ['el-dps', 'DPS (surto)', 70, 110, '<path d="M35 4 V24 M35 70 V84 M17 84 H53 M23 94 H47 M29 104 H41"/><rect x="20" y="24" width="30" height="46"/><path d="M41 30 L31 47 H40 L33 60" stroke-width="1.8"/>' + head(30, 66, 118, 8)],
       ['el-seccionadora', 'Seccionadora', 120, 50, '<path d="M4 36 H40 L82 12 M84 36 H116 M84 28 V44"/>'],
+      ...PROTECAO,
+    ]],
+    ['Comandos elétricos', [
+      ...COMANDOS,
     ]],
     ['Máquinas e transformadores', [
       maq('el-motor', 'Motor CA', 'M', CA),
@@ -73,6 +202,10 @@ export default {
       ['el-trafoiec', 'Transformador (círculos)', 130, 70, '<circle cx="50" cy="35" r="24"/><circle cx="80" cy="35" r="24"/><path d="M4 35 H26 M104 35 H126"/>'],
       ['el-trafo3', 'Transformador trifásico (Y-Δ)', 140, 80, '<circle cx="56" cy="40" r="26"/><circle cx="84" cy="40" r="26"/><path d="M4 40 H30 M110 40 H136"/><path d="M10 46 L16 34 M15 46 L21 34 M20 46 L26 34 M114 46 L120 34 M119 46 L125 34 M124 46 L130 34" stroke-width="1.6"/><path d="M44 42 V52 M44 42 L36 34 M44 42 L52 34 M96 31 L104 47 H88 Z" stroke-width="1.8"/>'],
       ['el-autotrafo', 'Autotransformador', 100, 110, '<path d="M40 4 V18 A9 9 0 0 1 40 36 A9 9 0 0 1 40 54 A9 9 0 0 1 40 72 A9 9 0 0 1 40 90 V106 M96 54 H58"/>' + head(50, 54, 180, 10)],
+      ...MAQS2,
+    ]],
+    ['Transformadores e reatores', [
+      ...TRAFOS,
     ]],
     ['Instalações prediais (NBR 5444)', [
       ['el-luzteto', 'Ponto de luz no teto', 80, 80, '<circle cx="40" cy="40" r="28"/><path d="M12 40 H68" stroke-width="1.6"/>' + T(40, 28, 'a', 15) + T(40, 53, '100', 13)],
@@ -89,6 +222,10 @@ export default {
       ['el-campainha', 'Campainha', 80, 56, '<path d="M16 24 A24 24 0 0 0 64 24 Z M30 4 V24 M50 4 V24"/>'],
       ['el-lampada', 'Lâmpada', 110, 70, '<circle cx="55" cy="35" r="24"/><path d="M38 18 L72 52 M72 18 L38 52 M4 35 H31 M79 35 H106"/>'],
       ['el-chuveiro', 'Chuveiro elétrico', 80, 90, '<path d="M40 4 V20 M22 20 H58 L66 34 H14 Z"/><path d="M20 44 L16 62 M32 44 L30 64 M48 44 L50 64 M60 44 L64 62" stroke-width="1.6" stroke-dasharray="3 4"/>'],
+      ...PREDIAIS2,
+    ]],
+    ['Diagrama unifilar', [
+      ...UNIFILAR,
     ]],
   ],
 };

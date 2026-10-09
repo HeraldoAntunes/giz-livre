@@ -18,7 +18,9 @@ Guia para quem quer entender ou modificar o código. O programa tem duas partes:
 | Rota | O que faz |
 |---|---|
 | `GET /api/info` | versão, pasta de dados, recursos do sistema (`pptx`, `ocr`) e o **token da sessão** |
-| `GET /api/boards`, `GET/PUT/DELETE /api/boards/<id>` | listar, ler, gravar (atômico) e excluir (vai para a lixeira) |
+| `GET /api/boards`, `GET/PUT/DELETE /api/boards/<id>` | listar (com `folder`; resumo em cache por data/tamanho), ler, gravar (atômico) e excluir (vai para a lixeira) |
+| `PUT /api/folder/<id>` | muda só a pasta do quadro (`{folder}`), sem mexer na data de edição |
+| `GET /api/lixeira`, `GET /api/lixeira/<nome>.png`, `POST /api/lixeira/restaurar` | lista os quadros excluídos e restaura um deles (id em uso → restaura com id novo; nomes validados contra path traversal) |
 | `PUT /api/thumbs/<id>`, `GET /thumbs/<id>.png` | miniatura da galeria |
 | `POST /api/assets`, `GET /assets/<sha1>.png` | imagens guardadas à parte (o quadro fica leve) |
 | `POST /api/pptx` | PowerPoint → imagens (PowerPoint) ou → PDF (LibreOffice) |
@@ -37,14 +39,15 @@ Detalhes em [SECURITY.md](../SECURITY.md).
 ## Interface (`app/js/`)
 | Módulo | Responsabilidade |
 |---|---|
-| `main.js` | galeria, rotas (`#/`, `#/b/<id>`), importação, sessão |
+| `main.js` | galeria com pastas e lixeira, rotas (`#/`, `#/p/<pasta>`, `#/lixeira`, `#/b/<id>`), importação, sessão |
 | `editor.js` | o quadro: ferramentas, entrada da caneta, seleção, histórico, salvamento, páginas, ferramentas de professor. O índice das seções está no topo do arquivo |
 | `render.js` | desenho de cada tipo de item, contorno do traço (largura variável), caixas, toque, girar, tinta→forma |
 | `paper.js` | os 13 tipos de folha (desenhados só na área visível) |
 | `pages.js` | caderno/slides: geometria das páginas, mesa com folhas, PDF e impressão |
 | `stabilizer.js` | estabilizador do traço (One Euro, fio puxado, filtro de pressão, suavização) |
 | `beautify.js` | embelezar escrita (linha de base, inclinação, altura, espaçamento) |
-| `plot.js` | interpretador de expressões (sem `eval`) e curva no plano cartesiano |
+| `plot.js` | interpretador de expressões (sem `eval`, com parâmetros declarados), curva, eixos desenhados (`axesStrokes`), escala própria (`fitFrame`) e animação de parâmetro |
+| `fnmodels.js` | catálogo de funções-modelo por área (expressão, parâmetros com faixa, eixos com unidade, nota) |
 | `importer.js` | PowerPoint/PDF → páginas com o slide travado no fundo |
 | `tools.js` | cronômetro, fórmulas (KaTeX), chamada do reconhecimento de escrita |
 | `library.js` | tabela periódica e vidrarias em SVG |
@@ -55,7 +58,7 @@ Detalhes em [SECURITY.md](../SECURITY.md).
 
 ## Modelo de dados (arquivo do quadro)
 ```json
-{ "version": 2, "title": "Aula 1",
+{ "version": 2, "title": "Aula 1", "folder": "Tratamento de Água",
   "background": { "color": "#ffffff", "pattern": "grid", "size": "m", "strength": "normal", "origin": {"x":0,"y":0} },
   "layout": { "mode": "pages", "kind": "a4", "w": 794, "h": 1123, "gap": 48, "count": 3 },
   "view": { "x": 0, "y": 0, "zoom": 1 },
@@ -68,7 +71,9 @@ Detalhes em [SECURITY.md](../SECURITY.md).
   - `text` (`font`, `ink`);
   - `note`;
   - `image` (`src`, `locked` para slides, `latex` para fórmulas);
-  - `rot` opcional em texto, nota e imagem.
+  - `rot` opcional em texto, nota e imagem;
+  - `grp` opcional: itens com o mesmo `grp` são selecionados e movidos juntos (Agrupar);
+  - `eixo: true` nos eixos desenhados pelo Plotar função; `plot` (a expressão) nas curvas.
 
 **Regra de ouro:** os itens são **imutáveis**. Toda edição cria um objeto novo e passa por `commit(items, layout)`, que
 guarda o estado anterior no desfazer. Os caches (`WeakMap` de caixa e de `Path2D`) dependem disso.

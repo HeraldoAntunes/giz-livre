@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 import { T, head } from './base.js';
 
 // prefixo dos ids: 'es-'
@@ -330,6 +331,302 @@ const contingencia = (() => {
     t(cx(0), cy(1), 'A', 14) + t(cx(0), cy(2), 'Aᶜ', 14) + t(cx(0), cy(3), 'Total', 13);
 })();
 
+// ====================== Mais formas ======================
+// Φ(z) pela aproximação de Abramowitz-Stegun 7.1.26
+const Phi = z => {
+  const x = Math.abs(z) / Math.SQRT2, k = 1 / (1 + 0.3275911 * x);
+  const e = 1 - (((((1.061405429 * k - 1.453152027) * k) + 1.421413741) * k - 0.284496736) * k + 0.254829592) * k * Math.exp(-x * x);
+  return z >= 0 ? 0.5 * (1 + e) : 0.5 * (1 - e);
+};
+// cota horizontal com rótulo no meio
+const cota = (x1, x2, y, s, size = 10) => {
+  const xm = (x1 + x2) / 2, g = s.length * size * 0.3 + 4;
+  return `<path d="M${r1(x1)},${y - 5} V${y + 5} M${r1(x2)},${y - 5} V${y + 5} M${r1(x1)},${y} H${r1(xm - g)} M${r1(xm + g)},${y} H${r1(x2)}"${fino}/>` + t(xm, y, s, size);
+};
+// legenda: amostra de traço + texto à direita
+const leg = (x, y, s, est = '') => ln(x, y, x + 18, y, est) + t(x + 24 + s.length * 2.6, y, s, 9);
+const tiq = x => `<path d="M${r1(x)},${OY - 4} V${OY + 4}"${fino}/>`;
+const desv = ' stroke-dasharray="7 5"';
+const sub = (a, b) => `${a}<tspan font-size="9" dy="4">${b}</tspan>`;
+
+// ---------- Curva normal e testes ----------
+const normalRegra = (() => {
+  let v = '', tk = '', lb = '';
+  const nm = ['−3σ', '−2σ', '−σ', 'μ', '+σ', '+2σ', '+3σ'];
+  for (let z = -3; z <= 3; z++) {
+    if (Math.abs(z) < 3) v += ln(NX(z), NYB, NX(z), NY(fN(z)), tracejado);
+    tk += `M${r1(NX(z))},${NYB - 4} V${NYB + 4} `; lb += t(NX(z), 117, nm[z + 3], 10);
+  }
+  return nBase + v + `<path d="${tk}"${fino}/>` + lb + cota(NX(-1), NX(1), 134, '68%') + cota(NX(-2), NX(2), 150, '95%') + cota(NX(-3), NX(3), 166, '99,7%');
+})();
+const normalPadrao = (() => {
+  let tk = '', lb = '';
+  for (let z = -3; z <= 3; z++) { tk += `M${r1(NX(z))},${NYB - 4} V${NYB + 4} `; lb += t(NX(z), 117, z < 0 ? '−' + (-z) : String(z), 10); }
+  return nBase + ln(NX(0), NYB, NX(0), NY(1), tracejado) + `<path d="${tk}"${fino}/>` + lb + t(208, 92, 'z', 13);
+})();
+const normalEntre = (() => {
+  const a = -0.7, b = 1.2;
+  return area(nPts(a, b), NYB) + nBase + ln(NX(a), NYB, NX(a), NY(fN(a)), fino) + ln(NX(b), NYB, NX(b), NY(fN(b)), fino) +
+    marcaZ(a, 'a') + marcaZ(b, 'b') + t(184, 34, 'P(a &lt; X &lt; b)', 10);
+})();
+const normalAcum = area(nPts(-3.4, 0.8), NYB) + nBase + ln(NX(0.8), NYB, NX(0.8), NY(fN(0.8)), fino) + marcaZ(0.8, 'z') + t(NX(-0.6), 78, 'Φ(z)', 12);
+const normalIC = area(nPts(-zb, zb), NYB) + nBase + ln(NX(-zb), NYB, NX(-zb), NY(fN(zb)), fino) + ln(NX(zb), NYB, NX(zb), NY(fN(zb)), fino) +
+  marcaZ(-zb, '−z') + marcaZ(zb, '+z') + marcaZ(0, 'μ') + t(110, 76, '1 − α', 12) + t(NX(-2.7), 82, 'α/2', 10) + t(NX(2.7), 82, 'α/2', 10);
+const normalMedias = (() => {
+  const s = 0.75, f1 = z => fN((z + 1.2) / s), f2 = z => fN((z - 1.2) / s);
+  return `<path d="M6,${NYB} H214"/>` + path(curva(f1, -3.4, 3.4, NX, NY, 120)) + path(curva(f2, -3.4, 3.4, NX, NY, 120), desv) +
+    ln(NX(-1.2), NYB, NX(-1.2), NY(1), tracejado) + ln(NX(1.2), NYB, NX(1.2), NY(1), tracejado) + marcaZ(-1.2, 'μ₁') + marcaZ(1.2, 'μ₂');
+})();
+const normalFda = (() => {
+  const Y = v => 110 - 92 * v;
+  return `<path d="M6,110 H206 M110,114 V12"/>` + head(214, 110, 0, 9) + head(110, 6, -90, 9) +
+    ln(6, Y(1), 208, Y(1), tracejado) + ln(6, Y(0.5), 110, Y(0.5), tracejado) + path(curva(Phi, -3.4, 3.4, NX, Y, 100)) +
+    t(94, Y(1) - 7, '1', 10) + t(94, Y(0.5) - 8, '0,5', 10) + t(206, 122, 'z', 13) + t(44, 40, 'Φ(z)', 12);
+})();
+const tBi = (() => {
+  const f = z => (1 + z * z / 5) ** -3, tc = 2.571, tp = (a, b) => curva(f, a, b, NX, NY, Math.max(8, Math.round((b - a) * 14)));
+  return area(tp(-3.4, -tc), NYB) + area(tp(tc, 3.4), NYB) + `<path d="M6,${NYB} H214"/>` + path(tp(-3.4, 3.4)) +
+    ln(NX(-tc), NYB, NX(-tc), NY(f(tc)), fino) + ln(NX(tc), NYB, NX(tc), NY(f(tc)), fino) +
+    marcaZ(0, '0') + marcaZ(-tc, '−t') + marcaZ(tc, '+t') + t(NX(-2.95), 80, 'α/2', 10) + t(NX(2.95), 80, 'α/2', 10) + t(192, 18, 't (gl)', 11);
+})();
+const quiQuadDir = (() => {
+  const g = u => u ** 1.5 * Math.exp(-u / 2); let m = 0; for (let u = 0; u < 20; u += 0.05) m = Math.max(m, g(u));
+  const X = u => OX + u * 12, Y = v => OY - 90 * v / m, c = 11.07;
+  return area(curva(g, c, 15.5, X, Y, 30), OY) + eixoPos + path(curva(g, 0, 15.5, X, Y, 100)) + ln(X(c), OY, X(c), Y(g(c)), fino) + tiq(X(c)) +
+    t(X(c), 122, sub('χ²', 'c'), 11) + t(X(13), Y(g(13)) - 14, 'α', 13) + t(206, 122, 'χ²', 13) + t(150, 24, 'gl = 5', 10);
+})();
+const fDir = (() => {
+  const d1 = 5, d2 = 10, f = u => u <= 0 ? 0 : u ** (d1 / 2 - 1) * (1 + d1 * u / d2) ** (-(d1 + d2) / 2);
+  let m = 0; for (let u = 0.01; u < 5; u += 0.01) m = Math.max(m, f(u));
+  const X = u => OX + u * 38, Y = v => OY - 92 * v / m, c = 3.33;
+  return area(curva(f, c, 5, X, Y, 30), OY) + eixoPos + path(curva(f, 0, 5, X, Y, 100)) + ln(X(c), OY, X(c), Y(f(c)), fino) + tiq(X(c)) +
+    t(X(c), 122, sub('F', 'c'), 11) + t(X(3.9), Y(f(3.9)) - 14, 'α', 13) + t(206, 122, 'F', 13);
+})();
+const errosTipo = (() => {
+  const s = 0.85, c = 0.35, X = z => 110 + z * 28, YB = 108, Y = v => YB - 80 * v;
+  const f0 = z => fN((z + 1.2) / s), f1 = z => fN((z - 1.2) / s);
+  const alfa = curva(f0, c, 3.6, X, Y, 40), beta = curva(f1, -3.6, c, X, Y, 40);
+  return `<path d="${P([[X(c), YB], ...alfa, [X(3.6), YB]])} Z" fill="#C" fill-opacity=".55" stroke="none"/>` + area(beta, YB) +
+    `<path d="M4,${YB} H216"/>` + path(curva(f0, -3.7, 3.7, X, Y, 120)) + path(curva(f1, -3.7, 3.7, X, Y, 120), desv) +
+    ln(X(c), YB + 4, X(c), 18, ' stroke-width="1.8"') + t(X(c), 10, 'c', 11) + t(X(-1.2), 18, 'H₀', 12) + t(X(1.2), 18, 'H₁', 12) +
+    t(X(0.95), 120, 'α', 12) + t(X(-0.25), 120, 'β', 12);
+})();
+
+// ---------- Mais distribuições ----------
+const barrasK = (probs, k0, x0, dx, w) => {
+  const m = Math.max(...probs);
+  return probs.map((p, k) => { const x = x0 + k * dx, hh = 90 * p / m; return `<rect x="${r1(x - w / 2)}" y="${r1(OY - hh)}" width="${w}" height="${r1(hh)}" fill="#C" fill-opacity=".25" stroke-width="1.8"/>` + t(x, 121, String(k0 + k), 9); }).join('');
+};
+const binomialSim = (() => { const n = 10, pr = []; for (let k = 0; k <= n; k++) pr.push(fat(n) / (fat(k) * fat(n - k)) / 1024); return eixoPos + barrasDiscretas(pr, 34, 16, 10); })();
+const geometrica = (() => { const pr = []; for (let k = 1; k <= 10; k++) pr.push(0.3 * 0.7 ** (k - 1)); return eixoPos + barrasK(pr, 1, 34, 17, 10); })();
+const unifDiscreta = eixoPos + barrasK([1, 1, 1, 1, 1, 1], 1, 42, 28, 14) + ln(OX, 20, 190, 20, tracejado) + t(204, 20, '1/6', 10);
+const weibull = (() => {
+  const X = u => OX + u * 62, Y = v => OY - 56 * Math.min(v, 1.6), w = k => u => k * u ** (k - 1) * Math.exp(-(u ** k));
+  return eixoPos + path(curva(w(0.8), 0.03, 3, X, Y, 120)) + path(curva(w(1.5), 0, 3, X, Y, 100), desv) + path(curva(w(3), 0, 3, X, Y, 100), pontilhado) +
+    leg(140, 16, 'k = 0,8') + leg(140, 30, 'k = 1,5', desv) + leg(140, 44, 'k = 3', pontilhado) + t(206, 122, 'x', 13);
+})();
+const gama = (() => {
+  const X = u => OX + u * 13, Y = v => OY - 230 * v, g = k => u => u ** (k - 1) * Math.exp(-u) / fat(k - 1);
+  return eixoPos + path(curva(g(2), 0, 14.5, X, Y, 120)) + path(curva(g(3), 0, 14.5, X, Y, 120), desv) + path(curva(g(6), 0, 14.5, X, Y, 120), pontilhado) +
+    leg(140, 16, 'k = 2') + leg(140, 30, 'k = 3', desv) + leg(140, 44, 'k = 6', pontilhado) + t(206, 122, 'x', 13);
+})();
+const expAcum = (() => {
+  const X = u => OX + u * 36, Y = v => OY - 90 * v;
+  return eixoPos + ln(OX, Y(1), 206, Y(1), tracejado) + path(curva(u => 1 - Math.exp(-u), 0, 5.2, X, Y)) + t(10, Y(1), '1', 10) + t(206, 122, 'x', 13) + t(140, 66, 'F(x)', 12);
+})();
+const triangular = (() => {
+  const a = 40, c = 92, b = 196, top = 28;
+  return eixoPos + `<path d="M${a},${OY} L${c},${top} L${b},${OY} Z"${sombra}/>` + `<path d="M${OX},${OY} H${a} L${c},${top} L${b},${OY} H206"/>` +
+    ln(c, top, c, OY, tracejado) + t(a, 122, 'a', 12) + t(c, 122, 'c', 12) + t(b, 122, 'b', 12) + t(c + 6, top - 14, '2/(b − a)', 10);
+})();
+const beta = (() => {
+  const X = u => OX + u * 180, Y = v => OY - 36 * v;
+  const b25 = u => 30 * u * (1 - u) ** 4, b52 = u => 30 * u ** 4 * (1 - u), b22 = u => 6 * u * (1 - u);
+  return eixoPos + path(curva(b25, 0, 1, X, Y, 100)) + path(curva(b52, 0, 1, X, Y, 100), desv) + path(curva(b22, 0, 1, X, Y, 100), pontilhado) +
+    tiq(X(1)) + t(OX, 122, '0', 10) + t(X(1), 122, '1', 10) + t(58, 11, '(2, 5)', 10) + t(162, 11, '(5, 2)', 10) + t(110, 46, '(2, 2)', 10);
+})();
+const tlc = (() => {
+  const nc = (s, est) => path(curva(z => 84 * 0.25 / s * Math.exp(-z * z / (2 * s * s)), -3.4, 3.4, NX, v => NYB - v, 160), est);
+  return `<path d="M6,${NYB} H214"/>` + nc(1, pontilhado) + nc(0.5, desv) + nc(0.25, '') + marcaZ(0, 'μ') +
+    leg(8, 14, 'n = 16') + leg(8, 28, 'n = 4', desv) + leg(8, 42, 'n = 1', pontilhado);
+})();
+const fdaDiscreta = (() => {
+  const F = [0.1, 0.3, 0.6, 0.85, 1], xs = [44, 78, 112, 146, 180], Y = v => OY - 90 * v;
+  let s = eixoPos + ln(OX, Y(1), 206, Y(1), tracejado) + t(10, Y(1), '1', 10) + `<path d="M${OX},${OY} H${xs[0] - 4}"/>` + `<circle cx="${xs[0]}" cy="${OY}" r="3.5" stroke-width="1.8"/>`;
+  F.forEach((v, i) => {
+    const x2 = i < 4 ? xs[i + 1] - 4 : 204;
+    s += `<path d="M${xs[i]},${r1(Y(v))} H${x2}"/>` + pt(xs[i], Y(v), 3.5) + t(xs[i], 122, sub('x', String(i + 1)), 11);
+    if (i < 4) s += `<circle cx="${xs[i + 1]}" cy="${r1(Y(v))}" r="3.5" stroke-width="1.8"/>`;
+  });
+  return s;
+})();
+
+// ---------- Mais gráficos ----------
+const histNormal = histograma + path(curva(fN, -2.5, 2.5, z => 120 + z * 36, v => GY - 108 * v, 80), ' stroke-width="2"');
+const barrasH = eixos(40, 140, 214, 6) + [120, 160, 70, 140, 95].map((v, i) => `<rect x="40" y="${16 + i * 24}" width="${v}" height="16" fill="#C" fill-opacity=".25"/>` + t(28, 24 + i * 24, 'ABCDE'[i], 10)).join('');
+const barrasEmpilh = eixoG + [[40, 30, 25], [55, 20, 35], [30, 40, 20], [50, 35, 30]].map((seg, i) => {
+  const x = 40 + i * 44, op = ['.55', '.2', '0']; let y = GY, s = '';
+  seg.forEach((h, j) => { y -= h; s += `<rect x="${x}" y="${y}" width="26" height="${h}" fill="#C" fill-opacity="${op[j]}"/>`; });
+  return s + t(x + 13, 141, String(i + 1), 10);
+}).join('');
+const rosca = (() => {
+  const c = 70, R = 62, r = 32, pol = (a, q) => `${r1(c + q * Math.sin(a * Math.PI / 180))},${r1(c - q * Math.cos(a * Math.PI / 180))}`;
+  return `<path d="M${pol(0, R)} A${R},${R} 0 0 1 ${pol(110, R)} L${pol(110, r)} A${r},${r} 0 0 0 ${pol(0, r)} Z"${sombra}/>` + `<circle cx="${c}" cy="${c}" r="${R}"/><circle cx="${c}" cy="${c}" r="${r}"/>` +
+    [0, 110, 200, 290].map(a => `<path d="M${pol(a, r)} L${pol(a, R)}" stroke-width="2"/>`).join('');
+})();
+const pizzaDestaque = (() => {
+  const c = 72, R = 58, pol = (a, q, dx = 0, dy = 0) => `${r1(c + dx + q * Math.sin(a * Math.PI / 180))},${r1(c + dy - q * Math.cos(a * Math.PI / 180))}`;
+  const fatia = (a, b, dx = 0, dy = 0, ex = '') => `<path d="M${r1(c + dx)},${r1(c + dy)} L${pol(a, R, dx, dy)} A${R},${R} 0 ${b - a > 180 ? 1 : 0} 1 ${pol(b, R, dx, dy)} Z"${ex}/>`;
+  const m = 50 * Math.PI / 180, dx = 10 * Math.sin(m), dy = -10 * Math.cos(m);
+  return fatia(0, 100, dx, dy, ' fill="#C" fill-opacity=".25"') + fatia(100, 190) + fatia(190, 280) + fatia(280, 360);
+})();
+const linhas2 = (() => {
+  const a = [100, 92, 84, 88, 70, 64, 52, 46, 36], b = [64, 70, 62, 76, 80, 74, 88, 92, 98];
+  const pa = a.map((y, i) => [40 + i * 20, y]), pb = b.map((y, i) => [40 + i * 20, y]);
+  const quad = (x, y) => `<rect x="${x - 3}" y="${y - 3}" width="6" height="6" fill="#C" stroke="none"/>`;
+  return eixoG + path(pa) + pa.map(([x, y]) => pt(x, y)).join('') + path(pb, desv) + pb.map(([x, y]) => quad(x, y)).join('') +
+    ln(32, 14, 50, 14) + pt(41, 14) + t(58, 14, 'A', 10) + ln(70, 14, 88, 14, desv) + quad(79, 14) + t(96, 14, 'B', 10);
+})();
+const grafArea = (() => {
+  const ys = [96, 84, 90, 70, 74, 56, 62, 44, 50, 36], pts = ys.map((y, i) => [30 + i * 19, y]);
+  return eixoG + `<path d="${P([[30, GY], ...pts, [201, GY]])} Z"${sombra}/>` + path(pts);
+})();
+const mapX = x => mapD([x, 0])[0], mapY = y => mapD([0, y])[1];
+const dispQuad = (() => {
+  const r = rng(41), f = x => 0.85 - 2.6 * (x - 0.5) ** 2; let s = '';
+  for (let i = 0; i < 20; i++) { const x = 0.05 + 0.9 * r(); s += pt(...mapD([x, Math.min(0.95, Math.max(0.05, f(x) + 0.05 * gauss(r)))])); }
+  return eixoD + s + path(curva(f, 0.02, 0.98, mapX, mapY, 50));
+})();
+const minimosQuad = (() => {
+  const r = rng(9), b0 = 0.15, b1 = 0.7; let s = '', d = '';
+  for (let i = 0; i < 9; i++) {
+    const x = 0.08 + i * 0.105, y = Math.min(0.95, Math.max(0.05, b0 + b1 * x + 0.09 * gauss(r)));
+    d += `M${r1(mapX(x))},${r1(mapY(y))} V${r1(mapY(b0 + b1 * x))} `; s += pt(mapX(x), mapY(y), 3.2);
+  }
+  return eixoD + ln(...mapD([0, b0]), ...mapD([1, b0 + b1])) + `<path d="${d}"${tracejado}/>` + s + t(74, 18, 'ŷ = a + bx', 11);
+})();
+const eixoRes = yc => `<path d="M${DX},134 V12"/>` + head(DX, 6, -90, 9) + `<path d="M${DX},${yc} H170"/>` + head(176, yc, 0, 9) + t(10, yc, '0', 11);
+const residuosFunil = (() => {
+  const r = rng(77), yc = 72; let s = '';
+  for (let i = 0; i < 26; i++) { const x = 0.04 + 0.92 * i / 25, e = Math.max(-0.48, Math.min(0.48, (0.03 + 0.3 * x) * gauss(r))); s += pt(DX + 12 + x * 140, yc - e * 120); }
+  return eixoRes(yc) + s;
+})();
+const residuosCurva = (() => {
+  const r = rng(52), yc = 72; let s = '';
+  for (let i = 0; i < 24; i++) { const x = 0.04 + 0.92 * i / 23, e = 1.6 * (x - 0.5) ** 2 - 0.13 + 0.04 * gauss(r); s += pt(DX + 12 + x * 140, yc - e * 120); }
+  return eixoRes(yc) + s;
+})();
+const bandaIC = (() => {
+  const f = x => 0.125 + 0.75 * x, h = x => 0.06 + 0.35 * (x - 0.5) ** 2;
+  return eixoD + nuvem(pontos(13, 0.75, 0.07)) + ln(...mapD([0, 0.125]), ...mapD([1, 0.875])) +
+    path(curva(x => f(x) + h(x), 0, 1, mapX, mapY, 40), tracejado) + path(curva(x => f(x) - h(x), 0, 1, mapX, mapY, 40), tracejado);
+})();
+const boxAnotado = `<rect x="74" y="38" width="72" height="24"/>` + ln(104, 38, 104, 62, ' stroke-width="3"') +
+  `<path d="M24,50 H74 M146,50 H196 M24,42 V58 M196,42 V58"/>` + `<path d="M24,62 V68 M74,62 V68 M104,62 V68 M146,62 V68 M196,62 V68"${fino}/>` +
+  t(24, 78, 'Mín', 10) + t(74, 78, 'Q1', 10) + t(104, 78, 'Md', 10) + t(146, 78, 'Q3', 10) + t(196, 78, 'Máx', 10) + cota(74, 146, 22, 'AIQ');
+const violino = (() => {
+  const vio = (xc, f, y0, y1, W) => {
+    const n = 48, R = [], L = [];
+    for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n, w = W * f(i / n); R.push([xc + w, y]); L.unshift([xc - w, y]); }
+    return `<path d="${P([...R, ...L])} Z"/>`;
+  };
+  const f1 = u => Math.exp(-((u - 0.5) ** 2) / (2 * 0.16 ** 2));
+  const f2 = u => Math.min(1, 0.95 * Math.exp(-((u - 0.3) ** 2) / (2 * 0.09 ** 2)) + 0.8 * Math.exp(-((u - 0.72) ** 2) / (2 * 0.1 ** 2)));
+  const caixa = (xc, a, b, md) => `<rect x="${xc - 4}" y="${a}" width="8" height="${b - a}" fill="#C" fill-opacity=".35" stroke-width="1.4"/>` + pt(xc, md, 3.5);
+  let tk = ''; for (let y = 136; y >= 26; y -= 22) tk += `M16,${y} H24 `;
+  return `<path d="M20,156 V12 M20,156 H190"/>` + head(20, 6, -90, 9) + `<path d="${tk}"${fino}/>` +
+    vio(72, f1, 16, 148, 32) + caixa(72, 69, 95, 82) + vio(148, f2, 16, 148, 30) + caixa(148, 50, 112, 76) + t(72, 166, 'A', 11) + t(148, 166, 'B', 11);
+})();
+const dotPlot = (() => {
+  const c = [1, 3, 5, 6, 4, 2, 1]; let s = `<path d="M10,96 H210"/>`, tk = '';
+  c.forEach((n, i) => { const x = 30 + i * 27; tk += `M${x},92 V100 `; for (let k = 0; k < n; k++) s += `<circle cx="${x}" cy="${86 - k * 12}" r="5" fill="#C" stroke="none"/>`; s += t(x, 110, String(i + 1), 10); });
+  return s + `<path d="${tk}"${fino}/>`;
+})();
+const icAmostras = (() => {
+  const r = rng(21), mu = 110, h = 40; let s = ln(mu, 6, mu, 158, tracejado) + t(mu, 168, 'μ', 13);
+  for (let i = 0; i < 12; i++) {
+    const y = 14 + i * 12.5, fora = i === 4 || i === 9;
+    let c = mu + Math.max(-32, Math.min(32, 22 * gauss(r)));
+    if (i === 4) c = mu + 58; if (i === 9) c = mu - 56;
+    s += ln(c - h, y, c + h, y, fora ? ' stroke-width="3.2"' : ' stroke-width="1.8"') + `<path d="M${r1(c - h)},${y - 3.5} V${y + 3.5} M${r1(c + h)},${y - 3.5} V${y + 3.5}"${fino}/>` + pt(c, y, 2.6);
+  }
+  return s;
+})();
+const barrasErro = eixoG + [[70, 12], [95, 16], [55, 10], [85, 14]].map(([hh, e], i) => {
+  const x = 40 + i * 44, xc = x + 13, yt = GY - hh;
+  return `<rect x="${x}" y="${yt}" width="26" height="${hh}" fill="#C" fill-opacity=".25"/>` + `<path d="M${xc},${yt - e} V${yt + e} M${xc - 6},${yt - e} H${xc + 6} M${xc - 6},${yt + e} H${xc + 6}" stroke-width="1.8"/>` + t(xc, 141, 'ABCD'[i], 10);
+}).join('');
+
+// ---------- Controle de qualidade ----------
+const cartaZonas = (() => {
+  const lc = 75, sg = 18, x0 = 24, x1 = 200, fraco = ' stroke-width="1.1" stroke-dasharray="2 4"', limite = ' stroke-dasharray="7 5" stroke-width="2"';
+  let s = ln(x0, lc - 3 * sg, x1, lc - 3 * sg, limite) + ln(x0, lc + 3 * sg, x1, lc + 3 * sg, limite) + ln(x0, lc, x1, lc, ' stroke-width="2"');
+  for (const k of [-2, -1, 1, 2]) s += ln(x0, lc + k * sg, x1, lc + k * sg, fraco);
+  for (const [k, z] of [[0.5, 'C'], [1.5, 'B'], [2.5, 'A']]) s += t(12, lc - k * sg, z, 10) + t(12, lc + k * sg, z, 10);
+  const ys = [70, 62, 84, 78, 66, 90, 72, 58, 80, 88, 64, 76, 70], pts = ys.map((y, i) => [32 + i * 13.5, y]);
+  return s + path(pts, ' stroke-width="1.6"') + pts.map(([x, y]) => pt(x, y, 2.8)).join('') + t(222, lc - 3 * sg, 'LSC', 11) + t(222, lc, 'LC', 11) + t(222, lc + 3 * sg, 'LIC', 11);
+})();
+const cartaP = (() => {
+  const hs = [30, 36, 26, 32, 40, 28, 34, 24, 30, 38, 28, 32], lc = 64, up = [], dn = [];
+  hs.forEach((h, i) => { const x = 14 + i * 15; up.push([x, lc - h], [x + 15, lc - h]); dn.push([x, lc + h], [x + 15, lc + h]); });
+  const ys = [60, 52, 74, 66, 46, 70, 58, 80, 62, 50, 68, 72], pts = ys.map((y, i) => [21.5 + i * 15, y]);
+  return path(up, ' stroke-dasharray="7 5" stroke-width="2"') + path(dn, ' stroke-dasharray="7 5" stroke-width="2"') + ln(14, lc, 194, lc, ' stroke-width="2"') +
+    path(pts, ' stroke-width="1.6"') + pts.map(([x, y]) => pt(x, y, 2.8)).join('') + t(214, 26, 'LSC', 11) + t(214, lc, 'LC', 11) + t(214, 102, 'LIC', 11);
+})();
+const capabilidade = nBase + ln(NX(0), NYB, NX(0), NY(1), tracejado) + ln(NX(-3.25), NYB + 4, NX(-3.25), 18, ' stroke-width="2.4"') + ln(NX(3.25), NYB + 4, NX(3.25), 18, ' stroke-width="2.4"') +
+  t(NX(-3.25), 9, 'LIE', 11) + t(NX(3.25), 9, 'LSE', 11) + marcaZ(0, 'μ') + marcaZ(-3, '−3σ') + marcaZ(3, '+3σ');
+
+// ---------- Probabilidade e amostragem ----------
+const vennS = (d, s, ex = '') => `<path d="${d}" fill="#C" fill-opacity=".3" stroke="none"${ex}/>` + venn2 + t(188, 20, s, 12);
+const vennInter = vennS('M110,28.1 A50,50 0 0 1 110,115.9 A50,50 0 0 1 110,28.1 Z', 'A ∩ B');
+const vennUniao = vennS('M110,28.1 A50,50 0 1 0 110,115.9 A50,50 0 1 0 110,28.1 Z', 'A ∪ B');
+const vennDif = vennS('M110,28.1 A50,50 0 1 0 110,115.9 A50,50 0 0 1 110,28.1 Z', 'A − B');
+const vennCompl = vennS('M4,4 H216 V136 H4 Z M36,72 A50,50 0 1 0 136,72 A50,50 0 1 0 36,72 Z', 'Aᶜ', ' fill-rule="evenodd"');
+const vennDisj = `<rect x="4" y="4" width="212" height="132" rx="4"/><circle cx="66" cy="76" r="42"/><circle cx="154" cy="76" r="42"/>` +
+  T(66, 76, 'A', 18) + T(154, 76, 'B', 18) + T(20, 20, 'Ω', 16) + t(110, 20, 'A ∩ B = ∅', 12);
+const vennSub = `<rect x="4" y="4" width="212" height="132" rx="4"/><circle cx="104" cy="72" r="60"/><circle cx="124" cy="84" r="28" fill="#C" fill-opacity=".2"/>` +
+  T(72, 52, 'A', 18) + T(124, 84, 'B', 18) + T(20, 20, 'Ω', 16) + t(188, 20, 'B ⊂ A', 12);
+const arvoreP = `<circle cx="12" cy="80" r="3.5" fill="#C"/>` +
+  `<path d="M16,78 L88,42 M16,82 L88,118 M112,40 L196,18 M112,40 L196,62 M112,120 L196,98 M112,120 L196,142"/>` +
+  T(100, 40, 'A', 15) + T(100, 120, 'Aᶜ', 15) + T(208, 18, 'B', 14) + T(210, 62, 'Bᶜ', 14) + T(208, 98, 'B', 14) + T(210, 142, 'Bᶜ', 14) +
+  t(38, 46, 'P(A)', 10) + t(38, 116, 'P(Aᶜ)', 10) + t(148, 16, 'P(B|A)', 9) + t(150, 62, 'P(Bᶜ|A)', 9) + t(148, 98, 'P(B|Aᶜ)', 9) + t(150, 144, 'P(Bᶜ|Aᶜ)', 9);
+const tabelaFreq = (() => {
+  const xs = [4, 74, 124, 174, 226]; let g = '';
+  for (const x of xs.slice(1, -1)) g += `M${x},4 V140 `;
+  for (let y = 52; y < 130; y += 22) g += `M4,${y} H226 `;
+  return `<rect x="4" y="4" width="222" height="136"/>` + `<path d="${g}" stroke-width="1.4"/>` + ln(4, 30, 226, 30, ' stroke-width="2.2"') +
+    t(39, 17, 'Classe', 12) + t(99, 15, sub('f', 'i'), 13) + t(149, 15, sub('fr', 'i'), 13) + t(200, 15, sub('F', 'i'), 13);
+})();
+const amostEstrat = (() => {
+  const r = rng(61), esc = [[1, 4, 7], [0, 5], [2, 6, 8]];
+  let s = `<rect x="4" y="4" width="192" height="120"/><path d="M4,44 H196 M4,84 H196 M36,4 V124" stroke-width="1.8"/>`;
+  for (let e = 0; e < 3; e++) {
+    s += t(20, 22 + e * 40, sub('E', String(e + 1)), 13);
+    for (let j = 0; j < 9; j++) { const x = 50 + j * 17 + (r() - 0.5) * 6, y = 24 + e * 40 + (r() - 0.5) * 16; s += esc[e].includes(j) ? pt(x, y, 4) : `<circle cx="${r1(x)}" cy="${r1(y)}" r="4" stroke-width="1.6"/>`; }
+  }
+  return s;
+})();
+const amostCong = (() => {
+  const r = rng(29); let s = '';
+  [[40, 32], [110, 32], [180, 32], [40, 92], [110, 92], [180, 92]].forEach(([cx, cy], i) => {
+    const sel = i === 1 || i === 3;
+    s += `<ellipse cx="${cx}" cy="${cy}" rx="32" ry="24"${sel ? ' stroke-width="3" fill="#C" fill-opacity=".15"' : ' stroke-width="1.8"'}/>`;
+    for (let k = 0; k < 5; k++) { const a = r() * 2 * Math.PI, q = 0.25 + 0.5 * r(); s += pt(cx + 26 * q * Math.cos(a), cy + 18 * q * Math.sin(a), 2.8); }
+  });
+  return s;
+})();
+const amostSist = (() => {
+  let s = '';
+  for (let j = 0; j < 15; j++) { const x = 12 + j * 14.6; s += j % 3 === 1 ? pt(x, 42, 5) : `<circle cx="${r1(x)}" cy="42" r="5" stroke-width="1.6"/>`; }
+  return s + cota(12 + 14.6, 12 + 4 * 14.6, 18, 'k', 12);
+})();
+const roleta = (() => {
+  const c = 65, R = 58, pol = (a, q) => [r1(c + q * Math.sin(a * Math.PI / 180)), r1(c - q * Math.cos(a * Math.PI / 180))];
+  return `<path d="M${c},${c} L${pol(90, R)} A${R},${R} 0 0 1 ${pol(200, R)} Z"${sombra}/>` + `<circle cx="${c}" cy="${c}" r="${R}"/>` +
+    [0, 90, 200, 260].map(a => `<path d="M${c},${c} L${pol(a, R)}" stroke-width="2"/>`).join('') +
+    `<path d="M${c},${c} L${pol(35, 32)}" stroke-width="3"/>` + head(...pol(35, 44), -55, 14) + `<circle cx="${c}" cy="${c}" r="5" fill="#C"/>`;
+})();
+
 export default {
   id: 'estat', nome: 'Estatística e gráficos',
   secoes: [
@@ -389,6 +686,69 @@ export default {
       ['es-urna', 'Urna com bolas', 120, 144, urna],
       ['es-pop-amostra', 'População → amostra', 240, 130, popAmostra],
       ['es-contingencia', 'Tabela 2×2', 218, 128, contingencia],
+    ]],
+    ['Curva normal e testes', [
+      ['es-normal-regra', 'Regra 68–95–99,7', 220, 174, normalRegra],
+      ['es-normal-padrao', 'Normal padrão (z de −3 a 3)', 220, 126, normalPadrao],
+      ['es-normal-entre', 'Normal: área entre a e b', 220, 126, normalEntre],
+      ['es-normal-acum', 'Normal: área acumulada Φ(z)', 220, 126, normalAcum],
+      ['es-normal-ic', 'Normal: confiança (1 − α)', 220, 126, normalIC],
+      ['es-normal-medias', 'Duas normais (μ₁ ≠ μ₂)', 220, 126, normalMedias],
+      ['es-normal-fda', 'Normal acumulada (curva S)', 220, 130, normalFda],
+      ['es-t-bi', 't de Student: bilateral', 220, 126, tBi],
+      ['es-quiquad-dir', 'Qui-quadrado: região crítica', 220, 130, quiQuadDir],
+      ['es-f-dir', 'F: região crítica', 220, 130, fDir],
+      ['es-erros', 'Erros tipo I e II (α, β)', 220, 128, errosTipo],
+    ]],
+    ['Mais distribuições', [
+      ['es-binomial-sim', 'Binomial simétrica (p = 0,5)', 220, 130, binomialSim],
+      ['es-geometrica', 'Geométrica (barras)', 220, 130, geometrica],
+      ['es-unif-discreta', 'Uniforme discreta (dado)', 220, 130, unifDiscreta],
+      ['es-weibull', 'Weibull (vários k)', 220, 130, weibull],
+      ['es-gama', 'Gama (vários k)', 220, 130, gama],
+      ['es-exp-acum', 'Exponencial acumulada', 220, 130, expAcum],
+      ['es-triangular', 'Triangular', 220, 130, triangular],
+      ['es-beta', 'Beta (vários parâmetros)', 220, 130, beta],
+      ['es-tlc', 'Distribuição amostral da média', 220, 126, tlc],
+      ['es-fda-discreta', 'Acumulada discreta (escada)', 220, 130, fdaDiscreta],
+    ]],
+    ['Mais gráficos', [
+      ['es-hist-normal', 'Histograma com curva normal', 220, 140, histNormal],
+      ['es-barras-h', 'Barras horizontais', 220, 150, barrasH],
+      ['es-barras-empilh', 'Barras empilhadas', 220, 150, barrasEmpilh],
+      ['es-rosca', 'Rosca (anel)', 140, 140, rosca],
+      ['es-pizza-destaque', 'Pizza com setor destacado', 146, 146, pizzaDestaque],
+      ['es-linhas-2', 'Duas séries (linhas)', 220, 150, linhas2],
+      ['es-area', 'Gráfico de área', 220, 150, grafArea],
+      ['es-disp-quad', 'Dispersão com parábola', 180, 140, dispQuad],
+      ['es-minimos-quad', 'Mínimos quadrados (desvios)', 180, 140, minimosQuad],
+      ['es-banda-ic', 'Regressão com banda de confiança', 180, 140, bandaIC],
+      ['es-residuos-funil', 'Resíduos em funil', 180, 140, residuosFunil],
+      ['es-residuos-curva', 'Resíduos com curvatura', 180, 140, residuosCurva],
+      ['es-box-anotado', 'Boxplot (Mín, Q1, Md, Q3, Máx)', 220, 86, boxAnotado],
+      ['es-violino', 'Gráfico de violino', 200, 174, violino],
+      ['es-pontos', 'Gráfico de pontos', 220, 118, dotPlot],
+      ['es-ic-amostras', 'Intervalos de confiança (amostras)', 220, 176, icAmostras],
+      ['es-barras-erro', 'Barras com erro', 220, 150, barrasErro],
+    ]],
+    ['Controle de qualidade', [
+      ['es-carta-zonas', 'Carta de controle com zonas', 240, 140, cartaZonas],
+      ['es-carta-p', 'Carta p (limites variáveis)', 232, 120, cartaP],
+      ['es-capabilidade', 'Capacidade do processo', 220, 126, capabilidade],
+    ]],
+    ['Conjuntos e amostragem', [
+      ['es-venn-inter', 'Venn: interseção', 220, 140, vennInter],
+      ['es-venn-uniao', 'Venn: união', 220, 140, vennUniao],
+      ['es-venn-dif', 'Venn: diferença A − B', 220, 140, vennDif],
+      ['es-venn-compl', 'Venn: complementar', 220, 140, vennCompl],
+      ['es-venn-disj', 'Eventos mutuamente exclusivos', 220, 140, vennDisj],
+      ['es-venn-sub', 'Venn: B contido em A', 220, 140, vennSub],
+      ['es-arvore-p', 'Árvore com probabilidades', 222, 160, arvoreP],
+      ['es-tabela-freq', 'Tabela de frequências', 230, 144, tabelaFreq],
+      ['es-amost-estrat', 'Amostragem estratificada', 200, 128, amostEstrat],
+      ['es-amost-cong', 'Amostragem por conglomerados', 220, 124, amostCong],
+      ['es-amost-sist', 'Amostragem sistemática', 230, 54, amostSist],
+      ['es-roleta', 'Roleta (setores)', 130, 130, roleta],
     ]],
   ],
 };

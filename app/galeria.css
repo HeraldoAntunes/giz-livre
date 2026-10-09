@@ -1,0 +1,65 @@
+/* Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE) */
+/* Galeria: pastas (agrupar quadros por disciplina). Complementa o bloco "galeria" de style.css. */
+
+/* caminho "Todos › Pasta" */
+.g-path { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 14px; margin: -8px 0 -8px; }
+/* "← Todos os quadros": botão de verdade (alvo de 36 px para a caneta) */
+.g-path .g-back { min-height: 36px; color: var(--accent); text-decoration: none; font-weight: 600; }
+.g-path .g-back:hover { background: var(--accent-soft); }
+.g-path-sep { color: var(--muted); }
+.g-path b { font-weight: 600; }
+.g-path-note { color: var(--muted); font-size: 12px; margin-left: 8px; }
+
+/* cartões de pasta: compactos, numa faixa própria acima dos quadros */
+.g-folders { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(234px, 1fr)); gap: 12px 24px; }
+.fcard { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 40px 12px 14px;
+  background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.14); cursor: pointer;
+  transition: box-shadow .12s, transform .12s; outline-offset: 2px; }
+.fcard:hover { box-shadow: 0 6px 18px rgba(0,0,0,.18); transform: translateY(-1px); }
+.fcard:focus-visible { outline: 2px solid var(--accent); }
+.fcard .ficon { flex: none; width: 36px; height: 36px; border-radius: 6px; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent); }
+.fcard .fmeta { display: flex; flex-direction: column; min-width: 0; }
+.fcard .t { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fcard .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.fcard .dots { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none;
+  padding: 4px; border-radius: 4px; color: var(--muted); }
+.fcard .dots:hover { background: #eee; }
+
+/* rótulo "Quadros sem pasta" e nome da pasta no resultado da pesquisa */
+.g-sec { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--muted); margin: 4px 0 -12px; }
+.g-sec:empty { display: none; }
+.card .g-inf { color: var(--accent); }
+
+/* menu "Mover para pasta…" */
+.menu.g-move { max-height: 50vh; overflow-y: auto; }
+.menu.g-move button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.menu.g-move button svg, .menu button svg { flex: none; }
+
+/* alvos de pelo menos 36 px na galeria (caneta) */
+.g-head .btn, .g-search { min-height: 36px; }
+.g-head { gap: 12px; }
+.card .dots, .fcard .dots { min-width: 36px; min-height: 36px; display: grid; place-items: center; }
+.card .dots { right: 4px; bottom: 6px; }
+.fcard { padding-right: 46px; }
+
+/* pasta vazia: "Escolher quadros…" */
+.g-empty .btn { margin-top: 14px; min-height: 36px; }
+dialog.g-pick { width: min(560px, 94vw); }
+.g-pick-list { max-height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.g-pick-list label { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center;
+  min-height: 44px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.g-pick-list label:hover { background: #f0f0f0; }
+.g-pick-list input { width: 22px; height: 22px; grid-row: span 2; margin: 0; }
+.g-pick-list .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-pick-list small { color: var(--muted); }
+dialog.g-pick .acts .btn { min-height: 36px; }
+
+/* lixeira */
+.g-note { grid-column: 1 / -1; color: var(--muted); font-size: 13px; margin: -6px 0 -6px; }
+.card.trash { cursor: default; }
+.card.trash:hover { transform: none; }
+.card.trash .thumb { opacity: .75; }
+.card.trash .meta { padding-right: 16px; }
+.g-acts { padding: 0 12px 12px; display: flex; justify-content: flex-end; }
+.g-restore { min-height: 36px; color: var(--accent); font-weight: 600; }

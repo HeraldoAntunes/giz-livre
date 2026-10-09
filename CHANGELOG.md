@@ -1,5 +1,38 @@
 # Histórico de versões
 
+## 1.1.0 (09/10/2026)
+Pedidos do professor depois do primeiro uso real (09/10/2026).
+- **Borracha com tamanho:** P, M, G, GG ou controle deslizante (de 3 a 120 px), no menu da borracha.
+- **Ponteiro da caneta também no mouse** (ponta, mira, ponto ou bolinha) no lugar da cruz; dá para desligar no menu
+  da caneta.
+- **Caneta: botão "Restaurar padrão"** (cor, espessura, estilo e ponteiro de fábrica).
+- **Limpar a lousa pergunta o quê:** só o que foi escrito (o PDF/slides ficam) ou tudo, inclusive PDF/slides e
+  páginas extras. Dá para desfazer.
+- **Excluir várias páginas de uma vez:** no painel "Ver todas as páginas", marque as miniaturas e toque em "Excluir";
+  cada miniatura também tem a sua lixeira.
+- **Cor de fundo com PDF:** a mesa em volta das folhas segue a cor escolhida, e sobre as páginas do PDF a tinta preta
+  continua preta mesmo com fundo escuro.
+- **Apresentação:** cor e espessura da caneta, liga/desliga de "tinta vira forma" (desligado = desenho livre; era ele
+  que transformava traços em reta) e lupa de escrita na mini-bandeja.
+- **Ferramentas do professor:** ícone novo (esquadro e lápis) e opção de mostrar todas abertas numa barra própria,
+  móvel como as outras.
+- **Cronômetro com tempo digitado** (7, 7,5 ou 7:30) e **relógio** com a hora do computador.
+- **Transferidor com trava:** a caneta perto do arco ou da base corre presa à borda, como na régua.
+- **Plotar função:**
+  - os eixos agora são desenhados como itens (com números), que dá para apagar ou mover, em vez de trocar a folha
+    para plano cartesiano;
+  - curva, eixos e rótulo entram agrupados;
+  - **modelos prontos por área** (Elétrica, Saneamento e Ambiental, Química, Estatística, Hidráulica e Hidrologia,
+    Matemática, Embarcados e sinais), com controles deslizantes para os parâmetros;
+  - **animação de um parâmetro** (vai e volta), com pausa, velocidade e "Fixar esta curva".
+- **Agrupar e desagrupar** (Ctrl+G / Ctrl+Shift+G, ou pela barra da seleção): clicar num item seleciona o grupo todo.
+- **Pastas na galeria** para juntar os quadros de uma disciplina: mover pelo menu ⋯ do quadro, renomear e desfazer a
+  pasta (nunca apaga quadros); a pesquisa procura em todas.
+- **+682 formas** (de 702 para 1.384), pelo menos 40 a mais em cada disciplina, todas desenhadas para o Giz Livre;
+  a aba "Operações unitárias" virou "Química e processos" (as formas antigas mantêm o id).
+- **Ícone na barra de tarefas:** a janela passa a se identificar como Giz Livre, e o pino da barra de tarefas abre o
+  Giz Livre em vez do Edge.
+
 ## 1.0.3 (08/10/2026)
 - A versão aparece ao lado do título, na galeria.
 - Atalho "Desinstalar o Giz Livre" no Menu Iniciar. A janela Sobre explica como desinstalar e lembra que os quadros

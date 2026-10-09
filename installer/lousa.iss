@@ -1,5 +1,6 @@
-﻿; Instalador do Giz Livre (Inno Setup 6). Gerado por installer\build.ps1.
-#define AppVer "1.0.3"
+﻿; Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+; Instalador do Giz Livre (Inno Setup 6). Compilado por installer\build.ps1.
+#define AppVer "1.1.0"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]
@@ -44,10 +45,11 @@ Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\GUIA-DE-USO.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\Giz Livre"; Filename: "{app}\GizLivre.exe"; Comment: "Lousa livre e offline para aulas"
+; AppUserModelID igual ao que o server.py põe na janela: o pino da barra de tarefas fica com o Giz Livre, não com o Edge
+Name: "{autoprograms}\Giz Livre"; Filename: "{app}\GizLivre.exe"; Comment: "Lousa livre e offline para aulas"; AppUserModelID: "GizLivre"
 Name: "{autoprograms}\Giz Livre - pasta dos quadros"; Filename: "{userdocs}\Giz Livre\quadros"
 Name: "{autoprograms}\Desinstalar o Giz Livre"; Filename: "{uninstallexe}"; Comment: "Remove o programa; os quadros ficam guardados"
-Name: "{autodesktop}\Giz Livre"; Filename: "{app}\GizLivre.exe"; Tasks: desktopicon
+Name: "{autodesktop}\Giz Livre"; Filename: "{app}\GizLivre.exe"; Tasks: desktopicon; AppUserModelID: "GizLivre"
 
 [Dirs]
 Name: "{userdocs}\Giz Livre\quadros"; Flags: uninsneveruninstall
@@ -59,7 +61,7 @@ Filename: "{app}\GizLivre.exe"; Description: "Abrir o Giz Livre agora"; Flags: n
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM GizLivre.exe /F"; Flags: runhidden; RunOnceId: "FecharLousa"
 
 [Messages]
-; tradução padrão do Inno usa "pra"; o professor pediu "para" (1.0.2)
+; a tradução padrão do Inno usa "pra"; aqui fica a forma "para"
 ptbr.SetupAppRunningError=O instalador detectou que o %1 está atualmente em execução.%n%nPor favor feche todas as instâncias dele agora, então clique em OK para continuar ou em Cancelar para sair.
 ptbr.UninstallAppRunningError=O Desinstalador detectou que o %1 está atualmente em execução.%n%nPor favor feche todas as instâncias dele agora, então clique em OK para continuar ou em Cancelar para sair.
 ptbr.PrivilegesRequiredOverrideText1=O %1 pode ser instalado para todos os usuários (requer privilégios administrativos) ou só para você.

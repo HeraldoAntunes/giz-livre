@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Modo páginas (caderno A4, slides): geometria, desenho da "mesa" com folhas, exportação PDF e impressão.
 // As páginas são faixas do mesmo mundo infinito, empilhadas na vertical: os itens e as ferramentas não mudam.
 import * as R from './render.js';
@@ -40,11 +41,30 @@ function paperFor(bg, r) {
   return { ...bg, origin, pageBox: r };
 }
 
-// desenha a mesa cinza com as folhas visíveis (coordenadas de tela, w×h em px CSS)
+// cor da "mesa" em volta das folhas: segue a cor de fundo escolhida (um tom abaixo, para as folhas se destacarem)
+export function deskColor(c) {
+  if (!c || c.toLowerCase() === '#ffffff') return '#e4e4e4';
+  const n = parseInt(c.slice(1), 16), dark = R.isDark(c);
+  const ch = s => { const v = (n >> s) & 255; return Math.round(dark ? v + (255 - v) * 0.1 : v * 0.9); };
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+
+// páginas cobertas por PDF/slide travado: ali a tinta preta continua preta mesmo com o fundo escuro
+const slideMemo = new WeakMap();
+export function slidePages(L, items) {
+  const m = slideMemo.get(items);
+  if (m && m.L === L) return m.set;
+  const set = new Set();
+  for (const it of items) if (it.locked && it.type === 'image') set.add(pageOf(L, it));
+  slideMemo.set(items, { L, set });
+  return set;
+}
+
+// desenha a mesa com as folhas visíveis (coordenadas de tela, w×h em px CSS)
 export function drawPages(ctx, board, view, w, h) {
   const L = board.layout, bg = board.background, z = view.zoom;
   const dark = R.isDark(bg.color);
-  ctx.fillStyle = dark ? '#121212' : '#e4e4e4';
+  ctx.fillStyle = deskColor(bg.color);
   ctx.fillRect(0, 0, w, h);
   const wy0 = -view.y / z, wy1 = (h - view.y) / z;
   const i0 = Math.max(0, Math.floor(wy0 / (L.h + L.gap))), i1 = Math.min(L.count - 1, Math.floor(wy1 / (L.h + L.gap)));
@@ -77,7 +97,7 @@ export async function renderPage(board, i, scale = 2) {
   const ctx = c.getContext('2d');
   const view = { x: -r.x * scale, y: -r.y * scale, zoom: scale };
   R.drawBackground(ctx, paperFor(board.background, r), view, c.width, c.height);
-  R.withDarkBackground(R.isDark(board.background.color), () => {
+  R.withDarkBackground(R.isDark(board.background.color) && !slidePages(L, board.items).has(i), () => {
     ctx.setTransform(scale, 0, 0, scale, view.x, view.y);
     for (const it of board.items) if (R.boxesTouch(R.bbox(it), r)) R.drawItem(ctx, it);
   });
@@ -92,7 +112,7 @@ export async function boardThumb(board, w = 480, h = 270, box = null) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const g = c.getContext('2d');
-  g.fillStyle = R.isDark(board.background.color) ? '#121212' : '#e4e4e4';
+  g.fillStyle = deskColor(board.background.color);
   g.fillRect(0, 0, w, h);
   const k = Math.min((w - 16) / pg.width, (h - 16) / pg.height);
   g.drawImage(pg, (w - pg.width * k) / 2, (h - pg.height * k) / 2, pg.width * k, pg.height * k);

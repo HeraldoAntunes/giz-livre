@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Utilidades para desenhar as formas da biblioteca (ver shapelib.js para o formato).
 // Convenções: cada forma é [id, nome, largura, altura, corpo SVG]. O corpo herda fill="none", stroke="#C",
 // stroke-width 2.5, cantos e pontas arredondados. "#C" vira a cor da tinta; use fill="#C" para partes cheias.

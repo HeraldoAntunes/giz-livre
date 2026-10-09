@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Estabilização do traço em camadas independentes (cada uma liga/desliga no painel Caneta e escrita)
 //   1. filtro One Euro de posição (passa-baixa adaptativo: suaviza devagar, quase nada rápido)
 //   2. fio puxado (lazy brush): a tinta segue a caneta presa a um fio de N px

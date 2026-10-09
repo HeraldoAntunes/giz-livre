@@ -19,8 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-Fluent UI System Icons (https://github.com/microsoft/fluentui-system-icons),
-pacote npm @fluentui/svg-icons@1.1.343. Os SVGs desta pasta e o módulo gerado
-app/js/fluent-icons.js vêm desse pacote, sem modificação no desenho.

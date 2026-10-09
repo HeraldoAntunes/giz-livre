@@ -1,3 +1,4 @@
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 """Giz Livre — servidor local (só biblioteca padrão).
 
 Serve a interface em app/ e grava os quadros em quadros/ como arquivos JSON + miniatura PNG.
@@ -57,8 +58,10 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.0.3"
+VERSAO = "1.1.0"
 ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+# arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
+LIXO_OK = re.compile(r"^([A-Za-z0-9_-]{1,64})_(\d{8}-\d{6})(?:-\d{1,4})?$")
 ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)$")
 TIPOS = {"png": "image/png", "jpg": "image/jpeg"}
 MB = 1024 * 1024
@@ -92,6 +95,58 @@ def gravar_atomico(caminho: Path, dados: bytes) -> None:
         except OSError:
             pass
         raise
+
+
+RESUMOS: dict[str, tuple] = {}     # id -> (mtime_ns, tamanho, resumo): a galeria não relê quadros que não mudaram
+
+
+def nome_pasta(valor) -> str:
+    """Nome de pasta da galeria (campo `folder` do quadro): texto curto, sem controles; vazio = sem pasta."""
+    if not isinstance(valor, str):
+        return ""
+    return re.sub(r"\s+", " ", "".join(c for c in valor if c.isprintable())).strip()[:80]
+
+
+def resumo_quadro(arq: Path) -> dict:
+    st = arq.stat()
+    chave = (st.st_mtime_ns, st.st_size)
+    guardado = RESUMOS.get(arq.stem)
+    if guardado and guardado[:2] == chave:
+        return guardado[2]
+    with open(arq, encoding="utf-8") as f:
+        b = json.load(f)
+    r = {"id": arq.stem, "title": b.get("title") or "Sem título",
+         "updated": b.get("updated") or st.st_mtime * 1000,
+         "mode": (b.get("layout") or {}).get("mode", "free")}
+    pasta = nome_pasta(b.get("folder"))
+    if pasta:
+        r["folder"] = pasta
+    with TRAVA_GERAL:
+        RESUMOS[arq.stem] = (*chave, r)
+    return r
+
+
+def listar_lixeira() -> list:
+    """Quadros excluídos (mais recente primeiro): nome do arquivo, id, título, pasta, data da exclusão, miniatura."""
+    lista = []
+    for arq in LIXEIRA.glob("*.json"):
+        m = LIXO_OK.match(arq.stem)
+        if not m:
+            continue
+        try:
+            with open(arq, encoding="utf-8") as f:
+                b = json.load(f)
+            quando = time.mktime(time.strptime(m.group(2), "%Y%m%d-%H%M%S")) * 1000
+        except Exception:
+            continue
+        item = {"nome": arq.stem, "id": m.group(1), "title": str(b.get("title") or "Sem título")[:200],
+                "deleted": int(quando), "thumb": (LIXEIRA / f"{arq.stem}.png").is_file()}
+        pasta = nome_pasta(b.get("folder"))
+        if pasta:
+            item["folder"] = pasta
+        lista.append(item)
+    lista.sort(key=lambda x: (x["deleted"], x["nome"]), reverse=True)
+    return lista
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -179,17 +234,18 @@ class Handler(SimpleHTTPRequestHandler):
         rota = self._rota()
         if rota == "/api/boards":
             lista = []
+            vistos = set()
             for arq in DADOS.glob("*.json"):
                 if not ID_OK.match(arq.stem):
                     continue
                 try:
-                    with open(arq, encoding="utf-8") as f:
-                        b = json.load(f)
-                    lista.append({"id": arq.stem, "title": b.get("title") or "Sem título",
-                                  "updated": b.get("updated") or arq.stat().st_mtime * 1000,
-                                  "mode": (b.get("layout") or {}).get("mode", "free")})
+                    lista.append(resumo_quadro(arq))
+                    vistos.add(arq.stem)
                 except Exception:
                     continue
+            with TRAVA_GERAL:   # esquece os quadros que saíram da pasta (lixeira)
+                for k in [k for k in RESUMOS if k not in vistos]:
+                    RESUMOS.pop(k, None)
             lista.sort(key=lambda x: x["updated"], reverse=True)
             return self._json(lista)
         if rota == "/api/info":
@@ -198,6 +254,17 @@ class Handler(SimpleHTTPRequestHandler):
                                "ocr": WINDOWS})
         if rota == "/api/ping":
             return self._json({"ok": True})
+        if rota == "/api/lixeira":
+            return self._json(listar_lixeira())
+        if rota.startswith("/api/lixeira/"):   # miniatura de um quadro da lixeira
+            nome = rota[len("/api/lixeira/"):]
+            nome = nome[:-4] if nome.endswith(".png") else ""
+            arq = LIXEIRA / f"{nome}.png"
+            if not LIXO_OK.match(nome) or not arq.is_file():
+                self.send_response(404)
+                self.end_headers()
+                return
+            return self._bytes(arq.read_bytes(), "image/png")
         if rota.startswith("/api/boards/"):
             bid = self._id("/api/boards/")
             if bid is None:
@@ -259,6 +326,36 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._json({"erro": str(e)}, 400)
             return self._json({"ok": True})
+        if rota.startswith("/api/folder/"):
+            # muda só a pasta do quadro, sem mexer na data de edição nem reenviar o quadro inteiro
+            bid = self._id("/api/folder/")
+            if bid is None:
+                return
+            corpo = self._corpo()
+            if corpo is None:
+                return
+            try:
+                pacote = json.loads(corpo.decode("utf-8"))
+                if not isinstance(pacote, dict):
+                    raise ValueError("pedido inválido")
+                pasta = nome_pasta(pacote.get("folder"))
+            except Exception as e:
+                return self._json({"erro": str(e)}, 400)
+            arq = DADOS / f"{bid}.json"
+            with trava(bid):
+                if not arq.exists():
+                    return self._json({"erro": "não encontrado"}, 404)
+                try:
+                    with open(arq, encoding="utf-8") as f:
+                        board = json.load(f)
+                    if pasta:
+                        board["folder"] = pasta
+                    else:
+                        board.pop("folder", None)
+                    gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+                except Exception as e:
+                    return self._json({"erro": str(e)}, 500)
+            return self._json({"ok": True, "folder": pasta})
         if not rota.startswith("/api/boards/"):
             return self._json({"erro": "rota"}, 404)
         bid = self._id("/api/boards/")
@@ -281,6 +378,11 @@ class Handler(SimpleHTTPRequestHandler):
                     raise ValueError("miniatura inválida")
                 png = base64.b64decode(thumb.split(",", 1)[1], validate=True)
             board["title"] = str(pacote.get("title") or board.get("title") or "Sem título")[:200]
+            pasta = nome_pasta(board.get("folder"))
+            if pasta:
+                board["folder"] = pasta
+            else:
+                board.pop("folder", None)
             board["updated"] = int(time.time() * 1000)
             dados = json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8")
         except Exception as e:
@@ -343,6 +445,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"erro": "Reconhecimento de escrita indisponível neste computador."}, 500)
             finally:
                 TRAVA_OCR.release()
+        if rota == "/api/lixeira/restaurar":
+            return self._restaurar()
         if rota == "/api/pdf":
             corpo = self._corpo("pdf")
             if corpo is None:
@@ -367,11 +471,47 @@ class Handler(SimpleHTTPRequestHandler):
             return
         carimbo = time.strftime("%Y%m%d-%H%M%S")
         with trava(bid):
+            nome = f"{bid}_{carimbo}"
+            n = 1   # dois envios do mesmo quadro no mesmo segundo (excluir, desfazer, excluir): não sobrescreve
+            while (LIXEIRA / f"{nome}.json").exists() or (LIXEIRA / f"{nome}.png").exists():
+                n += 1
+                nome = f"{bid}_{carimbo}-{n}"
+            movido = False
             for ext in (".json", ".png"):
                 arq = DADOS / f"{bid}{ext}"
                 if arq.exists():
-                    shutil.move(str(arq), str(LIXEIRA / f"{bid}_{carimbo}{ext}"))
-        return self._json({"ok": True})
+                    shutil.move(str(arq), str(LIXEIRA / f"{nome}{ext}"))
+                    movido = movido or ext == ".json"
+        return self._json({"ok": True, "lixeira": nome if movido else None})
+
+    def _restaurar(self):
+        """Devolve um quadro da lixeira para a galeria. Se o id já estiver em uso, ganha um id novo."""
+        corpo = self._corpo()
+        if corpo is None:
+            return
+        try:
+            pacote = json.loads(corpo.decode("utf-8"))
+            nome = pacote.get("nome") if isinstance(pacote, dict) else None
+            m = LIXO_OK.match(nome) if isinstance(nome, str) else None
+            if not m:
+                raise ValueError("nome inválido")
+        except Exception as e:
+            return self._json({"erro": str(e)}, 400)
+        origem = LIXEIRA / f"{nome}.json"
+        if origem.resolve().parent != LIXEIRA.resolve() or not origem.is_file():
+            return self._json({"erro": "não está na lixeira"}, 404)
+        bid = novo = m.group(1)
+        with TRAVA_GERAL:   # escolhe o id e reserva a trava antes de mover
+            while (DADOS / f"{novo}.json").exists() or (DADOS / f"{novo}.png").exists():
+                novo = f"{bid[:55]}-{secrets.token_hex(4)}"
+        with trava(novo):
+            if (DADOS / f"{novo}.json").exists():
+                return self._json({"erro": "conflito; tente de novo"}, 409)
+            shutil.move(str(origem), str(DADOS / f"{novo}.json"))
+            mini = LIXEIRA / f"{nome}.png"
+            if mini.is_file():
+                shutil.move(str(mini), str(DADOS / f"{novo}.png"))
+        return self._json({"ok": True, "id": novo, "renomeado": novo != bid})
 
 
 # ---------------- imagens guardadas à parte (slides, PDFs, fotos) ----------------
@@ -645,7 +785,7 @@ def info_rodando(porta: int):
             return json.loads(r.read().decode("utf-8"))
     except Exception:
         pass
-    try:   # Lousa de 07/10 (sem /api/info): /api/boards devolve uma lista
+    try:   # versão anterior à 1.0 (sem /api/info): /api/boards devolve uma lista
         with urllib.request.urlopen(f"http://127.0.0.1:{porta}/api/boards", timeout=1) as r:
             if isinstance(json.loads(r.read().decode("utf-8")), list):
                 return {"lousa_antiga": True}
@@ -658,7 +798,7 @@ def pedir_saida(porta: int, info: dict) -> bool:
     """Fecha outro Giz Livre que esteja na porta. Devolve True se a porta ficou livre."""
     import urllib.request
     token = info.get("token") if isinstance(info, dict) else None
-    if token:   # Lousa 1.0+: pede para sair educadamente
+    if token:   # versão 1.0 ou mais nova: pede para sair educadamente
         try:
             req = urllib.request.Request(f"http://127.0.0.1:{porta}/api/sair", data=b"{}", method="POST",
                                          headers={"X-Lousa": token, "Content-Type": "application/json"})
@@ -669,7 +809,7 @@ def pedir_saida(porta: int, info: dict) -> bool:
             if info_rodando(porta) is None:
                 return True
             time.sleep(0.1)
-    # versão antiga (sem /api/sair): só mata se for mesmo umo Giz Livre e o professor concordar
+    # versão antiga (sem /api/sair): só encerra o processo se for mesmo um Giz Livre e o professor concordar
     if not (info.get("lousa_antiga") or token):
         return False
     if not WINDOWS:
@@ -721,6 +861,184 @@ def abrir_janela(url: str) -> None:
     webbrowser.open(url)
 
 
+# ---- ícone na barra de tarefas (Windows) ----
+# A interface roda numa janela do Edge/Chrome em modo app. Sem isto, ao fixar na barra de tarefas o Windows guarda o
+# Edge (ícone e atalho). Aqui marcamos a janela com o AppUserModelID do Giz Livre (o mesmo dos atalhos do instalador)
+# e com o comando/ícone para reabrir o programa. Tudo é opcional: se falhar, o programa segue normal.
+APP_ID = "GizLivre"
+_FMT_AUMID = "{9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}"
+_PID_RELAUNCH_CMD, _PID_RELAUNCH_ICON, _PID_RELAUNCH_NOME, _PID_ID = 2, 3, 4, 5
+
+
+def _caminho_curto(caminho: str) -> str:
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(520)
+        n = ctypes.windll.kernel32.GetShortPathNameW(caminho, buf, 520)
+        return buf.value if 0 < n < 520 else caminho
+    except Exception:
+        return caminho
+
+
+def comando_relancar() -> tuple[str, str]:
+    """(linha de comando, ícone "caminho,0") para reabrir o Giz Livre a partir do pino da barra de tarefas.
+    A janela guarda no máximo MAX_PATH caracteres: se passar, encurta os caminhos e, em último caso, larga as opções."""
+    extra = [a for a in sys.argv[1:] if a != "--sem-auto-encerrar"]
+    if CONGELADO:
+        exe = str(Path(sys.executable).resolve())
+        base, ico = [exe], exe
+    else:
+        py = Path(sys.executable).resolve()
+        pyw = py.with_name("pythonw.exe")
+        exe = str(pyw if pyw.exists() else py)
+        icone = RAIZ / "installer" / "lousa.ico"
+        base, ico = [exe, str(Path(__file__).resolve())], str(icone if icone.exists() else exe)
+    curtos = [_caminho_curto(c) for c in base]
+    for partes in ([*base, *extra], [*curtos, *extra], curtos):
+        cmd = subprocess.list2cmdline(partes)
+        if len(cmd) < 260:
+            break
+    if len(ico) + 2 >= 260:
+        ico = _caminho_curto(ico)
+    return cmd, f"{ico},0"
+
+
+def _com_aumid():
+    """Prepara as estruturas ctypes de IPropertyStore (só Windows). Devolve (definir, ler, listar_janelas)."""
+    import ctypes
+    from ctypes import wintypes
+
+    class GUID(ctypes.Structure):
+        _fields_ = [("d1", ctypes.c_ulong), ("d2", ctypes.c_ushort), ("d3", ctypes.c_ushort), ("d4", ctypes.c_ubyte * 8)]
+
+    class PROPERTYKEY(ctypes.Structure):
+        _fields_ = [("fmtid", GUID), ("pid", wintypes.DWORD)]
+
+    class _Valor(ctypes.Union):
+        _fields_ = [("ptr", ctypes.c_void_p), ("pad", ctypes.c_ulonglong * 2)]
+
+    class PROPVARIANT(ctypes.Structure):
+        _fields_ = [("vt", ctypes.c_ushort), ("r1", ctypes.c_ushort), ("r2", ctypes.c_ushort), ("r3", ctypes.c_ushort),
+                    ("v", _Valor)]
+
+    VT_EMPTY, VT_LPWSTR = 0, 31
+    ole32, shell32, user32 = ctypes.windll.ole32, ctypes.windll.shell32, ctypes.windll.user32
+
+    def guid(texto):
+        g = GUID()
+        if ole32.CLSIDFromString(ctypes.c_wchar_p(texto), ctypes.byref(g)) != 0:
+            raise OSError("GUID inválido")
+        return g
+
+    iid_store = guid("{886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99}")
+    fmt = guid(_FMT_AUMID)
+    shell32.SHGetPropertyStoreForWindow.argtypes = [wintypes.HWND, ctypes.POINTER(GUID), ctypes.POINTER(ctypes.c_void_p)]
+    shell32.SHGetPropertyStoreForWindow.restype = ctypes.c_long
+    PROTO_REL = ctypes.WINFUNCTYPE(ctypes.c_ulong, ctypes.c_void_p)
+    PROTO_GET = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, ctypes.POINTER(PROPERTYKEY), ctypes.POINTER(PROPVARIANT))
+    PROTO_SET = PROTO_GET
+    PROTO_COMMIT = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p)
+    ole32.PropVariantClear.argtypes = [ctypes.POINTER(PROPVARIANT)]
+
+    def chave(pid):
+        return PROPERTYKEY(fmt, pid)
+
+    def com_store(hwnd, fn):
+        store = ctypes.c_void_p()
+        if shell32.SHGetPropertyStoreForWindow(hwnd, ctypes.byref(iid_store), ctypes.byref(store)) != 0 or not store:
+            raise OSError("sem IPropertyStore")
+        vt = ctypes.cast(store, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p)))[0]
+        try:
+            return fn(store, vt)
+        finally:
+            PROTO_REL(vt[2])(store)
+
+    def ler(hwnd, pid=_PID_ID) -> str:
+        def fn(store, vt):
+            pv = PROPVARIANT()
+            if PROTO_GET(vt[5])(store, ctypes.byref(chave(pid)), ctypes.byref(pv)) != 0:
+                return ""
+            try:
+                return ctypes.wstring_at(pv.v.ptr) if pv.vt == VT_LPWSTR and pv.v.ptr else ""
+            finally:
+                ole32.PropVariantClear(ctypes.byref(pv))
+        return com_store(hwnd, fn)
+
+    def definir(hwnd, valores: dict) -> None:
+        def fn(store, vt):
+            definir_valor = PROTO_SET(vt[6])
+            erros = []
+            for pid, texto in valores.items():   # cada propriedade por si: uma recusada não impede as outras
+                buf = ctypes.create_unicode_buffer(texto)
+                pv = PROPVARIANT()
+                pv.vt = VT_LPWSTR
+                pv.v.ptr = ctypes.cast(buf, ctypes.c_void_p).value
+                r = definir_valor(store, ctypes.byref(chave(pid)), ctypes.byref(pv))
+                if r != 0:
+                    erros.append(f"{pid}: {r & 0xFFFFFFFF:#010x}")
+            PROTO_COMMIT(vt[7])(store)
+            if erros:
+                raise OSError("SetValue recusado (" + ", ".join(erros) + ")")
+        com_store(hwnd, fn)
+
+    WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    user32.EnumWindows.argtypes = [WNDENUMPROC, wintypes.LPARAM]
+
+    def janelas_do_programa() -> list:
+        """Janelas de nível superior do Edge/Chrome cujo título é o da página do Giz Livre (modo app: só o título)."""
+        achadas = []
+
+        def cada(hwnd, _):
+            try:
+                if not user32.IsWindowVisible(hwnd):
+                    return True
+                cls = ctypes.create_unicode_buffer(64)
+                user32.GetClassNameW(hwnd, cls, 64)
+                if cls.value != "Chrome_WidgetWin_1":
+                    return True
+                tit = ctypes.create_unicode_buffer(512)
+                user32.GetWindowTextW(hwnd, tit, 512)
+                t = tit.value
+                if t == "Giz Livre" or t.endswith(" — Giz Livre"):
+                    achadas.append(hwnd)
+            except Exception:
+                pass
+            return True
+
+        user32.EnumWindows(WNDENUMPROC(cada), 0)
+        return achadas
+
+    return definir, ler, janelas_do_programa
+
+
+def marcar_janelas_na_barra(parar: threading.Event) -> None:
+    """Vigia as janelas do Giz Livre e aplica o AUMID/ícone de relançamento (também reaplica se o Edge trocar)."""
+    try:
+        if not WINDOWS:
+            return
+        import ctypes
+        ctypes.windll.ole32.CoInitialize(None)
+        definir, ler, janelas = _com_aumid()
+        cmd, ico = comando_relancar()
+        # o ID vem primeiro: sem ele a janela recusa as propriedades de relançamento
+        valores = {_PID_ID: APP_ID, _PID_RELAUNCH_CMD: cmd, _PID_RELAUNCH_ICON: ico, _PID_RELAUNCH_NOME: "Giz Livre"}
+    except Exception as e:
+        registrar(e)
+        return
+    inicio, falhas = time.time(), 0
+    while not parar.is_set() and falhas < 20:
+        for hwnd in janelas():
+            try:
+                if ler(hwnd) != APP_ID:
+                    definir(hwnd, valores)
+            except Exception as e:
+                falhas += 1
+                if falhas == 1:
+                    registrar(e)
+        # logo depois de abrir a janela, olha com frequência; depois, só de vez em quando (janelas novas, troca do Edge)
+        parar.wait(0.5 if time.time() - inicio < 30 else 3)
+
+
 def vigiar_inatividade(srv, limite_s: int) -> None:
     # a página manda /api/ping a cada 30 s; sem janela aberta por `limite_s`, o servidor se encerra sozinho
     while True:
@@ -764,7 +1082,7 @@ def main():
             if not args.sem_janela:
                 abrir_janela(url)
             return
-        if not pedir_saida(PORTA, atual):           # outra cópia (ex.: C: × J:) ou versão antiga: troca
+        if not pedir_saida(PORTA, atual):           # outra cópia (ex.: instalada e portátil) ou versão antiga: troca
             aviso(f"A porta {PORTA} está ocupada por outro programa. Feche-o e abra o Giz Livre de novo.")
             return 1
         if info_rodando(PORTA) is not None:
@@ -777,6 +1095,8 @@ def main():
         print(f"Giz Livre {VERSAO} em {url}  (quadros em {DADOS})")
     if not args.sem_janela:
         threading.Timer(0.4, abrir_janela, args=(url,)).start()
+        if WINDOWS:
+            threading.Thread(target=marcar_janelas_na_barra, args=(threading.Event(),), daemon=True).start()
     if not args.sem_auto_encerrar and not args.sem_janela:
         threading.Thread(target=vigiar_inatividade, args=(srv, 20 * 60), daemon=True).start()
     try:

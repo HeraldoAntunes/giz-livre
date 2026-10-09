@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Utilidades de interface: ícones, aviso, diálogos e popover
 import { ICON } from './icons.js';
 
@@ -58,6 +59,17 @@ export function confirmBox(title, msg, okLabel = 'OK', danger = false) {
     });
 }
 
+// várias opções (botões empilhados); devolve o valor escolhido ou null (Cancelar/Esc)
+export function choiceBox(title, msg, options) {
+  return dialog(`<h3>${esc(title)}</h3><div>${esc(msg)}</div>
+    <div class="choices">${options.map(([v, label, danger], i) => `<button class="btn${danger ? ' danger' : i === 0 ? ' primary' : ''}" data-v="${i}">${esc(label)}</button>`).join('')}</div>
+    <div class="acts"><button class="btn" data-a="0">Cancelar</button></div>`,
+    (d, close) => {
+      d.querySelector('[data-a="0"]').onclick = () => close(null);
+      d.querySelectorAll('[data-v]').forEach(b => b.onclick = () => close(options[+b.dataset.v][0]));
+    });
+}
+
 export function aboutBox(version) {
   return infoBox('Sobre o Giz Livre', `
     <p style="margin:0 0 8px"><b>Giz Livre ${version}</b>: lousa livre e offline para dar aula com mesa digitalizadora.</p>
@@ -68,7 +80,8 @@ export function aboutBox(version) {
     Projeto independente, sem vínculo com Microsoft, Wacom ou outras marcas citadas.</p>
     <p style="margin:0 0 8px;font-size:12px;color:#616161"><b>Desinstalar:</b> Menu Iniciar → "Desinstalar o Giz Livre", ou
     Configurações do Windows → Aplicativos → Giz Livre. Os quadros (Documentos\\Giz Livre\\quadros) são mantidos.</p>
-    <p style="margin:0;font-size:12px;color:#616161">Usa pdf.js (Apache 2.0), KaTeX (MIT) e Fluent UI System Icons (MIT).
+    <p style="margin:0;font-size:12px;color:#616161">Usa pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e Fluent UI System
+    Icons (MIT); textos completos na pasta <i>licencas</i>.
     Funciona sem internet; nada é enviado para fora do computador.</p>`);
 }
 

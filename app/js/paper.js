@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Tipos de folha (fundo do quadro). Tudo desenhado só na área visível, em coordenadas de tela.
 export const PAPERS = [
   ['none', 'Lisa'], ['grid', 'Quadriculada'], ['mm', 'Milimetrada'], ['dots', 'Pontilhada'],

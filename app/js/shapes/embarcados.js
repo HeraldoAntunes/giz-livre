@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 import { T, head } from './base.js';
 
 // Sistemas embarcados: placas de desenvolvimento, prototipagem, módulos de sensores, atuadores, comunicação e
@@ -132,6 +133,64 @@ const wifi = (cx, cy, raios) => raios.map(r => {
   const k = f1(r * 0.707);
   return `<path d="M${f1(cx - k)},${f1(cy - k)} A${r},${r} 0 0 1 ${f1(cx + k)},${f1(cy - k)}" stroke-width="2.2"/>`;
 }).join('') + `<circle cx="${cx}" cy="${cy}" r="3" fill="#C" stroke="none"/>`;
+
+// ---- utilidades das formas da segunda parte (rótulos legíveis a ~80 px: fonte >= 14) ----
+const R = (x, y, s, z = 14) => T(f1(x), f1(y), s, z);
+const pernas = (xs, y1, y2) => `<path d="${xs.map(x => `M${x},${y1} V${y2}`).join(' ')}" stroke-width="2"/>`;
+const ponto = (x, y, r = 3) => `<circle cx="${f1(x)}" cy="${f1(y)}" r="${r}" fill="#C" stroke="none"/>`;
+const seta = (x1, y1, x2, y2, L = 9, w = 2.2) => `<path d="M${f1(x1)},${f1(y1)} L${f1(x2)},${f1(y2)}" stroke-width="${w}"/>` + head(f1(x2), f1(y2), Math.round(Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI), L);
+const seta2 = (x1, y1, x2, y2, L = 8, w = 2) => seta(x1, y1, x2, y2, L, w) + head(f1(x1), f1(y1), Math.round(Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI), L);
+const bloco = (x, y, w, h, s, z = 14) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>` + R(x + w / 2, y + h / 2, s, z);
+const estado = (cx, cy, r, s, z = 15) => `<circle cx="${cx}" cy="${cy}" r="${r}"/>` + R(cx, cy, s, z);
+// resistor em zigue-zague vertical de y1 a y2
+const zig = (x, y1, y2) => {
+  const a = y1 + 8, b = y2 - 8, d = (b - a) / 6;
+  let s = `M${x},${y1} V${a}`;
+  for (let i = 1; i <= 6; i++) s += ` L${x + (i % 2 ? 10 : -10)},${f1(a + d * (i - 0.5))}`;
+  return `<path d="${s} L${x},${b} V${y2}"/>`;
+};
+// sonda com cabo ligada a uma placa condicionadora (TDS, OD)
+const sondaPlaca = (nome, ponta) => '<rect x="14" y="10" width="38" height="84" rx="4"/>' + R(33, 50, nome) + ponta
+  + '<path d="M33,10 C33,0 86,0 96,24 C102,40 110,50 125,50" stroke-width="2.4"/>'
+  + placa(118, 20, 88, 80, 4) + '<circle cx="136" cy="50" r="11"/><circle cx="136" cy="50" r="4" stroke-width="1.4"/>'
+  + '<rect x="156" y="36" width="38" height="24" rx="1.5" stroke-width="1.8"/>'
+  + pernas([138, 162, 186], 100, 136) + R(138, 86, '+') + R(162, 86, '−') + R(186, 86, 'A');
+// conversor CC-CC em placa (buck / boost)
+const conversor = (titulo) => placa(20, 8, 150, 84, 4)
+  + '<circle cx="62" cy="40" r="20"/><circle cx="62" cy="40" r="10" stroke-width="1.4"/>'
+  + '<rect x="96" y="18" width="26" height="16" rx="2" stroke-width="1.6"/><circle cx="103" cy="26" r="3.5" stroke-width="1.2"/>'
+  + '<rect x="130" y="22" width="28" height="22" rx="1.5" stroke-width="1.8"/><circle cx="110" cy="54" r="7" stroke-width="1.4"/>'
+  + R(95, 76, titulo) + '<path d="M4,32 H20 M4,62 H20 M170,32 H186 M170,62 H186" stroke-width="2"/>'
+  + R(10, 20, '+') + R(10, 76, '−') + R(180, 20, '+') + R(180, 76, '−');
+// onda senoidal amostrada (gera o caminho em JS)
+const amostras = () => {
+  const y = (x) => f1(70 - 40 * Math.sin(2 * Math.PI * (x - 20) / 160));
+  let p = 'M20,70';
+  for (let x = 24; x <= 212; x += 4) p += ` L${x},${y(x)}`;
+  let s = `<path d="${p}" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+  for (let x = 20; x <= 212; x += 16) s += `<path d="M${x},70 V${y(x)}" stroke-width="1.8"/>` + ponto(x, y(x), 3.5);
+  return s;
+};
+// quadro serial: repouso, start, 8 bits, stop
+const quadro = () => {
+  const bits = [0, 1, 0, 1, 1, 0, 0, 1, 0, 1];
+  let p = 'M8,34 H30', x = 30;
+  for (const b of bits) { p += ` V${b ? 34 : 62} H${x + 22}`; x += 22; }
+  let s = `<path d="${p} H252" stroke-width="2.4"/>`;
+  for (let k = 0; k <= 10; k++) s += `<path d="M${30 + 22 * k},26 V70" stroke-width="1" stroke-dasharray="2 3"/>`;
+  return s;
+};
+// topologias de rede: nós ligados (encurta a linha para não invadir os círculos)
+const rede = (nos, ligs, r = 11) => {
+  let s = '';
+  for (const [a, b] of ligs) {
+    const [x1, y1] = nos[a], [x2, y2] = nos[b], d = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / d, uy = (y2 - y1) / d;
+    const ra = a === 0 && nos.centro ? nos.centro : r;
+    s += `<path d="M${f1(x1 + ux * ra)},${f1(y1 + uy * ra)} L${f1(x2 - ux * r)},${f1(y2 - uy * r)}" stroke-width="2"/>`;
+  }
+  return s;
+};
+const pa = (k, n, cx, cy, d) => `<g transform="rotate(${f1(360 * k / n)} ${cx} ${cy})">${d}</g>`;
 
 export default {
   id: 'embarcados', nome: 'Sistemas embarcados',
@@ -441,6 +500,193 @@ export default {
         + t(30, 10, 'A', 8) + t(140, 10, 'K', 8)],
       ['em-cristal', 'Cristal oscilador', 90, 120, '<rect x="12" y="10" width="66" height="40" rx="20"/><rect x="18" y="16" width="54" height="28" rx="14" stroke-width="1.2"/>'
         + t(45, 30, '16 MHz', 8) + '<path d="M33,50 V116 M57,50 V116"/>'],
+    ]],
+    ['Sensores ambientais (água, ar, solo)', [
+      ['em-tds', 'Sensor de TDS (condutividade)', 210, 140, sondaPlaca('TDS', '<path d="M25,94 V124 M41,94 V124" stroke-width="3"/>')],
+      ['em-od', 'Sensor de oxigênio dissolvido', 210, 140, sondaPlaca('OD', '<path d="M16,94 H50 L46,122 H20 Z"/><path d="M22,126 H44" stroke-width="3.5"/>')],
+      ['em-co2', 'Sensor de CO₂ (NDIR)', 150, 120, placa(6, 6, 138, 86, 4)
+        + '<rect x="20" y="18" width="110" height="40" rx="20"/><circle cx="40" cy="38" r="8" stroke-width="1.8"/>'
+        + '<rect x="106" y="30" width="12" height="16" rx="1" stroke-width="1.8"/><path d="M50,38 H104" stroke-width="1.4" stroke-dasharray="5 4"/>'
+        + R(75, 76, 'CO₂ (NDIR)') + pernas([55, 75, 95], 92, 116)],
+      ['em-pm', 'Sensor de partículas (PM2,5)', 160, 120, placa(6, 6, 148, 90, 4)
+        + '<circle cx="50" cy="50" r="32"/><circle cx="50" cy="50" r="8" stroke-width="1.6"/>'
+        + [0, 1, 2, 3, 4].map(k => pa(k, 5, 50, 50, '<path d="M50,42 C60,34 68,28 74,24" stroke-width="1.8"/>')).join('')
+        + R(118, 30, 'PM2,5', 15) + seta(96, 60, 142, 60) + R(118, 78, 'ar') + pernas([60, 80, 100], 96, 116)],
+      ['em-som', 'Sensor de som (microfone)', 130, 110, placa(6, 6, 118, 78, 4)
+        + '<circle cx="40" cy="44" r="22"/><circle cx="40" cy="44" r="15" stroke-width="1.2"/><path d="M30,38 H50 M27,44 H53 M30,50 H50" stroke-width="1.2"/>'
+        + '<rect x="76" y="18" width="30" height="26" rx="2" stroke-width="1.6"/><circle cx="91" cy="31" r="8" stroke-width="1.4"/><path d="M86,31 H96 M91,26 V36" stroke-width="1.4"/>'
+        + R(91, 64, 'SOM') + pernas([45, 65, 85], 84, 106)],
+      ['em-anemometro', 'Anemômetro de conchas', 160, 170, '<path d="M80,68 V164 M58,166 H102"/><circle cx="80" cy="62" r="6"/>'
+        + '<path d="M74,62 H34 M86,62 H126 M80,56 V41"/>'
+        + '<path d="M34,48 A14,14 0 0 0 34,76 Z M126,48 A14,14 0 0 1 126,76 Z"/><circle cx="80" cy="30" r="11"/><circle cx="80" cy="30" r="5" stroke-width="1.4"/>'
+        + '<path d="M50,92 Q80,106 110,92" stroke-width="1.8"/>' + head(110, 92, -25, 10)],
+      ['em-biruta', 'Sensor de direção do vento', 170, 160, '<path d="M85,56 V152 M63,154 H107 M22,50 H150"/><circle cx="85" cy="50" r="5" fill="#C"/>'
+        + head(8, 50, 180, 16) + '<path d="M128,50 L150,24 H164 V76 H150 Z"/>'],
+      ['em-pluviometro', 'Pluviômetro de báscula', 140, 180, '<path d="M16,10 H124 L78,56 V66 H62 V56 Z"/><path d="M20,14 V172 H120 V14"/>'
+        + '<path d="M38,98 L70,122 L102,98 M70,122 V92" stroke-width="2.2"/><path d="M70,122 L62,136 H78 Z"/>'
+        + ponto(70, 74, 2.5) + ponto(70, 84, 2.5) + R(70, 156, 'mm')],
+      ['em-boia', 'Chave de nível (boia)', 130, 150, '<path d="M58,4 V18 M72,4 V18" stroke-width="2"/>'
+        + '<rect x="54" y="18" width="22" height="14"/><path d="M54,23 H76 M54,27 H76" stroke-width="1.2"/><rect x="44" y="32" width="42" height="12" rx="2"/>'
+        + '<path d="M65,44 V136 M56,138 H74" stroke-width="3"/><rect x="46" y="80" width="38" height="32" rx="8"/>'
+        + '<path d="M8,100 H44 M86,100 H122" stroke-width="1.6" stroke-dasharray="7 5"/>' + seta2(106, 72, 106, 124)],
+      ['em-pressao', 'Transdutor de pressão (nível)', 100, 170, '<path d="M50,4 V28" stroke-width="3"/><rect x="36" y="28" width="28" height="10" rx="2"/>'
+        + '<rect x="30" y="38" width="40" height="80" rx="6"/>' + R(50, 78, 'P', 18)
+        + '<rect x="22" y="118" width="56" height="16"/><path d="M36,118 V134 M64,118 V134" stroke-width="1.4"/>'
+        + '<rect x="38" y="134" width="24" height="28"/><path d="M38,140 H62 M38,146 H62 M38,152 H62" stroke-width="1.2"/>'],
+      ['em-solo-cap', 'Sensor capacitivo de solo', 90, 200, '<path d="M36,4 V14 M45,4 V14 M54,4 V14" stroke-width="2"/>'
+        + '<path d="M14,14 H76 V150 L45,194 L14,150 Z"/><rect x="26" y="20" width="38" height="14" rx="1" stroke-width="1.4"/>'
+        + '<rect x="30" y="42" width="30" height="22" rx="1.5" stroke-width="1.8"/>' + R(45, 82, 'SOLO')
+        + '<path d="M14,104 H76" stroke-width="1.4" stroke-dasharray="5 4"/><path d="M24,118 H66 V146 L45,178 L24,146 Z" stroke-width="1.4"/>'],
+      ['em-celula-carga', 'Célula de carga com HX711', 230, 110, '<rect x="8" y="40" width="120" height="30" rx="2"/>'
+        + '<circle cx="54" cy="55" r="9" stroke-width="1.6"/><circle cx="82" cy="55" r="9" stroke-width="1.6"/><path d="M54,49 H82 M54,61 H82" stroke-width="1.6"/>'
+        + '<circle cx="20" cy="55" r="4" stroke-width="1.4"/><circle cx="116" cy="55" r="4" stroke-width="1.4"/>'
+        + seta(30, 6, 30, 38) + R(16, 16, 'F', 16)
+        + '<path d="M128,48 C140,48 140,36 150,36 M128,62 C140,62 140,74 150,74" stroke-width="1.8"/>'
+        + placa(150, 20, 74, 70, 4) + R(187, 40, 'HX711') + '<rect x="170" y="56" width="34" height="18" rx="1.5" stroke-width="1.8"/>'
+        + pernas([170, 187, 204], 90, 106)],
+      ['em-estacao', 'Estação meteorológica', 200, 230, '<path d="M100,58 V150 M100,190 V222 M70,224 H130"/><path d="M36,58 H164" stroke-width="2.4"/>'
+        + '<path d="M40,58 V36 M36,32 H18 M44,32 H62 M40,28 V20"/><circle cx="40" cy="32" r="4"/><circle cx="40" cy="14" r="6"/>'
+        + '<path d="M18,24 A8,8 0 0 0 18,40 Z M62,24 A8,8 0 0 1 62,40 Z"/>'
+        + '<path d="M160,58 V44 M138,40 H182"/><circle cx="160" cy="40" r="3.5" fill="#C"/>' + head(130, 40, 180, 12) + '<path d="M174,40 L186,26 H194 V54 H186 Z"/>'
+        + '<path d="M108,94 H158 L150,124 H104 Z"/><path d="M133,94 L127,124" stroke-width="1.4"/><path d="M100,108 H106"/>'
+        + bloco(76, 150, 48, 40, 'MCU')],
+    ]],
+    ['Entradas e displays', [
+      ['em-teclado', 'Teclado matricial 4×4', 150, 190, '<rect x="8" y="8" width="134" height="150" rx="6"/>'
+        + ['123A', '456B', '789C', '*0#D'].map((lin, r) => lin.split('').map((c, k) => `<rect x="${18 + k * 31}" y="${18 + r * 34}" width="25" height="28" rx="3" stroke-width="1.8"/>` + R(30.5 + k * 31, 32 + r * 34, c)).join('')).join('')
+        + '<rect x="40" y="158" width="70" height="14" stroke-width="1.4"/>' + pernas([44, 53, 62, 71, 80, 89, 98, 107], 172, 186)],
+      ['em-encoder', 'Encoder rotativo', 120, 150, placa(8, 44, 104, 72, 4) + '<rect x="30" y="52" width="60" height="56" rx="3"/>'
+        + '<circle cx="60" cy="80" r="20"/><circle cx="60" cy="80" r="8" stroke-width="1.6"/><path d="M54,76 H66" stroke-width="1.6"/>'
+        + '<path d="M26.3,51.7 A44,44 0 0 1 93.7,51.7" stroke-width="2"/>' + head(93.7, 51.7, 50, 9) + pernas([36, 48, 60, 72, 84], 116, 146)],
+      ['em-joystick', 'Joystick analógico', 140, 156, placa(8, 8, 124, 116, 4) + '<rect x="30" y="20" width="80" height="80" rx="4"/>'
+        + '<circle cx="70" cy="60" r="26"/><circle cx="70" cy="60" r="10" stroke-width="1.6"/>' + R(121, 60, 'X') + R(70, 112, 'Y')
+        + pernas([46, 58, 70, 82, 94], 124, 152)],
+      ['em-tft', 'Display TFT colorido', 200, 150, placa(8, 8, 184, 110, 4) + '<rect x="22" y="18" width="130" height="90" rx="2"/>'
+        + R(87, 38, 'TFT', 18) + '<circle cx="52" cy="80" r="12" stroke-width="1.8"/><rect x="76" y="70" width="24" height="22" stroke-width="1.8"/><path d="M112,92 L126,68 L140,92 Z" stroke-width="1.8"/>'
+        + '<rect x="162" y="30" width="22" height="40" rx="2" stroke-width="1.4"/>' + pernas([40, 60, 80, 100, 120, 140, 160], 118, 146)],
+      ['em-anel-led', 'Anel de LEDs endereçáveis', 150, 150, '<circle cx="75" cy="68" r="62"/><circle cx="75" cy="68" r="38"/>'
+        + Array.from({ length: 12 }, (_, k) => { const a = k * Math.PI / 6, x = f1(75 + 50 * Math.cos(a) - 5), y = f1(68 + 50 * Math.sin(a) - 5); return `<rect x="${x}" y="${y}" width="10" height="10" rx="1" stroke-width="1.6"/>`; }).join('')
+        + pernas([63, 75, 87], 129, 146)],
+      ['em-fita-led', 'Fita de LED', 240, 70, '<rect x="24" y="16" width="212" height="38" rx="2"/>'
+        + [40, 86, 132, 178].map(x => `<rect x="${x}" y="25" width="20" height="20" rx="2" stroke-width="1.8"/><circle cx="${x + 10}" cy="35" r="5" stroke-width="1.4"/>`).join('')
+        + '<path d="M218,10 V60" stroke-width="1.4" stroke-dasharray="4 3"/><path d="M4,24 H24 M4,35 H24 M4,46 H24" stroke-width="2"/>' + head(78, 35, 0, 8) + head(124, 35, 0, 8) + head(170, 35, 0, 8)],
+    ]],
+    ['Atuadores e potência', [
+      ['em-ventoinha', 'Ventoinha (cooler)', 130, 130, '<rect x="8" y="8" width="114" height="114" rx="10"/><circle cx="65" cy="65" r="48"/><circle cx="65" cy="65" r="14"/>'
+        + [0, 1, 2, 3, 4].map(k => pa(k, 5, 65, 65, '<path d="M65,51 C78,36 94,34 104,44 C92,46 80,52 76,58" stroke-width="1.8"/>')).join('')
+        + '<circle cx="20" cy="20" r="4" stroke-width="1.4"/><circle cx="110" cy="20" r="4" stroke-width="1.4"/><circle cx="20" cy="110" r="4" stroke-width="1.4"/><circle cx="110" cy="110" r="4" stroke-width="1.4"/>'],
+      ['em-mosfet', 'Módulo MOSFET (chave de potência)', 170, 110, placa(8, 8, 154, 82, 4)
+        + '<rect x="66" y="14" width="38" height="14" rx="2"/><circle cx="85" cy="21" r="4" stroke-width="1.4"/><rect x="66" y="28" width="38" height="34" rx="2"/>'
+        + '<path d="M74,62 V72 M85,62 V72 M96,62 V72" stroke-width="2"/>'
+        + borne(26, 30, 2, 20, true) + R(46, 30, '+') + R(46, 50, '−') + R(32, 76, 'carga') + R(130, 30, 'PWM') + pernas([110, 130, 150], 90, 106)],
+      ['em-ssr', 'Relé de estado sólido (SSR)', 160, 130, '<rect x="20" y="10" width="120" height="110" rx="4"/>'
+        + [[46, 30], [114, 30], [46, 100], [114, 100]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9"/><path d="M${x - 5},${y + 5} L${x + 5},${y - 5}" stroke-width="1.4"/>`).join('')
+        + R(80, 65, 'SSR', 20) + R(80, 30, '~', 20) + R(64, 100, '+') + R(96, 100, '−')
+        + '<path d="M4,30 H37 M123,30 H156 M4,100 H37 M123,100 H156" stroke-width="2"/>'],
+      ['em-ponte-h', 'Ponte H (esquema)', 220, 176, '<path d="M32,20 H188 M32,152 H188"/>' + R(16, 20, '+V') + R(16, 152, '0 V')
+        + [[40, 26], [180, 194]].map(([x, xb]) => `<path d="M${x},20 V38 M${x},66 V106 M${x},134 V152 M${x},66 L${xb},42 M${x},134 L${xb},110"/>`
+          + ponto(x, 38) + ponto(x, 66) + ponto(x, 106) + ponto(x, 134) + ponto(x, 86, 3.5)).join('')
+        + '<path d="M40,86 H88 M132,86 H180"/>' + estado(110, 86, 22, 'M', 18)
+        + R(64, 50, 'S1') + R(156, 50, 'S2') + R(64, 122, 'S3') + R(156, 122, 'S4')],
+      ['em-motorredutor', 'Motorredutor com roda', 200, 124, '<rect x="20" y="40" width="76" height="44" rx="8"/>' + R(56, 62, 'M', 18)
+        + '<path d="M4,52 H20 M4,72 H20" stroke-width="2"/><rect x="96" y="30" width="46" height="64" rx="3"/>'
+        + ponto(104, 38, 2) + ponto(134, 38, 2) + ponto(104, 86, 2) + ponto(134, 86, 2)
+        + '<path d="M142,62 H154" stroke-width="4"/><rect x="154" y="6" width="38" height="112" rx="10"/>'
+        + '<path d="M154,20 H192 M154,34 H192 M154,48 H192 M154,62 H192 M154,76 H192 M154,90 H192 M154,104 H192" stroke-width="1.4"/>'],
+    ]],
+    ['Alimentação', [
+      ['em-buck', 'Conversor CC-CC abaixador (buck)', 190, 100, conversor('ABAIXADOR')],
+      ['em-boost', 'Conversor CC-CC elevador (boost)', 190, 100, conversor('ELEVADOR')],
+      ['em-fonte-chaveada', 'Fonte chaveada (CA → CC)', 210, 110, '<rect x="30" y="10" width="150" height="90" rx="4"/>'
+        + '<path d="M44,24 H74 M44,34 H74 M44,44 H74 M44,54 H74 M44,64 H74 M44,74 H74 M44,84 H74" stroke-width="1.4"/>'
+        + R(128, 40, 'FONTE', 16) + R(128, 68, '12 V', 16)
+        + '<path d="M4,40 H30 M4,70 H30 M180,40 H206 M180,70 H206" stroke-width="2"/>' + R(16, 55, '~', 18) + R(194, 26, '+') + R(194, 84, '−')],
+      ['em-carregador-li', 'Carregador de bateria Li-ion', 160, 100, placa(24, 10, 112, 80, 4)
+        + '<rect x="8" y="36" width="26" height="28" rx="3"/><rect x="12" y="44" width="14" height="12" stroke-width="1.2"/>'
+        + '<circle cx="58" cy="24" r="4" stroke-width="1.4"/><circle cx="76" cy="24" r="4" stroke-width="1.4"/><rect x="52" y="38" width="32" height="20" rx="1.5" stroke-width="1.8"/>'
+        + R(76, 76, 'Li-ion 1S') + '<path d="M136,30 H156 M136,70 H156" stroke-width="2"/>' + R(118, 30, 'B+') + R(118, 70, 'B−')],
+      ['em-18650', 'Célula 18650 (Li-ion)', 220, 70, '<rect x="20" y="14" width="176" height="42" rx="6"/><rect x="196" y="24" width="10" height="22" rx="2"/>'
+        + '<path d="M44,14 V56" stroke-width="1.6"/><path d="M4,35 H20 M206,35 H216" stroke-width="2"/>' + R(116, 35, '3,7 V', 16) + R(182, 35, '+', 16) + R(32, 35, '−', 16)],
+      ['em-divisor', 'Divisor de tensão', 150, 190, '<circle cx="50" cy="12" r="4"/>' + zig(50, 16, 92) + zig(50, 92, 160) + ponto(50, 92, 3.5)
+        + '<path d="M50,92 H130 M50,160 V168 M34,168 H66 M40,174 H60 M46,180 H54"/><circle cx="134" cy="92" r="4"/>'
+        + R(80, 12, 'Vin') + R(82, 54, 'R1') + R(82, 126, 'R2') + R(124, 74, 'Vout')],
+      ['em-pullup', 'Botão com resistor de pull-up', 160, 190, '<path d="M34,10 H66"/>' + R(90, 10, 'VCC') + zig(50, 10, 86) + R(88, 48, '10 kΩ')
+        + ponto(50, 86, 3.5) + '<path d="M50,86 H132 M50,86 V112 M50,148 V164 M34,164 H66 M40,170 H60 M46,176 H54"/><circle cx="136" cy="86" r="4"/>' + R(130, 70, 'pino')
+        + ponto(50, 114) + ponto(50, 146) + '<path d="M38,108 V152 M38,130 H24 M24,122 V138" stroke-width="2.2"/>' + R(84, 130, 'botão')],
+    ]],
+    ['Barramentos e sinais', [
+      ['em-i2c', 'Barramento I2C', 260, 150, R(22, 16, 'VCC') + '<path d="M44,16 H92 M72,16 V22 M72,40 V56 M92,16 V22 M92,40 V72"/>'
+        + '<rect x="67" y="22" width="10" height="18" stroke-width="1.8"/><rect x="87" y="22" width="10" height="18" stroke-width="1.8"/>'
+        + '<path d="M40,56 H252 M40,72 H252"/>' + R(20, 56, 'SDA') + R(20, 72, 'SCL')
+        + bloco(40, 104, 64, 40, 'MCU') + bloco(122, 104, 60, 40, 'Sensor') + bloco(192, 104, 60, 40, 'Tela')
+        + '<path d="M58,104 V56 M86,104 V72 M140,104 V56 M164,104 V72 M210,104 V56 M234,104 V72" stroke-width="2"/>'
+        + [[72, 56], [92, 72], [58, 56], [86, 72], [140, 56], [164, 72], [210, 56], [234, 72]].map(([x, y]) => ponto(x, y)).join('')],
+      ['em-spi', 'Barramento SPI', 260, 150, bloco(6, 20, 66, 116, 'MCU') + bloco(188, 20, 66, 116, 'Escravo')
+        + seta(72, 44, 188, 44) + seta(72, 72, 188, 72) + seta(188, 100, 72, 100) + seta(72, 128, 188, 128)
+        + R(130, 32, 'SCK') + R(130, 60, 'MOSI') + R(130, 88, 'MISO') + R(130, 116, 'CS')],
+      ['em-uart', 'Comunicação serial (UART)', 240, 130, '<rect x="6" y="10" width="72" height="110" rx="4"/><rect x="162" y="10" width="72" height="110" rx="4"/>'
+        + R(42, 26, 'MCU') + R(198, 26, 'Módulo') + R(60, 52, 'TX') + R(60, 80, 'RX') + R(52, 104, 'GND') + R(180, 52, 'TX') + R(180, 80, 'RX') + R(188, 104, 'GND')
+        + seta(78, 52, 162, 80) + seta(162, 52, 78, 80) + '<path d="M78,104 H162" stroke-width="2.2"/>'],
+      ['em-quadro-uart', 'Quadro serial (start, dados, stop)', 260, 110, quadro()
+        + '<path d="M52,74 V78 H228 V74" stroke-width="1.4"/>' + R(41, 92, 'start') + R(140, 92, 'dados (8 bits)') + R(239, 92, 'stop')],
+      ['em-pwm', 'Sinal PWM (ciclo de trabalho)', 240, 130, '<path d="M8,90 H20 V40 H48 V90 H90 V40 H118 V90 H160 V40 H188 V90 H230" stroke-width="2.4"/>'
+        + '<path d="M20,40 V20 M48,40 V20 M20,90 V112 M90,90 V112" stroke-width="1" stroke-dasharray="2 3"/>'
+        + seta2(20, 26, 48, 26, 7, 1.6) + seta2(20, 106, 90, 106, 7, 1.6) + R(34, 12, 'ton') + R(55, 120, 'T') + R(186, 16, 'D = ton / T')],
+      ['em-adc', 'Conversor A/D (ADC)', 220, 110, '<path d="M8,55 C18,25 30,25 40,55 S62,85 72,55" stroke-width="2.2"/>' + seta(74, 55, 92, 55, 8)
+        + bloco(92, 25, 56, 60, 'A/D', 16) + seta(148, 55, 168, 55, 8) + R(194, 55, '1011', 16)],
+      ['em-amostragem', 'Amostragem de sinal', 230, 130, '<path d="M20,120 V14 M20,70 H218" stroke-width="2"/>' + head(20, 10, -90, 9) + head(224, 70, 0, 9)
+        + amostras() + R(214, 88, 't') + R(42, 12, 'x(t)')],
+      ['em-blocos', 'Diagrama de blocos (sensor, MCU, atuador)', 260, 90, bloco(6, 25, 66, 40, 'Sensor') + bloco(98, 25, 64, 40, 'MCU') + bloco(188, 25, 66, 40, 'Atuador')
+        + seta(72, 45, 98, 45, 8) + seta(162, 45, 188, 45, 8)],
+      ['em-mcu-blocos', 'Microcontrolador (blocos internos)', 220, 170, '<rect x="8" y="8" width="204" height="154" rx="6"/>' + R(110, 24, 'MCU', 16)
+        + bloco(20, 40, 58, 40, 'CPU') + bloco(81, 40, 58, 40, 'RAM') + bloco(142, 40, 58, 40, 'Flash')
+        + bloco(20, 104, 58, 40, 'E/S') + bloco(81, 104, 58, 40, 'ADC') + bloco(142, 104, 58, 40, 'Timer')
+        + '<path d="M20,92 H200" stroke-width="4"/><path d="M49,80 V104 M110,80 V104 M171,80 V104" stroke-width="2"/>'],
+    ]],
+    ['Máquinas de estado e firmware', [
+      ['em-estado', 'Estado', 90, 90, estado(45, 45, 38, 'S0', 16)],
+      ['em-estado-ini', 'Estado inicial', 150, 90, '<circle cx="14" cy="45" r="8" fill="#C"/>' + seta(22, 45, 70, 45) + estado(108, 45, 38, 'S0', 16)],
+      ['em-estado-final', 'Estado final', 90, 90, '<circle cx="45" cy="45" r="32"/>' + estado(45, 45, 40, 'Sf', 16)],
+      ['em-transicao', 'Transição (evento / ação)', 200, 80, '<path d="M10,66 Q100,-6 190,66" stroke-width="2.2"/>' + head(190, 66, 39, 11) + R(100, 58, 'evento / ação')],
+      ['em-autolaco', 'Autotransição (laço)', 110, 130, estado(55, 90, 36, 'S1', 16) + '<path d="M40,57 C24,8 86,8 70,57" stroke-width="2.2"/>' + head(70, 57, 110, 10)],
+      ['em-mef-liga', 'Máquina de estados: liga/desliga', 260, 140, estado(60, 72, 40, 'DESL') + estado(200, 72, 40, 'LIGA')
+        + '<path d="M90,46 Q130,24 170,46 M170,98 Q130,120 90,98" stroke-width="2.2"/>' + head(170, 46, 29, 10) + head(90, 98, 209, 10)
+        + R(130, 16, 'botão') + R(130, 128, 'tempo')],
+      ['em-mef-semaforo', 'Máquina de estados: semáforo', 260, 200, estado(60, 56, 40, 'Verde') + estado(200, 56, 40, 'Amarelo') + estado(130, 152, 40, 'Vermelho')
+        + seta(100, 56, 160, 56, 10) + seta(176.4, 88.3, 153.6, 119.7, 10) + seta(106.4, 119.7, 83.6, 88.3, 10)
+        + R(130, 42, '5 s') + R(182, 114, '2 s') + R(78, 114, '5 s')],
+      ['em-loop', 'Firmware: setup() e loop()', 160, 184, '<rect x="30" y="6" width="100" height="30" rx="15"/>' + R(80, 21, 'início')
+        + seta(80, 36, 80, 58) + bloco(30, 58, 100, 34, 'setup()') + seta(80, 92, 80, 120) + bloco(30, 120, 100, 34, 'loop()')
+        + '<path d="M80,154 V174 H146 V106 H84" stroke-width="2.2"/>' + head(82, 106, 180, 9) + ponto(80, 106)],
+      ['em-isr', 'Interrupção (ISR)', 240, 140, '<path d="M10,60 H100 M160,60 H226" stroke-width="2.4"/>' + head(232, 60, 0, 10)
+        + '<path d="M100,60 H160" stroke-width="1.6" stroke-dasharray="6 4"/>' + R(46, 44, 'loop()')
+        + seta(100, 60, 100, 94) + bloco(88, 94, 84, 36, 'ISR()') + seta(160, 94, 160, 62)
+        + '<path d="M114,6 L104,24 H116 L106,42" stroke-width="2"/>' + head(104, 52, 100, 9) + R(150, 24, 'evento')],
+    ]],
+    ['IoT e redes', [
+      ['em-mqtt', 'MQTT (publica / assina)', 260, 150, bloco(6, 56, 60, 40, 'Sensor') + '<rect x="100" y="50" width="60" height="52" rx="4"/>'
+        + R(130, 66, 'Broker') + R(130, 88, 'tópico') + bloco(196, 10, 58, 40, 'App') + bloco(196, 104, 58, 40, 'Painel')
+        + seta(66, 76, 100, 76, 8) + seta(160, 62, 196, 34, 8) + seta(160, 90, 196, 118, 8) + R(83, 62, 'pub') + R(184, 76, 'sub')],
+      ['em-gateway', 'Gateway IoT', 150, 120, '<rect x="14" y="64" width="122" height="48" rx="6"/>' + R(75, 84, 'Gateway')
+        + '<path d="M36,64 V18 M114,64 V18" stroke-width="4"/>'
+        + '<path d="M29.1,14 A8,8 0 0 1 42.9,14 M23.9,11 A14,14 0 0 1 48.1,11 M107.1,14 A8,8 0 0 1 120.9,14 M101.9,11 A14,14 0 0 1 126.1,11" stroke-width="1.8"/>'
+        + ponto(56, 102, 2.5) + ponto(68, 102, 2.5) + ponto(80, 102, 2.5) + ponto(92, 102, 2.5)],
+      ['em-dashboard', 'Painel de monitoramento', 220, 150, '<rect x="8" y="8" width="204" height="122" rx="4"/><path d="M100,130 V142 M120,130 V142 M80,146 H140"/>'
+        + '<path d="M24,90 A36,36 0 0 1 96,90" stroke-width="2.4"/><path d="M60,90 L80,66" stroke-width="2.4"/>' + ponto(60, 90, 4) + R(60, 110, '25 °C')
+        + '<path d="M118,30 V100 H200" stroke-width="1.4"/><path d="M122,86 L140,70 L156,78 L172,52 L196,44" stroke-width="2"/>' + R(160, 116, 'pH 7,0')],
+      ['em-iot-camadas', 'Arquitetura IoT (camadas)', 240, 206, bloco(10, 8, 190, 40, 'Aplicação', 15) + bloco(10, 58, 190, 40, 'Nuvem', 15)
+        + bloco(10, 108, 190, 40, 'Rede', 15) + bloco(10, 158, 190, 40, 'Dispositivos', 15) + seta2(222, 12, 222, 196, 10, 2.2)],
+      ['em-no-sensor', 'Nó sensor sem fio', 230, 110, bloco(4, 26, 62, 38, 'Sensor') + bloco(84, 26, 62, 38, 'MCU') + bloco(164, 26, 62, 38, 'Rádio')
+        + seta(66, 45, 84, 45, 8) + seta(146, 45, 164, 45, 8) + '<path d="M210,26 V10 M202,4 L210,12 L218,4" stroke-width="2"/>'
+        + bloco(84, 76, 62, 28, 'Bateria') + '<path d="M115,76 V64" stroke-width="2"/>'],
+      ['em-estrela', 'Topologia em estrela', 160, 140, (() => {
+        const nos = [[80, 75], [80, 17], [135.2, 57.1], [114.1, 121.9], [45.9, 121.9], [24.8, 57.1]]; nos.centro = 18;
+        return rede(nos, [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5]]) + estado(80, 75, 18, 'G') + nos.slice(1).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="11"/>`).join('');
+      })()],
+      ['em-malha', 'Topologia em malha (mesh)', 170, 146, (() => {
+        const nos = [[28, 38], [85, 18], [142, 38], [28, 108], [85, 128], [142, 108]];
+        return rede(nos, [[0, 1], [1, 2], [0, 3], [2, 5], [3, 4], [4, 5], [1, 3], [1, 5], [0, 4], [2, 4]]) + nos.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="11"/>`).join('');
+      })()],
     ]],
   ],
 };

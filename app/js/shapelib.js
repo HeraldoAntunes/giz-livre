@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Biblioteca de formas técnicas: um arquivo por disciplina em ./shapes/ (formato e convenções em shapes/base.js).
 // Cada grupo = { id, nome, secoes: [[nomeDaSeção, [[id, nome, largura, altura, corpo SVG], …]], …] }.
 import fluxo from './shapes/fluxo.js';

@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Desenho dos itens, caixas delimitadoras, testes de toque e reconhecimento de formas
 const FONT = '"Segoe UI", system-ui, sans-serif';
 const imgCache = new Map();

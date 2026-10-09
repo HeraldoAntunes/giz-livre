@@ -1,4 +1,5 @@
-﻿# Gera installer\lousa.ico (16–256 px) desenhando o ícone do Giz Livre (quadro azul, folha branca, traço vermelho).
+﻿# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Gera installer\lousa.ico (16–256 px) desenhando o ícone do Giz Livre (quadro azul, folha branca, traço vermelho).
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $saida = Join-Path $PSScriptRoot 'lousa.ico'

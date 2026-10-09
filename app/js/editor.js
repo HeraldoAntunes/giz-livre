@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Editor do quadro: ferramentas, entrada (caneta/toque/mouse), seleção, régua, histórico e salvamento
 //
 // Índice (procure pelos marcadores "// ===== <seção> ====="):
@@ -14,18 +15,19 @@
 import * as R from './render.js';
 import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo } from './api.js';
 import { ICON, penIcon } from './icons.js';
-import { fillIcons, toast, showPop, hidePop, confirmBox, infoBox, aboutBox, esc } from './ui.js';
+import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc } from './ui.js';
 import { VERSION } from './version.js';
 import { DEFAULT_TABLET, openTabletSettings } from './tablet.js';
 import { createStabilizer, smoothPts, resampleN } from './stabilizer.js';
 import { beautify, canBeautify, restoreOriginal, box as ptsBox } from './beautify.js';
 import { PAPERS, ANCHORED, SIZE as PAPER_SIZE, CELL } from './paper.js';
-import { compile as compileFn, plotStrokes } from './plot.js';
+import { compile as compileFn, plotStrokes, fitFrame, faixaY, axesStrokes, animatedCurve, drawPolylines, fmtNum } from './plot.js';
+import { AREAS as FN_AREAS, modelo as fnModelo, valoresPadrao } from './fnmodels.js';
 import * as PG from './pages.js';
 import { slidesFromFile, slideItems, uploadAsset } from './importer.js';
-import { toggleTimer, formulaImage, validateLatex, previewLatex, recognizeInk } from './tools.js';
+import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk } from './tools.js';
 import { LIBRARY, svgDataUrl } from './library.js';
-import { initBars, placeAll as placeBars, lockBars, resetBars } from './bars.js';
+import { initBars, placeAll as placeBars, lockBars, resetBars, resetBar } from './bars.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg } from './shapelib.js';
 
 const PALETTE = ['#000000', '#7a7574', '#ffffff', '#e81224', '#f7630c', '#ffb900', '#fff100', '#8cbd18',
@@ -34,6 +36,16 @@ const HL_PALETTE = ['#fff100', '#ffb900', '#8cbd18', '#16c60c', '#00b7c3', '#4cc
 const NOTE_COLORS = ['#fff7a8', '#ffd3a6', '#ffc8dd', '#d9c9ff', '#c4e3ff', '#c9f2c7'];
 const BG_COLORS = ['#ffffff', '#f5f5f5', '#fdf6e3', '#e9f3ec', '#20402f', '#2d2d30', '#14213d', '#000000'];
 const PEN_WIDTHS = [1.5, 3, 5, 8, 12];
+// nomes das cores (dica e leitor de tela)
+const COR_NOME = {
+  '#000000': 'Preto', '#7a7574': 'Cinza', '#ffffff': 'Branco', '#e81224': 'Vermelho', '#f7630c': 'Laranja', '#ffb900': 'Âmbar',
+  '#fff100': 'Amarelo', '#8cbd18': 'Verde-limão', '#16c60c': 'Verde', '#0b6a0b': 'Verde-escuro', '#00b7c3': 'Turquesa',
+  '#0078d4': 'Azul', '#1b3a8c': 'Azul-marinho', '#886ce4': 'Roxo', '#e3008c': 'Magenta', '#8e562e': 'Marrom',
+  '#4cc2ff': 'Azul-claro', '#ff8cd9': 'Rosa', '#f5f5f5': 'Cinza-claro', '#fdf6e3': 'Creme', '#e9f3ec': 'Verde-claro',
+  '#20402f': 'Lousa verde', '#2d2d30': 'Grafite', '#14213d': 'Azul-noite', '#fff7a8': 'Amarelo', '#ffd3a6': 'Pêssego',
+  '#ffc8dd': 'Rosa', '#d9c9ff': 'Lilás', '#c4e3ff': 'Azul-claro', '#c9f2c7': 'Verde-claro',
+};
+const corNome = c => COR_NOME[String(c).toLowerCase()] || c;
 const HL_WIDTHS = [12, 20, 30, 44];
 const DEFAULT_TOOLS = {
   pen0: { color: '#000000', width: 3, arrow: false },
@@ -103,7 +115,7 @@ export function initEditor() {
 
   document.querySelectorAll('#inkbar [data-tool]').forEach(b => b.addEventListener('click', () => toolClick(b)));
   $('tRuler').onclick = toggleRuler;
-  $('tInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta para forma: ligado' : 'Tinta para forma: desligado'); };
+  $('tInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta vira forma: ligado' : 'Tinta vira forma: desligado (desenho livre)'); };
   $('tBeautify').onclick = () => beautyPop($('tBeautify'));
   $('tPaper').onclick = () => bgPop($('tPaper'));
   $('tTools').onclick = () => toolsPop($('tTools'));
@@ -117,13 +129,15 @@ export function initEditor() {
   $('bRedo').onclick = redo;
   $('bClear').onclick = clearBoard;
   $('bFull').onclick = toggleFullscreen;
+  $('bShowBars').onclick = () => setClean(false);
   $('bMenu').onclick = () => openMenu($('bMenu'));
-  $('bTitle').addEventListener('change', () => { S.board.title = $('bTitle').value.trim() || 'Sem título'; scheduleSave(); });
+  $('bTitle').addEventListener('change', () => { S.board.title = $('bTitle').value.trim() || 'Sem título'; $('bTitle').title = S.board.title; scheduleSave(); });
   $('bTitle').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); e.stopPropagation(); });
   $('zIn').onclick = () => zoomAt(W / 2, H / 2, S.view.zoom * 1.25);
   $('zOut').onclick = () => zoomAt(W / 2, H / 2, S.view.zoom / 1.25);
   $('zLabel').onclick = () => zoomAt(W / 2, H / 2, 1);
   $('zFit').onclick = fitView;
+  $('zLens').onclick = () => toggleZoomLens();
   $('imgFile').addEventListener('change', async e => { await insertFiles([...e.target.files]); e.target.value = ''; });
 
   const te = $('textEdit');
@@ -135,6 +149,7 @@ export function initEditor() {
   });
 
   document.addEventListener('lousa:cfg', () => { if (S) syncToolbar(); });
+  document.addEventListener('lousa:layoutPadrao', () => { if (S) layoutPadrao(); });
   addEventListener('keydown', onKey);
   addEventListener('keyup', e => { if (e.code === 'Space') { spaceDown = false; setCursor(); } });
   // janela perdeu o foco com Espaço segurado (ExpressKey/Alt+Tab): solta o "mover quadro"
@@ -143,7 +158,10 @@ export function initEditor() {
   ov.addEventListener('dragover', e => e.preventDefault());
   ov.addEventListener('drop', async e => {
     e.preventDefault();
-    const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+    const todos = [...e.dataTransfer.files];
+    const doc = todos.find(f => /\.(pdf|pptx?|ppsx)$/i.test(f.name));   // PDF/PowerPoint arrastado vira páginas
+    if (doc) return importSlidesIntoBoard(doc);
+    const files = todos.filter(f => f.type.startsWith('image/'));
     if (files.length) await insertFiles(files, toWorld(e.clientX, e.clientY));
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { flush(); resetInput(); } });
@@ -165,7 +183,9 @@ export function openBoard(id, board, back) {
   S = { id, board, items, view };
   dirtyVer = savedVer = 0;
   undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null;
+  stopPlotAnim();
   $('bTitle').value = board.title === 'Sem título' ? '' : board.title;
+  $('bTitle').title = board.title;
   $('bStatus').textContent = '';
   resize();
   if (!S.view) { S.view = { x: 0, y: 0, zoom: 1 }; if (PG.isPages(S.board)) goToPage(0); else fitView(); } else updateZoomLabel();
@@ -173,12 +193,13 @@ export function openBoard(id, board, back) {
   updatePageBar();
   syncToolbar();
   updateUndo();
+  buildTeachBar();
   placeBars();
   requestRender();
 }
 
 // gancho de depuração (testes automatizados)
-window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; } };
+window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; }, get sel() { return sel; } };
 
 export function isOpen() { return !!S && !$('board').hidden; }
 
@@ -245,7 +266,10 @@ function drawStatic(clip) {
   }
   if (PG.isPages(S.board)) PG.drawPages(ctx, S.board, v, W, H);
   else R.drawBackground(ctx, S.board.background, v, W, H);
-  R.setDarkBackground(R.isDark(S.board.background.color));
+  const darkBg = R.isDark(S.board.background.color);
+  R.setDarkBackground(darkBg);
+  // fundo escuro com PDF: sobre a página do PDF (branca) a tinta preta não vira branca
+  const L = S.board.layout, slides = darkBg && PG.isPages(S.board) ? PG.slidePages(L, S.items) : null;
   ctx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * v.x, dpr * v.y);
   const vis = clip ? { x: clip.x - 3 / v.zoom, y: clip.y - 3 / v.zoom, w: clip.w + 6 / v.zoom, h: clip.h + 6 / v.zoom }
     : { x: -v.x / v.zoom, y: -v.y / v.zoom, w: W / v.zoom, h: H / v.zoom };
@@ -257,6 +281,7 @@ function drawStatic(clip) {
     if (erased?.has(raw.id)) continue;
     let it = previewItem(raw);
     if (!R.boxesTouch(R.bbox(it), vis)) continue;
+    if (slides?.size) R.setDarkBackground(!slides.has(PG.pageOf(L, it)));
     if (editing?.id === it.id) {
       if (it.type === 'text') continue;
       it = { ...it, text: '' };
@@ -278,6 +303,7 @@ function drawStatic(clip) {
     }
     else R.drawItem(ctx, it);
   }
+  R.setDarkBackground(darkBg);
   ctx.restore();
 }
 
@@ -322,6 +348,7 @@ function drawOverlay() {
   octx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * v.x, dpr * v.y);
   if (ruler) drawRuler();
   drawInstruments();
+  drawPlotAnim();
   if (action?.type === 'draw') {
     const s = action.stroke;
     R.drawStroke(octx, action.pred?.length ? { ...s, pts: s.pts.concat(action.pred) } : s);
@@ -376,10 +403,11 @@ function drawOverlay() {
     drawPenCursor(hover.x, hover.y, cfg.tools[tool] || cfg.tools.pen0, cfg.tablet.cursor || 'ponta');
   }
   drawShades();
-  if (tool === 'eraser' && hover && !spaceDown) {
+  drawZoomLens();
+  if ((tool === 'eraser' || action?.type === 'erase') && hover && !spaceDown) {
     octx.save();
     octx.strokeStyle = '#605e5c'; octx.fillStyle = 'rgba(255,255,255,0.6)'; octx.lineWidth = 1.5;
-    octx.beginPath(); octx.arc(hover.x, hover.y, 12, 0, Math.PI * 2); octx.fill(); octx.stroke();
+    octx.beginPath(); octx.arc(hover.x, hover.y, eraserR(), 0, Math.PI * 2); octx.fill(); octx.stroke();
     octx.restore();
   }
 }
@@ -406,7 +434,7 @@ function drawSelection() {
   octx.strokeRect(b.x, b.y, b.w, b.h);
   octx.setLineDash([]);
   octx.fillStyle = '#fff';
-  octx.beginPath(); octx.arc(b.x + b.w, b.y + b.h, 8, 0, Math.PI * 2); octx.fill(); octx.stroke();
+  octx.beginPath(); octx.arc(b.x + b.w, b.y + b.h, 11, 0, Math.PI * 2); octx.fill(); octx.stroke();
   // alça de girar
   octx.beginPath(); octx.moveTo(b.x + b.w / 2, b.y); octx.lineTo(b.x + b.w / 2, b.y - 22); octx.stroke();
   octx.beginPath(); octx.arc(b.x + b.w / 2, b.y - 30, 8, 0, Math.PI * 2); octx.fill(); octx.stroke();
@@ -422,9 +450,12 @@ function drawSelection() {
   bar.querySelector('[data-sel="original"]').hidden = ![...sel].some(id => byId(id)?.orig || byId(id)?.ink);
   bar.querySelector('[data-sel="ocr"]').hidden = serverInfo().ocr === false || ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
   bar.querySelector('[data-sel="font"]').hidden = ![...sel].some(id => byId(id)?.type === 'text');
+  const grps = new Set([...sel].map(id => byId(id)?.grp || ''));
+  bar.querySelector('[data-sel="group"]').hidden = sel.size < 2 || (grps.size === 1 && !grps.has(''));
+  bar.querySelector('[data-sel="ungroup"]').hidden = ![...grps].some(Boolean);
   bar.hidden = false;
   const bw = bar.offsetWidth, bh = bar.offsetHeight;
-  let x = b.x + b.w / 2 - bw / 2, y = b.y - bh - 12;
+  let x = b.x + b.w / 2 - bw / 2, y = b.y - bh - 46;   // acima da alça de girar
   if (y < 70) y = b.y + b.h + 14;
   if (y + bh > H - 8) y = Math.max(70, b.y + 8);
   bar.style.left = Math.max(8, Math.min(W - bw - 8, x)) + 'px';
@@ -489,7 +520,7 @@ function syncToolbar() {
     if (b.classList.contains('pen')) {
       const c = cfg.tools[t];
       b.innerHTML = penIcon(t === 'highlighter' ? c.color : inkShown(c.color), t === 'highlighter' ? 'highlighter' : 'pen');
-      b.title = t === 'highlighter' ? 'Marca-texto (H) — clique de novo para cor e espessura' : 'Caneta (P) — clique de novo para cor e espessura';
+      b.title = t === 'highlighter' ? 'Marca-texto (H): toque de novo para cor e espessura' : `Caneta ${+t.slice(3) + 1} (tecla ${+t.slice(3) + 1}): toque de novo para cor e espessura`;
     }
   });
   $('tRuler').classList.toggle('on', !!ruler);
@@ -498,6 +529,8 @@ function syncToolbar() {
   document.querySelectorAll('#createbar [data-create]').forEach(b =>
     b.classList.toggle('on', (b.dataset.create === 'text' && tool === 'text') || (b.dataset.create === 'shapes' && tool === 'shape')));
   setCursor();
+  syncPresentBar();
+  syncTeachBar();
 }
 
 function setTool(t) {
@@ -526,7 +559,7 @@ function toolClick(b) {
 
 // opções do ponteiro (desenho em editor.drawPenCursor); ícones pequenos para o menu da caneta
 const CURSORS = [
-  ['ponta', 'Caneta', '<svg viewBox="0 0 24 24" width="22" height="22"><g transform="rotate(45 6 18)" fill="#fff" stroke="#333" stroke-width="1.2" stroke-linejoin="round"><path d="M6 18l-2.5-6h5z" fill="#333"/><rect x="3.5" y="0" width="5" height="12" rx="1"/></g></svg>'],
+  ['ponta', 'Ponta de caneta', '<svg viewBox="0 0 24 24" width="22" height="22"><g transform="rotate(45 6 18)" fill="#fff" stroke="#333" stroke-width="1.2" stroke-linejoin="round"><path d="M6 18l-2.5-6h5z" fill="#333"/><rect x="3.5" y="0" width="5" height="12" rx="1"/></g></svg>'],
   ['mira', 'Mira', '<svg viewBox="0 0 24 24" width="22" height="22" stroke="#333" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v6M12 15v6M3 12h6M15 12h6"/><circle cx="12" cy="12" r="1.3" fill="#333"/></svg>'],
   ['ponto', 'Ponto', '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="3" fill="#333"/></svg>'],
   ['anel', 'Bolinha', '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>'],
@@ -540,15 +573,17 @@ function penPop(anchor, t) {
   const st = c.style || 'normal';
   showPop(anchor, `
     <canvas class="pen-prev" width="300" height="64"></canvas>
-    <h4>Cor</h4><div class="swatches">${pal.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${x}"></button>`).join('')}</div>
-    <div class="swatches" style="margin-top:6px">${recent.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="Recente ${x}"></button>`).join('')}
+    <h4>Cor</h4><div class="swatches">${pal.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>
+    <div class="swatches" style="margin-top:6px">${recent.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="Usada há pouco: ${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}
       <label class="sw custom" title="Outra cor…"><input type="color" id="pCustom" value="${c.color}">+</label></div>
     <h4>Espessura</h4><div class="widths">${widths.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${w}"><i style="width:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;height:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;background:${c.color === '#ffffff' ? '#ccc' : c.color}"></i></button>`).join('')}</div>
     ${hl ? '' : `<h4>Estilo</h4><div class="seg">${styles.map(([k, n]) => `<button data-s="${k}" class="${k === st ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${st === 'calligraphy' ? `<div class="row"><small>Ângulo da pena</small><input type="range" id="pNib" min="0" max="90" value="${c.nib ?? 45}"><small id="pNibV">${c.nib ?? 45}°</small></div>` : ''}
       <label class="row"><input type="checkbox" id="pArrow" ${c.arrow ? 'checked' : ''}> Ponta de seta no fim do traço</label>`}
     <h4>Ponteiro da caneta na tela</h4><div class="seg cursors">${CURSORS.map(([k, n, svg]) => `<button data-k="${k}" class="${k === (cfg.tablet.cursor || 'ponta') ? 'on' : ''}" title="${n}">${svg}<small>${n}</small></button>`).join('')}</div>
-    <label class="row"><input type="checkbox" id="pCurDraw" ${cfg.tablet.cursorDraw !== false ? 'checked' : ''}> Manter o ponteiro visível enquanto escreve</label>`,
+    <label class="row"><input type="checkbox" id="pCurDraw" ${cfg.tablet.cursorDraw !== false ? 'checked' : ''}> Manter o ponteiro visível enquanto escreve</label>
+    <label class="row"><input type="checkbox" id="pCurMouse" ${cfg.tablet.mouseCursor !== false ? 'checked' : ''}> Usar este ponteiro também com o mouse</label>
+    <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn" id="pReset" title="Volta a cor, a espessura e o estilo de fábrica desta caneta, e o ponteiro da tela">Restaurar padrão</button></div>`,
     p => {
       const reopen = () => { saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); };
       const setColor = col => { c.color = col; cfg.recent = [col, ...(cfg.recent || []).filter(x => x !== col)].slice(0, 12); reopen(); };
@@ -560,6 +595,11 @@ function penPop(anchor, t) {
       if (nibEl) nibEl.oninput = () => { c.nib = +nibEl.value; p.querySelector('#pNibV').textContent = c.nib + '°'; saveCfg(); drawPrev(); };
       p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { cfg.tablet.cursor = x.dataset.k; saveCfg(); p.querySelectorAll('[data-k]').forEach(y => y.classList.toggle('on', y === x)); });
       p.querySelector('#pCurDraw').onchange = e => { cfg.tablet.cursorDraw = e.target.checked; saveCfg(); };
+      p.querySelector('#pCurMouse').onchange = e => { cfg.tablet.mouseCursor = e.target.checked; saveCfg(); };
+      p.querySelector('#pReset').onclick = () => {
+        cfg.tools[t] = structuredClone(DEFAULT_TOOLS[t]); cfg.tablet.cursor = 'ponta'; cfg.tablet.cursorDraw = true;
+        saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); toast('Caneta de volta ao padrão');
+      };
       const ar = p.querySelector('#pArrow');
       if (ar) ar.onchange = () => { c.arrow = ar.checked; saveCfg(); drawPrev(); };
       // pré-visualização do traço com a cor, espessura e estilo escolhidos
@@ -579,27 +619,35 @@ function penPop(anchor, t) {
 }
 
 function eraserPop(anchor) {
-  const m = cfg.eraserMode || 'stroke';
+  const m = cfg.eraserMode || 'stroke', r = eraserR();
   showPop(anchor, `<h4>Borracha</h4><div class="seg"><button data-m="stroke" class="${m === 'stroke' ? 'on' : ''}">Traço inteiro</button><button data-m="partial" class="${m === 'partial' ? 'on' : ''}">Só onde passar</button></div>
-    <div class="menu" style="padding:8px 0 0"><button data-a="all" class="danger">${ICON.trash} Apagar todo o quadro</button></div>`, p => {
+    <h4>Tamanho</h4><div class="seg">${ERASER_SIZES.map(([n, v]) => `<button data-z="${v}" class="${v === r ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="row"><input type="range" id="eSize" min="3" max="120" value="${r}" style="flex:1"><canvas id="eDot" width="64" height="64" style="width:32px;height:32px"></canvas></div>
+    <div class="menu" style="padding:8px 0 0"><button data-a="all" class="danger">${ICON.trash} Limpar o quadro…</button></div>`, p => {
     p.querySelectorAll('[data-m]').forEach(x => x.onclick = () => { cfg.eraserMode = x.dataset.m; saveCfg(); p.querySelectorAll('[data-m]').forEach(y => y.classList.toggle('on', y === x)); });
-    p.querySelector('[data-a="all"]').onclick = async () => {
-      hidePop();
-      if (!S.items.length) return;
-      if (await confirmBox('Apagar todo o quadro?', 'Tudo será removido. Dá para desfazer com Ctrl+Z enquanto o quadro estiver aberto.', 'Apagar', true)) {
-        commit(S.items.filter(i => i.locked)); clearSel();
-      }
+    const sl = p.querySelector('#eSize'), dot = p.querySelector('#eDot').getContext('2d');
+    const show = () => {
+      const v = eraserR();
+      dot.clearRect(0, 0, 64, 64); dot.beginPath(); dot.arc(32, 32, Math.min(30, v / 2 + 1), 0, Math.PI * 2);
+      dot.fillStyle = '#e1dfdd'; dot.fill(); dot.strokeStyle = '#605e5c'; dot.lineWidth = 2; dot.stroke();
+      p.querySelectorAll('[data-z]').forEach(y => y.classList.toggle('on', +y.dataset.z === v));
     };
+    const set = v => { cfg.eraserSize = +v; saveCfg(); sl.value = v; show(); };
+    sl.oninput = () => set(sl.value);
+    p.querySelectorAll('[data-z]').forEach(x => x.onclick = () => set(x.dataset.z));
+    show();
+    p.querySelector('[data-a="all"]').onclick = () => { hidePop(); clearBoard(); };
   });
 }
 
 function createClick(b) {
   const k = b.dataset.create;
   hidePop();
-  if (k === 'text') { setTool(tool === 'text' ? 'pen0' : 'text'); toast('Clique no quadro para escrever'); }
+  if (k === 'text') { setTool(tool === 'text' ? 'pen0' : 'text'); toast('Toque no quadro para escrever'); }
   else if (k === 'note') notePop(b);
   else if (k === 'shapes') shapesPop(b);
   else if (k === 'image') $('imgFile').click();
+  else if (k === 'pdf') $('slideFile').click();
 }
 
 function notePop(anchor) {
@@ -614,11 +662,14 @@ const SHAPE_COLORS = ['#000000', '#e81224', '#0078d4', '#16c60c', '#f7630c', '#8
 const KIND_OF = { lined: { kind: 'line', dash: true }, arrow2: { kind: 'arrow', both: true }, arrowd: { kind: 'arrow', dash: true } };
 const isLineKind = k => ['line', 'arrow'].includes(KIND_OF[k]?.kind || k);
 
+// disciplina de cada forma (para a busca mostrar de onde vem)
+const SHAPE_GROUP_OF = new Map(SHAPE_GROUPS.flatMap(g => g.secoes.flatMap(([, list]) => list.map(f => [f[0], g.nome]))));
+
 function shapesPop(anchor) {
   const tab = SHAPE_GROUPS.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : SHAPE_GROUPS[0].id;
-  const groupHtml = id => SHAPE_GROUPS.find(g => g.id === id).secoes.map(([n, list]) => `<div class="shp-sec">${esc(n)}</div>${list.map(cell).join('')}`).join('');
-  const cell = ([id, n]) => `<button class="libitem shp" data-lib="${id}" title="${esc(n)}"><img src="${svgDataUrl(shapeSvg(id, '#323130').svg)}" alt=""><span>${esc(n)}</span></button>`;
-  showPop(anchor, `<h4>Desenhar — arraste no quadro</h4><div class="shapes">${DRAW_KINDS.map(([k, n]) => `<button class="ib${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}</button>`).join('')}</div>
+  const groupHtml = id => SHAPE_GROUPS.find(g => g.id === id).secoes.map(([n, list]) => `<div class="shp-sec">${esc(n)}</div>${list.map(f => cell(f)).join('')}`).join('');
+  const cell = ([id, n], g) => `<button class="libitem shp" data-lib="${id}" title="${esc(n)}${g ? ' (' + esc(g) + ')' : ''}"><img src="${svgDataUrl(shapeSvg(id, '#323130').svg)}" alt=""><span>${esc(n)}${g ? `<small>${esc(g)}</small>` : ''}</span></button>`;
+  showPop(anchor, `<button class="btn shp-amplia" id="sBig" title="${cfg.shapesBig ? 'Voltar ao tamanho normal' : 'Ver mais formas de uma vez'}">${cfg.shapesBig ? '⤡ Reduzir' : '⤢ Ampliar'}</button><h4>Desenhar — arraste no quadro</h4><div class="shapes">${DRAW_KINDS.map(([k, n]) => `<button class="ib lbl${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}<small>${n}</small></button>`).join('')}</div>
     <label class="row"><input type="checkbox" id="sFill" ${cfg.shapeFill ? 'checked' : ''}> Preenchida (cor clara)</label>
     <h4>Biblioteca de formas</h4>
     <div class="row shp-cor"><span>Cor:</span><button class="sw-txt${cfg.shapeColor ? '' : ' on'}" data-sc="" title="Usar a cor da caneta atual">da caneta</button>${SHAPE_COLORS.map(c => `<button class="sw${cfg.shapeColor === c ? ' on' : ''}" data-sc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>
@@ -626,6 +677,8 @@ function shapesPop(anchor) {
     <div class="seg shp-tabs">${SHAPE_GROUPS.map(g => `<button data-tab="${g.id}" class="${g.id === tab ? 'on' : ''}">${g.nome}</button>`).join('')}</div>
     <div class="libgrid shp-grid" id="sGrid">${groupHtml(tab)}</div>`,
     p => {
+      p.classList.toggle('shp-big', !!cfg.shapesBig);
+      p.querySelector('#sBig').onclick = () => { cfg.shapesBig = !cfg.shapesBig; saveCfg(); hidePop(); shapesPop(anchor); };
       p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; hidePop(); setTool('shape'); });
       p.querySelector('#sFill').onchange = e => { cfg.shapeFill = e.target.checked; saveCfg(); };
       p.querySelectorAll('[data-sc]').forEach(x => x.onclick = () => {
@@ -647,7 +700,8 @@ function shapesPop(anchor) {
         if (!q) return p.querySelector(`[data-tab="${cfg.shapeTab || tab}"]`).click();
         p.querySelectorAll('[data-tab]').forEach(y => y.classList.remove('on'));
         const hits = ALL_SHAPES.filter(s => plain(s[1]).includes(q));
-        grid.innerHTML = hits.length ? hits.map(cell).join('') : '<p class="muted">Nenhuma forma com esse nome.</p>'; bind();
+        grid.innerHTML = hits.length ? `<div class="shp-sec">${hits.length} forma${hits.length > 1 ? 's' : ''}</div>` + hits.map(f => cell(f, SHAPE_GROUP_OF.get(f[0]))).join('')
+          : '<p class="muted">Nenhuma forma com esse nome.</p>'; bind();
       };
       find.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') hidePop(); });
       bind();
@@ -660,14 +714,23 @@ function recolorLib(it, color) {
   return m ? { ...it, tint: color, src: svgDataUrl(m.svg) } : it;
 }
 
-// apaga tudo de uma vez (slides travados ficam); dá para desfazer
+// apaga tudo de uma vez: só o que foi escrito (PDF/slides ficam) ou tudo mesmo; dá para desfazer
 async function clearBoard() {
-  const keep = S.items.filter(i => i.locked);
-  if (keep.length === S.items.length) return toast('A lousa já está limpa');
-  if (!await confirmBox('Limpar a lousa', 'Apagar tudo o que está neste quadro? Os slides importados ficam. Dá para desfazer com Ctrl+Z.', 'Limpar', true)) return;
+  const pages = PG.isPages(S.board) && S.board.layout.count > 1;
+  if (!S.items.length && !pages) return toast('O quadro já está limpo');
+  const locked = S.items.filter(i => i.locked);
+  let modo = 'escrita';
+  if (locked.length || pages) {
+    const ops = [];
+    if (locked.length < S.items.length) ops.push(['escrita', locked.length ? 'Só o que foi escrito (o PDF/slides ficam)' : 'Só o que foi escrito (as páginas ficam)']);
+    ops.push(['tudo', 'Tudo, inclusive PDF/slides e páginas extras', true]);
+    modo = await choiceBox('Limpar o quadro', 'O que apagar? Dá para desfazer com Ctrl+Z.', ops);
+    if (!modo) return;
+  } else if (!await confirmBox('Limpar o quadro', 'Apagar tudo o que está neste quadro? Dá para desfazer com Ctrl+Z.', 'Limpar', true)) return;
   clearSel();
-  commit(keep);
-  toast('Lousa limpa. Ctrl+Z desfaz.');
+  if (modo === 'tudo' && PG.isPages(S.board)) { commit([], { ...S.board.layout, count: 1 }); goToPage(0, present); refreshPanel(); updatePageBar(); }
+  else commit(modo === 'tudo' ? [] : locked);
+  toast('Quadro limpo. Ctrl+Z desfaz.');
 }
 
 function insertLibShape(id) {
@@ -695,14 +758,18 @@ function currentInk() {
 
 // ================= histórico e salvamento =================
 function commit(items, layout) {
-  undoStack.push({ items: S.items, layout: S.board.layout });
+  undoStack.push(histEntry());
   if (undoStack.length > 400) undoStack.shift();
   redoStack = [];
   S.items = items;
   if (layout !== undefined) S.board.layout = layout;
   changed();
 }
-function restore(entry) { S.items = entry.items; S.board.layout = entry.layout; }
+const histEntry = () => ({ items: S.items, layout: S.board.layout, bg: S.board.background });
+function restore(entry) {
+  S.items = entry.items; S.board.layout = entry.layout;
+  if (entry.bg && entry.bg !== S.board.background) { S.board.background = entry.bg; syncToolbar(); }
+}
 function changed() {
   for (const id of [...sel]) if (!byId(id)) sel.delete(id);
   updatePageBar();
@@ -714,14 +781,14 @@ function changed() {
 function undo() {
   if (!undoStack.length) return;
   pendingBeauty = []; clearTimeout(beautyTimer);
-  redoStack.push({ items: S.items, layout: S.board.layout });
+  redoStack.push(histEntry());
   restore(undoStack.pop());
   changed();
   toast('Desfeito', 2600, { label: 'Refazer', fn: redo });
 }
 function redo() {
   if (!redoStack.length) return;
-  undoStack.push({ items: S.items, layout: S.board.layout });
+  undoStack.push(histEntry());
   restore(redoStack.pop());
   changed();
 }
@@ -790,10 +857,12 @@ async function doSave() {
     if (failedSnap?.id === snap.id) failedSnap = null;
     savedVer = snap.ver;
     if (S?.id === snap.id && savedVer === dirtyVer) { st.textContent = 'Salvo'; st.classList.remove('err'); }
+    $('saveErr').hidden = true;
     scheduleThumb(snap.id);
   } catch (e) {
     failedSnap = snap;  // a nova tentativa grava ESTE quadro, mesmo se o professor trocar de quadro
     if (S?.id === snap.id) { st.textContent = 'Erro ao salvar — tentando de novo'; st.classList.add('err'); }
+    $('saveErr').hidden = false;   // aparece também na apresentação e no modo aula
     clearTimeout(retryTimer); retryTimer = setTimeout(retryFailed, 4000);
   } finally {
     saving = false;
@@ -813,6 +882,8 @@ export async function flush() {
 export async function closeBoard() {
   if (!S) return true;
   lockBars();
+  stopPlotAnim();
+  closeFloating();
   const ok = await flush();
   clearTimeout(thumbTimer); thumbTimer = 0;
   if (ok) await saveThumbNow();
@@ -864,6 +935,7 @@ function fitView() {
 
 function onWheel(e) {
   e.preventDefault();
+  if (zoomLens?.modo === 'escolher') { zoomLens.w = Math.max(120, Math.min(W * 0.9, zoomLens.w * (e.deltaY > 0 ? 1.1 : 0.9))); requestRender(false); return; }
   if (action?.type === 'draw') return;
   const w = toWorld(e.clientX, e.clientY);
   if (protractor && onProtractor(w.x, w.y) && !e.ctrlKey) {
@@ -917,6 +989,7 @@ function startGesture() {
 
 function onDown(e) {
   if (!S) return;
+  if (zoomLens?.modo === 'escolher' && e.button === 0) { hover = { x: e.clientX, y: e.clientY }; ampliarAqui(); return; }
   if (editing) { $('textEdit').blur(); }
   clearTimeout(beautyTimer);
   hidePop();
@@ -937,7 +1010,7 @@ function onDown(e) {
   if (e.pointerType === 'touch' && pointers.size > 1) return;
 
   const P = pt(e);
-  hover = { x: e.clientX, y: e.clientY, pen: e.pointerType === 'pen' };
+  hover = { x: e.clientX, y: e.clientY, pen: penCursorFor(e) };
 
   // botão lateral da caneta (Windows Ink: botão 2 / buttons & 2) e ponta-borracha (botão 5 / buttons & 32)
   const eraserBtn = e.pointerType === 'pen' && (e.button === 5 || (e.buttons & 32));
@@ -968,7 +1041,7 @@ function onDown(e) {
       action = { type: 'rotate', id: e.pointerId, cx, cy, a0: Math.atan2(P.y - cy, P.x - cx), ang: 0 };
       return;
     }
-    const hitHandle = Math.hypot(e.clientX - hx, e.clientY - hy) < 16;
+    const hitHandle = Math.hypot(e.clientX - hx, e.clientY - hy) < 22;
     const inside = e.clientX >= sb.x && e.clientX <= hx && e.clientY >= sb.y && e.clientY <= hy;
     if (hitHandle || (inside && (tool === 'select' || tool === 'lasso'))) {
       const b = R.unionBox(S.items.filter(i => sel.has(i.id)));
@@ -1012,6 +1085,14 @@ function onDown(e) {
         stroke.pr = false;
       }
     }
+    // transferidor: a caneta perto do arco ou da base corre presa à borda, como na régua
+    const pe = action.snap == null && protEdge(P.x, P.y, stroke.width);
+    if (pe) {
+      action.snap = 'prot'; action.psnap = pe;
+      const q = protSnap(pe, P.x, P.y);
+      stroke.pts = [q.x, q.y, P.p];
+      stroke.pr = false;
+    }
   } else if (t === 'laser') {
     action = { type: 'laser', id: e.pointerId };
     laser.push({ x: P.x, y: P.y, t: performance.now(), brk: true });
@@ -1024,8 +1105,8 @@ function onDown(e) {
     const hit = topHit(P.x, P.y);
     if (hit) {
       const wasSel = sel.has(hit.id) && sel.size === 1;
-      if (e.shiftKey) { sel.has(hit.id) ? sel.delete(hit.id) : sel.add(hit.id); requestRender(false); return; }
-      if (!sel.has(hit.id)) sel = new Set([hit.id]);
+      if (e.shiftKey) { const g = withGroups(new Set([hit.id])), on = !sel.has(hit.id); g.forEach(id => on ? sel.add(id) : sel.delete(id)); requestRender(false); return; }
+      if (!sel.has(hit.id)) sel = withGroups(new Set([hit.id]));
       const b = R.unionBox(S.items.filter(i => sel.has(i.id)));
       action = { type: 'transform', id: e.pointerId, mode: 'move', x0: P.x, y0: P.y, dx: 0, dy: 0, s: 1, ox: b.x, oy: b.y, bw: b.w, bh: b.h, moved: false, editOnClick: wasSel && (hit.type === 'text' || hit.type === 'note') ? hit.id : null };
       setCursor('move');
@@ -1056,9 +1137,9 @@ function onMove(e) {
     return;
   }
   if (action && instrumentMove(e)) return;
-  if (spot) requestRender(false);
+  if (spot || zoomLens) requestRender(false);
   if (e.pointerType !== 'touch') {
-    hover = { x: e.clientX, y: e.clientY, pen: e.pointerType === 'pen' };
+    hover = { x: e.clientX, y: e.clientY, pen: penCursorFor(e) };
     if ((tool === 'eraser' || hover.pen) && !action) requestRender(false);
   }
   if (!action) { hoverCursor(e); return; }
@@ -1107,7 +1188,8 @@ function onMove(e) {
         const f = action.stab.push(P.sx, P.sy, P.p, ce.timeStamp);
         if (!f) continue;
         let { x, y } = toWorld(f.x, f.y);
-        if (action.snap != null) { const l = rulerLocal(x, y); const q = rulerWorld(l.u, action.snap); x = q.x; y = q.y; }
+        if (action.psnap) { const q = protSnap(action.psnap, x, y); x = q.x; y = q.y; }
+        else if (action.snap != null) { const l = rulerLocal(x, y); const q = rulerWorld(l.u, action.snap); x = q.x; y = q.y; }
         const n = s.pts.length;
         if (Math.hypot(x - s.pts[n - 3], y - s.pts[n - 2]) < minD) continue;
         let pp = f.p;
@@ -1136,7 +1218,7 @@ function onMove(e) {
     case 'erase':
       for (const ce of list) {
         const P = pt(ce);
-        const d = Math.hypot(P.x - action.lx, P.y - action.ly), stepD = 6 / S.view.zoom;
+        const d = Math.hypot(P.x - action.lx, P.y - action.ly), stepD = Math.max(6, eraserR() / 2) / S.view.zoom;
         const n = Math.max(1, Math.ceil(d / stepD));
         for (let i = 1; i <= n; i++) eraseAt(action.lx + (P.x - action.lx) * i / n, action.ly + (P.y - action.ly) * i / n);
         action.lx = P.x; action.ly = P.y;
@@ -1194,14 +1276,17 @@ function onMove(e) {
 
 function hoverCursor(e) {
   if (spaceDown) return;
+  if (zoomLens?.modo === 'escolher') return setCursor('none');
   const sb = selBox();
   if (sb) {
-    if (Math.hypot(e.clientX - sb.x - sb.w, e.clientY - sb.y - sb.h) < 16) return setCursor('resize');
+    if (Math.hypot(e.clientX - sb.x - sb.w, e.clientY - sb.y - sb.h) < 22) return setCursor('resize');
     if ((tool === 'select' || tool === 'lasso') && e.clientX >= sb.x && e.clientX <= sb.x + sb.w && e.clientY >= sb.y && e.clientY <= sb.y + sb.h) return setCursor('move');
   }
   if (ruler) { const w = toWorld(e.clientX, e.clientY); if (onRuler(w.x, w.y)) return setCursor('move'); }
-  setCursor(e.pointerType === 'pen' && (isPen(tool) || tool === 'highlighter') ? 'none' : undefined);
+  setCursor(penCursorFor(e) && (isPen(tool) || tool === 'highlighter') ? 'none' : undefined);
 }
+// ponteiro desenhado (ponta, mira…) no lugar da cruz: sempre na caneta; no mouse, se a opção estiver ligada
+function penCursorFor(e) { return e.pointerType === 'pen' || (e.pointerType === 'mouse' && cfg.tablet.mouseCursor !== false); }
 
 function onUp(e) {
   pointers.delete(e.pointerId);
@@ -1252,13 +1337,14 @@ function onUp(e) {
       const small = Math.hypot(e.clientX - a.sx, e.clientY - a.sy) < 6 && p.length < 12;
       if (small) {
         const hit = topHit(p[0], p[1]);
-        sel = hit ? new Set([hit.id]) : new Set();
+        sel = hit ? withGroups(new Set([hit.id])) : new Set();
       } else {
         if (!a.shift) sel = new Set();
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
         for (let i = 0; i < p.length; i += 2) { x0 = Math.min(x0, p[i]); x1 = Math.max(x1, p[i]); y0 = Math.min(y0, p[i + 1]); y1 = Math.max(y1, p[i + 1]); }
         const pb = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
         for (const it of S.items) if (!it.locked && R.boxesTouch(R.bbox(it), pb) && R.inLasso(it, p)) sel.add(it.id);
+        sel = withGroups(sel);
       }
       requestRender(false);
       break;
@@ -1270,6 +1356,7 @@ function onUp(e) {
           const b = R.bbox(it);
           if (!it.locked && b.x >= box.x && b.y >= box.y && b.x + b.w <= box.x + box.w && b.y + b.h <= box.y + box.h) sel.add(it.id);
         }
+      sel = withGroups(sel);
       requestRender(false);
       break;
     }
@@ -1402,8 +1489,12 @@ function hitLib(it, x, y, tol) {
   return false;
 }
 
+// raio da borracha em px de tela (ajustável no menu da borracha)
+const ERASER_SIZES = [['P', 6], ['M', 12], ['G', 28], ['GG', 60]];
+function eraserR() { return Math.max(3, Math.min(120, +cfg.eraserSize || 12)); }
+
 function eraseAt(x, y) {
-  const tol = 12 / S.view.zoom;
+  const tol = eraserR() / S.view.zoom;
   if (cfg.eraserMode === 'partial') {
     // corta só os pontos dentro do círculo da borracha; o resto vira pedaços
     action.parts = action.parts || new Map();
@@ -1456,6 +1547,8 @@ function selAction(k, btn) {
   const ids = sel;
   if (k === 'delete') { commit(S.items.filter(i => !ids.has(i.id))); sel = new Set(); }
   else if (k === 'duplicate') duplicateSel();
+  else if (k === 'group') groupSel();
+  else if (k === 'ungroup') ungroupSel();
   else if (k === 'copy') { copySel(); toast('Copiado'); }
   else if (k === 'front') commit([...S.items.filter(i => !ids.has(i.id)), ...S.items.filter(i => ids.has(i.id))]);
   else if (k === 'back') commit([...S.items.filter(i => ids.has(i.id)), ...S.items.filter(i => !ids.has(i.id))]);
@@ -1467,7 +1560,7 @@ function selAction(k, btn) {
   else if (k === 'color') {
     const notes = [...ids].every(id => byId(id)?.type === 'note');
     const pal = notes ? NOTE_COLORS : PALETTE;
-    showPop(btn, `<div class="swatches" style="grid-template-columns:repeat(${notes ? 6 : 8},26px)">${pal.map(c => `<button class="sw" data-c="${c}" style="background:${c}"></button>`).join('')}</div>`, p => {
+    showPop(btn, `<div class="swatches" style="grid-template-columns:repeat(${notes ? 6 : 8},26px)">${pal.map(c => `<button class="sw" data-c="${c}" style="background:${c}" title="${corNome(c)}" aria-label="${corNome(c)}"></button>`).join('')}</div>`, p => {
       p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => {
         const c = x.dataset.c;
         commit(S.items.map(i => {
@@ -1484,6 +1577,32 @@ function selAction(k, btn) {
   }
 }
 
+// grupos: itens com o mesmo `grp` são selecionados, movidos e girados juntos
+function withGroups(set) {
+  const g = new Set();
+  for (const id of set) { const it = byId(id); if (it?.grp) g.add(it.grp); }
+  if (!g.size) return set;
+  const out = new Set(set);
+  for (const it of S.items) if (it.grp && g.has(it.grp)) out.add(it.id);
+  return out;
+}
+function groupSel() {
+  if (sel.size < 2) return toast('Selecione dois ou mais elementos para agrupar');
+  const grp = newId();
+  commit(S.items.map(i => sel.has(i.id) ? { ...i, grp } : i));
+  toast('Agrupado. Ctrl+Shift+G desagrupa.');
+}
+function ungroupSel() {
+  if (![...sel].some(id => byId(id)?.grp)) return toast('A seleção não tem grupo');
+  commit(S.items.map(i => sel.has(i.id) && i.grp ? (({ grp, ...r }) => r)(i) : i));
+  toast('Desagrupado');
+}
+// cópias ganham grupos novos (a cópia não fica presa ao grupo original)
+function regroup(items) {
+  const m = new Map();
+  return items.map(i => i.grp ? { ...i, grp: m.get(i.grp) || (m.set(i.grp, newId()), m.get(i.grp)) } : i);
+}
+
 function copySel() {
   clipboard = S.items.filter(i => sel.has(i.id)).map(i => structuredClone(i));
 }
@@ -1494,7 +1613,7 @@ function freshIds(it) {
 }
 function pasteItems(items, offset = 24) {
   const d = offset / S.view.zoom;
-  const fresh = items.map(i => freshIds(R.transformItem(i, d, d)));
+  const fresh = regroup(items.map(i => freshIds(R.transformItem(i, d, d))));
   commit([...S.items, ...fresh]);
   sel = new Set(fresh.map(i => i.id));
   if (tool !== 'lasso') setTool('select');
@@ -1592,7 +1711,6 @@ function commitText() {
     if (isNew) { S.items = others; commit([...others, n]); }
     else if (text !== before) commit(base.map(i => i.id === id ? n : i));
     else requestRender();
-    if (isNew) { /* continua na ferramenta texto */ }
   } else {
     if (text !== before) commit(S.items.map(i => i.id === id ? { ...it, text } : i));
     else requestRender();
@@ -1652,6 +1770,7 @@ function onKey(e) {
   else if (ctrl && k === 'c') { if (sel.size) { copySel(); navigator.clipboard?.writeText?.('').catch(() => {}); } }
   else if (ctrl && k === 'x') { if (sel.size) { copySel(); commit(S.items.filter(i => !sel.has(i.id))); sel = new Set(); } }
   else if (ctrl && k === 'd') { e.preventDefault(); duplicateSel(); }
+  else if (ctrl && k === 'g') { e.preventDefault(); if (e.shiftKey) ungroupSel(); else groupSel(); }
   else if (ctrl && k === 'a') { e.preventDefault(); sel = new Set(S.items.filter(i => !i.locked).map(i => i.id)); setTool('select'); }
   else if (ctrl && k === '0') { e.preventDefault(); fitView(); }
   else if (ctrl && (k === '=' || k === '+')) { e.preventDefault(); zoomAt(W / 2, H / 2, S.view.zoom * 1.25); }
@@ -1659,7 +1778,7 @@ function onKey(e) {
   else if (ctrl && k === 's') { e.preventDefault(); doSave(); }
   else if (ctrl) return;
   else if (e.key === 'Delete' || e.key === 'Backspace') { if (sel.size) { commit(S.items.filter(i => !sel.has(i.id))); sel = new Set(); } }
-  else if (e.key === 'Escape') { if (present) setPresent(false); else { clearSel(); hidePop(); } }
+  else if (e.key === 'Escape') { if (zoomLens) { if (zoomLens.modo === 'ampliado') sairZoomLens(); else toggleZoomLens(); } else if (present) setPresent(false); else { clearSel(); hidePop(); } }
   else if (e.key === 'Tab') { e.preventDefault(); setClean(!document.getElementById('board').classList.contains('clean')); }
   else if (PG.isPages(S.board) && ['PageDown', 'ArrowRight', 'ArrowDown'].includes(e.key) && (present || e.key === 'PageDown') && !sel.size) { e.preventDefault(); goToPage(curPage() + 1, present); }
   else if (PG.isPages(S.board) && ['PageUp', 'ArrowLeft', 'ArrowUp'].includes(e.key) && (present || e.key === 'PageUp') && !sel.size) { e.preventDefault(); goToPage(curPage() - 1, present); }
@@ -1675,29 +1794,42 @@ function onKey(e) {
   else if (k === 't') setTool('text');
   else if (k === 'r') toggleRuler();
   else if (k === 'k') setTool('laser');
+  else if (k === 'z') toggleZoomLens();
   else if (e.key === '[' || e.key === ']') stepWidth(e.key === ']' ? 1 : -1);
 }
 
 // ================= menu / exportação =================
+// barras, barra do professor, painel da lupa, cronômetro e relógio de volta às posições de fábrica
+function layoutPadrao() {
+  resetBars();
+  cfg.teachSide = 'dir'; cfg.teachNames = false; saveCfg();
+  for (const k of ['lousa.stripPos', 'lousa.timerPos', 'lousa.clockPos']) try { localStorage.removeItem(k); } catch {}
+  const st = $('strip'); st.style.top = ''; st.style.bottom = '';
+  for (const el of document.querySelectorAll('.timerbox')) { el.style.left = el.style.top = el.style.right = el.style.bottom = ''; }
+  buildTeachBar(); placeBars();
+  toast('Layout padrão: barras e painéis de volta ao lugar de fábrica');
+}
+
 function openMenu(anchor) {
   showPop(anchor, `<div class="menu">
       <button data-a="bg">${ICON.paper} Folha e fundo</button>
-      ${PG.isPages(S.board) ? `<button data-a="pages">${ICON.gallery} Páginas…</button>` : `<button data-a="toA4">${ICON.paper} Transformar em caderno A4</button>`}
+      ${PG.isPages(S.board) ? `<button data-a="pages">${ICON.gallery} Páginas…</button>` : `<button data-a="toA4">${ICON.slides} Transformar em caderno A4</button>`}
       <button data-a="slides">${ICON.slides} Inserir PowerPoint ou PDF…</button>
       <button data-a="present">${ICON.present} Apresentar (tela cheia)</button>
       <hr>
       <button data-a="pdf">${ICON.pdf} Exportar PDF</button>
       <button data-a="print">${ICON.print} Imprimir</button>
       <button data-a="png">${ICON.image} Exportar imagem (PNG)</button>
-      <button data-a="clear">${ICON.trash} Limpar a lousa</button>
       <hr>
       <button data-a="pngT">${ICON.image} Exportar imagem sem fundo</button>
-      <button data-a="lousa">${ICON.import} Exportar arquivo .lousa</button>
+      <button data-a="lousa">${ICON.download} Exportar arquivo .lousa</button>
       <hr>
-      <button data-a="tablet">${ICON.edit} Caneta e escrita</button>
-      <button data-a="bars">${ICON.lock} Barras na posição padrão</button>
-      <button data-a="keys">${ICON.edit} Atalhos de teclado</button>
+      <button data-a="tablet">${ICON.pen} Caneta e escrita</button>
+      <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
+      <button data-a="keys">${ICON.keyboard} Atalhos de teclado</button>
       <button data-a="about">${ICON.ok} Sobre o Giz Livre</button>
+      <hr>
+      <button data-a="clear" class="danger">${ICON.trash} Limpar o quadro…</button>
     </div>`, p => {
     p.querySelector('[data-a="bg"]').onclick = () => { hidePop(); bgPop(anchor); };
     p.querySelector('[data-a="png"]').onclick = () => { hidePop(); exportPng(); };
@@ -1713,7 +1845,7 @@ function openMenu(anchor) {
     p.querySelector('[data-a="keys"]').onclick = () => { hidePop(); showKeys(); };
     p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
-    p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); resetBars(); toast('Barras de volta ao lugar padrão'); };
+    p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
   });
 }
 
@@ -1730,7 +1862,7 @@ function bgPop(anchor) {
       <div><h4>Intensidade</h4><div class="seg">${strengths.map(([k, n]) => `<button class="${(bg.strength || 'normal') === k ? 'on' : ''}" data-st="${k}">${n}</button>`).join('')}</div></div>
     </div>
     <h4>Cor das linhas</h4><div class="swatches">${LINE_COLORS.map(c => c ? `<button class="sw${bg.lineColor === c ? ' on' : ''}" data-lc="${c}" style="background:${c}"></button>` : `<button class="sw auto${!bg.lineColor ? ' on' : ''}" data-lc="" title="Automática">A</button>`).join('')}</div>
-    <h4>Cor do fundo</h4><div class="swatches">${BG_COLORS.map(c => `<button class="sw sq${c === bg.color ? ' on' : ''}" data-c="${c}" style="background:${c}"></button>`).join('')}</div>
+    <h4>Cor do fundo</h4><div class="swatches">${BG_COLORS.map(c => `<button class="sw sq${c === bg.color ? ' on' : ''}" data-c="${c}" style="background:${c}" title="${corNome(c)}" aria-label="${corNome(c)}"></button>`).join('')}</div>
     ${ANCHORED.has(pat) ? '<button class="btn" id="bgOrigin" style="margin-top:12px">Trazer a folha para o centro da tela</button>' : ''}`, p => {
     p.querySelectorAll('.paper canvas').forEach((c, i) => {
       const k = PAPERS[i][0];
@@ -1739,8 +1871,9 @@ function bgPop(anchor) {
     });
     const center = () => { const c = toWorld(W / 2, H / 2); return { x: Math.round(c.x), y: Math.round(c.y) }; };
     const set = patch => {
+      undoStack.push(histEntry()); redoStack = [];   // trocar folha/cor também se desfaz com Ctrl+Z
       S.board.background = { ...S.board.background, ...patch };
-      requestRender(); scheduleSave(); syncToolbar();
+      updateUndo(); requestRender(); scheduleSave(); syncToolbar();
       hidePop(); bgPop(anchor);
     };
     p.querySelectorAll('[data-p]').forEach(x => x.onclick = () => set(ANCHORED.has(x.dataset.p) ? { pattern: x.dataset.p, origin: center() } : { pattern: x.dataset.p }));
@@ -1773,12 +1906,21 @@ export async function embedAssets(items) {
 }
 
 function showKeys() {
-  const rows = [['P / 1–4', 'Canetas'], ['H', 'Marca-texto'], ['K', 'Ponteiro laser'], ['E', 'Borracha'], ['L', 'Laço'], ['V', 'Selecionar'],
-    ['T', 'Texto'], ['R', 'Régua (gire com a roda do mouse; Shift = 15°)'], ['Espaço + arrastar', 'Mover o quadro'],
-    ['Botão do meio/direito', 'Mover o quadro'], ['Ctrl + roda', 'Zoom'], ['Ctrl + 0', 'Ajustar à tela'],
-    ['Ctrl + Z / Y', 'Desfazer / refazer'], ['Ctrl + C / X / V / D', 'Copiar / recortar / colar / duplicar'],
-    ['[  /  ]', 'Caneta mais fina / mais grossa'], ['Ctrl + A', 'Selecionar tudo'], ['Del', 'Excluir seleção'], ['Enter', 'Editar texto/nota selecionado'], ['F11', 'Tela cheia']];
-  infoBox('Atalhos de teclado', `<div class="keys">${rows.map(([a, b]) => `<kbd>${a}</kbd><span>${b}</span>`).join('')}</div>`);
+  const grupos = [
+    ['Ferramentas', [['1 a 4', 'Canetas 1 a 4 (P volta à última)'], ['H', 'Marca-texto'], ['K', 'Ponteiro laser'], ['E', 'Borracha'],
+      ['L', 'Laço'], ['V', 'Selecionar'], ['T', 'Texto'], ['R', 'Régua (gire com a roda do mouse; Shift = 15°)'],
+      ['[  /  ]', 'Caneta mais fina / mais grossa'], ['Botão lateral da caneta', 'Borracha (muda em Caneta e escrita)']]],
+    ['Seleção e edição', [['Ctrl + Z / Ctrl + Y', 'Desfazer / refazer (Ctrl + Shift + Z também refaz)'],
+      ['Ctrl + C / X / V / D', 'Copiar / recortar / colar / duplicar'], ['Ctrl + A', 'Selecionar tudo'],
+      ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'],
+      ['Enter', 'Editar o texto ou a nota selecionada'], ['Esc', 'Tirar a seleção, fechar menus, sair da apresentação']]],
+    ['Páginas e apresentação', [['PageDown / PageUp', 'Próxima / página anterior'], ['→ ← (na apresentação)', 'Passar as páginas'],
+      ['B (na apresentação)', 'Página em branco depois desta'], ['Tab', 'Modo aula: esconde / mostra as barras']]],
+    ['Vista e arquivo', [['Espaço + arrastar', 'Mover o quadro'], ['Botão do meio ou direito do mouse', 'Mover o quadro'],
+      ['Ctrl + roda', 'Zoom'], ['Ctrl + = / Ctrl + −', 'Aumentar / diminuir o zoom'], ['Ctrl + 0', 'Ajustar à tela'], ['Z', 'Lupa: escolher uma área e ampliar (Z ou Esc volta)'],
+      ['Ctrl + S', 'Salvar agora'], ['F11', 'Tela cheia']]],
+  ];
+  infoBox('Atalhos de teclado', grupos.map(([g, rows]) => `<h4 class="keys-g">${g}</h4><div class="keys">${rows.map(([a, b]) => `<kbd>${a}</kbd><span>${b}</span>`).join('')}</div>`).join(''));
 }
 
 function toggleFullscreen() {
@@ -1817,6 +1959,7 @@ function curPage() {
 // enquadra a página i (fill: ocupa a tela toda, para apresentar)
 function goToPage(i, fill = false) {
   if (!S || !PG.isPages(S.board)) return;
+  if (zoomLens) { zoomLens = null; syncPresentBar(); }   // mudar de página desfaz a lupa
   const L = S.board.layout;
   i = Math.max(0, Math.min(L.count - 1, i));
   const r = PG.pageRect(L, i), m = fill ? 0 : 28, top = fill ? 0 : 64, bottom = fill ? 0 : 70;
@@ -1852,20 +1995,33 @@ function addBlankAfter() { insertPageAfter(curPage()); toast('Página em branco 
 
 function duplicatePage(i) {
   const L = S.board.layout, step = L.h + L.gap;
-  const copies = S.items.filter(it => PG.pageOf(L, it) === i).map(it => freshIds(R.transformItem(it, 0, step)));
+  const copies = regroup(S.items.filter(it => PG.pageOf(L, it) === i).map(it => freshIds(R.transformItem(it, 0, step))));
   insertPageAfter(i, copies);
 }
 
-async function deletePage(i) {
+async function deletePage(i) { return deletePages([i]); }
+
+// exclui várias páginas de uma vez (ex.: 2 páginas de um PDF de 20); um único passo no desfazer
+async function deletePages(list) {
   const L = S.board.layout;
-  if (L.count <= 1) return toast('O caderno precisa de pelo menos uma página');
-  const its = S.items.filter(it => PG.pageOf(L, it) === i);
-  if (its.length && !await confirmBox(`Excluir a página ${i + 1}?`, 'O que está escrito nela será apagado (dá para desfazer com Ctrl+Z).', 'Excluir', true)) return;
-  const step = L.h + L.gap, cut = PG.pageRect(L, i).y + L.h + L.gap / 2;
-  const kept = S.items.filter(it => PG.pageOf(L, it) !== i);
-  commit(itemsShift(kept, cut, -step), { ...L, count: L.count - 1 });
-  goToPage(Math.min(i, L.count - 2), present);
-  refreshPanel();
+  const idx = [...new Set(list)].filter(i => i >= 0 && i < L.count).sort((a, b) => b - a);
+  if (!idx.length) return;
+  if (idx.length >= L.count) return toast('O caderno precisa de pelo menos uma página');
+  const nomes = idx.length === 1 ? `a página ${idx[0] + 1}` : `${idx.length} páginas (${[...idx].reverse().map(i => i + 1).join(', ')})`;
+  const temAlgo = S.items.some(it => idx.includes(PG.pageOf(L, it)));
+  if (temAlgo && !await confirmBox(`Excluir ${nomes}?`, 'O que estiver nelas (inclusive o PDF/slide) será apagado. Dá para desfazer com Ctrl+Z.', 'Excluir', true)) return;
+  const step = L.h + L.gap;
+  let items = S.items;
+  for (const i of idx) {   // da última para a primeira: os índices das que faltam não mudam
+    const cut = PG.pageRect(L, i).y + L.h + L.gap / 2;
+    items = itemsShift(items.filter(it => PG.pageOf(L, it) !== i), cut, -step);
+  }
+  clearSel();
+  commit(items, { ...L, count: L.count - idx.length });
+  goToPage(Math.min(idx[idx.length - 1], L.count - idx.length - 1), present);
+  panelSel.clear();
+  refreshPanel(true);
+  toast(idx.length === 1 ? 'Página excluída' : `${idx.length} páginas excluídas`);
 }
 
 function addPageEnd() { insertPageAfter(S.board.layout.count - 1); }
@@ -1935,6 +2091,11 @@ function togglePagesPanel(show) {
   if (show) refreshPanel(true);
 }
 let panelTimer = 0;
+const panelSel = new Set();   // páginas marcadas no painel para excluir de uma vez
+function syncPanelSel() {
+  const b = $('ppDel');
+  if (b) { b.hidden = !panelSel.size; b.textContent = `Excluir ${panelSel.size} página${panelSel.size > 1 ? 's' : ''}`; }
+}
 function refreshPanel(now = false) {
   const p = $('pagesPanel');
   if (!p || p.hidden || !S || !PG.isPages(S.board)) return;
@@ -1942,15 +2103,23 @@ function refreshPanel(now = false) {
   panelTimer = setTimeout(async () => {
     const L = S.board.layout, list = $('ppList');
     list.innerHTML = '';
+    for (const i of [...panelSel]) if (i >= L.count) panelSel.delete(i);
     for (let i = 0; i < L.count; i++) {
-      const b = document.createElement('button');
-      b.className = 'pthumb'; b.dataset.i = i;
+      const b = document.createElement('div');
+      b.className = 'pthumb'; b.dataset.i = i; b.tabIndex = 0;
       const c = await PG.renderPage({ ...S.board, items: S.items }, i, 150 / L.w);
       c.className = 'pcanvas';
-      b.append(c, Object.assign(document.createElement('span'), { textContent: i + 1 }));
+      const ck = Object.assign(document.createElement('input'), { type: 'checkbox', className: 'pp-ck', title: 'Marcar para excluir', checked: panelSel.has(i) });
+      ck.onclick = e => { e.stopPropagation(); ck.checked ? panelSel.add(i) : panelSel.delete(i); b.classList.toggle('marked', ck.checked); syncPanelSel(); };
+      const del = Object.assign(document.createElement('button'), { className: 'ib pp-del', title: 'Excluir esta página', innerHTML: ICON.trash });
+      del.onclick = e => { e.stopPropagation(); deletePages([i]); };
+      b.classList.toggle('marked', panelSel.has(i));
+      b.append(c, Object.assign(document.createElement('span'), { textContent: i + 1 }), ck, del);
       b.onclick = () => goToPage(i);
+      b.onkeydown = e => { if (e.key === 'Enter') goToPage(i); if (e.key === 'Delete') deletePages([i]); };
       list.appendChild(b);
     }
+    syncPanelSel();
     markPanel();
   }, now ? 0 : 600);
 }
@@ -1982,6 +2151,7 @@ function pageMenu(anchor) {
 // modo apresentação: tela cheia, só a mini-bandeja; setas/PageDown passam a página
 function setPresent(on) {
   present = !!on;
+  zoomLens = null;
   if (present) lockBars();
   const b = $('board');
   b.classList.toggle('present', present);
@@ -1993,13 +2163,81 @@ function setPresent(on) {
   } else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   if (!present) setTimeout(() => { if (S) { resize(); if (PG.isPages(S.board)) goToPage(curPage()); } }, 250);
 }
+// lupa de apresentação (como no PowerPoint): um retângulo segue o ponteiro; o toque amplia aquela área
+let zoomLens = null;   // { modo: 'escolher' | 'ampliado', w: largura do retângulo em px de tela, antes: vista anterior }
+function lensRect() {
+  const w = zoomLens.w, h = w * H / W, c = hover || { x: W / 2, y: H / 2 };
+  return { x: c.x - w / 2, y: c.y - h / 2, w, h };
+}
+function toggleZoomLens() {
+  if (zoomLens?.modo === 'ampliado') return sairZoomLens();
+  if (zoomLens) { zoomLens = null; setCursor(); syncPresentBar(); requestRender(false); return; }
+  zoomLens = { modo: 'escolher', w: Math.round(W / 3) };
+  setCursor('none');
+  toast('Toque onde quer ampliar · roda do mouse muda o tamanho · Esc cancela', 3500);
+  syncPresentBar(); requestRender(false);
+}
+function animarVista(alvo, ms = 280) {
+  const de = { ...S.view }, t0 = performance.now();
+  const passo = t => {
+    const u = Math.min(1, (t - t0) / ms), k = 1 - (1 - u) ** 3;
+    S.view = { zoom: de.zoom + (alvo.zoom - de.zoom) * k, x: de.x + (alvo.x - de.x) * k, y: de.y + (alvo.y - de.y) * k };
+    viewChanged();
+    if (u < 1) requestAnimationFrame(passo);
+  };
+  requestAnimationFrame(passo);
+}
+function ampliarAqui() {
+  const r = lensRect(), f = W / r.w;   // a área escolhida passa a ocupar a tela inteira
+  const a = toWorld(r.x, r.y), z = Math.min(8, S.view.zoom * f);
+  zoomLens = { modo: 'ampliado', antes: { ...S.view } };
+  setCursor();
+  animarVista({ zoom: z, x: -a.x * z, y: -a.y * z });
+  syncPresentBar();
+}
+function sairZoomLens() {
+  const antes = zoomLens?.antes;
+  zoomLens = null;
+  if (antes) animarVista(antes);
+  syncPresentBar(); requestRender(false);
+}
+function drawZoomLens() {
+  if (zoomLens?.modo !== 'escolher' || !hover) return;
+  const r = lensRect(), g = octx;
+  g.save();
+  g.fillStyle = 'rgba(0,0,0,.35)';
+  g.beginPath(); g.rect(0, 0, W, H); g.rect(r.x, r.y, r.w, r.h); g.fill('evenodd');
+  g.strokeStyle = '#fff'; g.lineWidth = 3; g.strokeRect(r.x, r.y, r.w, r.h);
+  g.strokeStyle = '#0f6cbd'; g.lineWidth = 1.5; g.strokeRect(r.x, r.y, r.w, r.h);
+  g.restore();
+}
+
+// cor e espessura da caneta atual sem sair da apresentação
+function presentColorPop(anchor) {
+  const t = isPen(tool) ? tool : (cfg.lastPen || 'pen0'), c = cfg.tools[t];
+  showPop(anchor, `<div class="swatches">${PALETTE.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>
+    <div class="widths" style="margin-top:8px">${PEN_WIDTHS.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}"><i style="width:${w * 1.6 + 3}px;height:${w * 1.6 + 3}px;background:${c.color === '#ffffff' ? '#ccc' : c.color}"></i></button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => { c.color = x.dataset.c; saveCfg(); setTool(t); syncPresentBar(); hidePop(); });
+    p.querySelectorAll('[data-w]').forEach(x => x.onclick = () => { c.width = +x.dataset.w; saveCfg(); setTool(t); syncPresentBar(); p.querySelectorAll('[data-w]').forEach(y => y.classList.toggle('on', y === x)); });
+  }, 'above');
+}
+
 // modo aula: Tab esconde/mostra as barras (qualquer quadro)
 function setClean(on) {
   $('board').classList.toggle('clean', on);
-  if (on) toast('Modo aula: Tab mostra as barras de novo', 2200);
+  if (on) toast('Modo aula: toque em "Mostrar barras" (canto de baixo) ou aperte Tab', 4500);
 }
 function syncPresentBar() {
-  document.querySelectorAll('#presentbar [data-pt]').forEach(x => x.classList.toggle('active', x.dataset.pt === tool));
+  document.querySelectorAll('#presentbar [data-pt]').forEach(x => {
+    x.classList.toggle('active', x.dataset.pt === tool);
+    const dot = x.querySelector('i');
+    if (dot && cfg.tools[x.dataset.pt]) dot.style.background = inkShown(cfg.tools[x.dataset.pt].color);
+  });
+  const c = $('ppColor')?.querySelector('i');
+  if (c) c.style.setProperty('--c', inkShown(currentInk().color));
+  $('ppInkShape')?.classList.toggle('on', !!cfg.inkShape);
+  $('ppStrip')?.classList.toggle('on', !!zoomLens);
+  $('zLens')?.classList.toggle('on', !!zoomLens);
   const isP = S && PG.isPages(S.board);
   document.querySelectorAll('#presentbar .pg-only').forEach(x => x.hidden = !isP);
 }
@@ -2012,6 +2250,7 @@ function initPagesUI() {
   $('pgAll').onclick = () => togglePagesPanel($('pagesPanel').hidden);
   $('ppClose').onclick = () => togglePagesPanel(false);
   $('ppAdd').onclick = () => addPageEnd();
+  $('ppDel').onclick = () => deletePages([...panelSel]);
   $('bPresent').onclick = () => setPresent(true);
   $('slideFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await importSlidesIntoBoard(f); });
   $('ppPrev').onclick = () => goToPage(curPage() - 1, true);
@@ -2019,6 +2258,9 @@ function initPagesUI() {
   $('ppBlank').onclick = () => addBlankAfter();
   $('ppExit').onclick = () => setPresent(false);
   $('ppUndo').onclick = undo;
+  $('ppColor').onclick = () => presentColorPop($('ppColor'));
+  $('ppInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta vira forma: ligado (traço quase reto vira reta)' : 'Tinta vira forma: desligado (desenho livre)'); };
+  $('ppStrip').onclick = () => toggleZoomLens();
   document.querySelectorAll('#presentbar [data-pt]').forEach(x => x.onclick = () => { setTool(x.dataset.pt); syncPresentBar(); });
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && present) setPresent(false); else resize(); });
 }
@@ -2031,27 +2273,72 @@ let curtain = null;      // {y} cortina (tela)
 let spot = null;         // {r} holofote
 let strip = null;        // lupa de escrita: {x, y, w, h} caixa no mundo
 
-function toolsPop(anchor) {
-  const items = [
-    ['strip', ICON.strip, 'Lupa de escrita', 'escreva grande numa faixa; a letra cai pequena no quadro'],
+const TEACH_ITEMS = () => [
+    ['strip', ICON.lupa, 'Lupa de escrita', 'escreva grande numa faixa; a letra cai pequena no quadro'],
     ['protractor', ICON.half, 'Transferidor', 'arraste pelo corpo; gire com a roda do mouse'],
     ['compass', ICON.rotate, 'Compasso', '1º arraste: raio · 2º arraste: desenha o arco'],
     ['curtain', ICON.curtain, 'Cortina', 'esconde a parte de baixo; arraste a alça para revelar'],
     ['spot', ICON.spotlight, 'Holofote', 'escurece tudo menos o ponteiro'],
-    ['timer', ICON.timer, 'Cronômetro', 'contagem regressiva com aviso sonoro'],
-    ['plot', ICON.grid, 'Plotar função', 'digite y = x^2 − 4 e o gráfico aparece no plano cartesiano'],
+    ['timer', ICON.timer, 'Cronômetro', 'contagem regressiva com aviso sonoro; dá para digitar o tempo'],
+    ['clock', ICON.clock, 'Relógio', 'hora do computador, flutuando sobre o quadro'],
+    ['plot', ICON.fx, 'Plotar função', 'digite uma função ou escolha um modelo; a curva sai com os eixos'],
     ['formula', ICON.formula, 'Fórmula (LaTeX)', 'equações nítidas: \\frac{a}{b}, x^2, \\Delta H'],
     ['library', ICON.library, 'Biblioteca', 'tabela periódica e vidrarias de laboratório'],
     ['ocr', ICON.text, 'Converter escrita em texto', 'selecione a escrita com o laço antes'],
-  ];
-  const on = { strip: !!strip, protractor: !!protractor, compass: tool === 'compass', curtain: !!curtain, spot: !!spot };
-  showPop(anchor, `<div class="menu newkind tools">${items.map(([k, ic, n, d]) =>
-    `<button data-k="${k}" class="${on[k] ? 'on' : ''}">${ic}<span><b>${n}</b><small>${d}</small></span></button>`).join('')}</div>`, p => {
+];
+const teachOn = () => ({ strip: !!strip, protractor: !!protractor, compass: tool === 'compass', curtain: !!curtain, spot: !!spot, timer: timerOpen(), clock: clockOpen() });
+
+function toolsPop(anchor) {
+  const on = teachOn();
+  const lado = cfg.teachSide === 'esq' ? 'esq' : 'dir';
+  showPop(anchor, `<div class="tb-fixar"><span>Deixar aberto na tela:</span><div class="seg">
+      <button data-lado="esq" class="${cfg.teachBar && lado === 'esq' ? 'on' : ''}">À esquerda</button>
+      <button data-lado="dir" class="${cfg.teachBar && lado === 'dir' ? 'on' : ''}">À direita</button></div>
+      <label class="row"><input type="checkbox" id="tbNomes" ${cfg.teachNames ? 'checked' : ''}> com os nomes</label></div>
+    <div class="menu newkind tools">${TEACH_ITEMS().map(([k, ic, n, d]) =>
+    `<button data-k="${k}" class="${on[k] ? 'on' : ''}">${ic}<span><b>${n}</b><small>${d}</small></span></button>`).join('')}</div>
+    <small class="tb-note">Aberta, a barra também pode ir para qualquer lugar: destrave o cadeado (barra de cima) e arraste.</small>`, p => {
     p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { hidePop(); toolAction(x.dataset.k); });
+    p.querySelectorAll('[data-lado]').forEach(x => x.onclick = () => { hidePop(); setTeachBar(true, x.dataset.lado); });
+    p.querySelector('#tbNomes').onchange = e => { cfg.teachNames = e.target.checked; saveCfg(); buildTeachBar(); placeBars(); };
   });
 }
 
-function toolAction(k) {
+// barra do professor "explodida": todas as ferramentas à vista (opcional, móvel como as outras barras)
+function setTeachBar(on, lado) {
+  cfg.teachBar = !!on;
+  if (lado) { cfg.teachSide = lado; resetBar('teach'); }   // escolher um lado desfaz a posição arrastada
+  saveCfg();
+  buildTeachBar();
+  syncTeachBar();
+  placeBars();
+}
+function buildTeachBar() {
+  const b = $('teachbar');
+  if (!b) return;
+  b.hidden = !cfg.teachBar || !S;
+  if (b.hidden) return;
+  b.classList.toggle('esq', cfg.teachSide === 'esq');
+  b.classList.toggle('nomes', !!cfg.teachNames);
+  b.innerHTML = TEACH_ITEMS().map(([k, ic, n, d]) => `<button class="ib" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}${cfg.teachNames ? `<span>${esc(n)}</span>` : ''}</button>`).join('')
+    + `<span class="sep"></span><div class="tb-acoes"><button class="ib" data-lado title="Passar a barra para o outro lado">⇄</button>`
+    + `<button class="ib" data-nomes title="${cfg.teachNames ? 'Esconder' : 'Mostrar'} os nomes">Aa</button>`
+    + `<button class="ib" data-x title="Recolher a barra (volta ao menu)">${ICON.close}</button></div>`;
+  b.querySelectorAll('[data-k]').forEach(x => x.onclick = () => toolAction(x.dataset.k, x));
+  b.querySelector('[data-x]').onclick = () => setTeachBar(false);
+  b.querySelector('[data-lado]').onclick = () => setTeachBar(true, cfg.teachSide === 'esq' ? 'dir' : 'esq');
+  b.querySelector('[data-nomes]').onclick = () => { cfg.teachNames = !cfg.teachNames; saveCfg(); buildTeachBar(); placeBars(); };
+  syncTeachBar();
+}
+function syncTeachBar() {
+  const b = $('teachbar');
+  $('tTools')?.classList.toggle('on', !!cfg.teachBar);
+  if (!b || b.hidden) return;
+  const on = teachOn();
+  b.querySelectorAll('[data-k]').forEach(x => x.classList.toggle('on', !!on[x.dataset.k]));
+}
+
+function toolAction(k, anchor) {
   const c = toWorld(W / 2, H / 2);
   if (k === 'protractor') protractor = protractor ? null : { x: c.x, y: c.y + 60 / S.view.zoom, angle: 0 };
   else if (k === 'compass') { if (tool === 'compass') setTool(cfg.lastPen || 'pen0'); else { setTool('compass'); toast('Compasso: arraste do centro até o raio; depois arraste em volta para desenhar o arco'); } }
@@ -2060,10 +2347,12 @@ function toolAction(k) {
   else if (k === 'timer') toggleTimer();
   else if (k === 'formula') formulaDialog();
   else if (k === 'plot') plotDialog();
-  else if (k === 'library') libraryPop($('tTools'));
+  else if (k === 'library') libraryPop(anchor || $('tTools'));
+  else if (k === 'clock') toggleClock();
   else if (k === 'strip') toggleStrip();
   else if (k === 'ocr') { if (sel.size) inkToText([...sel]); else { setTool('lasso'); toast('Circule a escrita com o laço e toque em "Converter em texto"'); } }
   requestRender(false);
+  syncTeachBar(); syncPresentBar();
 }
 
 // ---------- transferidor ----------
@@ -2071,6 +2360,26 @@ const PROT_R = 210;
 function protLocal(x, y) {
   const a = protractor.angle * Math.PI / 180, dx = x - protractor.x, dy = y - protractor.y;
   return { u: dx * Math.cos(a) + dy * Math.sin(a), v: -dx * Math.sin(a) + dy * Math.cos(a) };
+}
+function protWorld(u, v) {
+  const a = protractor.angle * Math.PI / 180;
+  return { x: protractor.x + u * Math.cos(a) - v * Math.sin(a), y: protractor.y + u * Math.sin(a) + v * Math.cos(a) };
+}
+// borda do transferidor perto do ponto: {mode:'arc', r} ou {mode:'base', v}; null se longe
+function protEdge(x, y, width = 0) {
+  if (!protractor) return null;
+  const z = S.view.zoom, R0 = PROT_R / z, base = 14 / z, near = 36 / z, half = width / 2 + 1 / z;
+  const l = protLocal(x, y), d = Math.hypot(l.u, l.v);
+  if (l.v <= 0 && Math.abs(d - R0) < near) return { mode: 'arc', r: d >= R0 ? R0 + half : R0 - half };
+  if (Math.abs(l.u) <= R0 && l.v > base - near && l.v < base + near) return { mode: 'base', v: l.v >= base ? base + half : base - half };
+  return null;
+}
+function protSnap(pe, x, y) {
+  const l = protLocal(x, y);
+  if (pe.mode === 'base') { const R0 = PROT_R / S.view.zoom; return protWorld(Math.max(-R0, Math.min(R0, l.u)), pe.v); }
+  let a = Math.atan2(l.v, l.u);               // metade de cima (v ≤ 0): ângulo entre −π e 0
+  if (a > 0) a = l.u >= 0 ? 0 : -Math.PI;
+  return protWorld(Math.cos(a) * pe.r, Math.sin(a) * pe.r);
 }
 function onProtractor(x, y) {
   if (!protractor) return false;
@@ -2162,17 +2471,27 @@ function drawInstruments() {
     octx.save(); octx.strokeStyle = '#0f6cbd'; octx.lineWidth = 2 / z; octx.setLineDash([8 / z, 5 / z]);
     octx.strokeRect(strip.x, strip.y, strip.w, strip.h);
     octx.setLineDash([]); octx.fillStyle = 'rgba(15,108,189,.06)'; octx.fillRect(strip.x, strip.y, strip.w, strip.h);
+    // alça "arraste para mover" em cima da caixa
+    const tw = 150 / z, th = 24 / z;
+    octx.fillStyle = '#0f6cbd'; octx.beginPath(); octx.roundRect(strip.x, strip.y - th - 4 / z, tw, th, 6 / z); octx.fill();
+    octx.fillStyle = '#fff'; octx.font = `600 ${12 / z}px "Segoe UI", sans-serif`; octx.textBaseline = 'middle';
+    octx.fillText('✥ arraste para mover', strip.x + 8 / z, strip.y - th / 2 - 4 / z);
     octx.restore();
   }
 }
 
 function instrumentDown(e, P) {
   if (curtain && Math.abs(e.clientY - curtain.y) < 18) { action = { type: 'curtain', id: e.pointerId }; return true; }
-  if (protractor && onProtractor(P.x, P.y) && (!isPen(tool) || e.pointerType !== 'pen')) { action = { type: 'protractor', id: e.pointerId, px: P.x, py: P.y }; return true; }
+  const inking = isPen(tool) || tool === 'highlighter';
+  if (protractor && onProtractor(P.x, P.y) && !(inking && (e.pointerType === 'pen' || protEdge(P.x, P.y)))) { action = { type: 'protractor', id: e.pointerId, px: P.x, py: P.y }; return true; }
   if (strip) {
-    const z = S.view.zoom, m = 10 / z, inX = P.x > strip.x - m && P.x < strip.x + strip.w + m, inY = P.y > strip.y - m && P.y < strip.y + strip.h + m;
-    const nearEdge = inX && inY && (Math.abs(P.x - strip.x) < m || Math.abs(P.x - strip.x - strip.w) < m || Math.abs(P.y - strip.y) < m || Math.abs(P.y - strip.y - strip.h) < m);
-    if (nearEdge) { action = { type: 'stripbox', id: e.pointerId, px: P.x, py: P.y }; return true; }
+    // "Levar a caixa": o próximo toque no quadro põe a caixa ali
+    if (strip.levar) { strip.x = P.x - strip.w * 0.1; strip.y = P.y - strip.h * 0.6; strip.startX = strip.x; strip.levar = false; $('stMove').classList.remove('on'); requestRender(); action = { type: 'stripbox', id: e.pointerId, px: P.x, py: P.y }; return true; }
+    // a caixa inteira (e a alça acima dela) arrasta: na lupa, a escrita é feita no painel, não no quadro
+    const z = S.view.zoom, m = 16 / z, alca = 30 / z;
+    if (P.x > strip.x - m && P.x < strip.x + strip.w + m && P.y > strip.y - alca && P.y < strip.y + strip.h + m) {
+      action = { type: 'stripbox', id: e.pointerId, px: P.x, py: P.y }; return true;
+    }
   }
   return false;
 }
@@ -2264,13 +2583,29 @@ function initStrip() {
   $('stNewLine').onclick = () => { strip.y += strip.h * 1.05; strip.x = strip.startX ?? strip.x; requestRender(); };
   $('stHere').onclick = () => { strip.startX = strip.x; toast('Início da linha marcado aqui'); };
   $('stClose').onclick = () => toggleStrip();
+  $('stMove').onclick = () => {
+    strip.levar = !strip.levar; $('stMove').classList.toggle('on', strip.levar);
+    if (strip.levar) toast('Toque no quadro onde quer escrever: a caixa vai para lá');
+  };
+  // o painel da lupa também muda de lugar: arraste pela alça ⠿ (a posição fica guardada)
+  const painel = $('strip'), grip = $('stGrip');
+  const pos = () => { try { return JSON.parse(localStorage.getItem('lousa.stripPos') || 'null'); } catch { return null; } };
+  const aplica = p => { if (!p) return; painel.style.top = Math.max(0, Math.min(innerHeight - 120, p.y)) + 'px'; painel.style.bottom = 'auto'; };
+  aplica(pos());
+  grip.onpointerdown = e => {
+    const r = painel.getBoundingClientRect(), dy = e.clientY - r.top;
+    grip.setPointerCapture(e.pointerId);
+    grip.onpointermove = ev => aplica({ y: ev.clientY - dy });
+    grip.onpointerup = () => { grip.onpointermove = null; try { localStorage.setItem('lousa.stripPos', JSON.stringify({ y: painel.getBoundingClientRect().top })); } catch {} };
+  };
+  $('stTopo').onclick = () => { const emCima = painel.getBoundingClientRect().top < innerHeight / 2; const y = emCima ? innerHeight - painel.offsetHeight - 64 : 70; aplica({ y }); try { localStorage.setItem('lousa.stripPos', JSON.stringify({ y })); } catch {} };
 }
 
 // ---------- fórmula ----------
 async function formulaDialog(edit = null) {
   const d = document.createElement('dialog');
   d.className = 'formula';
-  d.innerHTML = `<div class="dlg-head"><h3>${edit ? 'Editar fórmula' : 'Inserir fórmula'}</h3><button class="ib" data-a="x">${ICON.close}</button></div>
+  d.innerHTML = `<div class="dlg-head"><h3>${edit ? 'Editar fórmula' : 'Inserir fórmula'}</h3><button class="ib" data-a="x" title="Fechar" aria-label="Fechar">${ICON.close}</button></div>
     <textarea id="fxIn" rows="3" spellcheck="false" placeholder="ex.: K_c = \\frac{[C]^c[D]^d}{[A]^a[B]^b}">${edit?.latex ? edit.latex.replace(/</g, '&lt;') : ''}</textarea>
     <div class="fx-chips">${['\\frac{a}{b}', 'x^{2}', 'x_{i}', '\\sqrt{x}', '\\Delta H', '\\rightleftharpoons', '\\rightarrow', '\\pm', '\\cdot', '\\alpha', '\\beta', '\\pi', '\\sum_{i=1}^{n}', '\\int_{a}^{b}', '\\ce{}'].filter(x => x !== '\\ce{}').map(c => `<button class="btn" data-c="${c}">${c}</button>`).join('')}</div>
     <div class="fx-prev" id="fxPrev"></div><div class="fx-err" id="fxErr"></div>
@@ -2412,61 +2747,206 @@ function cartesianFrame() {
   };
 }
 
+// retângulo do mundo onde entra um gráfico com escala própria: a página atual ou o miolo da tela (longe das barras)
+function plotArea() {
+  if (PG.isPages(S.board)) return PG.pageRect(S.board.layout, curPage());
+  const a = toWorld(W * 0.14, H * 0.16), b = toWorld(W * 0.86, H * 0.84);
+  return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
+}
+
+// animação de um parâmetro: a curva corre na camada de cima (nada é gravado até "Fixar")
+let plotAnim = null;   // { f, frame, valores, anim, t0, tPausa, color, width, grp, el }
+function drawPlotAnim() {
+  if (!plotAnim) return;
+  const A = plotAnim, t = ((A.tPausa ?? performance.now()) - A.t0) / 1000;
+  // valor escolhido à mão (controle ou caixa) congela a curva nesse valor
+  const anim = A.manual != null ? { ...A.anim, min: A.manual, max: A.manual } : A.anim;
+  const r = animatedCurve(A.f, A.frame, A.valores, anim, t);
+  A.atual = r;
+  if (A.manual == null) { A.sl.value = r.valor; if (document.activeElement !== A.num) A.num.value = fmtNum(+r.valor.toFixed(4)).replace('−', '-'); }
+  drawPolylines(octx, r.linhas, { color: inkShown(A.color), width: A.width });
+  const lb = A.el.querySelector('.an-v');
+  const txt = `${A.anim.n} = ${fmtNum(+r.valor.toFixed(3))}`;
+  if (lb.textContent !== txt) lb.textContent = txt;
+  if (A.tPausa == null && A.manual == null) requestRender(false);
+}
+function stopPlotAnim() {
+  if (!plotAnim) return;
+  plotAnim.el.remove(); plotAnim = null;
+  requestRender(false);
+}
+function startPlotAnim(f, frame, valores, p, color, width, grp) {
+  stopPlotAnim();
+  const el = document.createElement('div');
+  el.className = 'timerbox animbox';
+  el.innerHTML = `<div class="tm-head"><span>Animação</span><button class="ib" data-a="x" title="Parar e fechar">${ICON.close}</button></div>
+    <div class="an-v"></div>
+    <div class="tm-row an-man"><input type="range" data-a="sl" min="${p.min}" max="${p.max}" step="${p.passo || 'any'}" title="Arraste para escolher o valor (a animação para)">
+      <input type="text" inputmode="decimal" data-a="num" title="Digite o valor exato (vírgula ou ponto)"></div>
+    <div class="tm-row"><button class="btn" data-a="pp">Pausar</button><button class="btn primary" data-a="fix" title="Grava a curva deste instante no quadro">Fixar esta curva</button></div>
+    <div class="tm-row"><small>Velocidade</small><input type="range" data-a="vel" min="1" max="12" value="4" title="Segundos por ida e volta"></div>`;
+  document.body.appendChild(el);
+  plotAnim = { f, frame, valores, anim: { n: p.n, min: p.min, max: p.max, periodo: 4, modo: 'vaivem' }, t0: performance.now(), tPausa: null, color, width, grp, el };
+  const A = plotAnim, pp = el.querySelector('[data-a="pp"]');
+  A.sl = el.querySelector('[data-a="sl"]'); A.num = el.querySelector('[data-a="num"]'); A.manual = null;
+  el.querySelector('[data-a="x"]').onclick = stopPlotAnim;
+  const pausa = () => { if (A.tPausa == null) A.tPausa = performance.now(); pp.textContent = 'Continuar'; };
+  pp.onclick = () => {
+    if (A.tPausa == null && A.manual == null) pausa();
+    else { A.t0 += performance.now() - (A.tPausa ?? performance.now()); A.tPausa = null; A.manual = null; pp.textContent = 'Pausar'; }
+    requestRender(false);
+  };
+  // escolher o valor à mão: para a animação e mostra a curva exatamente nesse valor
+  const escolhe = v => { if (!isFinite(v)) return; A.manual = v; pausa(); requestRender(false); };
+  A.sl.oninput = () => { escolhe(+A.sl.value); A.num.value = fmtNum(+(+A.sl.value).toFixed(4)).replace('−', '-'); };
+  A.num.addEventListener('keydown', e => e.stopPropagation());
+  A.num.oninput = () => { const v = parseFloat(String(A.num.value).replace(',', '.')); if (isFinite(v)) { escolhe(v); A.sl.value = v; } };
+  el.querySelector('[data-a="vel"]').oninput = e => {
+    // mantém a fase ao mudar o período
+    const now = A.tPausa ?? performance.now(), frac = (now - A.t0) / (A.anim.periodo * 1000);
+    A.anim = { ...A.anim, periodo: 16 - +e.target.value };
+    A.t0 = now - frac * A.anim.periodo * 1000;
+  };
+  el.querySelector('[data-a="fix"]').onclick = () => {
+    const v = A.atual?.valores || A.valores;
+    const novos = plotStrokes(A.f, { ...A.frame, color: A.color, width: A.width, id: newId, valores: v })
+      .map(s => ({ ...s, plot: `${A.anim.n} = ${fmtNum(+v[A.anim.n].toFixed(3))}`, ...(A.grp ? { grp: A.grp } : {}) }));
+    if (novos.length) { commit([...S.items, ...novos]); toast('Curva fixada no quadro'); }
+  };
+  requestRender(false);
+}
+
 function plotDialog() {
   const bg = S.board.background, isCart = bg.pattern === 'cartesian';
   const d = document.createElement('dialog');
-  d.className = 'formula';
+  d.className = 'formula plotdlg';
   const ultimo = cfg.lastPlot || 'x^2 - 4';
-  d.innerHTML = `<div class="dlg-head"><h3>Plotar função</h3><button class="ib" data-a="x">${ICON.close}</button></div>
+  let model = null, vals = {};
+  d.innerHTML = `<div class="dlg-head"><h3>Plotar função</h3><button class="ib" data-a="x" title="Fechar" aria-label="Fechar">${ICON.close}</button></div>
+    <div class="seg pl-tabs"><button data-tab="livre">Função livre</button><button data-tab="modelos">Modelos por área</button></div>
+    <div class="pl-models" hidden>
+      <div class="seg pl-areas">${FN_AREAS.map(a => `<button data-area="${a.id}">${esc(a.nome)}</button>`).join('')}</div>
+      <div class="fx-chips pl-list"></div>
+    </div>
     <label class="tb-line" style="font-size:18px">y = <input id="plIn" type="text" spellcheck="false" style="flex:1;font:18px Consolas,monospace;padding:6px 8px;border:1px solid #d1d1d1;border-radius:6px" value="${esc(ultimo)}"></label>
-    <div class="fx-chips">${['x^2 - 4', '2x + 1', '2sen(x)', 'cos(x)', 'raiz(x)', '1/x', 'abs(x)', 'ln(x)', 'e^x', '-x^2 + 3x'].map(c => `<button class="btn" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-    <div class="tb-line"><span>x de</span><input id="plA" type="number" step="any" style="width:80px"><span>até</span><input id="plB" type="number" step="any" style="width:80px"><small>(vazio = toda a área visível)</small></div>
+    <small class="pl-nota tb-note" hidden></small>
+    <div class="fx-chips pl-free">${['x^2 - 4', '2x + 1', '2sen(x)', 'cos(x)', 'raiz(x)', '1/x', 'abs(x)', 'ln(x)', 'e^x', '-x^2 + 3x'].map(c => `<button class="btn" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="pl-params"></div>
+    <div class="tb-line"><span>x de</span><input id="plA" type="number" step="any" style="width:80px"><span>até</span><input id="plB" type="number" step="any" style="width:80px"><small class="pl-xhint">(vazio = toda a área visível)</small></div>
+    <label class="tb-line"><input type="checkbox" id="plAxes" ${isCart ? '' : 'checked'}> Desenhar os eixos com números (dá para apagar ou mover)</label>
     <label class="tb-line"><input type="checkbox" id="plLabel" checked> Escrever "y = …" ao lado do gráfico</label>
-    ${isCart ? '' : '<label class="tb-line"><input type="checkbox" id="plPaper" checked> Trocar a folha para plano cartesiano (a escala vem da malha)</label>'}
+    <div class="tb-line pl-anim" hidden><span>Animar</span><select id="plAnimP"></select><small>o parâmetro vai do mínimo ao máximo e volta</small></div>
     <div class="fx-err" id="plErr"></div>
-    <small class="tb-note">Use x, números (vírgula ou ponto), + − * / ^, parênteses e sen, cos, tg, raiz, abs, ln, log, exp, pi, e. Ex.: <b>0,5x^3 − 2x</b></small>
+    <small class="tb-note pl-help">Use x, números (vírgula ou ponto), + − * / ^, parênteses e sen, cos, tg, raiz, abs, ln, log, exp, pi, e. Ex.: <b>0,5x^3 − 2x</b></small>
     <div class="acts"><button class="btn" data-a="x">Cancelar</button><button class="btn primary" data-a="ok">Plotar</button></div>`;
   document.body.appendChild(d);
-  const inp = d.querySelector('#plIn'), err = d.querySelector('#plErr');
-  const check = () => { try { compileFn(inp.value); err.textContent = ''; return true; } catch (e) { err.textContent = e.message; return false; } };
+  const $d = s => d.querySelector(s);
+  const inp = $d('#plIn'), err = $d('#plErr');
+  const opts = () => model ? { params: model.params } : {};
+  const check = () => { try { compileFn(inp.value, opts()); err.textContent = ''; return true; } catch (e) { err.textContent = e.message; return false; } };
   inp.addEventListener('input', check);
-  d.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') d.querySelector('[data-a="ok"]').click(); }));
+  d.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.tagName === 'INPUT') $d('[data-a="ok"]').click(); });
   d.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { inp.value = b.dataset.c; check(); inp.focus(); });
+
+  // parâmetros do modelo: um controle deslizante por parâmetro
+  const paramsUI = () => {
+    const box = $d('.pl-params');
+    if (!model) { box.innerHTML = ''; return; }
+    box.innerHTML = model.params.map(p => `<div class="pl-p" title="${esc(p.desc || '')}"><b>${esc(p.n)}</b>
+      <input type="range" data-p="${esc(p.n)}" min="${p.min}" max="${p.max}" step="${p.passo || 'any'}" value="${vals[p.n]}">
+      <input type="number" data-pn="${esc(p.n)}" step="${p.passo || 'any'}" value="${vals[p.n]}"><small>${esc(p.desc || '')}</small></div>`).join('');
+    box.querySelectorAll('[data-p]').forEach(r => r.oninput = () => { vals[r.dataset.p] = +r.value; box.querySelector(`[data-pn="${r.dataset.p}"]`).value = r.value; });
+    box.querySelectorAll('[data-pn]').forEach(r => r.oninput = () => { if (r.value !== '' && isFinite(+r.value)) { vals[r.dataset.pn] = +r.value; box.querySelector(`[data-p="${r.dataset.pn}"]`).value = r.value; } });
+    const sel = $d('#plAnimP');
+    sel.innerHTML = `<option value="">— não animar —</option>` + model.params.map(p => `<option value="${esc(p.n)}"${p.n === model.anima ? ' selected' : ''}>${esc(p.n)}${p.desc ? ' (' + esc(p.desc) + ')' : ''}</option>`).join('');
+  };
+  const pickModel = m => {
+    model = m; vals = valoresPadrao(m);
+    inp.value = m.expr;
+    $d('.pl-nota').hidden = false;
+    $d('.pl-nota').innerHTML = `<b>${esc(m.nome)}</b>: ${esc(m.nota || '')}. Eixo x: ${esc(m.eixoX || 'x')} · eixo y: ${esc(m.eixoY || 'y')}`;
+    $d('#plA').value = m.x[0]; $d('#plB').value = m.x[1];
+    $d('#plAxes').checked = true;
+    d.querySelectorAll('.pl-list [data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === m.id));
+    paramsUI(); check();
+  };
+  const showArea = id => {
+    const a = FN_AREAS.find(x => x.id === id) || FN_AREAS[0];
+    cfg.plotArea = a.id; saveCfg();
+    d.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('on', b.dataset.area === a.id));
+    $d('.pl-list').innerHTML = a.modelos.map(m => `<button class="btn" data-m="${esc(m.id)}" title="${esc(m.nota || '')}">${esc(m.nome)}</button>`).join('');
+    d.querySelectorAll('.pl-list [data-m]').forEach(b => b.onclick = () => pickModel(fnModelo(b.dataset.m)));
+  };
+  const setTab = t => {
+    d.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    const mod = t === 'modelos';
+    $d('.pl-models').hidden = !mod; $d('.pl-free').hidden = mod; $d('.pl-help').hidden = mod; $d('.pl-anim').hidden = !mod;
+    $d('.pl-xhint').hidden = mod;
+    if (mod) { showArea(cfg.plotArea); if (!model) pickModel(FN_AREAS.find(a => a.id === cfg.plotArea)?.modelos[0] || FN_AREAS[0].modelos[0]); }
+    else { model = null; vals = {}; paramsUI(); $d('.pl-nota').hidden = true; inp.value = cfg.lastPlot || ultimo; $d('#plA').value = $d('#plB').value = ''; check(); }
+  };
+  d.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+  d.querySelectorAll('[data-area]').forEach(b => b.onclick = () => showArea(b.dataset.area));
   const close = () => { d.close(); d.remove(); };
   d.querySelectorAll('[data-a="x"]').forEach(b => b.onclick = close);
-  d.querySelector('[data-a="ok"]').onclick = () => {
+
+  $d('[data-a="ok"]').onclick = () => {
     if (!check()) return;
-    const expr = inp.value.trim(), f = compileFn(expr);
-    let items = S.items;
-    if (!isCart && d.querySelector('#plPaper')?.checked) {
-      const patch = { pattern: 'cartesian' };
-      if (!PG.isPages(S.board)) { const c = toWorld(W / 2, H / 2); patch.origin = { x: Math.round(c.x), y: Math.round(c.y) }; }
-      S.board.background = { ...S.board.background, ...patch };
-      syncToolbar();
+    const expr = inp.value.trim(), f = compileFn(expr, opts());
+    const a = parseFloat($d('#plA').value), b = parseFloat($d('#plB').value);
+    const axes = $d('#plAxes').checked, z = S.view.zoom;
+    let fr;
+    if (model) {
+      const x0 = isFinite(a) ? a : model.x[0], x1 = isFinite(b) ? b : model.x[1];
+      if (!(x1 > x0)) { err.textContent = 'O fim do intervalo precisa ser maior que o início.'; return; }
+      // com animação, a faixa y fica fixa (a sugerida pelo modelo) para a curva não "pular"
+      const yr = model.y || faixaY(f, [x0, x1], vals);
+      fr = fitFrame(plotArea(), [x0, x1], yr);
+    } else if (isCart && !axes) {
+      fr = cartesianFrame();   // escala e origem vêm da folha plano cartesiano
+    } else {
+      const r = plotArea(), cell = CELL * (PAPER_SIZE[bg.size] || 1) * 2;
+      const ox = r.x + r.w / 2, oy = r.y + r.h / 2;
+      fr = { ox, oy, cell, xmin: (r.x - ox) / cell, xmax: (r.x + r.w - ox) / cell, ymin: (oy - r.y - r.h) / cell, ymax: (oy - r.y) / cell };
     }
-    const fr = cartesianFrame();
-    const a = parseFloat(d.querySelector('#plA').value), b = parseFloat(d.querySelector('#plB').value);
     const xmin = isFinite(a) ? a : fr.xmin, xmax = isFinite(b) ? b : fr.xmax;
     if (!(xmax > xmin)) { err.textContent = 'O fim do intervalo precisa ser maior que o início.'; return; }
-    const ink = currentInk(), color = inkShown(ink.color) === '#ffffff' && !R.isDark(S.board.background.color) ? '#000000' : ink.color;
-    const novos = plotStrokes(f, { ...fr, xmin, xmax, color, width: Math.max(2.5, ink.width) / S.view.zoom, id: newId }).map(s => ({ ...s, plot: expr }));
-    if (!novos.length) { err.textContent = 'A função não tem pontos visíveis nesse intervalo.'; return; }
-    if (d.querySelector('#plLabel').checked) {
-      // rótulo perto do ponto mais alto à direita da curva
-      const ult = novos[novos.length - 1].pts, lx = ult[ult.length - 3], ly = ult[ult.length - 2];
-      const size = 26 / S.view.zoom, meas = document.createElement('canvas').getContext('2d');
+    const ink = currentInk(), color = inkShown(ink.color) === '#ffffff' && !R.isDark(bg.color) ? '#000000' : ink.color;
+    const width = Math.max(2.5, ink.width) / z;
+    const animP = model && $d('#plAnimP').value ? model.params.find(p => p.n === $d('#plAnimP').value) : null;
+    const curva = animP ? [] : plotStrokes(f, { ...fr, xmin, xmax, color, width, id: newId, valores: vals }).map(s => ({ ...s, plot: expr }));
+    if (!animP && !curva.length) { err.textContent = 'A função não tem pontos visíveis nesse intervalo.'; return; }
+    const novos = [...curva];
+    if (axes) {
+      const meas = document.createElement('canvas').getContext('2d');
+      const medir = (t, s) => { meas.font = `${s}px "Segoe UI"`; return meas.measureText(t).width; };
+      novos.unshift(...axesStrokes(fr, { color: R.isDark(bg.color) ? '#ffffff' : '#000000', width: 1.6 / z, id: newId, rotulos: true, size: 13 / z, font: 'Segoe UI', medir,
+        eixoX: model?.eixoX, eixoY: model?.eixoY }));
+    }
+    if ($d('#plLabel').checked && curva.length) {
+      // rótulo perto do ponto final da curva
+      const ult = curva[curva.length - 1].pts, lx = ult[ult.length - 3], ly = ult[ult.length - 2];
+      const size = 26 / z, meas = document.createElement('canvas').getContext('2d');
       const text = 'y = ' + expr.replace(/\*/g, '·').replace(/-/g, '−').replace(/\^2(?![\d.,])/g, '²').replace(/\^3(?![\d.,])/g, '³');
       meas.font = `${size}px "Segoe Script"`;
-      novos.push({ id: newId(), type: 'text', x: lx + 8 / S.view.zoom, y: ly - size * 1.4, text, color, size, font: 'Segoe Script', w: meas.measureText(text).width + 4 });
+      novos.push({ id: newId(), type: 'text', x: lx + 8 / z, y: ly - size * 1.4, text, color, size, font: 'Segoe Script', w: meas.measureText(text).width + 4 });
     }
-    cfg.lastPlot = expr; saveCfg();
-    commit([...items, ...novos]);
-    sel = new Set(novos.map(i => i.id));
-    setTool('select');
-    scheduleSave();
+    // curva, eixos e rótulo entram agrupados (movem juntos; Desagrupar separa; a borracha apaga cada parte)
+    const grp = novos.length > 1 ? newId() : null;
+    const itens = grp ? novos.map(i => ({ ...i, grp })) : novos;
+    if (!model) { cfg.lastPlot = expr; saveCfg(); }
+    if (itens.length) {
+      commit([...S.items, ...itens]);
+      sel = new Set(itens.map(i => i.id));
+      setTool('select');
+      scheduleSave();
+    }
     close();
+    if (animP) startPlotAnim(f, { ...fr, xmin, xmax }, vals, animP, color, width, grp);
   };
   d.showModal();
+  setTab(cfg.plotTab === 'modelos' ? 'modelos' : 'livre');
+  d.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { cfg.plotTab = b.dataset.tab; saveCfg(); }));
   inp.focus(); inp.select();
   check();
 }

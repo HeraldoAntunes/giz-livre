@@ -1,4 +1,4 @@
-﻿GIZ LIVRE 1.0.3
+﻿GIZ LIVRE 1.1.0
 Lousa livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.
 
 SOFTWARE LIVRE E GRATUITO - LICENÇA MIT
@@ -21,8 +21,10 @@ O Giz Livre funciona sem internet: não coleta, não envia e não compartilha da
 Os quadros ficam apenas no seu computador.
 
 COMPONENTES DE TERCEIROS
-pdf.js (Mozilla, Apache 2.0), KaTeX (MIT), Fluent UI System Icons (Microsoft, MIT),
-Python (PSF License), PyInstaller (GPL 2.0 com exceção para o executável gerado).
+pdf.js (Mozilla, Apache 2.0) com OpenJPEG (BSD 2 cláusulas), KaTeX (MIT) e as fontes do
+KaTeX (SIL Open Font License 1.1), Fluent UI System Icons (Microsoft, MIT), Python (PSF
+License), PyInstaller (GPL 2.0 com exceção para o executável gerado; runtime hooks Apache 2.0).
+Os textos completos ficam na pasta licencas, instalada junto com o programa.
 Detalhes no arquivo THIRD-PARTY-NOTICES.md instalado junto com o programa.
 
 Projeto independente, sem vínculo com Microsoft, Wacom ou outras marcas citadas.

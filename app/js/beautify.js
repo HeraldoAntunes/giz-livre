@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // "Embelezar escrita": endireita a linha, corrige a inclinação, iguala altura e espaçamento das palavras e suaviza.
 // Não troca a letra por fonte. Guarda os pontos originais em `orig` para voltar atrás.
 // Modo incremental: o que já foi embelezado entra como CONTEXTO (referência de linha de base, altura e espaço)

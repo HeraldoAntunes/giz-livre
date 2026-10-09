@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Barras móveis: o cadeado destrava, o professor arrasta cada barra para onde quiser e trava de novo.
 // A posição fica guardada por barra como fração do espaço livre da janela (acompanha mudança de tamanho/projetor).
 import { ICON } from './icons.js';
@@ -5,7 +6,7 @@ import { toast } from './ui.js';
 
 const KEY = 'lousa.bars';
 // barras que podem mudar de lugar (a da seleção acompanha o que está selecionado, fica fora)
-const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar' };
+const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar' };
 let pos = load(), unlocked = false, hint = null;
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; } }
@@ -35,8 +36,8 @@ function setLock(open) {
   if (open && !hint) {
     hint = document.createElement('div');
     hint.className = 'bars-hint';
-    hint.innerHTML = 'Arraste as barras para onde quiser. <button class="toast-btn" data-r>Voltar ao padrão</button><button class="toast-btn" data-l>Travar</button>';
-    hint.querySelector('[data-r]').onclick = () => { pos = {}; save(); placeAll(); toast('Barras de volta ao lugar padrão'); };
+    hint.innerHTML = 'Arraste as barras para onde quiser. <button class="toast-btn" data-r>Voltar ao layout padrão</button><button class="toast-btn" data-l>Travar</button>';
+    hint.querySelector('[data-r]').onclick = () => document.dispatchEvent(new Event('lousa:layoutPadrao'));   // o editor repõe tudo
     hint.querySelector('[data-l]').onclick = () => setLock(false);
     document.getElementById('board').appendChild(hint);
   } else if (!open && hint) { hint.remove(); hint = null; }
@@ -44,6 +45,7 @@ function setLock(open) {
 export const barsUnlocked = () => unlocked;
 export function lockBars() { if (unlocked) setLock(false); }
 export function resetBars() { pos = {}; save(); placeAll(); }
+export function resetBar(k) { if (pos[k]) { delete pos[k]; save(); } place(k); }
 
 function drag(k, b) {
   b.addEventListener('pointerdown', e => {

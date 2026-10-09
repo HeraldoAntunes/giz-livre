@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Importação de PowerPoint (.pptx, via PowerPoint do Windows no servidor) e PDF (pdf.js) como páginas com o slide travado no fundo.
 import { newId, wfetch } from './api.js';
 import { makeLayout, pageRect } from './pages.js';

@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Biblioteca de imagens da disciplina (SVG vetorial gerado aqui): tabela periódica e vidrarias de laboratório.
 // Massas atômicas: valores-padrão IUPAC arredondados; entre colchetes, o número de massa do isótopo mais estável.
 

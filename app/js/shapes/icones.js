@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 import { T, head } from './base.js';
 
 // prefixo dos ids: 'ic-'
@@ -35,6 +36,40 @@ const janelasPredio = (() => { let s = ''; for (const y of [14, 28, 42, 56]) for
 const diasCal = (() => { let s = ''; for (const y of [36, 48, 60]) for (const x of [15, 29, 43, 57]) s += `<rect x="${x}" y="${y}" width="7" height="6" rx="1"/>`; return `<g fill="#C" stroke="none">${s}</g>`; })();
 const teclas = (() => { let s = ''; for (const y of [38, 50, 62, 74]) for (const x of [14, 30, 46]) s += `<rect x="${x}" y="${y}" width="10" height="7" rx="1.5"/>`; return `<g stroke-width="1.6">${s}</g>`; })();
 const anelCaderno = (() => { let s = ''; for (let y = 14; y <= 78; y += 10) s += `<path stroke-width="2" d="M8,${y} H20"/>`; return s; })();
+
+// --- utilidades das seções de meio ambiente, saneamento, saúde e segurança (desenho próprio) ---
+const letra = l => [`ic-letra-${l.toLowerCase()}`, `Letra ${l}`, 80, 80, `<circle cx="40" cy="40" r="34"/>${T(40, 41, l, 40)}`];
+// raios curtos (sol): segmentos de r1 a r2 nos ângulos dados
+const raios = (cx, cy, r1, r2, angs) => '<path d="' + angs.map(a => { const [x1, y1] = pt(cx, cy, r1, a), [x2, y2] = pt(cx, cy, r2, a); return `M${f(x1)},${f(y1)} L${f(x2)},${f(y2)}`; }).join(' ') + '"/>';
+const OITO = [0, 45, 90, 135, 180, 225, 270, 315];
+// linha ondulada de x0 a x1 na altura y (meia-onda de largura w e amplitude a)
+const ondas = (x0, x1, y, w = 8, a = 4) => { let d = `M${x0},${y}`; for (let x = x0; x + 2 * w <= x1 + 0.1; x += 2 * w) d += ` q${w / 2},${-a} ${w},0 q${w / 2},${a} ${w},0`; return d; };
+// seta fina reta até a ponta (x1,y1)
+const setaF = (x0, y0, x1, y1, L = 11, w = 1.8) => { const a = Math.atan2(y1 - y0, x1 - x0); return `<path stroke-width="${w}" d="M${x0},${y0} L${f(x1 - 0.75 * L * Math.cos(a))},${f(y1 - 0.75 * L * Math.sin(a))}"/>` + head(x1, y1, +f(a * 180 / Math.PI), L); };
+// pinheiro em camadas: ponta em `top`, base da copa em `base`, largura w, tronco até base+tr
+const pinheiro = (cx, top, base, w, tr = 10) => { const h = base - top, X = k => f(cx + k * w), Y = k => f(top + k * h); return `<path d="M${cx},${top} L${X(0.28)},${Y(0.38)} H${X(0.14)} L${X(0.4)},${Y(0.68)} H${X(0.22)} L${X(0.5)},${base} H${X(-0.5)} L${X(-0.22)},${Y(0.68)} H${X(-0.4)} L${X(-0.14)},${Y(0.38)} H${X(-0.28)} Z M${cx - 4},${base} V${base + tr} M${cx + 4},${base} V${base + tr}"/>`; };
+// árvore de copa redonda com base do tronco em (cx, by)
+const arvoreR = (cx, by, r, tr = 12) => `<path d="M${cx},${by} V${by - tr}"/><circle cx="${cx}" cy="${by - tr - r}" r="${r}"/>`;
+// broto pequeno com base em (x,y) e escala s
+const broto = (x, y, s = 1) => fino(`M${f(x)},${f(y)} V${f(y - 9 * s)} M${f(x)},${f(y - 4 * s)} Q${f(x - 6 * s)},${f(y - 10 * s)} ${f(x - 8 * s)},${f(y - 6 * s)} M${f(x)},${f(y - 6 * s)} Q${f(x + 6 * s)},${f(y - 12 * s)} ${f(x + 8 * s)},${f(y - 8 * s)}`, 1.6);
+// lua crescente: parte do círculo (cx,cy,R) fora do círculo (c2x,c2y,r2)
+const crescente = (cx, cy, R, c2x, c2y, r2) => {
+  const dx = c2x - cx, dy = c2y - cy, d = Math.hypot(dx, dy), a = (R * R - r2 * r2 + d * d) / (2 * d), h = Math.sqrt(R * R - a * a);
+  const px = cx + a * dx / d, py = cy + a * dy / d, p1 = [f(px + h * dy / d), f(py - h * dx / d)], p2 = [f(px - h * dy / d), f(py + h * dx / d)];
+  return `<path d="M${p1} A${R},${R} 0 1,0 ${p2} A${r2},${r2} 0 0,1 ${p1} Z"/>`;
+};
+const floco = (() => { let d = ''; for (let a = -90; a < 270; a += 60) { const [x2, y2] = pt(40, 40, 33, a), [xb, yb] = pt(40, 40, 21, a); d += `M40,40 L${f(x2)},${f(y2)} `; for (const s of [-40, 40]) { const [xe, ye] = pt(xb, yb, 10, a + s); d += `M${f(xb)},${f(yb)} L${f(xe)},${f(ye)} `; } } return `<path d="${d}"/>`; })();
+const espinhosVirus = (() => { let s = '', d = ''; for (let a = 0; a < 360; a += 36) { const [x1, y1] = pt(45, 45, 22, a), [x2, y2] = pt(45, 45, 32, a), [xk, yk] = pt(45, 45, 35.5, a); d += `M${f(x1)},${f(y1)} L${f(x2)},${f(y2)} `; s += `<circle cx="${f(xk)}" cy="${f(yk)}" r="3.5"/>`; } return `<path d="${d}"/>` + s; })();
+// coleta seletiva: 4 coletores com rótulo
+const coletores = (() => { let s = ''; [['PA', 6], ['PL', 50], ['ME', 94], ['VI', 138]].forEach(([l, x]) => { s += `<path d="M${x - 2},22 H${x + 40} M${x + 2},22 L${x + 5},84 H${x + 33} L${x + 36},22 M${x + 14},22 V16 H${x + 24} V22"/>` + T(x + 19, 52, l, 14); }); return s; })();
+// lavoura em perspectiva: fileiras convergindo para o horizonte, com brotos
+const lavoura = (() => { let d = '', b = ''; [[10, 58], [42, 66], [75, 75], [108, 84], [140, 92]].forEach(([xb, xt]) => { d += `M${xb},86 L${xt},44 `; for (const [t, s] of [[0.12, 1.1], [0.45, 0.8], [0.72, 0.55]]) b += broto(xb + (xt - xb) * t, 86 - 42 * t, s); }); return fino(d, 1.6) + b; })();
+// janelas da silhueta de cidade
+const janelasCidade = (() => { let s = ''; for (const [x0, x1, yt] of [[4, 24, 60], [24, 44, 40], [56, 80, 20], [94, 114, 34], [128, 150, 44]]) for (let y = yt + 6; y <= 84; y += 10) for (let x = x0 + 4; x + 5 <= x1 - 3; x += 8) s += `<rect x="${x}" y="${y}" width="4" height="5"/>`; return `<g stroke-width="1.2">${s}</g>`; })();
+// sala de aula: 2 fileiras de carteiras com cadeira
+const carteiras = (() => { let s = ''; for (const y of [44, 76]) for (const x of [14, 70, 126]) s += `<rect x="${x}" y="${y}" width="30" height="12" rx="2"/><circle cx="${x + 15}" cy="${y + 22}" r="5"/>`; return s; })();
+// fita zebrada: listras cheias
+const zebra = (() => { let s = ''; for (let x = 4; x <= 124; x += 20) s += `M${x},30 L${x + 10},10 H${x + 20} L${x + 10},30 Z `; return `<path fill="#C" stroke="none" d="${s}"/>`; })();
 
 export default {
   id: 'icones', nome: 'Ícones gerais',
@@ -75,6 +110,9 @@ export default {
       ['ic-alfinete', 'Alfinete', 60, 90, '<circle cx="30" cy="20" r="15"/><path d="M23,34 L25,50 H35 L37,34 M16,50 H44"/><path stroke-width="2" d="M30,50 V86"/>'],
       ['ic-destaque', 'Estrela de destaque', 80, 80, star(40, 43, 36, 15, 5, ' fill="#C"')],
       numero(1), numero(2), numero(3), numero(4), numero(5),
+      numero(6), numero(7), numero(8), numero(9), numero(10),
+      letra('A'), letra('B'), letra('C'), letra('D'),
+      ['ic-lupa', 'Lupa', 80, 80, '<circle cx="32" cy="32" r="24"/><path stroke-width="7" d="M50,50 L74,74"/>' + fino('M18,26 A14,14 0 0,1 28,16', 2)],
       ['ic-cadeado', 'Cadeado', 70, 90, '<path d="M18,42 V27 A17,17 0 0,1 52,27 V42"/><rect x="8" y="42" width="54" height="42" rx="6"/><circle cx="35" cy="58" r="5" fill="#C"/><path stroke-width="4" d="M35,62 V72"/>'],
       ['ic-relogio', 'Relógio', 80, 80, '<circle cx="40" cy="40" r="34"/><path stroke-width="3.5" d="M40,40 V18 M40,40 L55,49"/><path stroke-width="2" d="M40,9 V14 M71,40 H66 M40,71 V66 M9,40 H14"/><circle cx="40" cy="40" r="3" fill="#C"/>'],
       ['ic-calendario', 'Calendário', 80, 80, '<rect x="6" y="12" width="68" height="62" rx="5"/><path d="M6,28 H74"/><path stroke-width="3.5" d="M24,6 V18 M56,6 V18"/>' + diasCal],
@@ -141,6 +179,93 @@ export default {
       ['ic-caminhao-pipa', 'Caminhão-pipa', 140, 70, '<path d="M100,58 V22 H120 L132,36 V58"/><path stroke-width="1.8" d="M104,26 H118 L126,36 H104 Z"/><rect x="8" y="14" width="88" height="34" rx="17"/><path d="M6,58 H15 M33,58 H39 M57,58 H105 M123,58 H134 M30,48 V54 M74,48 V54"/><circle cx="24" cy="59" r="9"/><circle cx="48" cy="59" r="9"/><circle cx="114" cy="59" r="9"/>' + T(52, 31, 'ÁGUA', 13)],
       ['ic-onibus', 'Ônibus', 130, 76, '<rect x="6" y="8" width="118" height="52" rx="8"/><path d="M6,44 H124"/><circle cx="30" cy="62" r="9"/><circle cx="100" cy="62" r="9"/>' + fino('M14,16 H34 V36 H14 Z M40,16 H60 V36 H40 Z M66,16 H86 V36 H66 Z M94,16 H116 V54 H94 Z M105,16 V54') + fino('M10,52 H18 M112,52 H120', 3)],
       ['ic-bicicleta', 'Bicicleta', 120, 76, '<circle cx="26" cy="50" r="20"/><circle cx="94" cy="50" r="20"/><path d="M26,50 H56 L84,24 M26,50 L46,22 L56,50 M46,22 H80 M84,24 L94,50 M40,18 H54 M80,14 H90 M84,14 L85,24"/><circle cx="56" cy="50" r="4"/>'],
+    ]],
+    ['Água e saneamento', [
+      ['ic-ciclo-agua', 'Ciclo da água', 180, 130, '<circle cx="154" cy="24" r="10"/>' + raios(154, 24, 14, 19, OITO) + '<path d="M30,42 C20,42 16,34 22,29 C22,20 32,16 40,20 C44,12 58,12 62,20 C70,18 78,24 76,32 C82,34 82,42 74,42 Z"/>' + '<path stroke-width="1.6" stroke-dasharray="4 4" d="M32,48 L28,62 M44,48 L40,62 M56,48 L52,62 M68,48 L64,62"/>' + '<path d="M4,118 L32,70 L44,84 L58,66 L88,112"/>' + fino(ondas(88, 176, 112) + ' ' + ondas(96, 176, 122), 2) + '<path stroke-width="1.8" stroke-dasharray="5 4" d="M118,102 V66 M140,102 V72"/>' + head(118, 56, -90, 11) + head(140, 62, -90, 11) + '<path stroke-width="1.8" d="M116,40 Q104,32 92,33"/>' + head(81, 34, 175, 11)],
+      ['ic-bacia', 'Bacia hidrográfica', 140, 120, '<path stroke-width="2" stroke-dasharray="6 5" d="M70,6 C110,6 134,30 130,60 C126,90 96,100 76,112 C56,100 14,92 10,62 C6,30 30,6 70,6 Z"/><path d="M70,20 C72,44 66,62 74,84 L76,110"/>' + fino('M28,40 C44,52 56,58 70,60 M114,36 C102,50 90,58 71,70 M26,76 C42,80 58,84 74,88 M112,78 C100,84 88,88 75,96', 2) + '<circle cx="76" cy="112" r="3.5" fill="#C" stroke="none"/>'],
+      ['ic-caixa-dagua', 'Caixa d\'água elevada', 80, 110, '<rect x="14" y="6" width="52" height="38" rx="4"/>' + trac('M18,18 H62') + '<path d="M20,44 L10,104 M60,44 L70,104 M16,64 H64 M13,84 H67 M4,104 H76"/>' + fino('M16,64 L67,84 M64,64 L13,84 M40,44 V104')],
+      ['ic-lancamento', 'Lançamento de esgoto no rio', 140, 90, '<path d="M4,40 H56 L70,86 H136 M4,22 H62 M4,34 H62 M62,19 V37"/>' + fino('M64,25 Q78,27 80,56 M64,31 Q72,33 74,56', 1.8) + fino(ondas(72, 136, 60) + ' ' + ondas(80, 136, 74), 2) + '<g fill="#C" stroke="none"><circle cx="96" cy="67" r="2.5"/><circle cx="118" cy="66" r="2.5"/><circle cx="106" cy="81" r="2.5"/></g>'],
+      ['ic-gota-suja', 'Água contaminada (gota)', 70, 90, '<path d="M35,6 C35,6 10,40 10,60 A25,25 0 0,0 60,60 C60,40 35,6 35,6 Z"/><circle cx="27" cy="58" r="4"/><circle cx="45" cy="66" r="3"/><circle cx="38" cy="45" r="2.5" fill="#C"/>' + fino('M22,74 q3,-4 6,0 t6,0 t6,0 M40,54 q2,-3 4,0 t4,0')],
+      ['ic-copo-agua', 'Copo de água', 60, 80, '<path d="M8,6 L14,74 H46 L52,6"/>' + fino('M10,26 q5,-4 10,0 t10,0 t10,0 t10,0', 2) + '<circle cx="24" cy="50" r="2" stroke-width="1.4"/><circle cx="36" cy="60" r="2.5" stroke-width="1.4"/><circle cx="32" cy="40" r="1.6" stroke-width="1.4"/>'],
+      ['ic-grelha', 'Grelha de drenagem (bueiro)', 110, 70, '<rect x="6" y="8" width="98" height="54" rx="4"/>' + fino('M12,14 H98 V56 H12 Z') + '<path stroke-width="3" d="M22,14 V56 M32,14 V56 M42,14 V56 M52,14 V56 M62,14 V56 M72,14 V56 M82,14 V56 M92,14 V56"/>'],
+      ['ic-enchente', 'Enchente', 120, 100, '<path d="M30,50 L60,20 L90,50 M38,44 V92 H82 V44 M54,92 V72 H66 V92"/>' + fino(ondas(4, 116, 72) + ' ' + ondas(4, 116, 86), 2.2) + '<path stroke-width="1.6" stroke-dasharray="4 4" d="M14,8 L10,22 M26,8 L22,22 M100,8 L96,22 M112,8 L108,22"/>'],
+      ['ic-seca', 'Seca (solo rachado)', 120, 100, '<circle cx="92" cy="26" r="12"/>' + raios(92, 26, 16, 22, OITO) + '<path d="M4,64 H116 M4,64 V96 H116 V64"/>' + fino('M30,64 L36,74 L30,84 L38,96 M36,74 L50,80 M70,64 L66,78 L76,88 M66,78 L54,90 M96,64 L100,76 L94,96', 1.8) + fino('M20,64 V44 M20,52 L12,44 M20,48 L28,40', 2)],
+    ]],
+    ['Resíduos e reciclagem', [
+      ['ic-coleta-seletiva', 'Coleta seletiva (4 coletores)', 180, 90, coletores],
+      ['ic-aterro', 'Aterro sanitário (corte)', 180, 110, '<path d="M4,30 H30 L50,96 H130 L150,30 H176 M30,30 Q90,4 150,30"/><path stroke-width="1.6" stroke-dasharray="5 4" d="M26,34 L46,101 H134 L154,34"/>' + fino('M37,52 H143 M43,74 H137 M66,30 V52 M114,30 V52 M70,52 V74 M110,52 V74 M76,74 V96 M104,74 V96') + '<path d="M90,94 V6 M84,6 H96"/>' + '<circle cx="66" cy="91" r="2.5" stroke-width="1.6"/><circle cx="114" cy="91" r="2.5" stroke-width="1.6"/>'],
+      ['ic-lixao', 'Lixão (descarte irregular)', 130, 90, '<path d="M8,84 C18,62 30,46 48,42 C58,32 78,32 88,44 C104,48 116,66 122,84 M2,84 H128"/>' + fino('M36,58 H50 V68 H36 Z M88,70 L102,62 L106,66 L92,74 Z M102,62 L104,58 M56,70 H66 V82 H56 Z M20,76 L28,70 L34,78', 1.6) + '<circle cx="72" cy="56" r="7" stroke-width="1.6"/>' + '<path stroke-width="1.4" stroke-dasharray="3 3" d="M34,30 Q38,16 44,20 M58,24 Q60,8 66,12 M80,32 Q84,18 88,22"/><g fill="#C" stroke="none"><circle cx="44" cy="20" r="2.2"/><circle cx="66" cy="12" r="2.2"/><circle cx="88" cy="22" r="2.2"/></g>'],
+      ['ic-garrafa-pet', 'Garrafa PET', 50, 100, '<rect x="19" y="4" width="12" height="8" rx="1"/><path d="M20,12 V22 Q8,30 8,44 V88 Q8,94 14,94 H36 Q42,94 42,88 V44 Q42,30 30,22 V12"/>' + fino('M8,52 H42 M8,68 H42')],
+      ['ic-lata', 'Lata de alumínio', 60, 90, '<ellipse cx="30" cy="12" rx="22" ry="6"/><path d="M8,12 V78 M52,12 V78 M8,78 A22,6 0 0,0 52,78"/><ellipse cx="34" cy="11" rx="5" ry="2" stroke-width="1.4"/>' + fino('M8,30 A22,6 0 0,0 52,30 M8,60 A22,6 0 0,0 52,60')],
+      ['ic-saco-lixo', 'Saco de lixo', 80, 90, '<path d="M30,26 C10,36 6,66 14,80 Q40,90 66,80 C74,66 70,36 50,26 Z M30,26 L24,12 M50,26 L56,12 M30,26 Q40,20 50,26"/>' + fino('M24,50 Q30,62 26,74 M54,48 Q50,60 56,72', 1.4)],
+      ['ic-composteira', 'Composteira', 100, 90, '<rect x="10" y="34" width="80" height="50" rx="2"/><path d="M12,34 Q24,16 40,20 Q54,10 68,18 Q82,16 88,34"/>' + fino('M30,34 V84 M50,34 V84 M70,34 V84') + '<g fill="#C" stroke="none"><circle cx="24" cy="28" r="1.8"/><circle cx="46" cy="24" r="1.8"/><circle cx="62" cy="27" r="1.8"/><circle cx="78" cy="28" r="1.8"/></g>'],
+      ['ic-caminhao-lixo', 'Caminhão de coleta', 150, 76, '<path d="M110,62 V24 H130 L142,40 V62 M8,62 V18 Q8,10 16,10 H104 V62 M2,62 H21 M39,62 H47 M65,62 H115 M133,62 H146"/>' + fino('M114,28 H128 L136,40 H114 Z M16,18 V54 M28,22 H96 M28,48 H96', 1.8) + '<circle cx="30" cy="64" r="9"/><circle cx="56" cy="64" r="9"/><circle cx="124" cy="64" r="9"/>'],
+      ['ic-pilha', 'Pilha (resíduo perigoso)', 50, 90, '<rect x="10" y="14" width="30" height="72" rx="4"/><rect x="19" y="6" width="12" height="8" rx="1"/>' + T(25, 34, '+', 24) + T(25, 68, '−', 24)],
+      ['ic-sacola', 'Sacola retornável', 80, 90, '<path d="M10,34 H70 L64,86 H16 Z M26,34 V24 Q26,12 40,12 Q54,12 54,24 V34"/>' + fino('M30,72 C30,58 42,52 52,52 C52,64 44,72 30,72 Z M30,72 L44,60', 1.8)],
+    ]],
+    ['Fauna e flora', [
+      ['ic-mata-ciliar', 'Mata ciliar (rio com margens)', 180, 90, '<path d="M4,44 H52 Q62,44 70,64 Q90,84 110,64 Q118,44 128,44 H176"/>' + fino(ondas(70, 110, 58, 5, 3), 1.8) + [14, 32, 50, 130, 148, 166].map(x => arvoreR(x, 44, 10, 12)).join('')],
+      ['ic-floresta', 'Floresta', 140, 100, pinheiro(30, 18, 80, 40, 12) + pinheiro(110, 10, 80, 44, 12) + arvoreR(70, 92, 18, 28) + '<path d="M4,92 H136"/>'],
+      ['ic-pinheiro', 'Pinheiro (conífera)', 70, 100, pinheiro(35, 6, 82, 60, 12) + '<path d="M10,94 H60"/>'],
+      ['ic-coqueiro', 'Coqueiro', 90, 110, '<path d="M40,104 Q34,70 44,32 M50,104 Q44,70 52,34 M20,104 H76"/><path d="M48,30 Q30,12 6,22 Q28,22 48,30 Z M48,30 Q66,10 86,20 Q66,22 48,30 Z M48,30 Q24,30 10,52 Q30,38 48,30 Z M48,30 Q74,30 84,52 Q66,38 48,30 Z M48,30 Q46,12 58,4 Q52,18 48,30 Z"/><circle cx="43" cy="38" r="4.5"/><circle cx="53" cy="39" r="4.5"/>' + fino('M38,90 H47 M38,76 H46 M39,62 H48 M41,50 H50', 1.4)],
+      ['ic-cacto', 'Cacto (mandacaru)', 80, 100, '<path d="M32,96 V20 Q32,8 40,8 Q48,8 48,20 V96 M32,64 H20 Q12,64 12,56 V38 Q12,32 17,32 Q22,32 22,38 V54 H32 M48,54 H60 Q68,54 68,46 V24 Q68,18 63,18 Q58,18 58,24 V44 H48 M10,96 H70"/>' + fino('M40,16 V92', 1.4)],
+      ['ic-broto', 'Broto (muda)', 70, 80, '<path d="M6,72 Q35,58 64,72 M35,64 V36 M35,44 C24,44 14,36 12,24 C24,24 34,30 35,44 Z M35,38 C44,36 56,28 58,16 C46,16 36,24 35,38 Z"/>'],
+      ['ic-passaro', 'Pássaro', 100, 70, '<circle cx="26" cy="26" r="10"/><path d="M16,24 L6,28 L16,31 M35,32 C48,26 68,30 80,38 L96,32 L90,46 C78,56 52,58 38,48 C31,43 31,37 35,32 Z"/>' + fino('M46,40 Q62,28 74,44') + '<circle cx="23" cy="24" r="1.8" fill="#C" stroke="none"/>' + fino('M52,56 V66 M62,56 V66', 2)],
+      ['ic-borboleta', 'Borboleta', 100, 80, '<ellipse cx="50" cy="44" rx="4" ry="20"/><path d="M46,36 C32,6 6,8 8,28 C10,42 30,46 46,42 Z M46,48 C30,48 16,58 22,70 C28,78 42,68 47,54 Z M54,36 C68,6 94,8 92,28 C90,42 70,46 54,42 Z M54,48 C70,48 84,58 78,70 C72,78 58,68 53,54 Z"/>' + fino('M48,26 Q42,10 36,6 M52,26 Q58,10 64,6') + '<circle cx="24" cy="26" r="4" stroke-width="1.6"/><circle cx="76" cy="26" r="4" stroke-width="1.6"/>'],
+      ['ic-abelha', 'Abelha (polinizador)', 90, 70, '<ellipse cx="40" cy="18" rx="9" ry="13" transform="rotate(-25 40 18)" stroke-width="1.8"/><ellipse cx="56" cy="18" rx="9" ry="13" transform="rotate(20 56 18)" stroke-width="1.8"/><ellipse cx="46" cy="42" rx="26" ry="16"/><circle cx="16" cy="40" r="9"/><path stroke-width="4" d="M40,28 V56 M54,28 V56"/><path d="M72,42 L82,42"/>' + fino('M12,32 L6,22 M18,31 L19,20') + '<circle cx="13" cy="38" r="1.8" fill="#C" stroke="none"/>'],
+      ['ic-cogumelo', 'Cogumelo (fungo)', 70, 80, '<path d="M6,42 C6,18 22,6 35,6 C48,6 64,18 64,42 Z M26,42 V70 Q26,76 32,76 H38 Q44,76 44,70 V42"/><circle cx="22" cy="26" r="4" stroke-width="1.6"/><circle cx="40" cy="16" r="3.5" stroke-width="1.6"/><circle cx="50" cy="30" r="4" stroke-width="1.6"/>'],
+      ['ic-tartaruga', 'Tartaruga', 110, 70, '<path d="M20,48 C20,18 84,18 88,48 Z M88,42 Q100,34 106,42 Q102,50 88,48 M28,48 L22,60 H34 L38,48 M70,48 L74,60 H86 L80,48"/>' + fino('M38,48 L44,32 H64 L70,48 M20,46 L10,50 L20,48') + '<circle cx="100" cy="41" r="1.8" fill="#C" stroke="none"/>'],
+      ['ic-pegada', 'Pegada ecológica', 60, 100, '<path d="M32,32 C46,32 50,46 48,60 C46,76 44,94 30,94 C18,94 14,80 16,64 C18,48 18,32 32,32 Z"/><circle cx="44" cy="20" r="7"/><circle cx="31" cy="14" r="5.5"/><circle cx="21" cy="16" r="4.5"/><circle cx="13" cy="22" r="3.5"/><circle cx="9" cy="31" r="3"/>' + fino('M32,82 C24,70 26,54 36,46 C40,58 40,72 32,82 Z M32,82 L35,54')],
+    ]],
+    ['Clima e atmosfera', [
+      ['ic-termometro', 'Termômetro', 40, 100, '<path d="M14,71.6 V14 A6,6 0 0,1 26,14 V71.6 M14,71.6 A12,12 0 1,0 26,71.6"/><path stroke-width="4" d="M20,80 V34"/><circle cx="20" cy="82" r="6" fill="#C" stroke="none"/>' + fino('M26,24 H32 M26,34 H30 M26,44 H32 M26,54 H30 M26,64 H32', 1.4)],
+      ['ic-vento', 'Vento', 110, 80, '<path d="M6,30 H70 C84,30 88,12 76,8 C68,6 62,14 66,20 M6,48 H86 C100,48 104,66 92,70 C84,72 78,64 84,58 M14,64 H50"/>'],
+      ['ic-sol-nuvem', 'Sol entre nuvens', 110, 90, '<circle cx="36" cy="34" r="16"/>' + raios(36, 34, 21, 28, [150, 180, 210, 240, 270, 300, 330, 0]) + '<path d="M40,82 C26,82 22,72 26,66 C28,58 36,56 42,58 C44,46 56,40 66,44 C72,36 88,36 92,48 C102,48 108,58 104,66 C108,74 102,82 94,82 Z"/>'],
+      ['ic-lua', 'Lua (noite)', 70, 70, crescente(30, 38, 28, 44, 28, 22) + star(58, 14, 7, 2.6, 4, ' fill="#C" stroke-width="1"') + star(60, 40, 4.5, 1.8, 4, ' fill="#C" stroke-width="1"')],
+      ['ic-floco-neve', 'Floco de neve (frio)', 80, 80, floco],
+      ['ic-efeito-estufa', 'Efeito estufa', 160, 110, '<path d="M4,104 Q80,78 156,104"/><path stroke-width="1.8" stroke-dasharray="6 5" d="M4,64 Q80,14 156,64"/><circle cx="22" cy="18" r="10"/>' + raios(22, 18, 13, 17, OITO) + setaF(32, 28, 66, 88, 12, 2) + '<path stroke-width="2" d="M84,90 L104,44 L118.5,77.7"/>' + head(122, 86, 66.8, 12) + setaF(132, 94, 146, 30, 11, 1.6)],
+      ['ic-chama', 'Fogo (chama)', 60, 90, '<path d="M30,86 C12,86 4,72 8,58 C12,44 22,40 20,24 C32,30 36,40 34,50 C40,44 42,36 40,28 C52,40 58,58 52,72 C48,82 40,86 30,86 Z"/>' + fino('M30,80 C22,80 18,72 22,64 C26,58 30,56 30,48 C38,56 40,66 38,72 C36,78 34,80 30,80 Z', 1.8)],
+      ['ic-queimada', 'Queimada', 120, 100, '<circle cx="36" cy="34" r="22"/><path d="M36,56 V92 M4,92 H116 M76,92 C60,92 54,80 58,70 C62,60 70,58 68,46 C78,52 82,60 80,68 C86,62 88,56 86,50 C96,60 100,74 96,82 C92,90 86,92 76,92 Z M22,92 C14,92 12,84 16,78 C18,74 22,72 22,66 C28,72 30,80 28,86 C27,90 25,92 22,92 Z"/>' + fino('M66,36 C58,28 70,22 64,12 M88,40 C80,30 94,24 86,12', 2)],
+      ['ic-co2', 'Nuvem de CO₂', 110, 70, `<path d="${NUVEM}"/>` + T(56, 42, 'CO₂', 20)],
+      ['ic-guarda-chuva', 'Guarda-chuva', 80, 90, '<path d="M6,44 C6,20 22,8 40,8 C58,8 74,20 74,44 Q65,38 57,44 Q48,38 40,44 Q32,38 23,44 Q14,38 6,44 Z M40,44 V76 Q40,84 33,84 Q27,84 27,78 M40,8 V4"/>' + fino('M40,8 Q28,22 23,44 M40,8 Q52,22 57,44')],
+    ]],
+    ['Cidade, indústria e campo', [
+      ['ic-cidade', 'Cidade (silhueta)', 170, 100, '<path d="M4,96 V60 H24 V40 H44 V70 H56 V20 H80 V50 H94 V34 H114 V64 H128 V44 H150 V96 M2,96 H168"/>' + janelasCidade + arvoreR(160, 96, 7, 12)],
+      ['ic-hospital', 'Hospital (posto de saúde)', 120, 100, '<path d="M14,96 V30 H106 V96 M4,96 H116"/><rect x="10" y="22" width="100" height="8"/><path fill="#C" stroke="none" d="M55,38 H65 V46 H73 V56 H65 V64 H55 V56 H47 V46 H55 Z"/>' + fino('M22,40 H36 V52 H22 Z M84,40 H98 V52 H84 Z M22,66 H36 V78 H22 Z M84,66 H98 V78 H84 Z') + '<path d="M50,96 V74 H70 V96"/>' + fino('M60,74 V96')],
+      ['ic-escola', 'Escola', 130, 100, '<path d="M10,96 V44 H120 V96 M26,44 L65,18 L104,44 M4,96 H126 M57,96 V74 H73 V96"/><path stroke-width="2" d="M65,18 V3"/>' + fino('M65,4 H80 L76,8 L80,12 H65 M18,56 H32 V70 H18 Z M36,56 H50 V70 H36 Z M80,56 H94 V70 H80 Z M98,56 H112 V70 H98 Z') + '<circle cx="65" cy="34" r="5" stroke-width="1.6"/>'],
+      ['ic-trator', 'Trator', 130, 90, '<circle cx="36" cy="62" r="24"/><circle cx="36" cy="62" r="7"/><circle cx="104" cy="72" r="14"/><circle cx="104" cy="72" r="4"/><path d="M60,58 V40 H118 V60 M60,58 H90 M18,38 V8 H58 V40"/><path stroke-width="3" d="M100,40 V20"/>' + fino('M24,13 H52 V34 H24 Z')],
+      ['ic-plantacao', 'Plantação (lavoura)', 150, 90, '<path d="M4,44 H146"/>' + lavoura + '<circle cx="126" cy="20" r="8"/>' + raios(126, 20, 11, 15, OITO)],
+      ['ic-irrigacao', 'Irrigação (aspersor)', 110, 90, '<path d="M55,86 V40 M4,86 H106"/><rect x="49" y="32" width="12" height="8" rx="2"/><path stroke-width="1.8" stroke-dasharray="4 4" d="M52,32 Q30,6 8,40 M58,32 Q80,6 102,40 M55,32 Q50,14 36,12 M55,32 Q60,14 74,12"/>' + broto(18, 86) + broto(34, 86) + broto(76, 86) + broto(92, 86)],
+      ['ic-boi', 'Boi (pecuária)', 130, 90, '<path d="M34,30 H98 Q110,30 110,42 V58 Q110,64 104,64 H38 Q30,64 30,56 V48 M34,30 L18,28 Q8,28 8,38 L12,52 Q14,58 20,56 L30,48 M18,28 Q12,18 18,12 M26,29 Q26,20 32,16"/><path stroke-width="3" d="M40,64 V86 M50,64 V86 M92,64 V86 M102,64 V86"/>' + fino('M110,40 Q120,48 118,64 M116,64 L118,70 L121,64') + '<ellipse cx="70" cy="46" rx="8" ry="6" stroke-width="1.6"/><ellipse cx="92" cy="40" rx="5" ry="4" stroke-width="1.6"/><circle cx="16" cy="38" r="1.8" fill="#C" stroke="none"/>'],
+      ['ic-ponte', 'Ponte', 160, 80, '<path d="M4,26 H156 M4,32 H156 M16,76 Q80,0 144,76 M4,76 H16 M144,76 H156 M4,32 V76 M156,32 V76"/>' + fino('M40,32 V52.8 M60,32 V41.7 M100,32 V41.7 M120,32 V52.8', 2) + fino(ondas(24, 136, 70, 7, 3), 1.6)],
+    ]],
+    ['Saúde pública', [
+      ['ic-mosquito', 'Mosquito (Aedes)', 110, 80, '<ellipse cx="60" cy="18" rx="18" ry="6" transform="rotate(-20 60 18)" stroke-width="1.6"/><ellipse cx="66" cy="24" rx="16" ry="5" transform="rotate(-5 66 24)" stroke-width="1.6"/><circle cx="34" cy="34" r="6"/><ellipse cx="48" cy="36" rx="10" ry="8"/><g transform="rotate(18 76 44)"><ellipse cx="76" cy="44" rx="22" ry="7"/><path stroke-width="1.4" d="M66,38 V50 M76,37 V51 M86,38 V50"/></g>' + fino('M29,37 L10,48 M32,29 L24,20 M34,28 L30,18', 1.8) + fino('M44,42 L34,56 L26,74 M48,44 L48,60 L44,76 M53,42 L64,58 L72,76', 1.4)],
+      ['ic-virus', 'Vírus', 90, 90, '<circle cx="45" cy="45" r="22"/>' + espinhosVirus + fino('M34,40 q4,-6 8,0 t8,0 M40,52 q4,-6 8,0 t8,0')],
+      ['ic-bacteria', 'Bactéria', 110, 70, '<rect x="6" y="18" width="78" height="32" rx="16"/><path d="M84,34 q3.5,-7 7,0 t7,0 t7,0"/>' + fino('M20,34 q4,-6 8,0 t8,0 t8,0 t8,0 t8,0 t8,0 t8,0') + fino('M24,18 L22,10 M44,18 V9 M64,18 L66,10 M24,50 L22,58 M44,50 V59 M64,50 L66,58', 1.4)],
+      ['ic-seringa', 'Seringa (vacina)', 130, 40, '<rect x="30" y="10" width="66" height="20"/><path d="M10,20 H40 M96,15 H104 V25 H96"/><path stroke-width="3" d="M8,10 V30 M30,5 V35 M40,12 V28"/><path stroke-width="1.6" d="M104,20 H126"/>' + fino('M52,10 V16 M64,10 V18 M76,10 V16 M88,10 V18', 1.4)],
+      ['ic-comprimido', 'Comprimido (cápsula)', 90, 50, '<rect x="6" y="10" width="78" height="30" rx="15"/><path d="M45,10 V40"/><path fill="#C" stroke="none" d="M45,10 H21 A15,15 0 0,0 21,40 H45 Z"/>'],
+      ['ic-sabonete', 'Sabonete (higiene)', 100, 80, '<rect x="12" y="40" width="76" height="32" rx="12"/><circle cx="28" cy="28" r="8"/><circle cx="48" cy="18" r="6"/><circle cx="66" cy="28" r="9"/><circle cx="84" cy="12" r="4"/><circle cx="16" cy="10" r="3"/>' + fino('M22,50 H40')],
+      ['ic-socorro', 'Kit de primeiros socorros', 100, 80, '<rect x="6" y="20" width="88" height="54" rx="6"/><path d="M38,20 V12 H62 V20 M45,34 H55 V42 H63 V52 H55 V60 H45 V52 H37 V42 H45 Z"/>'],
+      ['ic-mascara', 'Máscara facial', 100, 60, '<path d="M24,14 Q50,6 76,14 V40 Q50,56 24,40 Z"/>' + fino('M28,24 Q50,18 72,24 M28,32 Q50,28 72,32') + '<path stroke-width="1.8" d="M24,16 Q6,12 6,28 Q8,40 24,38 M76,16 Q94,12 94,28 Q92,40 76,38"/>'],
+    ]],
+    ['Pessoas e sala de aula', [
+      ['ic-professor', 'Professor na lousa', 150, 100, '<rect x="58" y="6" width="88" height="58" rx="2"/>' + fino('M66,20 H110 M66,32 H132 M66,44 H100', 2) + '<circle cx="28" cy="30" r="10"/><path d="M10,96 V70 Q10,48 28,48 Q46,48 46,70 V96 M40,56 L52,50"/><path stroke-width="2" d="M52,50 L80,34"/>'],
+      ['ic-aluno', 'Aluno na carteira', 100, 100, '<circle cx="50" cy="22" r="10"/><path d="M30,62 V50 Q30,36 50,36 Q70,36 70,50 V62 M6,62 H94 M14,62 V96 M86,62 V96"/>' + fino('M34,62 L38,54 H62 L66,62 M50,54 V62')],
+      ['ic-sala-aula', 'Sala de aula (carteiras)', 170, 110, '<rect x="50" y="4" width="70" height="22" rx="2"/>' + fino('M58,12 H100 M58,19 H86') + carteiras],
+      ['ic-dialogo', 'Diálogo (duas pessoas)', 150, 100, busto(34, 64, 0.8) + busto(116, 64, 0.8) + '<path d="M10,4 H64 Q70,4 70,10 V22 Q70,28 64,28 H44 L36,36 L38,28 H10 Q4,28 4,22 V10 Q4,4 10,4 Z M140,4 H86 Q80,4 80,10 V22 Q80,28 86,28 H106 L114,36 L112,28 H140 Q146,28 146,22 V10 Q146,4 140,4 Z"/><g fill="#C" stroke="none"><circle cx="27" cy="16" r="2.2"/><circle cx="37" cy="16" r="2.2"/><circle cx="47" cy="16" r="2.2"/><circle cx="103" cy="16" r="2.2"/><circle cx="113" cy="16" r="2.2"/><circle cx="123" cy="16" r="2.2"/></g>'],
+      ['ic-trabalhador', 'Trabalhador (com capacete)', 70, 100, '<path d="M22.6,30 A13,13 0 1,0 47.4,30 M11,98 V84 Q11,58 35,58 Q59,58 59,84 V98 Z M20,30 C20,12 50,12 50,30 M14,30 H56"/>' + fino('M35,15 V30')],
+      ['ic-capelo', 'Capelo (formatura)', 110, 80, '<path d="M55,8 L104,28 L55,48 L6,28 Z M28,39 V58 Q55,70 82,58 V39"/><path stroke-width="1.8" d="M55,28 L94,32 V54"/><path fill="#C" stroke="none" d="M91,54 H97 L99,66 H89 Z"/><circle cx="55" cy="28" r="2.5" fill="#C" stroke="none"/>'],
+      ['ic-diploma', 'Diploma (canudo)', 110, 60, '<path d="M12,18 H98 M12,42 H98"/><ellipse cx="12" cy="30" rx="5" ry="12"/><ellipse cx="98" cy="30" rx="5" ry="12"/><ellipse cx="98" cy="30" rx="2" ry="5" stroke-width="1.4"/><path stroke-width="2" d="M52,18 V42 M58,18 V42 M55,42 L46,56 M55,42 L64,56"/>'],
+    ]],
+    ['Segurança do trabalho e sinalização', [
+      ['ic-abafador', 'Protetor auricular (abafador)', 90, 90, '<path d="M17,48 C17,8 73,8 73,48"/><rect x="6" y="44" width="22" height="38" rx="9"/><rect x="62" y="44" width="22" height="38" rx="9"/>' + fino('M25,46 C25,18 65,18 65,46 M12,54 V72 M78,54 V72')],
+      ['ic-respirador', 'Respirador (máscara PFF)', 90, 80, '<path d="M14,30 Q45,8 76,30 Q80,56 45,70 Q10,56 14,30 Z"/><circle cx="45" cy="46" r="8"/>' + fino('M40,42 H50 M40,46 H50 M40,50 H50', 1.4) + '<path stroke-width="1.8" d="M14,30 L4,22 M76,30 L86,22 M16,48 L4,52 M74,48 L86,52"/>'],
+      ['ic-bota', 'Bota de segurança', 100, 90, '<path d="M22,6 H52 V50 Q54,58 64,60 L84,64 Q94,66 94,76 V82 H16 V18 Q16,8 22,6 Z"/><path stroke-width="4" d="M16,85 H94"/>' + fino('M44,14 L52,20 M44,24 L52,30 M44,34 L52,40 M74,62 Q72,74 94,77')],
+      ['ic-colete', 'Colete refletivo', 90, 90, '<path d="M28,6 L36,30 L45,42 L54,30 L62,6 L80,12 Q78,30 84,40 V84 H6 V40 Q12,30 10,12 Z"/>' + fino('M45,42 V84') + '<path stroke-width="2.4" d="M7,58 H40 M7,68 H40 M50,58 H83 M50,68 H83"/>'],
+      ['ic-proibido', 'Proibido (placa genérica)', 80, 80, '<circle cx="40" cy="40" r="33" stroke-width="5"/><path stroke-width="5" d="M17,17 L63,63"/>'],
+      ['ic-placa-aviso', 'Placa de aviso (em branco)', 110, 80, '<rect x="4" y="4" width="102" height="72" rx="4"/><path d="M4,26 H106"/>' + T(55, 15, 'AVISO', 14) + fino('M18,40 H92 M18,52 H92 M18,64 H70')],
+      ['ic-fita-zebrada', 'Fita zebrada (isolamento)', 160, 40, '<rect x="4" y="10" width="152" height="20"/>' + zebra],
     ]],
   ],
 };

@@ -36,7 +36,7 @@ O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa nã
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página:
 ```bash
-certutil -hashfile Instalar-GizLivre-1.0.3.exe SHA256
+certutil -hashfile Instalar-GizLivre-1.1.0.exe SHA256
 ```
 
 ## Como é
@@ -69,10 +69,10 @@ certutil -hashfile Instalar-GizLivre-1.0.3.exe SHA256
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
   - **fórmulas LaTeX**;
   - biblioteca com **tabela periódica** e **vidrarias**.
-- **Biblioteca de formas técnicas**, com **702 formas** em 12 disciplinas, separadas em seções e com busca:
+- **Biblioteca de formas técnicas**, com **1.384 formas** em 12 disciplinas, separadas em seções e com busca:
   - fluxograma;
   - setas e conectores;
-  - operações unitárias (P&ID);
+  - química e processos (P&ID, estruturas, cinética, eletroquímica);
   - hidráulica;
   - saneamento (ETA e ETE, com jarteste, UASB, lodo ativado e lagoas);
   - laboratório (vidrarias, equipamentos e pictogramas de segurança);
@@ -151,7 +151,8 @@ conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há a
 ## Tecnologias
 - **Interface:** HTML, CSS e JavaScript puro (módulos ES), desenhada em `<canvas>`, sem build e sem frameworks.
 - **Servidor local:** Python, só biblioteca padrão, em `127.0.0.1`, com proteção contra pedidos de outros sites.
-- **Bibliotecas embutidas:** pdf.js (Mozilla), KaTeX, Fluent UI System Icons (Microsoft). Ver
+- **Bibliotecas embutidas:** pdf.js (Mozilla, Apache 2.0, com OpenJPEG), KaTeX (MIT, fontes sob SIL OFL 1.1),
+  Fluent UI System Icons (Microsoft, MIT). Ver
   [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 - **Recursos do sistema (opcionais):**
   - Windows Ink (caneta e reconhecimento de escrita);

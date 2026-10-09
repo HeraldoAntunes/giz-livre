@@ -1,9 +1,10 @@
-﻿# Gera o executável (PyInstaller) e o instalador (Inno Setup) do Giz Livre, verifica no Microsoft Defender
+﻿# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Gera o executável (PyInstaller) e o instalador (Inno Setup) do Giz Livre, verifica no Microsoft Defender
 # e escreve dist\SHA256SUMS.txt.  Uso:  powershell -ExecutionPolicy Bypass -File installer\build.ps1
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path $PSScriptRoot -Parent
 Set-Location $raiz
-$versao = '1.0.3'
+$versao = '1.1.0'
 
 # 1) ambiente de build dedicado, recriado do zero, com dependências fixadas por hash
 $py313 = Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'
@@ -29,7 +30,9 @@ New-Item -ItemType Directory -Force "$dist\licencas" | Out-Null
 Copy-Item LICENSE, THIRD-PARTY-NOTICES.md $dist
 Copy-Item (Join-Path (Split-Path $py313) 'LICENSE.txt') "$dist\licencas\python-LICENSE.txt"
 Copy-Item app\vendor\pdfjs\LICENSE "$dist\licencas\pdfjs-LICENSE.txt"
+Copy-Item app\vendor\pdfjs\OPENJPEG-LICENSE.txt "$dist\licencas\openjpeg-LICENSE.txt"
 Copy-Item app\vendor\katex\LICENSE "$dist\licencas\katex-LICENSE.txt"
+Copy-Item app\vendor\katex\fonts\OFL.txt "$dist\licencas\katex-fontes-OFL.txt"
 Copy-Item app\vendor\fluent\LICENSE "$dist\licencas\fluent-icons-LICENSE.txt"
 
 # 3) instalador

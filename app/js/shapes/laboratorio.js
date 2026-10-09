@@ -1,3 +1,4 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 import { T, head } from './base.js';
 
 // Laboratório de água e esgoto (Engenharia Ambiental e Sanitária): vidrarias, aquecimento, equipamentos,
@@ -36,6 +37,162 @@ const jarros = () => {
   }
   return s;
 };
+
+// ===== Mais formas: vidrarias que faltavam, montagens clássicas, análise de água, campo e segurança =====
+const serie = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join(' ');
+// estrela de n pontas (raios R e r) centrada em (cx, cy)
+const estrela = (cx, cy, R, r, n) => 'M' + Array.from({ length: 2 * n }, (_, i) => {
+  const a = (i * 180 / n - 90) * Math.PI / 180, q = i % 2 ? r : R;
+  return `${(cx + q * Math.cos(a)).toFixed(1)} ${(cy + q * Math.sin(a)).toFixed(1)}`;
+}).join(' L') + ' Z';
+
+const VIDR2 = [
+  ['lb-termometro', 'Termômetro', 30, 170, '<path d="M11 141 V12 Q11 6 15 6 Q19 6 19 12 V141"/><circle cx="15" cy="150" r="10"/>' + dot(15, 150, 6) + fino('M15 146 V64', 2.4) + grad(19, 24, 132, 9, 4, 7)],
+  ['lb-balao-destilacao', 'Balão de destilação', 110, 104, '<path d="M30 6 H50 M33 6 V37 A30 30 0 1 0 47 37 V25 L96 51 L100 44 L47 16 V6"/>' + liq(12, 68, 74)],
+  ['lb-kjeldahl', 'Balão de Kjeldahl', 70, 170, '<path d="M27 6 H43 M30 6 V96 C12 104 8 140 22 154 Q35 164 48 154 C62 140 58 104 40 96 V6"/>' + liq(15, 55, 134)],
+  ['lb-picnometro', 'Picnômetro', 70, 110, '<path d="M14 50 Q14 34 28 30 V22 H42 V30 Q56 34 56 50 V96 Q56 104 48 104 H22 Q14 104 14 96 Z M29 22 L31 6 H39 L41 22"/>' + fino('M35 7 V30', 1.2) + liq(16, 54, 44)],
+  ['lb-densimetro', 'Densímetro na proveta', 70, 170, '<path d="M14 6 V156 M56 6 V156 M6 156 H64 V164 H6 Z"/>' + liq(15, 55, 50)
+    + '<path d="M32 80 V18 Q35 13 38 18 V80 Q46 84 46 96 V124 Q46 132 35 138 Q24 132 24 124 V96 Q24 84 32 80 Z" stroke-width="2"/>' + dot(35, 128, 4) + fino('M32 30 h3 M32 40 h4 M32 50 h3 M32 60 h4', 1.2)],
+  ['lb-thiele', 'Tubo de Thiele', 110, 160, '<path d="M30 10 V140 Q30 154 44 154 H86 Q98 154 98 140 V132 L44 52 V10 M44 81 V140 H84 Z"/>' + fino('M37 2 V122', 1.6) + dot(37, 124, 3) + liq(31, 43, 30)],
+  ['lb-nessler', 'Tubo de Nessler', 36, 170, '<path d="M8 6 H28 M10 6 V160 H26 V6"/>' + fino('M10 46 H26', 1.8) + liq(11, 25, 52)],
+  ['lb-gooch', 'Cadinho de Gooch', 80, 84, '<ellipse cx="40" cy="14" rx="28" ry="6"/><path d="M12 14 L20 66 H60 L68 14"/>' + fino('M22 58 H58', 1.6)
+    + dot(30, 66, 2) + dot(40, 66, 2) + dot(50, 66, 2) + dot(34, 76, 1.8) + dot(46, 78, 1.8)],
+  ['lb-pera', 'Pera de borracha (pipetador)', 70, 150, '<rect x="29" y="8" width="12" height="10" rx="2"/><path d="M35 18 V20"/><circle cx="35" cy="46" r="26"/><rect x="28" y="72" width="14" height="18" rx="2"/>'
+    + '<path d="M42 84 H54"/><rect x="54" y="78" width="12" height="12" rx="2"/><path d="M31 90 V138 Q35 144 39 138 V90"/>' + T(35, 13, 'A', 8) + T(35, 81, 'S', 9) + T(60, 84, 'E', 8)],
+  ['lb-falcon', 'Tubo cônico (Falcon)', 40, 150, '<rect x="8" y="6" width="24" height="14" rx="2"/><path d="M10 20 V112 L18 140 H22 L30 112 V20"/>' + grad(30, 40, 108, 6, -4, -7) + liq(11, 29, 60)],
+  ['lb-drechsel', 'Frasco lavador de gases', 100, 140, '<path d="M16 40 V126 Q16 134 24 134 H76 Q84 134 84 126 V40 M22 40 V30 H78 V40 M12 40 H88"/><path d="M36 4 V120 M44 4 V120 M64 30 V14 H96"/>'
+    + liq(18, 82, 70) + '<g stroke-width="1.3"><circle cx="40" cy="112" r="3"/><circle cx="50" cy="98" r="3"/><circle cx="34" cy="88" r="3"/></g>'],
+  ['lb-estante', 'Estante com tubos de ensaio', 180, 120, '<rect x="10" y="40" width="160" height="8" rx="2"/><rect x="10" y="106" width="160" height="8" rx="2"/><path d="M16 48 V106 M164 48 V106"/>'
+    + serie(6, i => { const x = 30 + 24 * i; return `<path d="M${x - 7} 16 V96 A7 7 0 0 0 ${x + 7} 96 V16"/>` + liq(x - 6, x + 6, 60 + (i % 3) * 10); })],
+  ['lb-conta-gotas', 'Conta-gotas', 30, 132, '<path d="M9 30 V14 Q9 4 15 4 Q21 4 21 14 V30 Z M11 30 V104 L14 116 H16 L19 104 V30"/><path d="M15 120 Q11 126 15 129 Q19 126 15 120 Z" fill="#C"/>'],
+  ['lb-seringa', 'Seringa', 180, 50, '<rect x="40" y="14" width="110" height="22" rx="2"/><path d="M40 6 V44" stroke-width="3"/><path d="M4 25 H92 M4 15 V35"/><path d="M92 16 V34" stroke-width="4"/>'
+    + '<path d="M150 21 L160 23 V27 L150 29 M160 25 H176"/>' + fino(serie(8, i => `M${104 + 6 * i} 14 v${i % 4 === 0 ? 8 : 5}`), 1.2)],
+  ['lb-schott', 'Frasco reagente (Schott)', 70, 120, '<rect x="24" y="6" width="22" height="14" rx="2"/><path d="M27 20 V28 Q12 32 12 46 V108 Q12 114 18 114 H52 Q58 114 58 108 V46 Q58 32 43 28 V20"/>'
+    + grad(58, 56, 100, 11, -4, -7) + liq(14, 56, 64)],
+  ['lb-durham', 'Tubo com tubo de Durham', 40, 120, '<path d="M9 6 H31 M12 6 V100 A8 8 0 0 0 28 100 V6"/>' + liq(13, 27, 36)
+    + '<path d="M15 100 V74 Q15 69 20 69 Q25 69 25 74 V100" stroke-width="1.8"/><path d="M16 79 H24" stroke-width="1.2" stroke-dasharray="2 2"/>'],
+  ['lb-papel-filtro', 'Papel de filtro (dobra)', 120, 70, '<circle cx="35" cy="35" r="28"/><path d="M7 35 H63 M35 7 V35" stroke-width="1.3" stroke-dasharray="4 3"/>'
+    + fino('M66 35 H70', 1.6) + head(76, 35, 0, 7) + '<path d="M80 14 H114 L97 62 Z"/>' + fino('M97 14 V62', 1.3)],
+];
+
+const MONTAGENS = [
+  ['lb-mont-destilacao', 'Montagem: destilação simples', 260, 200, '<rect x="14" y="128" width="80" height="52" rx="6"/>' + fino('M20 128 Q54 168 88 128', 1.6)
+    + '<path d="M48 70 V99 A26 26 0 1 0 60 99 V70"/><rect x="46" y="62" width="16" height="9" rx="2"/>' + fino('M54 36 V90', 1.6) + dot(54, 92, 3) + liq(30, 78, 120)
+    + '<g transform="translate(60 82) rotate(26.6)"><path d="M0 -3 H152 M0 3 H152"/><rect x="20" y="-12" width="110" height="24" rx="5"/><path d="M34 -12 V-22 M116 12 V22"/></g>'
+    + '<path d="M192 146 V160 L172 188 Q170 192 174 192 H226 Q230 192 228 188 L208 160 V146"/>' + liq(178, 222, 180) + fino('M6 196 H254', 1.6)],
+  ['lb-mont-titulacao', 'Montagem: titulação', 160, 220, '<rect x="10" y="204" width="140" height="10" rx="3"/><rect x="24" y="10" width="7" height="194" rx="2"/><rect x="20" y="34" width="15" height="12" rx="2"/>'
+    + fino('M35 40 H74 M74 36 H86 M74 44 H86', 2)
+    + '<path d="M74 14 V118 L77 122 V130 M86 14 V118 L83 122 V130 M77 130 V140 L80 150 L83 140 V130"/><circle cx="80" cy="126" r="4"/>' + fino('M66 126 H94', 1.8)
+    + liq(75, 85, 30) + grad(86, 24, 112, 8, -4, -7) + dot(80, 157, 2)
+    + '<path d="M70 144 H90 M72 144 V160 L50 196 Q48 202 54 202 H106 Q112 202 110 196 L88 160 V144"/>' + liq(57, 103, 184)],
+  ['lb-mont-filt-vacuo', 'Montagem: filtração a vácuo', 200, 170, '<path d="M26 8 H94 V34 Q94 40 86 42 L64 50 V76 L60 82 L56 76 V50 L34 42 Q26 40 26 34 Z"/>'
+    + '<path d="M28 30 H92" stroke-width="2" stroke-dasharray="4 4"/><rect x="46" y="58" width="28" height="10" rx="2"/>'
+    + '<path d="M48 68 V86 L18 150 Q16 158 24 158 H96 Q104 158 102 150 L72 86 V80 M72 72 V68 M72 72 L120 68 M72 80 L120 76"/>' + liq(26, 94, 136)
+    + '<path d="M120 72 C150 72 148 110 160 110" stroke-width="4"/><rect x="160" y="96" width="34" height="28" rx="4"/>' + T(177, 110, 'vácuo', 9) + fino('M10 164 H190', 1.6)],
+  ['lb-mont-refluxo', 'Montagem: refluxo', 120, 240, '<rect x="20" y="190" width="80" height="44" rx="6"/>' + fino('M26 190 Q60 232 94 190', 1.6)
+    + '<path d="M54 150 V175 A26 26 0 1 0 66 175 V150"/>' + liq(36, 84, 196)
+    + '<path d="M56 18 V150 M64 18 V150"/><rect x="46" y="40" width="28" height="96" rx="6"/><path d="M74 124 H92 M46 52 H28"/>'
+    + head(76, 124, 180, 7) + head(24, 52, 180, 7) + T(104, 124, 'água', 9) + T(20, 40, 'água', 9)],
+  ['lb-mont-extracao', 'Montagem: extração (funil de separação)', 140, 220, '<rect x="8" y="206" width="124" height="8" rx="2"/><rect x="16" y="8" width="7" height="198" rx="2"/>'
+    + fino('M23 70 H44', 2.2) + '<ellipse cx="70" cy="70" rx="26" ry="5" stroke-width="2"/>'
+    + '<rect x="64" y="10" width="12" height="8" rx="2"/><path d="M65 18 V26 C42 42 40 70 66 100 V112 M75 18 V26 C98 42 100 70 74 100 V112"/><circle cx="70" cy="116" r="4"/>'
+    + fino('M58 116 H82', 1.8) + '<path d="M67 120 V146 L70 152 M73 120 V146 L70 152"/>' + liq(49, 91, 50) + liq(52, 88, 76)
+    + '<path d="M44 150 V198 Q44 202 48 202 H92 Q96 202 96 198 V150"/>' + liq(46, 94, 184)],
+  ['lb-mont-filt-simples', 'Montagem: filtração simples', 140, 200, '<rect x="8" y="186" width="124" height="8" rx="2"/><rect x="16" y="8" width="7" height="178" rx="2"/>'
+    + fino('M23 40 H46', 2.2) + '<ellipse cx="76" cy="40" rx="30" ry="5" stroke-width="2"/>'
+    + '<path d="M44 30 L72 78 V118 L76 124 L80 118 V78 L108 30"/><path d="M52 36 L76 72 L100 36" stroke-width="1.4" stroke-dasharray="4 3"/>'
+    + '<path d="M50 116 V178 Q50 182 54 182 H100 Q104 182 104 178 V116"/>' + liq(52, 102, 164) + fino('M100 4 L80 40', 3)],
+  ['lb-soxhlet', 'Extrator Soxhlet', 120, 252, '<path d="M56 4 V64 M64 4 V64"/><rect x="46" y="10" width="28" height="46" rx="6"/><path d="M74 48 H90 M46 18 H30"/>'
+    + '<path d="M44 64 H76 M44 64 V150 Q44 160 54 162 V172 M76 64 V150 Q76 160 66 162 V172"/>'
+    + '<rect x="50" y="78" width="20" height="62" rx="3" stroke-width="1.6" stroke-dasharray="4 3"/>'
+    + fino('M76 154 H88 V100 Q88 92 93 92 Q98 92 98 100 V176 H66', 1.6)
+    + '<path d="M44 72 H28 V176 H54 M44 80 H36 V168 H54"/><path d="M54 172 V196 A26 26 0 1 0 66 196 V172"/>' + liq(38, 82, 230) + liq(46, 74, 118)],
+  ['lb-mont-membrana', 'Filtração em membrana (coliformes)', 140, 176, '<path d="M36 10 V80 M104 10 V80 M32 10 H40 M100 10 H108"/>' + grad(104, 20, 70, 10, -5, -8) + liq(38, 102, 34)
+    + '<rect x="30" y="80" width="80" height="12" rx="2"/><path d="M34 86 H106" stroke-width="2" stroke-dasharray="3 3"/>'
+    + '<path d="M40 92 L60 112 V140 M100 92 L80 112 V140"/><rect x="8" y="140" width="124" height="14" rx="7"/>' + T(70, 166, 'para o vácuo →', 9)],
+];
+
+const EQUIP2 = [
+  ['lb-oxitop', 'Respirômetro de DBO (OxiTop)', 80, 150, '<rect x="22" y="10" width="36" height="30" rx="4"/><rect x="28" y="16" width="24" height="12" rx="1" stroke-width="1.4"/>' + T(40, 22, 'hPa', 7)
+    + '<path d="M14 70 Q14 56 28 52 V40 M52 40 V52 Q66 56 66 70 V138 Q66 144 60 144 H20 Q14 144 14 138 V70"/>'
+    + '<path d="M34 52 V64 Q34 68 40 68 Q46 68 46 64 V52" stroke-width="1.4"/>' + liq(16, 64, 96) + '<rect x="32" y="134" width="16" height="5" rx="2" fill="#C" stroke="none"/>' + dot(32, 33, 1.8) + dot(48, 33, 1.8)],
+  ['lb-bloco-dqo', 'Bloco digestor (DQO)', 160, 110, '<rect x="10" y="50" width="140" height="52" rx="4"/>'
+    + serie(6, i => { const x = 30 + 20 * i; return `<rect x="${x - 6}" y="12" width="12" height="9" rx="2"/><path d="M${x - 5} 21 V50 M${x + 5} 21 V50"/>`; })
+    + '<rect x="18" y="64" width="46" height="18" rx="2" stroke-width="1.6"/>' + T(41, 73, '150 °C', 9) + T(96, 74, 'DQO', 12) + '<circle cx="132" cy="76" r="8"/>'],
+  ['lb-vortex', 'Agitador de tubos (vórtex)', 90, 120, '<path d="M14 112 L22 72 H68 L76 112 Z"/><ellipse cx="45" cy="68" rx="18" ry="5"/><path d="M36 8 H54 M38 8 V56 A7 7 0 0 0 52 56 V8"/>'
+    + liq(39, 51, 40) + fino('M40 46 Q45 54 50 46', 1.2) + fino('M22 54 Q17 60 22 66 M68 54 Q73 60 68 66', 1.4) + '<circle cx="45" cy="94" r="6"/>'],
+  ['lb-shaker', 'Mesa agitadora orbital', 200, 110, '<rect x="10" y="70" width="180" height="34" rx="5"/>' + fino('M14 64 H186', 3)
+    + [50, 100, 150].map(c => `<path d="M${c - 6} 18 V30 L${c - 22} 58 Q${c - 23} 62 ${c - 19} 62 H${c + 19} Q${c + 23} 62 ${c + 22} 58 L${c + 6} 30 V18"/>` + liq(c - 17, c + 17, 50)).join('')
+    + '<rect x="24" y="78" width="40" height="16" rx="2" stroke-width="1.6"/>' + T(44, 86, 'rpm', 9) + '<circle cx="166" cy="87" r="7"/>' + fino('M92 92 A14 5 0 1 1 108 92', 1.4) + head(111, 89, 40, 6)],
+  ['lb-ultrassom', 'Banho ultrassônico', 150, 100, '<rect x="8" y="20" width="134" height="74" rx="4"/>' + liq(10, 140, 32) + fino('M8 66 H142', 1.6)
+    + '<rect x="16" y="72" width="44" height="14" rx="2" stroke-width="1.6"/>' + T(38, 79, '40 kHz', 8) + '<circle cx="126" cy="79" r="6"/>'
+    + fino('M63 64 A12 12 0 0 1 87 64 M55 64 A20 20 0 0 1 95 64 M47 64 A28 28 0 0 1 103 64', 1.3)],
+  ['lb-peristaltica', 'Bomba peristáltica', 140, 110, '<rect x="8" y="16" width="124" height="86" rx="6"/><circle cx="56" cy="58" r="32"/>'
+    + '<g stroke-width="1.8"><circle cx="56" cy="40" r="6"/><circle cx="71.6" cy="67" r="6"/><circle cx="40.4" cy="67" r="6"/></g>' + dot(56, 58, 3)
+    + '<path d="M2 96 H30 V58 A26 26 0 0 1 82 58 V96 H138" stroke-width="3.5"/>' + '<rect x="96" y="28" width="30" height="16" rx="2" stroke-width="1.6"/>' + T(111, 36, 'rpm', 8)],
+  ['lb-cromatografo', 'Cromatógrafo a gás', 240, 150, '<rect x="10" y="40" width="130" height="100" rx="4"/><rect x="20" y="56" width="80" height="74" rx="3"/>'
+    + '<g stroke-width="1.4"><circle cx="60" cy="93" r="24"/><circle cx="60" cy="93" r="18"/><circle cx="60" cy="93" r="12"/></g>'
+    + '<rect x="30" y="26" width="14" height="14"/>' + fino('M37 26 V16', 2) + '<rect x="110" y="26" width="20" height="14"/>'
+    + '<rect x="108" y="60" width="26" height="30" rx="2" stroke-width="1.6"/>' + T(121, 118, 'CG', 12)
+    + '<rect x="156" y="40" width="76" height="56" rx="3"/>' + fino('M162 88 H176 L180 60 L184 88 H196 L199 70 L202 88 H214 L217 52 L220 88 H228', 1.4)
+    + '<path d="M194 96 V110 M178 112 H210"/>' + fino('M140 70 H156', 1.4)],
+  ['lb-absorcao-atomica', 'Absorção atômica (esquema)', 250, 112, '<rect x="6" y="40" width="40" height="30" rx="12"/>'
+    + '<path d="M46 55 H140 M180 55 H187" stroke-width="1.6" stroke-dasharray="6 4"/>' + head(196, 55, 0, 9)
+    + '<rect x="76" y="70" width="40" height="8" rx="2"/><path d="M82 70 Q84 50 96 32 Q108 50 110 70"/>'
+    + '<rect x="140" y="36" width="40" height="38" rx="2"/>' + fino('M150 66 L160 44 L170 66 Z', 1.4) + '<rect x="196" y="40" width="30" height="30" rx="2"/>' + T(211, 55, 'D', 12)
+    + T(26, 90, 'lâmpada', 9) + T(96, 90, 'chama', 9) + T(160, 102, 'monocromador', 9) + T(211, 90, 'detector', 9)],
+  ['lb-fluxo-laminar', 'Cabine de fluxo laminar', 150, 170, '<rect x="10" y="10" width="130" height="120" rx="3"/><rect x="18" y="18" width="114" height="16" rx="1"/>' + T(75, 26, 'HEPA', 9)
+    + [45, 75, 105].map(x => fino(`M${x} 40 V66`, 1.6) + head(x, 74, 90, 7)).join('') + fino('M10 100 H140', 2)
+    + '<path d="M24 130 V164 M126 130 V164 M16 164 H34 M118 164 H136"/>'],
+  ['lb-rotaevaporador', 'Rotaevaporador', 220, 170, '<rect x="186" y="20" width="8" height="136" rx="2"/><rect x="170" y="156" width="44" height="8" rx="2"/>'
+    + '<rect x="124" y="52" width="44" height="24" rx="4"/>' + fino('M168 64 H186', 2.2)
+    + '<rect x="134" y="4" width="24" height="48" rx="5"/>' + fino('M146 8 l-6 5 l12 6 l-12 6 l12 6 l-12 6 l12 6 l-6 4', 1.4)
+    + '<g transform="translate(130 72) rotate(135)"><path d="M0 -5 H44 M0 5 H44"/><circle cx="64" cy="0" r="20"/></g>'
+    + '<path d="M40 118 V152 Q40 158 46 158 H124 Q130 158 130 152 V118"/>' + liq(42, 128, 128)
+    + '<path d="M142 76 V86 M150 76 V86"/><circle cx="146" cy="102" r="16"/>' + liq(132, 160, 108)],
+  ['lb-balanca-semi', 'Balança semianalítica', 130, 80, '<ellipse cx="65" cy="30" rx="44" ry="6"/><path d="M65 36 V44 M6 44 H124 V70 Q124 76 118 76 H12 Q6 76 6 70 Z"/>'
+    + '<rect x="16" y="52" width="52" height="16" rx="2" stroke-width="1.6"/>' + T(42, 60, '0,00 g', 9) + '<circle cx="90" cy="60" r="4"/><circle cx="106" cy="60" r="4"/>'],
+  ['lb-comparador-cloro', 'Comparador de cloro (disco)', 140, 110, '<rect x="28" y="6" width="14" height="34" rx="2"/><rect x="98" y="6" width="14" height="34" rx="2"/>'
+    + '<rect x="10" y="30" width="120" height="74" rx="6"/><circle cx="70" cy="68" r="30"/>'
+    + fino(serie(8, i => { const a = i * Math.PI / 4; return `M${(70 + 14 * Math.cos(a)).toFixed(1)} ${(68 + 14 * Math.sin(a)).toFixed(1)} L${(70 + 30 * Math.cos(a)).toFixed(1)} ${(68 + 30 * Math.sin(a)).toFixed(1)}`; }), 1.3)
+    + T(70, 68, 'Cl₂', 11) + liq(30, 40, 16) + liq(100, 110, 16)],
+  ['lb-cabine-uv', 'Lâmpada UV (Colilert)', 140, 110, T(70, 14, 'UV 365 nm', 11) + '<rect x="10" y="28" width="120" height="76" rx="4"/><rect x="24" y="36" width="92" height="10" rx="5"/>'
+    + '<path d="M40 50 L34 72 M60 50 V72 M80 50 V72 M100 50 L106 72" stroke-width="1.4" stroke-dasharray="4 3"/>'
+    + '<rect x="36" y="80" width="68" height="16" rx="2"/>' + fino('M53 80 V96 M70 80 V96 M87 80 V96', 1.2)],
+];
+
+const CAMPO2 = [
+  ['lb-amostrador', 'Amostrador automático (composto)', 120, 170, '<rect x="14" y="10" width="82" height="40" rx="6"/><rect x="24" y="20" width="36" height="16" rx="2" stroke-width="1.6"/>'
+    + T(42, 28, '24 h', 9) + '<circle cx="78" cy="28" r="6"/><rect x="14" y="50" width="82" height="110" rx="6"/>'
+    + garrafinha(28, 150) + garrafinha(46, 150) + garrafinha(64, 150) + garrafinha(82, 150)
+    + '<path d="M96 30 Q108 30 108 60 V156" stroke-width="2"/><rect x="104" y="156" width="8" height="10" rx="1" stroke-width="1.6"/>'],
+  ['lb-draga', 'Draga de Petersen', 120, 140, fino('M60 4 V40', 1.6) + '<path d="M60 40 L30 70 M60 40 L90 70"/><circle cx="60" cy="70" r="4"/>'
+    + '<path d="M58 70 H14 V96 Q14 132 58 132 Z M62 70 H106 V96 Q106 132 62 132 Z"/>'],
+  ['lb-rede-plancton', 'Rede de plâncton', 100, 180, fino('M50 4 V22', 1.6) + '<path d="M50 22 L22 40 M50 22 L78 40"/><ellipse cx="50" cy="42" rx="30" ry="6"/><path d="M20 42 L44 150 M80 42 L56 150"/>'
+    + fino('M24 60 L62.7 120 M76 60 L37.3 120 M30.7 90 L58.2 140 M69.3 90 L41.8 140', 1.1) + '<rect x="43" y="150" width="14" height="22" rx="3"/>'],
+  ['lb-molinete', 'Molinete hidrométrico', 180, 100, fino('M110 4 V96', 2) + '<path d="M60 50 Q60 40 80 40 H140 Q160 44 170 50 Q160 56 140 60 H80 Q60 60 60 50 Z"/>'
+    + '<path d="M58 50 L42 28 Q36 30 44 46 M58 50 L42 72 Q36 70 44 54"/><circle cx="58" cy="50" r="4"/><path d="M150 46 L164 30 M150 54 L164 70"/>'
+    + fino('M4 20 Q14 14 24 20 T44 20 T64 20 T84 20 T104 20', 1.4) + fino('M6 84 H30', 1.6) + head(38, 84, 0, 8)],
+];
+
+const SEG2 = [
+  ['lb-respirador', 'Respirador (PFF2)', 120, 100, '<path d="M20 40 Q60 10 100 40 Q104 76 60 92 Q16 76 20 40 Z"/><circle cx="60" cy="62" r="10"/>' + fino('M54 62 H66 M60 56 V68', 1.4)
+    + '<path d="M20 44 L4 36 M100 44 L116 36 M22 62 L4 70 M98 62 L116 70" stroke-width="1.8"/>' + fino('M48 30 Q60 25 72 30', 2.4)],
+  ['lb-perfurocortante', 'Coletor de perfurocortante', 100, 130, '<path d="M18 40 H82 L76 124 H24 Z M14 40 L22 24 H78 L86 40"/>' + fino('M38 32 H62', 3) + T(50, 76, 'PERFURO-', 9) + T(50, 88, 'CORTANTE', 9)],
+];
+
+const GHS2 = [
+  ['lb-ghs-explosivo', 'GHS explosivo', 100, 100, DIA + '<circle cx="50" cy="58" r="9" fill="#C"/>'
+    + '<path d="M50 44 V30 M60 48 L70 36 M40 48 L30 36 M64 58 H76 M36 58 H24 M60 68 L66 74 M40 68 L34 74" stroke-width="3"/>' + dot(66, 28, 2.5) + dot(34, 28, 2.5)],
+  ['lb-ghs-oxidante', 'GHS oxidante (comburente)', 100, 100, DIA + '<path d="M50 22 C62 34 62 46 56 52 C54 48 46 48 44 52 C38 46 38 34 50 22 Z" fill="#C"/>'
+    + '<circle cx="50" cy="63" r="9" stroke-width="3.5"/><rect x="36" y="75" width="28" height="3.5" fill="#C" stroke="none"/>'],
+  ['lb-ghs-gas', 'GHS gás sob pressão', 100, 100, DIA + '<rect x="24" y="46" width="44" height="20" rx="10" fill="#C"/><rect x="68" y="51" width="6" height="10" fill="#C" stroke="none"/><path d="M74 56 H80" stroke-width="3"/>'],
+  ['lb-ghs-saude', 'GHS perigo à saúde', 100, 100, DIA + '<circle cx="50" cy="28" r="7" fill="#C"/><path d="M33 76 V52 Q33 40 50 40 Q67 40 67 52 V76 Z" stroke-width="3"/>'
+    + `<path d="${estrela(50, 58, 10, 4, 8)}" fill="#C" stroke="none"/>`],
+  ['lb-nfpa', 'Diamante de Hommel (NFPA 704)', 120, 120, '<path d="M60 4 L116 60 L60 116 L4 60 Z" stroke-width="3"/>' + fino('M32 32 L88 88 M88 32 L32 88', 2)
+    + T(60, 34, '3', 20) + T(34, 60, '2', 20) + T(86, 60, '0', 20) + T(60, 87, 'W', 15) + fino('M50 87 H70', 1.6)],
+];
+
 
 export default {
   id: 'lab', nome: 'Laboratório',
@@ -92,6 +249,7 @@ export default {
         + '<path d="M28,24 L31,8 H39 L42,24 M22,27 Q19,20 27,17 M48,27 Q51,20 43,17"/>' + T(35, 80, 'DBO', 13)],
       ['lb-cubeta', 'Cubeta', 50, 100, '<rect x="12" y="6" width="26" height="88" rx="2"/><path d="M12,16 H38" stroke-width="1.6"/>' + liq(14, 36, 34)
         + fino('M16,40 V88 M34,40 V88', 1.2)],
+      ...VIDR2,
     ]],
     ['Suportes e aquecimento', [
       ['lb-suporte-universal', 'Suporte universal com garra', 140, 180, '<rect x="6" y="164" width="128" height="12" rx="3"/><rect x="26" y="8" width="8" height="156" rx="2"/>'
@@ -118,6 +276,7 @@ export default {
       ['lb-pinca', 'Pinça', 160, 50, '<path d="M6,25 C30,18 110,6 144,6 L154,20 M6,25 C30,32 110,44 144,44 L154,30"/>' + fino('M70,12 l2,6 M80,11 l2,6 M90,10 l2,6 M70,38 l2,-6 M80,39 l2,-6 M90,40 l2,-6', 1.3)],
       ['lb-espatula', 'Espátula', 170, 30, '<rect x="6" y="9" width="64" height="12" rx="5"/><path d="M70,12 H140 Q162,7 164,15 Q162,23 140,18 H70"/>'],
     ]],
+    ['Montagens clássicas', MONTAGENS],
     ['Equipamentos', [
       ['lb-balanca', 'Balança analítica', 140, 130, '<rect x="16" y="10" width="108" height="90" rx="3"/>' + fino('M70,10 V100', 1.4) + fino('M26,22 L40,36 M30,40 L48,22 M96,22 L110,36', 1.2)
         + '<path d="M44,86 H96 M70,86 V100"/><rect x="6" y="100" width="128" height="24" rx="4"/><rect x="38" y="105" width="64" height="14" rx="2" stroke-width="1.6"/>' + T(70, 112, '0,0000 g', 10)],
@@ -173,6 +332,7 @@ export default {
       ['lb-contador-colonias', 'Contador de colônias', 140, 110, '<path d="M8,70 H132 L124,104 H16 Z"/><ellipse cx="66" cy="60" rx="44" ry="11"/>'
         + dot(48, 58, 2) + dot(60, 63, 2) + dot(74, 56, 2) + dot(84, 62, 2) + dot(56, 54, 2) + dot(70, 66, 2)
         + '<path d="M120,70 V22 H96"/><ellipse cx="70" cy="22" rx="26" ry="8"/><rect x="88" y="80" width="30" height="16" rx="2" stroke-width="1.6"/>' + T(103, 88, '123', 10)],
+      ...EQUIP2,
     ]],
     ['Amostragem e campo', [
       ['lb-van-dorn', 'Garrafa de Van Dorn', 80, 170, '<path d="M40,2 V30"/><rect x="34" y="12" width="12" height="10" rx="1" fill="#C" stroke="none"/>'
@@ -191,6 +351,7 @@ export default {
         + T(31, 26, 'pH 7,1', 8) + T(31, 38, 'OD 6,8', 8) + T(31, 50, 'T 25°', 8) + dot(20, 74) + dot(31, 74) + dot(42, 74)
         + '<path d="M31,90 Q31,110 50,110 Q70,110 70,60 Q70,30 92,30 V40" stroke-width="1.8"/>'
         + '<rect x="82" y="40" width="20" height="92" rx="4"/><rect x="80" y="132" width="24" height="32" rx="2"/>' + fino('M86,136 V160 M92,136 V160 M98,136 V160', 1.4)],
+      ...CAMPO2,
     ]],
     ['Segurança (EPI e emergência)', [
       ['lb-oculos', 'Óculos de proteção', 140, 60, '<path d="M14,20 Q14,10 26,10 H114 Q126,10 126,20 V38 Q126,50 114,50 H88 Q80,50 76,42 Q70,34 64,42 Q60,50 52,50 H26 Q14,50 14,38 Z"/>'
@@ -206,6 +367,7 @@ export default {
       ['lb-extintor', 'Extintor', 80, 150, '<path d="M18,40 Q18,30 34,28 H46 Q62,30 62,40 V138 Q62,144 56,144 H24 Q18,144 18,138 Z"/><rect x="33" y="16" width="14" height="12" rx="1"/>'
         + '<path d="M33,20 H22 M40,16 L60,8 M47,22 Q72,24 72,60 V96"/><rect x="68" y="96" width="8" height="14" rx="1"/>'
         + '<rect x="22" y="70" width="36" height="30" rx="1" stroke-width="1.6"/>' + T(40, 85, 'PQS', 11)],
+      ...SEG2,
     ]],
     ['Pictogramas GHS', [
       ['lb-ghs-inflamavel', 'GHS inflamável', 100, 100, DIA + '<path d="M50,22 C66,38 66,58 60,66 Q56,70 50,70 Q42,70 39,64 C34,54 40,46 44,40 C44,48 47,52 50,52 C48,42 50,32 50,22 Z" fill="#C"/>'
@@ -218,6 +380,7 @@ export default {
       ['lb-ghs-ambiente', 'GHS perigo ao meio ambiente', 100, 100, DIA + '<path d="M36,72 V36 M36,48 L28,38 M36,54 L44,44 M36,42 L32,32"/><path d="M24,72 H76"/>'
         + '<ellipse cx="58" cy="64" rx="10" ry="5" fill="#C"/><path d="M68,64 L76,58 V70 Z" fill="#C"/>'],
       ['lb-ghs-irritante', 'GHS irritante (!)', 100, 100, DIA + '<path d="M45,26 H55 L53,60 H47 Z" fill="#C"/>' + dot(50, 70, 4.5)],
+      ...GHS2,
     ]],
   ],
 };

@@ -31,21 +31,23 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 ## 4. Na aula
 | Quero… | Como |
 |---|---|
-| Escrever | canetas no topo (teclas `1`–`4`); clique de novo na caneta para cor, espessura e estilo (tinteiro, caligrafia, pincel) |
+| Escrever | canetas no topo (teclas `1`–`4`); toque de novo na caneta para cor, espessura, estilo (tinteiro, caligrafia, pincel), ponteiro da tela e **Restaurar padrão** |
 | Marcar | marca-texto (`H`) · ponteiro laser (`K`) |
-| Apagar | botão lateral da caneta ou `E`; clique de novo na borracha para escolher entre "traço inteiro" e "só onde passar" |
-| Selecionar, mover, girar | laço (`L`) ou seleção (`V`); alça redonda de cima = girar |
+| Apagar | botão lateral da caneta ou `E`; toque de novo na borracha para o **tamanho** (P, M, G, GG) e para "traço inteiro" ou "só onde passar" |
+| Selecionar, mover, girar | laço (`L`) ou seleção (`V`); alça redonda de cima = girar; canto de baixo = tamanho |
+| Agrupar | selecione vários e `Ctrl+G` (ou o botão na barra da seleção); `Ctrl+Shift+G` desagrupa |
 | Mover o quadro / zoom | `Espaço` + arrastar, ou dois dedos · `Ctrl` + roda · `Ctrl+0` ajusta à tela |
 | Trocar a folha | botão **Folha** na bandeja: quadriculada, milimetrada, pautada, caderno, caligrafia, isométrica, hexagonal, plano cartesiano, polar, pauta musical, Cornell… |
-| Lousa verde | botão Folha → cor verde (a tinta preta aparece branca) |
+| Lousa verde | botão Folha → cor "Lousa verde" (a tinta preta aparece branca; sobre página de PDF continua preta). Trocar a folha também se desfaz com `Ctrl+Z` |
 | Letra mais bonita | botão ✦: Suave / Moderado / Forte; ajusta cada palavra assim que você passa para a próxima |
-| Escrita → texto | laço na escrita → botão **T** ("Converter em texto"); escolha uma fonte cursiva |
-| Ferramentas | botão **Ferramentas**: lupa de escrita, transferidor, compasso, cortina, holofote, cronômetro, fórmula LaTeX, tabela periódica, vidrarias |
-| Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… (troca a folha para plano cartesiano se precisar) |
+| Escrita → texto | laço na escrita → botão "Converter escrita em texto"; escolha uma fonte cursiva |
+| Ferramentas | botão **Ferramentas** (esquadro e lápis): lupa de escrita, transferidor (a caneta corre presa ao arco e à base), compasso, cortina, holofote, cronômetro (dá para digitar o tempo: 7, 7,5 ou 7:30), relógio, fórmula LaTeX, tabela periódica, vidrarias. Marque "Mostrar todas abertas numa barra" para tê-las sempre à vista |
+| Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… ou escolha um **modelo por área** (Chick, DBO, Streeter-Phelps, senoide, RC, normal…) e ajuste os parâmetros. A curva sai com os eixos desenhados (dá para apagar ou mover). Escolha um parâmetro em "Animar" para vê-lo variar; "Fixar esta curva" grava o instante |
 | Texto, nota, forma, imagem | coluna à esquerda (ou cole uma imagem com `Ctrl+V`) |
-| Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas |
-| Apresentar | botão **Apresentar**: setas ou passador mudam de slide; `B` = página em branco; `Esc` sai |
-| Esconder as barras | `Tab` (modo aula) |
+| Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas. Em "ver todas", marque várias miniaturas e toque em **Excluir** (ex.: tirar 2 páginas de um PDF) |
+| Apresentar | botão **Apresentar**: setas ou passador mudam de slide; `B` = página em branco; `Esc` sai. Na mini-bandeja: cor e espessura, "tinta vira forma" (desligado = desenho livre) e lupa |
+| Esconder as barras | `Tab` (modo aula); para voltar, `Tab` de novo ou o botão **Mostrar barras** no canto de baixo |
+| Limpar o quadro | lixeira da barra de cima ou menu `…`: pergunta se apaga só o que foi escrito ou tudo, inclusive PDF |
 | PDF, imprimir, imagem | menu `…` → Exportar PDF / Imprimir / Exportar imagem |
 | Desfazer / refazer | `Ctrl+Z` / `Ctrl+Y` (o aviso de desfazer também tem **Refazer**) |
 | Salvar | automático |
