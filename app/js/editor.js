@@ -25,10 +25,11 @@ const { PAPERS, ANCHORED, SIZE: PAPER_SIZE, CELL } = PAPER;
 import { compile as compileFn, plotStrokes, fitFrame, faixaY, axesStrokes, animatedCurve, drawPolylines, fmtNum } from './plot.js';
 import { AREAS as FN_AREAS, modelo as fnModelo, valoresPadrao } from './fnmodels.js';
 import * as PG from './pages.js';
-import { slidesFromFile, slideItems, uploadAsset } from './importer.js';
-import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk } from './tools.js';
-import { LIBRARY, svgDataUrl } from './library.js';
-import { initBars, placeAll as placeBars, lockBars, resetBars, resetBar } from './bars.js';
+import { paginasEscolhidas, slideItems, uploadAsset } from './importer.js';
+import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk, draggable } from './tools.js';
+import { svgDataUrl } from './library.js';
+import { ESPECIAIS } from './especiais.js';   // elementos didáticos coloridos (menu Formas → Especiais)
+import { initBars, placeAll as placeBars, resetBars, resetBar } from './bars.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
 import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas } from './disciplinas.js';
 
@@ -86,9 +87,11 @@ function loadCfg() {
     const tablet = { ...DEFAULT_TABLET, ...(c.tablet || {}) };
     // 1.0.2: embelezar automático volta a desligado uma vez (o professor liga se quiser; o botão da seleção continua)
     if ((c.migr || 0) < 2) tablet.beautify = false;
+    // 1.2.2: barra do professor aberta à direita, com o nome embaixo de cada ícone (uma vez; depois vale a escolha)
+    if ((c.migr || 0) < 3) { c.teachBar = true; c.teachSide = 'dir'; c.teachNames = true; }
     return { ...c, tools: { ...structuredClone(DEFAULT_TOOLS), ...(c.tools || {}) }, tool: c.tool, inkShape: !!c.inkShape,
-      shapeFill: !!c.shapeFill, tablet, migr: 2 };
-  } catch { return { tools: structuredClone(DEFAULT_TOOLS), inkShape: false, tablet: { ...DEFAULT_TABLET } }; }
+      shapeFill: !!c.shapeFill, tablet, migr: 3 };
+  } catch { return { tools: structuredClone(DEFAULT_TOOLS), inkShape: false, tablet: { ...DEFAULT_TABLET }, teachBar: true, teachSide: 'dir', teachNames: true, migr: 3 }; }
 }
 function saveCfg() {
   try { localStorage.setItem('lousa.cfg', JSON.stringify({ ...cfg, tool })); } catch {}
@@ -130,7 +133,6 @@ export function initEditor() {
   $('bBack').onclick = async () => { await flush(); onBack(); };
   $('bUndo').onclick = undo;
   $('bRedo').onclick = redo;
-  $('bClear').onclick = clearBoard;
   $('bFull').onclick = toggleFullscreen;
   $('bShowBars').onclick = () => setClean(false);
   $('bMenu').onclick = () => openMenu($('bMenu'));
@@ -162,7 +164,7 @@ export function initEditor() {
   ov.addEventListener('drop', async e => {
     e.preventDefault();
     const todos = [...e.dataTransfer.files];
-    const doc = todos.find(f => /\.(pdf|pptx?|ppsx)$/i.test(f.name));   // PDF/PowerPoint arrastado vira páginas
+    const doc = todos.find(f => /\.(pdf|pptx?|ppsx?|pps|potx|odp|otp|key)$/i.test(f.name));   // PDF/apresentação arrastado vira páginas
     if (doc) return importSlidesIntoBoard(doc);
     const files = todos.filter(f => f.type.startsWith('image/'));
     if (files.length) await insertFiles(files, toWorld(e.clientX, e.clientY));
@@ -189,7 +191,7 @@ export function openBoard(id, board, back) {
   dirtyVer = pending?.ver || 0; savedVer = pending ? -1 : 0;
   if (pending) pending.state = S;
   undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null;
-  stopPlotAnim();
+  stopPlotAnim(); spotOff();
   $('bTitle').value = board.title === 'Sem título' ? '' : board.title;
   $('bTitle').title = board.title;
   $('bStatus').textContent = pending ? (pending.conflict ? 'Conflito de edição — exporte como .lousa' : 'Alterações ainda não salvas') : '';
@@ -247,6 +249,9 @@ function frame() {
   needStatic = needOverlay = false;
   if (laser.length) requestRender(false);
   if (beautyAnim) requestRender();
+  // animação de função tocando: pede o próximo quadro aqui (o pedido feito durante o desenho era zerado acima,
+  // e a curva só andava quando o mouse provocava outro desenho)
+  if (plotAnim && plotAnim.tPausa == null && plotAnim.manual == null) requestRender(false);
 }
 
 function previewItem(it) {
@@ -262,6 +267,8 @@ const endsAt = (pc, pts) => pc[pc.length - 3] === pts[pts.length - 3] && pc[pc.l
 const pieceCache = new WeakMap(); // pedaço da borracha parcial → item estável (o contorno fica em cache no render)
 function drawStatic(clip) {
   const v = S.view;
+  // lousa escura (verde, preta…): barras em grafite para não ofuscar no projetor
+  $('board').classList.toggle('fundo-escuro', R.isDark(S.board.background.color));
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (clip) {
@@ -679,9 +686,12 @@ function shapesPop(anchor) {
   const groupHtml = id => {
     const g = SHAPE_GROUPS.find(x => x.id === id);
     const mais = (g.destaques || []).map(shapeById).filter(Boolean);   // "Mais usadas" no topo da aba
+    const esp = ESPECIAIS.filter(e => e.grupo === id);
     return (mais.length ? `<div class="shp-sec shp-mais">⚑ Mais usadas</div>${mais.map(f => cell(f)).join('')}` : '')
+      + (esp.length ? `<div class="shp-sec">Especiais (coloridos)</div>${esp.map(e => espCell(e)).join('')}` : '')
       + g.secoes.map(([n, list]) => `<div class="shp-sec">${esc(n)}</div>${list.map(f => cell(f)).join('')}`).join('');
   };
+  const espCell = (e, g) => `<button class="libitem shp" data-esp="${e.id}" title="${esc(e.nome)}"><img src="${svgDataUrl(e.make().svg)}" alt=""><span>${esc(e.nome)}${g ? `<small>${esc(g)}</small>` : ''}</span></button>`;
   const cell = ([id, n], g) => `<button class="libitem shp" data-lib="${id}" title="${esc(n)}${g ? ' (' + esc(g) + ')' : ''}"><img src="${svgDataUrl(shapeSvg(id, '#323130').svg)}" alt=""><span>${esc(n)}${g ? `<small>${esc(g)}</small>` : ''}</span></button>`;
   showPop(anchor, `<button class="btn shp-amplia" id="sBig" title="${cfg.shapesBig ? 'Voltar ao tamanho normal' : 'Ver mais formas de uma vez'}">${cfg.shapesBig ? '⤡ Reduzir' : '⤢ Ampliar'}</button><h4>Desenhar — arraste no quadro</h4><div class="shapes">${DRAW_KINDS.map(([k, n]) => `<button class="ib lbl${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}<small>${n}</small></button>`).join('')}</div>
     <label class="row"><input type="checkbox" id="sFill" ${cfg.shapeFill ? 'checked' : ''}> Preenchida (cor clara)</label>
@@ -691,7 +701,7 @@ function shapesPop(anchor) {
     <div class="shp-abas"><div class="shp-niveis">
         <div class="seg shp-areas" id="sAreas"></div>
         <div class="seg shp-tabs" id="sTabs"></div></div>
-      <button class="btn shp-disc" id="sDisc" title="Escolher quais disciplinas aparecem aqui (todas continuam na busca)">Disciplinas…</button></div>
+      <button class="btn shp-disc" id="sDisc" title="Escolher quais áreas aparecem aqui (todas continuam na busca)">Áreas…</button></div>
     <div class="libgrid shp-grid" id="sGrid"></div>`,
     p => {
       p.classList.toggle('shp-big', !!cfg.shapesBig);
@@ -704,7 +714,10 @@ function shapesPop(anchor) {
         p.querySelectorAll('[data-sc]').forEach(y => y.classList.toggle('on', y === x));
       });
       const grid = p.querySelector('#sGrid');
-      const bind = () => grid.querySelectorAll('[data-lib]').forEach(b => b.onclick = () => { hidePop(); insertLibShape(b.dataset.lib); });
+      const bind = () => {
+        grid.querySelectorAll('[data-lib]').forEach(b => b.onclick = () => { hidePop(); insertLibShape(b.dataset.lib); });
+        grid.querySelectorAll('[data-esp]').forEach(b => b.onclick = () => { hidePop(); insertEspecial(b.dataset.esp); });
+      };
       // dois níveis: áreas (só com mais de 8 disciplinas visíveis) e, embaixo, as disciplinas da área; "↺ Recentes" primeiro
       const areas = areasVisiveis(), usaAreas = grupos.length > 8;
       const areaDe = id => areas.find(([, gs]) => gs.some(g => g.id === id))?.[0];
@@ -751,7 +764,9 @@ function shapesPop(anchor) {
         if (!q) return mostra(cfg.shapeTab === RECENTES ? RECENTES : (grupos.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : tab));
         p.querySelectorAll('[data-tab]').forEach(y => y.classList.remove('on'));
         const hits = ALL_SHAPES.filter(s => plain(s[1]).includes(q));
-        grid.innerHTML = hits.length ? `<div class="shp-sec">${hits.length} forma${hits.length > 1 ? 's' : ''}</div>` + hits.map(f => cell(f, SHAPE_GROUP_OF.get(f[0]))).join('')
+        const esp = ESPECIAIS.filter(e => plain(e.nome).includes(q)), n = hits.length + esp.length;
+        grid.innerHTML = n ? `<div class="shp-sec">${n} forma${n > 1 ? 's' : ''}</div>`
+          + esp.map(e => espCell(e, SHAPE_GROUPS.find(g => g.id === e.grupo)?.nome)).join('') + hits.map(f => cell(f, SHAPE_GROUP_OF.get(f[0]))).join('')
           : '<p class="muted">Nenhuma forma com esse nome.</p>'; bind();
       };
       find.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') hidePop(); });
@@ -784,6 +799,17 @@ async function clearBoard() {
   toast('Quadro limpo. Ctrl+Z desfaz.');
 }
 
+// item especial (colorido, com fundo próprio): entra no centro da tela, no máximo 70% dela
+function insertEspecial(id) {
+  const e = ESPECIAIS.find(x => x.id === id);
+  if (!e) return;
+  const { svg, w, h } = e.make();
+  const z = S.view.zoom, k = Math.min(1, (W * 0.7) / w, (H * 0.7) / h) / z, c = toWorld(W / 2, H / 2);
+  const it = { id: newId(), type: 'image', src: svgDataUrl(svg), x: c.x - w * k / 2, y: c.y - h * k / 2, w: w * k, h: h * k };
+  commit([...S.items, it]);
+  sel = new Set([it.id]);
+  setTool('select');
+}
 function insertLibShape(id) {
   cfg.recentShapes = [id, ...(cfg.recentShapes || []).filter(x => x !== id)].slice(0, 24); saveCfg();   // "↺ Recentes"
   const tint = cfg.shapeColor || textColor();
@@ -957,8 +983,7 @@ export async function flush() {
 // fecha o quadro: grava, atualiza a miniatura e desliga todos os timers (nada mais regrava este quadro)
 export async function closeBoard() {
   if (!S) return true;
-  lockBars();
-  stopPlotAnim();
+  stopPlotAnim(); spotOff();
   closeFloating();
   const ok = await flush();
   clearTimeout(thumbTimer); thumbTimer = 0;
@@ -1849,6 +1874,12 @@ function onKey(e) {
   const tag = e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
+  // painel "Variar" da função aberto: Espaço anima/pausa e Enter fixa a curva do instante
+  if (plotAnim && !ctrl && (e.code === 'Space' || e.key === 'Enter')) {
+    e.preventDefault(); if (e.repeat) return;
+    if (e.code === 'Space') plotAnim.alterna(); else plotAnim.fixa();
+    return;
+  }
   if (e.code === 'Space') { if (!spaceDown) { spaceDown = true; setCursor(); } e.preventDefault(); return; }
   if (ctrl && k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (ctrl && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
@@ -1887,7 +1918,7 @@ function onKey(e) {
 // barras, barra do professor, painel da lupa, cronômetro e relógio de volta às posições de fábrica
 function layoutPadrao() {
   resetBars();
-  cfg.teachSide = 'dir'; cfg.teachNames = false; saveCfg();
+  cfg.teachSide = 'dir'; cfg.teachNames = true; saveCfg();
   for (const k of ['lousa.stripPos', 'lousa.timerPos', 'lousa.clockPos']) try { localStorage.removeItem(k); } catch {}
   const st = $('strip'); st.style.top = ''; st.style.bottom = '';
   for (const el of document.querySelectorAll('.timerbox')) { el.style.left = el.style.top = el.style.right = el.style.bottom = ''; }
@@ -1899,7 +1930,7 @@ function openMenu(anchor) {
   showPop(anchor, `<div class="menu">
       <button data-a="bg">${ICON.paper} Folha e fundo</button>
       ${PG.isPages(S.board) ? `<button data-a="pages">${ICON.gallery} Páginas…</button>` : `<button data-a="toA4">${ICON.slides} Transformar em caderno A4</button>`}
-      <button data-a="slides">${ICON.slides} Inserir PowerPoint ou PDF…</button>
+      <button data-a="slides">${ICON.slides} Inserir PDF ou apresentação…</button>
       <button data-a="present">${ICON.present} Apresentar (tela cheia)</button>
       <hr>
       <button data-a="pdf">${ICON.pdf} Exportar PDF</button>
@@ -1911,7 +1942,7 @@ function openMenu(anchor) {
       <hr>
       <button data-a="tablet">${ICON.pen} Caneta e escrita</button>
       <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
-      <button data-a="disc">${ICON.shapes} Disciplinas das formas…</button>
+      <button data-a="disc">${ICON.shapes} Áreas das formas…</button>
       <button data-a="keys">${ICON.keyboard} Atalhos de teclado</button>
       <button data-a="about">${ICON.ok} Sobre o Giz Livre</button>
       <hr>
@@ -2162,8 +2193,11 @@ async function importSlidesIntoBoard(file) {
   try {
     toast('Importando ' + file.name + '…', 60000);
     const alvo = S;
-    const { size, srcs, sizes } = await slidesFromFile(file, m => toast(m, 60000));
+    const esc = await paginasEscolhidas(file, m => toast(m, 60000));
+    if (!esc) return toast('Importação cancelada.', 3000);
     if (S !== alvo) return toast('Importação cancelada: o quadro foi fechado durante a conversão.', 6000);
+    toast('Inserindo…', 2000);
+    const { size, srcs, sizes } = esc;
     let L = S.board.layout, items = S.items, start;
     if (!PG.isPages(S.board)) {
       L = PG.makeLayout('custom', srcs.length, size);
@@ -2250,7 +2284,7 @@ function pageMenu(anchor) {
       <button data-a="del" class="danger">${ICON.trash} Excluir esta página</button>
       <hr>
       <button data-a="all">${ICON.gallery} Ver todas as páginas</button>
-      <button data-a="slides">${ICON.slides} Inserir PowerPoint ou PDF aqui</button>
+      <button data-a="slides">${ICON.slides} Inserir PDF ou apresentação aqui</button>
       <button data-a="present">${ICON.present} Apresentar</button>
     </div>`, p => {
     p.querySelector('[data-a="ins"]').onclick = () => { hidePop(); insertPageAfter(i); };
@@ -2266,7 +2300,6 @@ function pageMenu(anchor) {
 function setPresent(on) {
   present = !!on;
   zoomLens = null;
-  if (present) lockBars();
   const b = $('board');
   b.classList.toggle('present', present);
   $('presentbar').hidden = !present;
@@ -2384,36 +2417,37 @@ function initPagesUI() {
 let protractor = null;   // {x, y, angle} transferidor (mundo)
 let compassSt = null;    // {cx, cy, r} compasso aberto
 let curtain = null;      // {y} cortina (tela)
-let spot = null;         // {r} holofote
+let spot = null;         // {r, forma, escuro, el} holofote (com painel de ajuste)
 let strip = null;        // lupa de escrita: {x, y, w, h} caixa no mundo
 
 const TEACH_ITEMS = () => [
-    ['strip', ICON.lupa, 'Lupa de escrita', 'escreva grande numa faixa; a letra cai pequena no quadro'],
-    ['protractor', ICON.half, 'Transferidor', 'arraste pelo corpo; gire com a roda do mouse'],
-    ['compass', ICON.rotate, 'Compasso', '1º arraste: raio · 2º arraste: desenha o arco'],
-    ['curtain', ICON.curtain, 'Cortina', 'esconde a parte de baixo; arraste a alça para revelar'],
-    ['spot', ICON.spotlight, 'Holofote', 'escurece tudo menos o ponteiro'],
-    ['timer', ICON.timer, 'Cronômetro', 'contagem regressiva com aviso sonoro; dá para digitar o tempo'],
-    ['clock', ICON.clock, 'Relógio', 'hora do computador, flutuando sobre o quadro'],
-    ['plot', ICON.fx, 'Plotar função', 'digite uma função ou escolha um modelo; a curva sai com os eixos'],
-    ['formula', ICON.formula, 'Fórmula (LaTeX)', 'equações nítidas: \\frac{a}{b}, x^2, \\Delta H'],
-    ['library', ICON.library, 'Biblioteca', 'tabela periódica e vidrarias de laboratório'],
-    ['ocr', ICON.text, 'Converter escrita em texto', 'selecione a escrita com o laço antes'],
+    ['strip', ICON.lupa, 'Lupa de escrita', 'escreva grande numa faixa; a letra cai pequena no quadro', 'Lupa'],
+    ['protractor', ICON.half, 'Transferidor', 'arraste pelo corpo; gire com a roda do mouse', 'Transferidor'],
+    ['compass', ICON.rotate, 'Compasso', '1º arraste: raio · 2º arraste: desenha o arco', 'Compasso'],
+    ['curtain', ICON.cortina, 'Cortina', 'esconde a parte de baixo; arraste a alça para revelar', 'Cortina'],
+    ['spot', ICON.spotlight, 'Holofote', 'escurece tudo menos em volta do ponteiro; tamanho, formato e escurecimento ajustáveis', 'Holofote'],
+    ['timer', ICON.timer, 'Cronômetro', 'contagem regressiva com aviso sonoro; dá para digitar o tempo', 'Cronômetro'],
+    ['clock', ICON.clock, 'Relógio', 'hora do computador, flutuando sobre o quadro', 'Relógio'],
+    ['plot', ICON.fx, 'Plotar função', 'digite uma função ou escolha um modelo; a curva sai com os eixos', 'Função'],
+    ['formula', ICON.formula, 'Fórmula (LaTeX)', 'equações nítidas: \\frac{a}{b}, x^2, \\Delta H', 'Fórmula'],
+    ['ocr', ICON.ocr, 'Converter escrita em texto', 'selecione a escrita com o laço antes', 'Escrita→texto'],
 ];
 const teachOn = () => ({ strip: !!strip, protractor: !!protractor, compass: tool === 'compass', curtain: !!curtain, spot: !!spot, timer: timerOpen(), clock: clockOpen() });
 
 function toolsPop(anchor) {
   const on = teachOn();
   const lado = cfg.teachSide === 'esq' ? 'esq' : 'dir';
-  showPop(anchor, `<div class="tb-fixar"><span>Deixar aberto na tela:</span><div class="seg">
+  showPop(anchor, `<div class="tb-fixar"><span><b>Barra fixa</b> (estas ferramentas sempre à vista, ao lado do quadro):</span><div class="seg">
+      <button data-lado="dir" class="${cfg.teachBar && lado === 'dir' ? 'on' : ''}">À direita</button>
       <button data-lado="esq" class="${cfg.teachBar && lado === 'esq' ? 'on' : ''}">À esquerda</button>
-      <button data-lado="dir" class="${cfg.teachBar && lado === 'dir' ? 'on' : ''}">À direita</button></div>
-      <label class="row"><input type="checkbox" id="tbNomes" ${cfg.teachNames ? 'checked' : ''}> com os nomes</label></div>
+      <button data-fechar class="${cfg.teachBar ? '' : 'on'}">Só neste menu</button></div>
+      <label class="row"><input type="checkbox" id="tbNomes" ${cfg.teachNames ? 'checked' : ''}> nome embaixo de cada ícone</label></div>
     <div class="menu newkind tools">${TEACH_ITEMS().map(([k, ic, n, d]) =>
     `<button data-k="${k}" class="${on[k] ? 'on' : ''}">${ic}<span><b>${n}</b><small>${d}</small></span></button>`).join('')}</div>
     <small class="tb-note">Aberta, a barra também pode ir para qualquer lugar: destrave o cadeado (barra de cima) e arraste.</small>`, p => {
     p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { hidePop(); toolAction(x.dataset.k); });
     p.querySelectorAll('[data-lado]').forEach(x => x.onclick = () => { hidePop(); setTeachBar(true, x.dataset.lado); });
+    p.querySelector('[data-fechar]').onclick = () => { hidePop(); setTeachBar(false); };
     p.querySelector('#tbNomes').onchange = e => { cfg.teachNames = e.target.checked; saveCfg(); buildTeachBar(); placeBars(); };
   });
 }
@@ -2434,10 +2468,12 @@ function buildTeachBar() {
   if (b.hidden) return;
   b.classList.toggle('esq', cfg.teachSide === 'esq');
   b.classList.toggle('nomes', !!cfg.teachNames);
-  b.innerHTML = TEACH_ITEMS().map(([k, ic, n, d]) => `<button class="ib" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}${cfg.teachNames ? `<span>${esc(n)}</span>` : ''}</button>`).join('')
+  b.innerHTML = TEACH_ITEMS().map(([k, ic, n, d, curto]) => cfg.teachNames
+      ? `<button class="cb" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}<small>${esc(curto)}</small></button>`
+      : `<button class="ib" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}</button>`).join('')
     + `<span class="sep"></span><div class="tb-acoes"><button class="ib" data-lado title="Passar a barra para o outro lado">⇄</button>`
     + `<button class="ib" data-nomes title="${cfg.teachNames ? 'Esconder' : 'Mostrar'} os nomes">Aa</button>`
-    + `<button class="ib" data-x title="Recolher a barra (volta ao menu)">${ICON.close}</button></div>`;
+    + `<button class="ib" data-x title="Fechar a barra (as ferramentas continuam no botão da barra de cima)">${ICON.close}</button></div>`;
   b.querySelectorAll('[data-k]').forEach(x => x.onclick = () => toolAction(x.dataset.k, x));
   b.querySelector('[data-x]').onclick = () => setTeachBar(false);
   b.querySelector('[data-lado]').onclick = () => setTeachBar(true, cfg.teachSide === 'esq' ? 'dir' : 'esq');
@@ -2446,10 +2482,34 @@ function buildTeachBar() {
 }
 function syncTeachBar() {
   const b = $('teachbar');
-  $('tTools')?.classList.toggle('on', !!cfg.teachBar);
   if (!b || b.hidden) return;
   const on = teachOn();
   b.querySelectorAll('[data-k]').forEach(x => x.classList.toggle('on', !!on[x.dataset.k]));
+}
+
+// holofote: painel flutuante com tamanho, formato e escurecimento (lembrados para a próxima aula)
+const SPOT_PADRAO = { r: 150, forma: 'circulo', escuro: 0.78 };
+function spotOff() { if (spot) { spot.el.remove(); spot = null; } }
+function toggleSpot() {
+  if (spot) { spotOff(); return; }
+  const c = { ...SPOT_PADRAO, ...(cfg.spot || {}) };
+  const el = document.createElement('div');
+  el.className = 'timerbox spotbox';
+  el.innerHTML = `<div class="tm-head"><span>Holofote</span><button class="ib" data-a="x" title="Desligar o holofote">${ICON.close}</button></div>
+    <div class="tm-row"><small>Tamanho</small><input type="range" data-a="r" min="50" max="450" value="${c.r}"></div>
+    <div class="tm-row"><small>Escurecer</small><input type="range" data-a="op" min="20" max="98" value="${Math.round(c.escuro * 100)}"></div>
+    <div class="seg sp-forma">${[['circulo', 'Círculo'], ['quadrado', 'Quadrado'], ['faixa', 'Faixa']].map(([k, n]) =>
+      `<button data-f="${k}" class="${c.forma === k ? 'on' : ''}">${n}</button>`).join('')}</div>`;
+  document.body.appendChild(el);
+  spot = { ...c, el };
+  const salva = () => { cfg.spot = { r: spot.r, forma: spot.forma, escuro: spot.escuro }; saveCfg(); requestRender(false); };
+  el.querySelector('[data-a="x"]').onclick = () => { spotOff(); requestRender(false); syncTeachBar(); syncPresentBar(); };
+  el.querySelector('[data-a="r"]').oninput = e => { spot.r = +e.target.value; salva(); };
+  el.querySelector('[data-a="op"]').oninput = e => { spot.escuro = +e.target.value / 100; salva(); };
+  el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
+    spot.forma = b.dataset.f; el.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); salva();
+  });
+  draggable(el, 'lousa.spotPos');
 }
 
 function toolAction(k, anchor) {
@@ -2457,11 +2517,10 @@ function toolAction(k, anchor) {
   if (k === 'protractor') protractor = protractor ? null : { x: c.x, y: c.y + 60 / S.view.zoom, angle: 0 };
   else if (k === 'compass') { if (tool === 'compass') setTool(cfg.lastPen || 'pen0'); else { setTool('compass'); toast('Compasso: arraste do centro até o raio; depois arraste em volta para desenhar o arco'); } }
   else if (k === 'curtain') curtain = curtain ? null : { y: H * 0.45 };
-  else if (k === 'spot') spot = spot ? null : { r: 150 };
+  else if (k === 'spot') toggleSpot();
   else if (k === 'timer') toggleTimer();
   else if (k === 'formula') formulaDialog();
   else if (k === 'plot') plotDialog();
-  else if (k === 'library') libraryPop(anchor || $('tTools'));
   else if (k === 'clock') toggleClock();
   else if (k === 'strip') toggleStrip();
   else if (k === 'ocr') { if (sel.size) inkToText([...sel]); else { setTool('lasso'); toast('Circule a escrita com o laço e toque em "Converter em texto"'); } }
@@ -2571,8 +2630,12 @@ function drawShades() {
   }
   if (spot && hover) {
     g.save();
-    g.fillStyle = 'rgba(0,0,0,.78)';
-    g.beginPath(); g.rect(0, 0, W, H); g.arc(hover.x, hover.y, spot.r, 0, Math.PI * 2, true); g.fill('evenodd');
+    g.fillStyle = `rgba(0,0,0,${spot.escuro})`;
+    g.beginPath(); g.rect(0, 0, W, H);
+    if (spot.forma === 'quadrado') g.roundRect(hover.x - spot.r, hover.y - spot.r, spot.r * 2, spot.r * 2, 10);
+    else if (spot.forma === 'faixa') g.rect(0, hover.y - spot.r / 2, W, spot.r);
+    else g.arc(hover.x, hover.y, spot.r, 0, Math.PI * 2, true);
+    g.fill('evenodd');
     g.restore();
   }
 }
@@ -2765,20 +2828,6 @@ async function formulaDialog(edit = null) {
 }
 
 // ---------- biblioteca ----------
-function libraryPop(anchor) {
-  showPop(anchor, `<h4>Biblioteca</h4><div class="libgrid">${LIBRARY.map(l => `<button class="libitem" data-id="${l.id}"><img src="${svgDataUrl(l.make().svg)}" alt=""><span>${l.name}</span></button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
-      hidePop();
-      const l = LIBRARY.find(x => x.id === b.dataset.id), { svg, w, h } = l.make();
-      const z = S.view.zoom, k = Math.min(1, (W * 0.7) / w, (H * 0.7) / h) / z, c = toWorld(W / 2, H / 2);
-      const it = { id: newId(), type: 'image', src: svgDataUrl(svg), x: c.x - w * k / 2, y: c.y - h * k / 2, w: w * k, h: h * k };
-      commit([...S.items, it]);
-      sel = new Set([it.id]);
-      setTool('select');
-    });
-  });
-}
-
 // ---------- escrita → texto ----------
 async function inkToText(ids) {
   const target = S;
@@ -2875,7 +2924,8 @@ function plotArea() {
   return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
 }
 
-// animação de um parâmetro: a curva corre na camada de cima (nada é gravado até "Fixar")
+// animação de um parâmetro (EXPERIMENTAL): a curva fica na camada de cima (nada é gravado até "Fixar").
+// Começa parada no valor escolhido no diálogo; só anda quando o professor toca em "Animar".
 let plotAnim = null;   // { f, frame, valores, anim, t0, tPausa, color, width, grp, el }
 function drawPlotAnim() {
   if (!plotAnim) return;
@@ -2889,7 +2939,6 @@ function drawPlotAnim() {
   const lb = A.el.querySelector('.an-v');
   const txt = `${A.anim.n} = ${fmtNum(+r.valor.toFixed(3))}`;
   if (lb.textContent !== txt) lb.textContent = txt;
-  if (A.tPausa == null && A.manual == null) requestRender(false);
 }
 function stopPlotAnim() {
   if (!plotAnim) return;
@@ -2900,27 +2949,38 @@ function startPlotAnim(f, frame, valores, p, color, width, grp) {
   stopPlotAnim();
   const el = document.createElement('div');
   el.className = 'timerbox animbox';
-  el.innerHTML = `<div class="tm-head"><span>Animação</span><button class="ib" data-a="x" title="Parar e fechar">${ICON.close}</button></div>
+  const cores = [...new Set([color, '#000000', '#e81224', '#0078d4', '#16c60c', '#f7630c', '#886ce4'])];
+  el.innerHTML = `<div class="tm-head"><span>Variar ${esc(p.n)} <small class="an-exp">experimental</small></span><button class="ib" data-a="x" title="Fechar (a curva já plotada fica)">${ICON.close}</button></div>
     <div class="an-v"></div>
-    <div class="tm-row an-man"><input type="range" data-a="sl" min="${p.min}" max="${p.max}" step="${p.passo || 'any'}" title="Arraste para escolher o valor (a animação para)">
+    <div class="tm-row an-man"><input type="range" data-a="sl" min="${p.min}" max="${p.max}" step="${p.passo || 'any'}" title="Arraste para escolher o valor">
       <input type="text" inputmode="decimal" data-a="num" title="Digite o valor exato (vírgula ou ponto)"></div>
-    <div class="tm-row"><button class="btn" data-a="pp">Pausar</button><button class="btn primary" data-a="fix" title="Grava a curva deste instante no quadro">Fixar esta curva</button></div>
-    <div class="tm-row"><small>Velocidade</small><input type="range" data-a="vel" min="1" max="12" value="4" title="Segundos por ida e volta"></div>`;
+    <div class="tm-row an-cores"><small>Cor</small>${cores.map(c => `<button class="sw${c === color ? ' on' : ''}" data-cor="${c}" style="background:${c}" title="${corNome(c)}"></button>`).join('')}</div>
+    <div class="tm-row"><button class="btn" data-a="pp" title="Faz o valor ir do mínimo ao máximo e voltar (tecla Espaço)">▶ Animar</button><button class="btn primary" data-a="fix" title="Grava no quadro a curva deste valor, nesta cor (tecla Enter)">Fixar esta curva</button></div>
+    <div class="tm-row"><small>Velocidade</small><input type="range" data-a="vel" min="1" max="12" value="4" title="Segundos por ida e volta"></div>
+    <small class="tb-note">Escolha o valor e a cor e toque em <b>Fixar</b> (ou tecle <b>Enter</b>); repita para comparar curvas. <b>Espaço</b> anima e pausa.</small>`;
   document.body.appendChild(el);
-  plotAnim = { f, frame, valores, anim: { n: p.n, min: p.min, max: p.max, periodo: 4, modo: 'vaivem' }, t0: performance.now(), tPausa: null, color, width, grp, el };
+  draggable(el, 'lousa.animPos');
+  const v0 = Math.max(p.min, Math.min(p.max, +valores[p.n]));
+  const agora = performance.now();
+  plotAnim = { f, frame, valores, anim: { n: p.n, min: p.min, max: p.max, periodo: 4, modo: 'vaivem' }, t0: agora, tPausa: agora, color, width, grp, el };
   const A = plotAnim, pp = el.querySelector('[data-a="pp"]');
-  A.sl = el.querySelector('[data-a="sl"]'); A.num = el.querySelector('[data-a="num"]'); A.manual = null;
+  A.sl = el.querySelector('[data-a="sl"]'); A.num = el.querySelector('[data-a="num"]');
+  A.manual = isFinite(v0) ? v0 : p.min;   // começa parada no valor do diálogo
+  A.sl.value = A.manual; A.num.value = fmtNum(+A.manual.toFixed(4)).replace('−', '-');
   el.querySelector('[data-a="x"]').onclick = stopPlotAnim;
-  const pausa = () => { if (A.tPausa == null) A.tPausa = performance.now(); pp.textContent = 'Continuar'; };
+  const pausa = () => { if (A.tPausa == null) A.tPausa = performance.now(); pp.textContent = '▶ Animar'; };
   pp.onclick = () => {
     if (A.tPausa == null && A.manual == null) pausa();
-    else { A.t0 += performance.now() - (A.tPausa ?? performance.now()); A.tPausa = null; A.manual = null; pp.textContent = 'Pausar'; }
+    else { A.t0 += performance.now() - (A.tPausa ?? performance.now()); A.tPausa = null; A.manual = null; pp.textContent = '❚❚ Pausar'; }
     requestRender(false);
   };
+  el.querySelectorAll('[data-cor]').forEach(b => b.onclick = () => {
+    A.color = b.dataset.cor; el.querySelectorAll('[data-cor]').forEach(x => x.classList.toggle('on', x === b)); requestRender(false);
+  });
   // escolher o valor à mão: para a animação e mostra a curva exatamente nesse valor
   const escolhe = v => { if (!isFinite(v)) return; A.manual = v; pausa(); requestRender(false); };
   A.sl.oninput = () => { escolhe(+A.sl.value); A.num.value = fmtNum(+(+A.sl.value).toFixed(4)).replace('−', '-'); };
-  A.num.addEventListener('keydown', e => e.stopPropagation());
+  A.num.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); A.fixa(); } });
   A.num.oninput = () => { const v = parseFloat(String(A.num.value).replace(',', '.')); if (isFinite(v)) { escolhe(v); A.sl.value = v; } };
   el.querySelector('[data-a="vel"]').oninput = e => {
     // mantém a fase ao mudar o período
@@ -2928,7 +2988,14 @@ function startPlotAnim(f, frame, valores, p, color, width, grp) {
     A.anim = { ...A.anim, periodo: 16 - +e.target.value };
     A.t0 = now - frac * A.anim.periodo * 1000;
   };
-  el.querySelector('[data-a="fix"]').onclick = () => {
+  A.alterna = () => pp.onclick();
+  // com o foco no painel (controle deslizante ou botão), Espaço e Enter também valem, sem disparar o botão em foco
+  el.addEventListener('keydown', e => {
+    if (e.target === A.num || (e.code !== 'Space' && e.key !== 'Enter')) return;
+    e.preventDefault(); e.stopPropagation(); if (e.repeat) return;
+    if (e.code === 'Space') A.alterna(); else A.fixa();
+  });
+  el.querySelector('[data-a="fix"]').onclick = A.fixa = () => {
     const v = A.atual?.valores || A.valores;
     const novos = plotStrokes(A.f, { ...A.frame, color: A.color, width: A.width, id: newId, valores: v })
       .map(s => ({ ...s, plot: `${A.anim.n} = ${fmtNum(+v[A.anim.n].toFixed(3))}`, ...(A.grp ? { grp: A.grp } : {}) }));
@@ -2956,7 +3023,7 @@ function plotDialog() {
     <div class="tb-line"><span>x de</span><input id="plA" type="number" step="any" style="width:80px"><span>até</span><input id="plB" type="number" step="any" style="width:80px"><small class="pl-xhint">(vazio = toda a área visível)</small></div>
     <label class="tb-line"><input type="checkbox" id="plAxes" ${isCart ? '' : 'checked'}> Desenhar os eixos com números (dá para apagar ou mover)</label>
     <label class="tb-line"><input type="checkbox" id="plLabel" checked> Escrever "y = …" ao lado do gráfico</label>
-    <div class="tb-line pl-anim" hidden><span>Animar</span><select id="plAnimP"></select><small>o parâmetro vai do mínimo ao máximo e volta</small></div>
+    <div class="tb-line pl-anim" hidden><span>Variar</span><select id="plAnimP"></select><small><b>experimental:</b> abre um painel para mudar o parâmetro e fixar curvas em cores diferentes</small></div>
     <div class="fx-err" id="plErr"></div>
     <small class="tb-note pl-help">Use x, números (vírgula ou ponto), + − * / ^, parênteses e sen, cos, tg, raiz, abs, ln, log, exp, pi, e. Ex.: <b>0,5x^3 − 2x</b></small>
     <div class="acts"><button class="btn" data-a="x">Cancelar</button><button class="btn primary" data-a="ok">Plotar</button></div>`;

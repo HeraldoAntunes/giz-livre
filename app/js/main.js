@@ -69,7 +69,7 @@ async function showGallery(folder = '') {
   document.title = 'Giz Livre';
   try { boards = await listBoards(); }
   catch { boards = []; toast('Servidor local não respondeu. Abra pelo atalho "Giz Livre".', 6000); }
-  if (!jaEscolheu()) setTimeout(() => escolherDisciplinas({ primeira: true }), 300);   // primeira abertura: "O que você ensina?"
+  if (!jaEscolheu()) setTimeout(() => escolherDisciplinas({ primeira: true }), 300);   // primeira abertura: "Quais áreas te interessam?"
   renderGrid();
 }
 

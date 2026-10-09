@@ -64,7 +64,7 @@ export function toggleTimer() {
 }
 
 // arrastar uma caixa flutuante pelo cabeçalho; a posição fica guardada (chave no localStorage)
-function draggable(el, key) {
+export function draggable(el, key) {
   const head = el.querySelector('.tm-head');
   const fit = (x, y) => [Math.max(0, Math.min(innerWidth - el.offsetWidth, x)), Math.max(0, Math.min(innerHeight - el.offsetHeight, y))];
   const place = (x, y) => { [x, y] = fit(x, y); el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto'; };
@@ -75,7 +75,7 @@ function draggable(el, key) {
     if (tb && !tb.hidden && !el.classList.contains('clockbox')) { const r = tb.getBoundingClientRect(); place(r.left - el.offsetWidth - 12, r.top); }
   }
   head.onpointerdown = e => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button') || document.body.classList.contains('barras-travadas')) return;
     const r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
     head.setPointerCapture(e.pointerId);
     head.onpointermove = ev => place(ev.clientX - dx, ev.clientY - dy);

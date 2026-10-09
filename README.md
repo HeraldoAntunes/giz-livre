@@ -15,7 +15,7 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 
 - **Grátis e livre:** licença [MIT](LICENSE). Use, copie e distribua à vontade, inclusive em escolas e redes de ensino.
 - **Sem internet, sem conta, sem anúncios:** os quadros ficam só no seu computador.
-- **Versão do código:** 1.2.1 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
+- **Versão do código:** 1.2.2 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
 
 > **Aviso:** projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de qualquer
 > tipo**. Faça backup dos seus quadros. Não há vínculo com a Microsoft, a Wacom nem outras marcas citadas.
@@ -36,7 +36,7 @@ O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa nã
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página:
 ```bash
-certutil -hashfile Instalar-GizLivre-1.2.1.exe SHA256
+certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
 ```
 
 ## Como é
@@ -70,7 +70,7 @@ certutil -hashfile Instalar-GizLivre-1.2.1.exe SHA256
   - **plotar função** (digite `x^2 - 4` e o gráfico aparece no plano cartesiano);
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
   - **fórmulas LaTeX**;
-  - biblioteca com **tabela periódica** e **vidrarias**.
+  - **tabela periódica** colorida (em Formas → Química → Especiais) e vidrarias (em Formas → Laboratório).
 - **Biblioteca de formas técnicas**, com **3.379 formas em 29 disciplinas**, desenhadas para o Giz Livre, com
   "⚑ Mais usadas" em cada disciplina, "↺ Recentes" e busca:
   - **gerais:** fluxograma, setas e conectores, ícones para aula;
@@ -85,7 +85,7 @@ certutil -hashfile Instalar-GizLivre-1.2.1.exe SHA256
   Na primeira abertura o professor escolhe as disciplinas que aparecem no menu; o catálogo **Formas**, na galeria,
   mostra todas.
   Cada forma entra na cor escolhida, pode ser recolorida, movida e redimensionada, e a borracha a apaga.
-- **Barras móveis:** o cadeado destrava as barras para arrastar cada uma até onde preferir.
+- **Barras móveis:** cada barra arrasta pela alça ⠿; o cadeado trava tudo no lugar (barras e painéis).
 - **Organização:** galeria com miniaturas, busca, salvamento automático, desfazer/refazer, exportar PNG/PDF/`.lousa`
   e importar imagens do Microsoft Whiteboard.
 

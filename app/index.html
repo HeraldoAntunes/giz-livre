@@ -26,8 +26,8 @@
     <button id="gAbout" class="btn" title="Versão, licença e aviso">Sobre</button>
   </header>
   <div id="gGrid" class="g-grid"></div>
-  <input id="gImportFile" type="file" accept="image/*,.lousa,.json,.pptx,.pdf" multiple hidden>
-  <input id="gSlideFile" type="file" accept=".pptx,.ppt,.ppsx,.pdf,application/pdf" hidden>
+  <input id="gImportFile" type="file" accept="image/*,.lousa,.json,.pptx,.ppt,.ppsx,.pps,.potx,.odp,.otp,.key,.pdf" multiple hidden>
+  <input id="gSlideFile" type="file" accept=".pptx,.ppt,.ppsx,.pps,.potx,.odp,.otp,.key,.pdf,application/pdf" hidden>
 </section>
 
 <!-- ============ QUADRO ============ -->
@@ -69,7 +69,6 @@
   <div class="bar top-right">
     <button class="ib" id="bUndo" title="Desfazer (Ctrl+Z)"><span data-icon="undo"></span></button>
     <button class="ib" id="bRedo" title="Refazer (Ctrl+Y)"><span data-icon="redo"></span></button>
-    <button class="ib danger" id="bClear" title="Limpar o quadro… (pergunta o que apagar; dá para desfazer)"><span data-icon="trash"></span></button>
     <button class="ib" id="bPresent" title="Apresentar (tela cheia, só a mini-bandeja)"><span data-icon="present"></span></button>
     <button class="ib" id="bFull" title="Tela cheia"><span data-icon="fullscreen"></span></button>
     <button class="ib" id="bLock" title="Destravar as barras para mudar de lugar"></button>
@@ -81,7 +80,7 @@
     <button class="cb" data-create="note" title="Nota adesiva"><span data-icon="note"></span><small>Nota</small></button>
     <button class="cb" data-create="shapes" title="Formas"><span data-icon="shapes"></span><small>Formas</small></button>
     <button class="cb" data-create="image" title="Imagem"><span data-icon="image"></span><small>Imagem</small></button>
-    <button class="cb" data-create="pdf" title="Inserir PDF ou PowerPoint (também dá para arrastar o arquivo para o quadro)"><span data-icon="pdf"></span><small>PDF</small></button>
+    <button class="cb" data-create="pdf" title="Inserir PDF ou apresentação (PowerPoint .pptx/.ppt, LibreOffice .odp, Keynote .key); você escolhe as páginas. Também dá para arrastar o arquivo para o quadro"><span data-icon="slides"></span><small>PDF/Slides</small></button>
   </div>
 
   <div class="bar zoom">
@@ -109,7 +108,7 @@
   </div>
 
   <input id="imgFile" type="file" accept="image/*" multiple hidden>
-  <input id="slideFile" type="file" accept=".pptx,.ppt,.ppsx,.pdf,application/pdf" hidden>
+  <input id="slideFile" type="file" accept=".pptx,.ppt,.ppsx,.pps,.potx,.odp,.otp,.key,.pdf,application/pdf" hidden>
 
   <div class="bar pagebar" id="pagebar" hidden>
     <button class="ib" id="pgAll" title="Ver todas as páginas"><span data-icon="gallery"></span></button>

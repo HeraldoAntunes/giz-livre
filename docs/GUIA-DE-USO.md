@@ -41,8 +41,8 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | Lousa verde | botão Folha → cor "Lousa verde" (a tinta preta aparece branca; sobre página de PDF continua preta). Trocar a folha também se desfaz com `Ctrl+Z` |
 | Letra mais bonita | botão ✦: Suave / Moderado / Forte; ajusta cada palavra assim que você passa para a próxima |
 | Escrita → texto | laço na escrita → botão "Converter escrita em texto"; escolha uma fonte cursiva |
-| Ferramentas | botão **Ferramentas** (esquadro e lápis): lupa de escrita, transferidor (a caneta corre presa ao arco e à base), compasso, cortina, holofote, cronômetro (dá para digitar o tempo: 7, 7,5 ou 7:30), relógio, fórmula LaTeX, tabela periódica, vidrarias. Marque "Mostrar todas abertas numa barra" para tê-las sempre à vista |
-| Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… ou escolha um **modelo por área** (Chick, DBO, Streeter-Phelps, senoide, RC, normal…) e ajuste os parâmetros. A curva sai com os eixos desenhados (dá para apagar ou mover). Escolha um parâmetro em "Animar" para vê-lo variar; "Fixar esta curva" grava o instante |
+| Ferramentas | botão **Ferramentas** (esquadro e lápis): lupa de escrita, transferidor (a caneta corre presa ao arco e à base), compasso, cortina, holofote, cronômetro (dá para digitar o tempo: 7, 7,5 ou 7:30), relógio, fórmula LaTeX e escrita→texto (a tabela periódica fica em Formas → Química → Especiais). Vêm numa **barra fixa à direita**, com o nome embaixo de cada ícone; no botão Ferramentas dá para pôr à esquerda ou deixar só no menu. O **holofote** abre um painel para ajustar tamanho, formato (círculo, quadrado, faixa) e quanto escurece o resto |
+| Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… ou escolha um **modelo por área** (Chick, DBO, Streeter-Phelps, senoide, RC, normal…) e ajuste os parâmetros. A curva sai com os eixos desenhados (dá para apagar ou mover). **Experimental:** escolha um parâmetro em "Variar"; a curva vem parada no valor do diálogo. Mude o valor (controle ou número), escolha a cor e toque em **Fixar esta curva** (ou **Enter**) para gravar; repita para comparar curvas. **Espaço** anima e pausa |
 | Texto, nota, forma, imagem | coluna à esquerda (ou cole uma imagem com `Ctrl+V`) |
 | Formas técnicas | **Formas → área → disciplina**; use a busca, **⚑ Mais usadas** e **↺ Recentes**. Em Engenharias estão Hidráulica, Saneamento, Recursos Hídricos e Topografia, além de Elétrica, Eletrônica e Embarcados |
 | Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas. Em "ver todas", marque várias miniaturas e toque em **Excluir** (ex.: tirar 2 páginas de um PDF) |
@@ -53,7 +53,7 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | Desfazer / refazer | `Ctrl+Z` / `Ctrl+Y` (o aviso de desfazer também tem **Refazer**) |
 | Salvar | automático |
 
-Para escolher quais disciplinas aparecem, use **Disciplinas…** no menu Formas. A busca encontra também as ocultas.
+Para escolher quais áreas aparecem, use **Áreas…** no menu Formas. A busca encontra também as ocultas.
 Na galeria, **Formas** abre o catálogo. Selecione uma forma na lousa para mover, girar e redimensionar; use a opção de
 cor da seleção para recolorir. Modelos com campos vazios podem receber Texto ou escrita a caneta. A legenda interna
 faz parte da imagem SVG.

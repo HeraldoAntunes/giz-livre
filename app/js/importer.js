@@ -1,5 +1,6 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
-// Importação de PowerPoint (.pptx, via PowerPoint do Windows no servidor) e PDF (pdf.js) como páginas com o slide travado no fundo.
+// Importação de apresentações (.pptx/.odp, via PowerPoint do Windows ou LibreOffice no servidor) e PDF (pdf.js) como
+// páginas com o slide travado no fundo. Antes de inserir, o professor escolhe as páginas numa grade de miniaturas.
 import { newId, wfetch } from './api.js';
 import { makeLayout, pageRect } from './pages.js';
 
@@ -12,15 +13,15 @@ export async function uploadAsset(data) {
   return j.url;
 }
 
-export const isPptx = f => /\.(pptx?|ppsx?)$/i.test(f.name);
+export const isPptx = f => /\.(pptx?|ppsx?|pps|potx|odp|otp|key)$/i.test(f.name);
 export const isPdf = f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
 
 // devolve { size: {w,h}, srcs: [url, ...] }
 export async function slidesFromPptx(file, onProgress = () => {}) {
-  onProgress('Abrindo o PowerPoint para converter os slides…');
+  onProgress('Convertendo os slides da apresentação…');
   const r = await wfetch('/api/pptx', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream', 'X-Nome-Arquivo': encodeURIComponent(file.name) }, body: file });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.erro || 'Falha ao converter o PowerPoint');
+  if (!r.ok) throw new Error(j.erro || 'Falha ao converter a apresentação');
   if (j.pdf) {
     // sem PowerPoint (Linux, Mac ou Windows sem Office): o LibreOffice converteu para PDF, que o pdf.js lê
     onProgress('Lendo os slides convertidos pelo LibreOffice…');
@@ -83,10 +84,52 @@ export function slideItems(layout, srcs, start = 0, sizes = []) {
   });
 }
 
+const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+// grade de miniaturas para escolher as páginas/slides (todas marcadas); devolve os índices escolhidos ou null
+export function escolherPaginas(srcs, nome) {
+  if (srcs.length <= 1) return Promise.resolve(srcs.map((_, i) => i));
+  return new Promise(res => {
+    const d = document.createElement('dialog');
+    d.className = 'pgpick';
+    d.innerHTML = `<h3>Quais páginas inserir?</h3>
+      <p class="pgp-sub">${escHtml(nome)}: ${srcs.length} páginas. Toque numa miniatura para marcar ou desmarcar.</p>
+      <div class="pgp-acoes"><button class="btn" data-a="todas">Marcar todas</button><button class="btn" data-a="nenhuma">Desmarcar todas</button></div>
+      <div class="pgp-grade">${srcs.map((s, i) => `<label class="pgp-item"><input type="checkbox" checked data-i="${i}"><img src="${s}" loading="lazy" alt="Página ${i + 1}"><span>${i + 1}</span></label>`).join('')}</div>
+      <div class="acts"><button class="btn" data-a="x">Cancelar</button><button class="btn primary" data-a="ok"></button></div>`;
+    document.body.appendChild(d);
+    const cks = [...d.querySelectorAll('[data-i]')], ok = d.querySelector('[data-a="ok"]');
+    const conta = () => {
+      const n = cks.filter(c => c.checked).length;
+      ok.textContent = n === srcs.length ? `Inserir todas (${n})` : `Inserir ${n} ${n === 1 ? 'página' : 'páginas'}`;
+      ok.disabled = !n;
+    };
+    cks.forEach(c => c.onchange = conta); conta();
+    d.querySelector('[data-a="todas"]').onclick = () => { cks.forEach(c => c.checked = true); conta(); };
+    d.querySelector('[data-a="nenhuma"]').onclick = () => { cks.forEach(c => c.checked = false); conta(); };
+    const fim = v => { d.close(); d.remove(); res(v); };
+    d.querySelector('[data-a="x"]').onclick = () => fim(null);
+    d.addEventListener('cancel', e => { e.preventDefault(); fim(null); });
+    d.addEventListener('keydown', e => e.stopPropagation());
+    ok.onclick = () => fim(cks.filter(c => c.checked).map(c => +c.dataset.i));
+    d.showModal();
+  });
+}
+
+// lê o arquivo e deixa o professor escolher as páginas; null = cancelou
+export async function paginasEscolhidas(file, onProgress) {
+  const r = await slidesFromFile(file, onProgress);
+  if (!r.srcs.length) throw new Error('Nenhuma página encontrada em ' + file.name);
+  const idx = await escolherPaginas(r.srcs, file.name);
+  if (!idx) return null;
+  return { size: r.size, srcs: idx.map(i => r.srcs[i]), sizes: idx.map(i => r.sizes[i]) };
+}
+
 // quadro novo a partir de um arquivo de slides/PDF
 export async function boardFromSlides(file, onProgress) {
-  const { size, srcs, sizes } = await slidesFromFile(file, onProgress);
-  if (!srcs.length) throw new Error('Nenhuma página encontrada em ' + file.name);
+  const r = await paginasEscolhidas(file, onProgress);
+  if (!r) throw new Error('Importação cancelada.');
+  const { size, srcs, sizes } = r;
   const layout = makeLayout('custom', srcs.length, size);
   return {
     version: 2,

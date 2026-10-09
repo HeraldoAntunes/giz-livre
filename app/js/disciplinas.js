@@ -29,7 +29,7 @@ function salvar(ocultas) { try { localStorage.setItem(KEY, JSON.stringify({ ocul
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const contar = g => g.secoes.reduce((a, [, l]) => a + l.length, 0);
 
-// janela de escolha; primeira = tela "O que você ensina?" da primeira abertura. Devolve true se salvou.
+// janela de escolha; primeira = tela "Quais áreas te interessam?" da primeira abertura. Devolve true se salvou.
 export function escolherDisciplinas({ primeira = false } = {}) {
   return new Promise(resolve => {
     const ocultas = abasOcultas(), porId = new Map(GROUPS.map(g => [g.id, g]));
@@ -39,10 +39,10 @@ export function escolherDisciplinas({ primeira = false } = {}) {
     const total = GROUPS.reduce((a, g) => a + contar(g), 0);
     const d = document.createElement('dialog');
     d.className = 'disc-dlg';
-    d.innerHTML = `<h3>${primeira ? 'O que você ensina?' : 'Disciplinas das formas'}</h3>
-      <p class="disc-txt">${primeira ? 'O Giz Livre traz' : 'Estão instaladas'} <b>${total.toLocaleString('pt-BR')} formas</b> em ${GROUPS.length} disciplinas.
+    d.innerHTML = `<h3>${primeira ? 'Quais áreas te interessam?' : 'Áreas das formas'}</h3>
+      <p class="disc-txt">${primeira ? 'O Giz Livre traz' : 'Estão instaladas'} <b>${total.toLocaleString('pt-BR')} formas</b> em ${GROUPS.length} áreas, para aula, trabalho, estudo ou o que você precisar.
         Marque as que devem aparecer no menu Formas; as outras ficam guardadas e a busca continua achando tudo.
-        Dá para mudar quando quiser em <b>⋯ → Disciplinas das formas</b>.</p>
+        Dá para mudar quando quiser em <b>⋯ → Áreas das formas</b>.</p>
       <div class="disc-areas">${areas.map(([n, ids]) => `<fieldset><legend><label><input type="checkbox" data-area> ${esc(n)}</label></legend>
         ${ids.map(id => { const g = porId.get(id); return `<label class="disc-item"><input type="checkbox" data-id="${id}" ${ocultas.has(id) ? '' : 'checked'}> ${esc(g.nome)} <small>${contar(g)}</small></label>`; }).join('')}</fieldset>`).join('')}</div>
       <div class="acts"><button class="btn" data-a="todas">Marcar todas</button><span style="flex:1"></span>

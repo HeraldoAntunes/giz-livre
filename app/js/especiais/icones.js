@@ -1,0 +1,60 @@
+// Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+// Diagramas autorais. Fontes de fatos e conceitos indicadas acima de cada elemento.
+import {page} from './base.js';
+export default [
+ // Fonte(s) primária(s) consultada(s): https://www.w3.org/WAI/WCAG2/supplemental/patterns/o1p07-icons-used/ ; https://www.loc.gov/programs/teachers/getting-started-with-primary-sources/guides/
+ {id:"esp-icones-roteiro-investigacao",nome:"Ícones — roteiro visual de investigação",grupo:"icones",make:()=>page("Ícones — roteiro visual de investigação","Quatro etapas com sentido explícito para leitura em aula",
+  [
+   "<circle cx=\"140\" cy=\"240\" r=\"55\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"140\" y=\"240\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">◉</text>",
+   "<rect x=\"35\" y=\"345\" width=\"210\" height=\"125\" stroke-width=\"2.5\" rx=\"15\" fill=\"#eef5f0\" stroke=\"#1F6E43\"/>",
+   "<text x=\"140\" y=\"389.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Observar</text>",
+   "<text x=\"140\" y=\"425.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >O que vejo?</text>",
+   "<line x1=\"200\" y1=\"240\" x2=\"265\" y2=\"240\"  stroke=\"#1F6E43\" stroke-width=\"3\" />",
+   "<path d=\"M253.4690660038693,246.00312928203928 L265,240 L253.4690660038693,233.99687071796072\" fill=\"none\" stroke-linejoin=\"round\" stroke-linecap=\"round\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<circle cx=\"380\" cy=\"240\" r=\"55\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"380\" y=\"240\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">?</text>",
+   "<rect x=\"275\" y=\"345\" width=\"210\" height=\"125\" stroke-width=\"2.5\" rx=\"15\" fill=\"#eef5f0\" stroke=\"#1F6E43\"/>",
+   "<text x=\"380\" y=\"371.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Perguntar</text>",
+   "<text x=\"380\" y=\"407.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >O que falta</text>",
+   "<text x=\"380\" y=\"443.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >saber?</text>",
+   "<line x1=\"440\" y1=\"240\" x2=\"505\" y2=\"240\"  stroke=\"#1F6E43\" stroke-width=\"3\" />",
+   "<path d=\"M493.46906600386933,246.00312928203928 L505,240 L493.46906600386933,233.99687071796072\" fill=\"none\" stroke-linejoin=\"round\" stroke-linecap=\"round\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<circle cx=\"620\" cy=\"240\" r=\"55\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"620\" y=\"240\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">≡</text>",
+   "<rect x=\"515\" y=\"345\" width=\"210\" height=\"125\" stroke-width=\"2.5\" rx=\"15\" fill=\"#eef5f0\" stroke=\"#1F6E43\"/>",
+   "<text x=\"620\" y=\"371.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Registrar</text>",
+   "<text x=\"620\" y=\"407.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Que evidência</text>",
+   "<text x=\"620\" y=\"443.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >tenho?</text>",
+   "<line x1=\"680\" y1=\"240\" x2=\"745\" y2=\"240\"  stroke=\"#1F6E43\" stroke-width=\"3\" />",
+   "<path d=\"M733.4690660038693,246.00312928203928 L745,240 L733.4690660038693,233.99687071796072\" fill=\"none\" stroke-linejoin=\"round\" stroke-linecap=\"round\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<circle cx=\"860\" cy=\"240\" r=\"55\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"860\" y=\"240\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">↻</text>",
+   "<rect x=\"755\" y=\"345\" width=\"210\" height=\"125\" stroke-width=\"2.5\" rx=\"15\" fill=\"#eef5f0\" stroke=\"#1F6E43\"/>",
+   "<text x=\"860\" y=\"371.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Rever</text>",
+   "<text x=\"860\" y=\"407.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >O que posso</text>",
+   "<text x=\"860\" y=\"443.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >concluir?</text>",
+   "<rect x=\"130\" y=\"530\" width=\"740\" height=\"75\" stroke-width=\"2.5\" rx=\"15\" fill=\"#eef5f0\" stroke=\"#1F6E43\"/>",
+   "<text x=\"500\" y=\"567.5\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Ícone + verbo + pergunta orientam a ação do estudante</text>"
+  ].join(''),{"h":700,"footer":"Sinais gráficos autorais; não constituem sinalização de segurança."})},
+ // Fonte(s) primária(s) consultada(s): https://www.w3.org/WAI/WCAG2/supplemental/patterns/o1p07-icons-used/ ; https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
+ {id:"esp-icones-legenda-acessivel",nome:"Ícones — legenda com texto e contexto",grupo:"icones",make:()=>page("Ícones — legenda com texto e contexto","Símbolos convencionais de comunicação, sem certificação normativa",
+  [
+   "<rect x=\"60\" y=\"180\" width=\"880\" height=\"100\" stroke-width=\"2.5\" rx=\"15\" fill=\"#eef5f0\" stroke=\"#1F6E43\"/>",
+   "<text x=\"500\" y=\"212\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Como interpretar um símbolo?</text>",
+   "<text x=\"500\" y=\"248\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Olhe forma, rótulo, legenda e contexto.</text>",
+   "<circle cx=\"180\" cy=\"405\" r=\"45\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"180\" y=\"405\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">!</text>",
+   "<text x=\"180\" y=\"495\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Atenção</text>",
+   "<text x=\"180\" y=\"531\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >leia a condição</text>",
+   "<circle cx=\"500\" cy=\"405\" r=\"45\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"500\" y=\"405\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">i</text>",
+   "<text x=\"500\" y=\"495\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Informação</text>",
+   "<text x=\"500\" y=\"531\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >leia a explicação</text>",
+   "<circle cx=\"820\" cy=\"405\" r=\"45\" fill=\"#fff\" stroke=\"#1F6E43\" stroke-width=\"3\"/>",
+   "<text x=\"820\" y=\"405\" font-size=\"48\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" font-weight=\"700\">?</text>",
+   "<text x=\"820\" y=\"495\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >Dúvida</text>",
+   "<text x=\"820\" y=\"531\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >formule uma pergunta</text>",
+   "<text x=\"500\" y=\"605\" font-size=\"26\" font-family=\"Segoe UI, Arial, sans-serif\" fill=\"#17261e\" stroke=\"none\" text-anchor=\"middle\" dominant-baseline=\"central\" >A cor reforça o significado; o rótulo permite compreendê-lo sem cor.</text>"
+  ].join(''),{"h":700,"footer":"Não use ícone ambíguo sozinho para transmitir uma instrução essencial."})},
+];

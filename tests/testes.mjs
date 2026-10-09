@@ -263,6 +263,27 @@ teste('cada forma vira SVG bem formado na cor pedida', () => {
 });
 
 // ------------------------------------------------------------------
+console.log('Elementos didáticos especiais (especiais.js)');
+const ES = await mod('especiais.js');
+teste('especiais: ids únicos com prefixo esp-, área existente e SVG local bem formado', () => {
+  const ids = ES.ESPECIAIS.map(e => e.id), grupos = new Set(SL.GROUPS.map(g => g.id)), formas = new Set(SL.ALL_SHAPES.map(s => s[0]));
+  igual(new Set(ids).size, ids.length, 'ids repetidos');
+  for (const e of ES.ESPECIAIS) {
+    if (!/^esp-[a-z0-9-]+$/.test(e.id) || formas.has(e.id)) throw new Error(`${e.id}: id inválido ou igual ao de uma forma`);
+    if (!grupos.has(e.grupo)) throw new Error(`${e.id}: área ${e.grupo} não existe`);
+    if (!String(e.nome || '').trim()) throw new Error(`${e.id}: sem nome`);
+    const m = e.make();
+    if (!(m.w > 0 && m.h > 0 && m.w <= 2400 && m.h <= 2400)) throw new Error(`${e.id}: tamanho ${m.w}x${m.h} fora de 1–2400 px`);
+    if (!/^<svg\b[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(m.svg)) throw new Error(`${e.id}: não começa com <svg xmlns>`);
+    if (/<(?:script|foreignObject|image|iframe)\b|\bon\w+\s*=|\b(?:xlink:)?href\s*=\s*["'](?!#)|url\s*\((?!#)/i.test(m.svg)) throw new Error(`${e.id}: conteúdo ativo ou referência externa`);
+    if (/NaN|undefined/.test(m.svg)) throw new Error(`${e.id}: número inválido no desenho`);
+    const abre = (m.svg.match(/<(g|text|svg)\b/g) || []).length, fecha = (m.svg.match(/<\/(g|text|svg)>/g) || []).length;
+    igual(abre, fecha, `${e.id}: tags desbalanceadas`);
+    if (/&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/i.test(m.svg)) throw new Error(`${e.id}: & sem escape`);
+  }
+});
+
+// ------------------------------------------------------------------
 console.log('Folhas (paper.js)');
 const PA = await mod('paper.js');
 teste('as 13 folhas antigas mantêm a chave e a ordem', () => {

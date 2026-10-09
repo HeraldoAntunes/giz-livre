@@ -1,13 +1,14 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
-// Barras móveis: o cadeado destrava, o professor arrasta cada barra para onde quiser e trava de novo.
+// Barras móveis: soltas por padrão (1.2.2), cada uma arrasta pela alça ⠿ e os botões continuam funcionando.
+// O cadeado trava tudo no lugar (barras e painéis flutuantes) e a escolha fica guardada.
 // A posição fica guardada por barra como fração do espaço livre da janela (acompanha mudança de tamanho/projetor).
 import { ICON } from './icons.js';
 import { toast } from './ui.js';
 
-const KEY = 'lousa.bars';
+const KEY = 'lousa.bars', KEY_TRAVA = 'lousa.barsTravadas';
 // barras que podem mudar de lugar (a da seleção acompanha o que está selecionado, fica fora)
 const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar' };
-let pos = load(), unlocked = false, hint = null;
+let pos = load(), unlocked = true;
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; } }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(pos)); } catch {} }
@@ -28,28 +29,22 @@ export function placeAll() { for (const k in BARS) place(k); }
 
 function setLock(open) {
   unlocked = open;
+  try { localStorage.setItem(KEY_TRAVA, open ? '0' : '1'); } catch {}
   document.getElementById('board').classList.toggle('bars-free', open);
+  document.body.classList.toggle('barras-travadas', !open);   // os painéis flutuantes (relógio, cronômetro…) também travam
   const btn = document.getElementById('bLock');
   btn.innerHTML = open ? ICON.unlock : ICON.lock;
-  btn.classList.toggle('on', open);
-  btn.title = open ? 'Travar as barras no lugar' : 'Destravar as barras para mudar de lugar';
-  if (open && !hint) {
-    hint = document.createElement('div');
-    hint.className = 'bars-hint';
-    hint.innerHTML = 'Arraste as barras para onde quiser. <button class="toast-btn" data-r>Voltar ao layout padrão</button><button class="toast-btn" data-l>Travar</button>';
-    hint.querySelector('[data-r]').onclick = () => document.dispatchEvent(new Event('lousa:layoutPadrao'));   // o editor repõe tudo
-    hint.querySelector('[data-l]').onclick = () => setLock(false);
-    document.getElementById('board').appendChild(hint);
-  } else if (!open && hint) { hint.remove(); hint = null; }
+  btn.classList.toggle('on', !open);
+  btn.title = open ? 'Barras soltas (arraste pela alça ⠿). Toque para travar tudo no lugar' : 'Tudo travado. Toque para soltar as barras e os painéis';
 }
 export const barsUnlocked = () => unlocked;
-export function lockBars() { if (unlocked) setLock(false); }
 export function resetBars() { pos = {}; save(); placeAll(); }
 export function resetBar(k) { if (pos[k]) { delete pos[k]; save(); } place(k); }
 
 function drag(k, b) {
   b.addEventListener('pointerdown', e => {
-    if (!unlocked || e.target.closest('#bLock') || e.button > 0) return;
+    // arrasta pela alça (o ::before da barra) ou pelo fundo da barra; os botões continuam clicáveis
+    if (!unlocked || e.target !== b || e.button > 0) return;
     e.preventDefault(); e.stopPropagation();
     const r = b.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
     b.setPointerCapture(e.pointerId);
@@ -63,14 +58,17 @@ function drag(k, b) {
     const up = () => { b.classList.remove('dragging'); b.removeEventListener('pointermove', move); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up); save(); };
     b.addEventListener('pointermove', move); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
   }, true);
-  // com as barras destravadas, os botões não disparam (o toque é para arrastar)
-  b.addEventListener('click', e => { if (unlocked && !e.target.closest('#bLock')) { e.preventDefault(); e.stopPropagation(); } }, true);
 }
 
 export function initBars() {
   for (const k in BARS) { const b = el(k); if (b) drag(k, b); }
-  document.getElementById('bLock').onclick = () => setLock(!unlocked);
-  setLock(false);
+  document.getElementById('bLock').onclick = () => {
+    setLock(!unlocked);
+    toast(unlocked ? 'Barras soltas: arraste pela alça ⠿. Para voltar ao lugar de fábrica: ⋯ → Layout padrão' : 'Barras e painéis travados no lugar');
+  };
+  let travadas = false;
+  try { travadas = localStorage.getItem(KEY_TRAVA) === '1'; } catch {}
+  setLock(!travadas);
   addEventListener('resize', placeAll);
   // barras que aparecem/somem (páginas) ou mudam de largura precisam ser recolocadas
   const ro = new ResizeObserver(placeAll);

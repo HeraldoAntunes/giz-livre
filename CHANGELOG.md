@@ -1,5 +1,28 @@
 # Histórico de versões
 
+## 1.2.2 (09/10/2026)
+- **Barra de ferramentas do professor** aberta à direita por padrão, com o nome embaixo de cada ícone (como a barra
+  Texto/Nota/Formas); no menu, à direita, à esquerda ou só no menu. O botão de cima não fica mais marcado.
+- **Barras soltas por padrão:** cada uma arrasta pela alça ⠿ e os botões continuam funcionando; o **cadeado** trava
+  tudo (barras, relógio, cronômetro e painéis) e a escolha fica guardada.
+- **Holofote ajustável:** tamanho, formato (círculo, quadrado ou faixa) e intensidade do escurecimento, lembrados.
+- **Variar parâmetro de função (experimental):** a curva vem parada, anda só com "▶ Animar" ou Espaço (antes andava
+  quando o mouse se mexia), Enter fixa a curva do momento e dá para escolher a cor de cada curva fixada.
+- **Inserir PDF ou apresentação** (botão **PDF/Slides**): PowerPoint (.pptx, .ppt, .ppsx, .potx), LibreOffice (.odp,
+  .otp) e Keynote (.key, pelo LibreOffice). Antes de inserir, uma grade de miniaturas deixa escolher as páginas.
+- **Acabamento visual:** na lousa escura (verde, preta), as barras ficam em grafite e não ofuscam no projetor; nomes
+  maiores (12 px) embaixo dos ícones; um só estado de "ativo" (azul) em todas as barras; ícones próprios para Cortina
+  e Escrita→texto; alça ⠿ mais visível; fonte do Windows 11 (Segoe UI Variable).
+- A lixeira (limpar o quadro) saiu de perto do desfazer: fica em **⋯ → Limpar o quadro…**, longe de toques acidentais.
+- **Material de consulta** em Formas → área → Especiais (coloridos): tabelas e ábacos fixos, como num apêndice de
+  livro. Hidráulica (Moody, rugosidade, Hazen-Williams, Manning, propriedades da água), OD de saturação, Química
+  (potenciais-padrão, íons, Ka/pKa), Física (prefixos e unidades do SI, constantes CODATA 2022, conversões),
+  Estatística (z, t, χ², F), Matemática (derivadas, integrais, identidades, ângulos notáveis, círculo trigonométrico),
+  Eletrônica (código de cores, séries E), Biologia (código genético, aminoácidos) e Música (círculo de quintas).
+- A **Biblioteca** saiu da barra: a tabela periódica foi para **Formas → Química → Especiais (coloridos)** e a busca
+  acha; as vidrarias dela já existiam em Formas → Laboratório.
+- A primeira tela pergunta **"Quais áreas te interessam?"** (não só para aula); o menu passa a dizer **Áreas…**.
+
 ## 1.2.1 (09/10/2026)
 Inclui tudo da 1.2.0 (abaixo), que não chegou a ser publicada.
 - Biblioteca ampliada para **3.379 formas em 29 disciplinas**: 326 novas e 194 antigas corrigidas, preservando os IDs e o padrão SVG recolorível.

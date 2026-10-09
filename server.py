@@ -58,7 +58,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.2.1"
+VERSAO = "1.2.2"
 ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
 LIXO_OK = re.compile(r"^([A-Za-z0-9_-]{1,64})_(\d{8}-\d{6})(?:-\d{1,4})?$")
@@ -609,22 +609,35 @@ def tem_powerpoint() -> bool:
 
 
 def checar_pptx(conteudo: bytes) -> str:
-    """Aceita só PowerPoint moderno (ZIP/OOXML) sem macros; devolve a extensão a usar."""
+    """Aceita PowerPoint (.pptx/.ppsx/.potx e o antigo .ppt/.pps), apresentação ODF (.odp/.otp) e Keynote (.key);
+    recusa os formatos com macros. Devolve a extensão a usar na conversão."""
     import io
     import zipfile
     if conteudo[:4] == bytes.fromhex("d0cf11e0"):
-        raise ValueError("Arquivo antigo (.ppt) ou protegido por senha. Salve como .pptx sem senha e importe de novo.")
+        return ".ppt"   # PowerPoint 97-2003 (o conversor abre com as macros desligadas); com senha, a conversão avisa
     if conteudo[:4] != b"PK\x03\x04":
-        raise ValueError("Isto não parece um arquivo do PowerPoint (.pptx).")
+        raise ValueError("Isto não parece uma apresentação (.pptx, .ppt, .odp ou .key).")
     try:
         with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
             nomes = [n.lower() for n in z.namelist()]
+            # apresentação aberta (LibreOffice/OpenOffice): o PowerPoint e o LibreOffice abrem
+            if "mimetype" in nomes and b"opendocument.presentation" in z.read("mimetype"):
+                if any(n.startswith("basic/") for n in nomes):
+                    raise ValueError("Apresentações com macros não são aceitas. Salve sem macros e importe de novo.")
+                return ".odp"
+            # Keynote (Mac): só o LibreOffice converte
+            if any(n.startswith("index/") and n.endswith(".iwa") for n in nomes) or "index.zip" in nomes:
+                return ".key"
             tipos = z.read("[Content_Types].xml").decode("utf-8", "replace").lower()
+    except ValueError:
+        raise
     except Exception:
-        raise ValueError("O arquivo do PowerPoint está corrompido.")
+        raise ValueError("O arquivo da apresentação está corrompido.")
     if any("vbaproject" in n for n in nomes) or "macroenabled" in tipos:
         raise ValueError("Apresentações com macros (.pptm) não são aceitas. Salve como .pptx.")
-    return ".ppsx" if "slideshow.main" in tipos else ".pptx"
+    if "slideshow.main" in tipos:
+        return ".ppsx"
+    return ".potx" if "template.main" in tipos else ".pptx"
 
 
 def registrar(e: Exception) -> None:
@@ -666,6 +679,11 @@ def converter_pptx_libreoffice(conteudo: bytes, ext: str) -> bytes:
 
 def converter_pptx(conteudo: bytes, nome: str = "", largura: int = 1920) -> dict:
     ext = checar_pptx(conteudo)
+    if ext == ".key":
+        if not achar_libreoffice():
+            raise ValueError("Para abrir Keynote é preciso ter o LibreOffice (gratuito) instalado. "
+                             "Outra saída: exporte do Keynote como PDF ou PowerPoint e importe esse arquivo.")
+        return {"pdf": base64.b64encode(converter_pptx_libreoffice(conteudo, ext)).decode("ascii")}
     if not tem_powerpoint():
         if achar_libreoffice():
             return {"pdf": base64.b64encode(converter_pptx_libreoffice(conteudo, ext)).decode("ascii")}

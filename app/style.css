@@ -13,7 +13,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--page); color: var(--text);
-  font: 14px "Segoe UI", system-ui, sans-serif; -webkit-user-select: none; user-select: none; }
+  font: 14px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; -webkit-user-select: none; user-select: none; }
 button { font: inherit; color: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 [data-icon] { display: inline-flex; }
@@ -77,10 +77,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
   justify-content: center; transform: translateY(-10px); transition: transform .12s; overflow: hidden; }
 .pen:hover { filter: brightness(1.08) drop-shadow(0 0 2px rgba(15,108,189,.45)); }   /* não se mexe sob a ponta da caneta */
 .pen.active { transform: translateY(0); }
-.cb { width: 56px; border: 0; background: none; border-radius: 6px; padding: 6px 0 4px; display: flex; flex-direction: column;
-  align-items: center; gap: 2px; color: #424242; }
-.cb small { font-size: 11px; }
-.cb:hover, .cb.on { background: #f0f0f0; }
+.cb { width: 60px; border: 0; background: none; border-radius: 8px; padding: 6px 0 4px; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; color: #424242; }
+.cb small { font-size: 12px; line-height: 1.15; }
+.cb:hover { background: #f0f0f0; }
+.cb.on, .cb.active { background: var(--accent-soft); color: var(--accent); }   /* mesmo estado ativo dos botões .ib */
 .title { border: 1px solid transparent; border-radius: 4px; font: 600 14px "Segoe UI", sans-serif; padding: 4px 6px;
   width: 220px; background: none; color: var(--text); }
 .title:hover { border-color: #d1d1d1; } .title:focus { outline: 0; border-color: var(--accent); background: #fff; }
@@ -121,9 +122,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .seg.cursors button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 8px; }
 .seg.cursors small { font-size: 11px; }
 /* barras móveis (cadeado) */
-#board.bars-free .bar:not(.selbar):not(.presentbar) { outline: 2px dashed var(--accent); outline-offset: 2px; cursor: grab; touch-action: none; }
-#board.bars-free .bar:not(.selbar):not(.presentbar) > :not(#bLock) { pointer-events: none; }
-#board.bars-free .bar.dragging { cursor: grabbing; opacity: .9; }
+/* barras soltas (padrão): alça ⠿ na ponta de cada barra; o cadeado esconde as alças e trava tudo */
+#board.bars-free .bar:not(.selbar):not(.presentbar)::before { content: '⠿'; color: #8a8886; font-size: 16px; line-height: 1;
+  padding: 2px 3px; cursor: grab; touch-action: none; align-self: center; }
+#board.bars-free .bar:not(.selbar):not(.presentbar):hover::before { color: var(--accent); }
+#board.bars-free .bar.dragging { cursor: grabbing; opacity: .9; outline: 2px dashed var(--accent); outline-offset: 2px; }
+body.barras-travadas .tm-head { cursor: default; }
 .bar.ink.moved { border-radius: 14px; padding: 4px 10px; }
 .bars-hint { position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); background: #323130; color: #fff;
   padding: 10px 14px 10px 18px; border-radius: 8px; z-index: 50; box-shadow: var(--shadow); white-space: nowrap; }
@@ -310,6 +314,34 @@ dialog .choices .btn { text-align: left; padding: 8px 12px; }
 .pl-p small { grid-column: 2 / 4; color: var(--muted); font-size: 11px; margin-top: -4px; }
 .animbox { top: auto; bottom: 80px; right: 20px; min-width: 240px; }
 .animbox .an-v { font: 600 26px Consolas, monospace; text-align: center; margin: 4px 0; }
+.an-exp { font: 600 10px "Segoe UI", sans-serif; color: #8a5300; background: #fff4ce; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
+.an-cores { gap: 4px; flex-wrap: wrap; }
+.an-cores .sw { width: 22px; height: 22px; }
+.animbox .tb-note { display: block; max-width: 260px; margin-top: 4px; }
+/* holofote: painel de ajuste */
+.spotbox { min-width: 240px; }
+.spotbox .tm-row input[type=range] { flex: 1; }
+.sp-forma { display: flex; margin-top: 6px; }
+.sp-forma button { flex: 1; }
+/* 1.2.2: lousa escura → barras em grafite translúcido, ícones e nomes claros (não ofuscam no projetor) */
+#board.fundo-escuro .bar:not(.selbar):not(.presentbar) { background: rgba(38, 38, 38, .92); color: #f3f3f3;
+  box-shadow: 0 2px 4px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35); }
+#board.fundo-escuro .bar .ib, #board.fundo-escuro .bar .cb, #board.fundo-escuro .bar .zl, #board.fundo-escuro .bar .title { color: #f3f3f3; }
+#board.fundo-escuro .bar .ib:hover, #board.fundo-escuro .bar .cb:hover, #board.fundo-escuro .bar .zl:hover { background: rgba(255,255,255,.1); }
+#board.fundo-escuro .bar .ib.on, #board.fundo-escuro .bar .ib.active, #board.fundo-escuro .bar .cb.on { background: rgba(71, 158, 245, .25); color: #9ccbfb; }
+#board.fundo-escuro .bar .sep { background: rgba(255,255,255,.18); }
+#board.fundo-escuro .bar .status { color: #c8c6c4; }
+#board.fundo-escuro.bars-free .bar:not(.selbar):not(.presentbar)::before { color: #a19f9d; }
+/* escolha de páginas ao inserir PDF/apresentação */
+.pgpick { width: min(960px, 96vw); }
+.pgp-sub { margin: 0 0 8px; font-size: 13px; color: #424242; }
+.pgp-acoes { display: flex; gap: 8px; margin-bottom: 8px; }
+.pgp-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 60vh; overflow: auto; padding: 2px; }
+.pgp-item { position: relative; display: block; border: 2px solid #d1d1d1; border-radius: 8px; overflow: hidden; cursor: pointer; background: #fff; opacity: .45; }
+.pgp-item:has(input:checked) { border-color: var(--accent); opacity: 1; }
+.pgp-item img { display: block; width: 100%; height: 110px; object-fit: contain; background: #f5f5f5; }
+.pgp-item input { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; accent-color: var(--accent); }
+.pgp-item span { position: absolute; right: 6px; bottom: 4px; font: 600 12px "Segoe UI", sans-serif; background: rgba(255,255,255,.85); border-radius: 4px; padding: 0 5px; }
 
 /* revisão de interface (09/10): menu de formas mais estreito, busca com disciplina, botões de desenhar com nome */
 .pop:has(.shp-grid) { max-width: min(840px, 94vw); }
@@ -335,11 +367,13 @@ button:focus:not(:focus-visible) { outline: none; }
 .ck-grade .hoje { background: var(--accent); color: #fff; border-radius: 50%; font-weight: 700; }
 /* barra do professor: lado esquerdo (ao lado da barra de criação), com nomes, ações embaixo */
 .teachbar.esq { right: auto; left: 84px; }
-.teachbar.nomes { align-items: stretch; }
-.teachbar.nomes .ib[data-k] { width: auto; justify-content: flex-start; display: flex; gap: 8px; padding: 0 12px 0 8px; font-size: 13px; white-space: nowrap; }
+.teachbar.nomes { align-items: center; }
+/* com nomes: igual à barra de criação (ícone e o nome embaixo) */
+.teachbar.nomes .cb { width: 76px; padding: 5px 0 3px; }
+.teachbar.nomes .cb small { font-size: 12px; white-space: nowrap; }
 .teachbar .tb-acoes { display: flex; justify-content: center; }
 .teachbar .tb-acoes .ib { width: 34px; height: 34px; font: 600 13px "Segoe UI", sans-serif; }
-.teachbar.nomes .sep { width: auto; }
+.teachbar.nomes .sep { width: 44px; }
 .tb-fixar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 4px 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px; font-size: 13px; }
 .tb-fixar .row { margin: 0; }
 .pop:has(.tb-fixar) { max-width: 500px; }
