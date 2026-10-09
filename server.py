@@ -58,7 +58,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.1.0"
+VERSAO = "1.2.1"
 ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
 LIXO_OK = re.compile(r"^([A-Za-z0-9_-]{1,64})_(\d{8}-\d{6})(?:-\d{1,4})?$")
@@ -352,6 +352,7 @@ class Handler(SimpleHTTPRequestHandler):
                         board["folder"] = pasta
                     else:
                         board.pop("folder", None)
+                    board["_rev"] = board.get("_rev", 0) + 1
                     gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
                 except Exception as e:
                     return self._json({"erro": str(e)}, 500)
@@ -371,6 +372,9 @@ class Handler(SimpleHTTPRequestHandler):
             board = pacote["board"]
             if not isinstance(board, dict) or not isinstance(board.get("items"), list):
                 raise ValueError("quadro inválido")
+            revision = pacote.get("revision", board.get("_rev", 0))
+            if type(revision) is not int or revision < 0:
+                raise ValueError("revisão inválida")
             png = None
             thumb = pacote.get("thumb")
             if thumb:
@@ -384,14 +388,26 @@ class Handler(SimpleHTTPRequestHandler):
             else:
                 board.pop("folder", None)
             board["updated"] = int(time.time() * 1000)
-            dados = json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8")
+            json.dumps(board, ensure_ascii=False, allow_nan=False)  # valida antes de obter a trava
         except Exception as e:
             return self._json({"erro": str(e)}, 400)
         with trava(bid):
-            gravar_atomico(DADOS / f"{bid}.json", dados)
+            arq = DADOS / f"{bid}.json"
+            try:
+                atual = json.loads(arq.read_text(encoding="utf-8")) if arq.exists() else {}
+                if not isinstance(atual, dict):
+                    raise ValueError("quadro existente inválido")
+            except (OSError, ValueError) as e:
+                registrar(e)
+                return self._json({"erro": "não foi possível verificar a revisão do quadro existente"}, 500)
+            if revision != atual.get("_rev", 0):
+                return self._json({"erro": "quadro alterado em outra janela", "revision": atual.get("_rev", 0)}, 412)
+            board["_rev"] = revision + 1
+            dados = json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8")
+            gravar_atomico(arq, dados)
             if png:
                 gravar_atomico(DADOS / f"{bid}.png", png)
-        return self._json({"ok": True, "updated": board["updated"]})
+        return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"]})
 
     def do_POST(self):
         if not self._host_ok() or not self._escrita_ok():

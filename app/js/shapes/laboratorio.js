@@ -182,21 +182,162 @@ const SEG2 = [
 ];
 
 const GHS2 = [
-  ['lb-ghs-explosivo', 'GHS explosivo', 100, 100, DIA + '<circle cx="50" cy="58" r="9" fill="#C"/>'
+  ['lb-ghs-explosivo', 'GHS explosivo — didático', 100, 100, DIA + '<circle cx="50" cy="58" r="9" fill="#C"/>'
     + '<path d="M50 44 V30 M60 48 L70 36 M40 48 L30 36 M64 58 H76 M36 58 H24 M60 68 L66 74 M40 68 L34 74" stroke-width="3"/>' + dot(66, 28, 2.5) + dot(34, 28, 2.5)],
-  ['lb-ghs-oxidante', 'GHS oxidante (comburente)', 100, 100, DIA + '<path d="M50 22 C62 34 62 46 56 52 C54 48 46 48 44 52 C38 46 38 34 50 22 Z" fill="#C"/>'
+  ['lb-ghs-oxidante', 'GHS oxidante (comburente) — didático', 100, 100, DIA + '<path d="M50 22 C62 34 62 46 56 52 C54 48 46 48 44 52 C38 46 38 34 50 22 Z" fill="#C"/>'
     + '<circle cx="50" cy="63" r="9" stroke-width="3.5"/><rect x="36" y="75" width="28" height="3.5" fill="#C" stroke="none"/>'],
-  ['lb-ghs-gas', 'GHS gás sob pressão', 100, 100, DIA + '<rect x="24" y="46" width="44" height="20" rx="10" fill="#C"/><rect x="68" y="51" width="6" height="10" fill="#C" stroke="none"/><path d="M74 56 H80" stroke-width="3"/>'],
-  ['lb-ghs-saude', 'GHS perigo à saúde', 100, 100, DIA + '<circle cx="50" cy="28" r="7" fill="#C"/><path d="M33 76 V52 Q33 40 50 40 Q67 40 67 52 V76 Z" stroke-width="3"/>'
+  ['lb-ghs-gas', 'GHS gás sob pressão — didático', 100, 100, DIA + '<rect x="24" y="46" width="44" height="20" rx="10" fill="#C"/><rect x="68" y="51" width="6" height="10" fill="#C" stroke="none"/><path d="M74 56 H80" stroke-width="3"/>'],
+  ['lb-ghs-saude', 'GHS perigo à saúde — didático', 100, 100, DIA + '<circle cx="50" cy="28" r="7" fill="#C"/><path d="M33 76 V52 Q33 40 50 40 Q67 40 67 52 V76 Z" stroke-width="3"/>'
     + `<path d="${estrela(50, 58, 10, 4, 8)}" fill="#C" stroke="none"/>`],
-  ['lb-nfpa', 'Diamante de Hommel (NFPA 704)', 120, 120, '<path d="M60 4 L116 60 L60 116 L4 60 Z" stroke-width="3"/>' + fino('M32 32 L88 88 M88 32 L32 88', 2)
-    + T(60, 34, '3', 20) + T(34, 60, '2', 20) + T(86, 60, '0', 20) + T(60, 87, 'W', 15) + fino('M50 87 H70', 1.6)],
+
 ];
 
 
+// Ampliação 09/10/2026: desenhos autorais; espaços livres para anotar com Texto.
+const AMPLIACAO_20261009 = [
+  [
+    "Modelos de registro e leitura",
+    [
+      [
+        "lb-registro-amostra",
+        "Registro de amostras — preencher",
+        520,
+        224,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Registro de amostras — preencher</text><rect x=\"10\" y=\"42\" width=\"500\" height=\"178\" rx=\"3\"/><text x=\"72.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Código</text><text x=\"197.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ponto</text><path d=\"M135 42 V220\"/><text x=\"322.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Data/hora</text><path d=\"M260 42 V220\"/><text x=\"447.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Condição</text><path d=\"M385 42 V220\"/><path d=\"M10 68 H510\"/><path d=\"M10 106 H510\"/><path d=\"M10 144 H510\"/><path d=\"M10 182 H510\"/>"
+      ],
+      [
+        "lb-cadeia-custodia",
+        "Cadeia de custódia — registro",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Cadeia de custódia — registro</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Coleta</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">responsável: ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Transporte</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">lacre: ______</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Recebimento</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">conferência: ___</text>"
+      ],
+      [
+        "lb-plano-brancos",
+        "Controle analítico — planejar",
+        520,
+        224,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Controle analítico — planejar</text><rect x=\"10\" y=\"42\" width=\"500\" height=\"178\" rx=\"3\"/><text x=\"93.33333333333333\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Controle</text><text x=\"260\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Finalidade</text><path d=\"M176.66666666666666 42 V220\"/><text x=\"426.66666666666663\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resultado</text><path d=\"M343.3333333333333 42 V220\"/><path d=\"M10 68 H510\"/><path d=\"M10 106 H510\"/><path d=\"M10 144 H510\"/><path d=\"M10 182 H510\"/>"
+      ],
+      [
+        "lb-dil-seriada",
+        "Diluição seriada — cálculo",
+        520,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"504\" height=\"158\" rx=\"3\"/><text x=\"260\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Diluição seriada — cálculo</text><path d=\"M8 48 H512\"/><text x=\"260\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Etapa: ____ V alíquota: ____ V final: ____</text><text x=\"260\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fator de diluição: FD = V final/V alíquota</text><text x=\"260\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">FD total = FD₁ × FD₂ × …</text>"
+      ],
+      [
+        "lb-bequer-sem-legenda",
+        "Béquer com área livre para anotação",
+        180,
+        170,
+        "<path d=\"M25 15 V145 H155 V15\"/><path d=\"M25 90 H155\" stroke-dasharray=\"6 4\" stroke-width=\"1.6\"/><path d=\"M37 52 H55 M37 75 H55 M37 98 H55\" stroke-width=\"1.4\"/>"
+      ],
+      [
+        "lb-bequer-anotado",
+        "Béquer — volume aproximado",
+        360,
+        190,
+        "<path d=\"M30 20 V155 H150 V20\"/><path d=\"M30 97 H150\" stroke-dasharray=\"6 4\" stroke-width=\"1.6\"/><path d=\"M160 97 L210 97\"/><path d=\"M203 93 L210 97 L203 101\"/><text x=\"275\" y=\"80\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Volume: ____ mL</text><text x=\"265\" y=\"113\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Aproximado</text><text x=\"180\" y=\"174\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não substitui vidraria volumétrica.</text>"
+      ],
+      [
+        "lb-menisco-leitura",
+        "Menisco côncavo — leitura alinhada",
+        350,
+        200,
+        "<path d=\"M72 18 V165 M142 18 V165 M72 70 Q107 102 142 70\"/><path d=\"M32 86 H291\" stroke-dasharray=\"6 4\" stroke-width=\"1.5\"/><path d=\"M253 86 Q271 71 289 86 Q271 101 253 86 Z\"/><circle cx=\"271\" cy=\"86\" r=\"4\"/><text x=\"185\" y=\"185\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Olho no nível do fundo do menisco</text>"
+      ],
+      [
+        "lb-titulacao-registro",
+        "Titulação — registro de leitura",
+        500,
+        224,
+        "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Titulação — registro de leitura</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ensaio</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Vi (mL)</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Vf (mL)</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ΔV (mL)</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
+      ],
+      [
+        "lb-volumetrico-sequencia",
+        "Balão volumétrico — sequência",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Balão volumétrico — sequência</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Dissolver</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">temperatura: ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ajustar menisco</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">marca do balão</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Homogeneizar</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">inverter fechado</text>"
+      ],
+      [
+        "lb-calibracao-vazia",
+        "Curva de calibração — preencher",
+        400,
+        260,
+        "<text x=\"200\" y=\"18\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Curva de calibração — preencher</text><path d=\"M56 44 V214 H374\"/><text x=\"24\" y=\"130\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\" transform=\"rotate(-90 24 130)\">Sinal</text><text x=\"374\" y=\"240\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"end\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c (unidade: ___)</text><path d=\"M75 194 L349 66\" stroke-dasharray=\"6 4\"/><text x=\"255\" y=\"191\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">S = a·c + b</text>"
+      ],
+      [
+        "lb-calibracao-tabela",
+        "Calibração — padrões e sinal",
+        500,
+        224,
+        "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Calibração — padrões e sinal</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Padrão</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c (unid.)</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Sinal</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Replicata</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
+      ],
+      [
+        "lb-recuperacao-conta",
+        "Recuperação de adição conhecida",
+        550,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"534\" height=\"158\" rx=\"3\"/><text x=\"275\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Recuperação de adição conhecida</text><path d=\"M8 48 H542\"/><text x=\"275\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">R = (c fortificada − c original)/c adicionada</text><text x=\"275\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">R (%): ______ × 100</text><text x=\"275\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Usar concentrações na mesma base.</text>"
+      ],
+      [
+        "lb-precisao-registro",
+        "Repetibilidade — registrar condições",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Repetibilidade — registrar condições</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Método: ______ Equipamento: ______</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Operador: ______ Intervalo: ______</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resultados: _______________________</text>"
+      ],
+      [
+        "lb-ghs-limites",
+        "GHS — uso didático dos desenhos",
+        540,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"524\" height=\"158\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">GHS — uso didático dos desenhos</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pictogramas desta biblioteca são estilizados.</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Rótulo oficial exige formato e cores próprios.</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Consultar FDS e regra aplicável ao produto.</text>"
+      ],
+      [
+        "lb-nfpa-limites",
+        "NFPA 704 — leitura didática",
+        520,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"504\" height=\"158\" rx=\"3\"/><text x=\"260\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">NFPA 704 — leitura didática</text><path d=\"M8 48 H512\"/><text x=\"260\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Saúde / Inflamabilidade / Instabilidade</text><text x=\"260\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Escala: 0 menor → 4 maior perigo</text><text x=\"260\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Campo especial ≠ categoria GHS</text>"
+      ],
+      [
+        "lb-risco-atividade",
+        "Risco por atividade — preencher",
+        520,
+        224,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Risco por atividade — preencher</text><rect x=\"10\" y=\"42\" width=\"500\" height=\"178\" rx=\"3\"/><text x=\"72.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Etapa</text><text x=\"197.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Perigo</text><path d=\"M135 42 V220\"/><text x=\"322.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Controle</text><path d=\"M260 42 V220\"/><text x=\"447.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resíduo</text><path d=\"M385 42 V220\"/><path d=\"M10 68 H510\"/><path d=\"M10 106 H510\"/><path d=\"M10 144 H510\"/><path d=\"M10 182 H510\"/>"
+      ],
+      [
+        "lb-residuos-fluxo",
+        "Resíduos — decisão por compatibilidade",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resíduos — decisão por compatibilidade</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Identificar</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">composição: ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Segregar</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">compatibilidade</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Destinar</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">procedimento: ___</text>"
+      ],
+      [
+        "lb-ensaio-ficha",
+        "Ficha de ensaio — preencher",
+        500,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"198\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ficha de ensaio — preencher</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Parâmetro: ______ Método: ______</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Unidade: ______ Faixa: ______</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Branco: ______ Resultado: ______</text><text x=\"250\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Incerteza: ______ Observações: ______</text>"
+      ]
+    ]
+  ]
+];
+
 export default {
   id: 'lab', nome: 'Laboratório',
+  destaques: [
+    'lb-bequer', 'lb-erlenmeyer', 'lb-balao-volumetrico', 'lb-proveta', 'lb-tubo-ensaio',
+    'lb-pipeta-volumetrica', 'lb-bureta', 'lb-funil', 'lb-suporte-universal', 'lb-bico-bunsen',
+    'lb-mont-titulacao', 'lb-mont-destilacao', 'lb-mont-filt-simples', 'lb-balanca', 'lb-phmetro',
+    'lb-jarteste',
+  ],
   secoes: [
+    ...AMPLIACAO_20261009,
     ['Vidrarias', [
       ['lb-bequer', 'Béquer', 70, 92, '<path d="M4,6 Q12,6 12,14 V80 Q12,86 18,86 H56 Q62,86 62,80 V10 L66,6"/>'
         + liq(13, 61, 50) + grad(61, 26, 66, 10, -6, -10)],
@@ -369,17 +510,21 @@ export default {
         + '<rect x="22" y="70" width="36" height="30" rx="1" stroke-width="1.6"/>' + T(40, 85, 'PQS', 11)],
       ...SEG2,
     ]],
-    ['Pictogramas GHS', [
-      ['lb-ghs-inflamavel', 'GHS inflamável', 100, 100, DIA + '<path d="M50,22 C66,38 66,58 60,66 Q56,70 50,70 Q42,70 39,64 C34,54 40,46 44,40 C44,48 47,52 50,52 C48,42 50,32 50,22 Z" fill="#C"/>'
+    ['NFPA 704 — esquema didático', [
+  ['lb-nfpa', 'NFPA 704 — exemplo didático estilizado', 120, 120, '<path d="M60 4 L116 60 L60 116 L4 60 Z" stroke-width="3"/>' + fino('M32 32 L88 88 M88 32 L32 88', 2)
+    + T(60, 34, '3', 20) + T(34, 60, '2', 20) + T(86, 60, '0', 20) + T(60, 87, 'W', 15) + fino('M50 87 H70', 1.6)],
+    ]],
+    ['GHS — pictogramas didáticos estilizados', [
+      ['lb-ghs-inflamavel', 'GHS inflamável — didático', 100, 100, DIA + '<path d="M50,22 C66,38 66,58 60,66 Q56,70 50,70 Q42,70 39,64 C34,54 40,46 44,40 C44,48 47,52 50,52 C48,42 50,32 50,22 Z" fill="#C"/>'
         + '<rect x="34" y="73" width="32" height="4" fill="#C" stroke="none"/>'],
-      ['lb-ghs-corrosivo', 'GHS corrosivo', 100, 100, DIA + '<rect x="33" y="24" width="9" height="20" rx="1" transform="rotate(-35 37 34)"/><rect x="58" y="24" width="9" height="20" rx="1" transform="rotate(35 63 34)"/>'
+      ['lb-ghs-corrosivo', 'GHS corrosivo — didático', 100, 100, DIA + '<rect x="33" y="24" width="9" height="20" rx="1" transform="rotate(-35 37 34)"/><rect x="58" y="24" width="9" height="20" rx="1" transform="rotate(35 63 34)"/>'
         + dot(40, 48, 2.5) + dot(41, 56, 2) + dot(60, 48, 2.5) + dot(59, 56, 2)
         + '<path d="M24,64 H36 Q40,58 44,64 H46 V72 H24 Z M54,64 H60 Q64,58 68,64 H76 V72 H54 Z" fill="#C"/>'],
-      ['lb-ghs-toxico', 'GHS tóxico', 100, 100, DIA + '<path d="M37,44 A13,13 0 1 1 63,44 V50 H57 V56 H43 V50 H37 Z"/>' + dot(45, 42, 3.5) + dot(55, 42, 3.5) + dot(50, 49, 1.6)
+      ['lb-ghs-toxico', 'GHS tóxico — didático', 100, 100, DIA + '<path d="M37,44 A13,13 0 1 1 63,44 V50 H57 V56 H43 V50 H37 Z"/>' + dot(45, 42, 3.5) + dot(55, 42, 3.5) + dot(50, 49, 1.6)
         + '<path d="M32,62 L68,76 M68,62 L32,76" stroke-width="4"/>' + dot(31, 61, 3) + dot(69, 61, 3) + dot(31, 77, 3) + dot(69, 77, 3)],
-      ['lb-ghs-ambiente', 'GHS perigo ao meio ambiente', 100, 100, DIA + '<path d="M36,72 V36 M36,48 L28,38 M36,54 L44,44 M36,42 L32,32"/><path d="M24,72 H76"/>'
+      ['lb-ghs-ambiente', 'GHS perigo ao meio ambiente — didático', 100, 100, DIA + '<path d="M36,72 V36 M36,48 L28,38 M36,54 L44,44 M36,42 L32,32"/><path d="M24,72 H76"/>'
         + '<ellipse cx="58" cy="64" rx="10" ry="5" fill="#C"/><path d="M68,64 L76,58 V70 Z" fill="#C"/>'],
-      ['lb-ghs-irritante', 'GHS irritante (!)', 100, 100, DIA + '<path d="M45,26 H55 L53,60 H47 Z" fill="#C"/>' + dot(50, 70, 4.5)],
+      ['lb-ghs-irritante', 'GHS irritante (!) — didático', 100, 100, DIA + '<path d="M45,26 H55 L53,60 H47 Z" fill="#C"/>' + dot(50, 70, 4.5)],
       ...GHS2,
     ]],
   ],

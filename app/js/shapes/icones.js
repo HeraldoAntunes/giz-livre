@@ -73,6 +73,11 @@ const zebra = (() => { let s = ''; for (let x = 4; x <= 124; x += 20) s += `M${x
 
 export default {
   id: 'icones', nome: 'Ícones gerais',
+  destaques: [
+    'ic-visto', 'ic-xis', 'ic-interrog', 'ic-atencao', 'ic-lampada', 'ic-alvo', 'ic-num1',
+    'ic-num2', 'ic-num3', 'ic-pessoa', 'ic-casa', 'ic-arvore', 'ic-gota', 'ic-sol', 'ic-nuvem',
+    'ic-reciclagem',
+  ],
   secoes: [
     ['Formas geométricas', [
       ['ic-circulo', 'Círculo', 80, 80, '<circle cx="40" cy="40" r="34"/>'],

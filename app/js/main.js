@@ -1,6 +1,6 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
-import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, wfetch, sessionLost } from './api.js';
+import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost } from './api.js';
 import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg } from './editor.js';
 import { openTabletSettings } from './tablet.js';
 import { renderToCanvas } from './render.js';
@@ -10,14 +10,28 @@ import { embedAssets } from './editor.js';
 import { ICON } from './icons.js';
 import { fillIcons, toast, askText, confirmBox, showPop, hidePop, aboutBox } from './ui.js';
 import { VERSION } from './version.js';
+import { jaEscolheu, escolherDisciplinas, agruparPorArea, abasOcultas } from './disciplinas.js';
+import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
+import { svgDataUrl } from './library.js';
 
 const $ = id => document.getElementById(id);
 let boards = [];
 let curFolder = '';   // pasta aberta na galeria ('' = raiz). Pastas são só o campo `folder` de cada quadro
 let view = 'grid';    // 'grid' (quadros e pastas) ou 'trash' (lixeira)
 let trash = [];       // itens da lixeira (GET /api/lixeira)
-// pastas criadas pelo botão "Nova pasta" que ainda não têm quadro (a pasta só existe pelo `folder` dos quadros)
+// Pastas vazias persistem no perfil local, separadas por pasta de dados do servidor.
 const extraFolders = new Set();
+const foldersKey = () => 'lousa.folders:' + (serverInfo().dados || 'default');
+function loadExtraFolders() {
+  try {
+    const names = JSON.parse(localStorage.getItem(foldersKey()) || '[]');
+    if (Array.isArray(names)) for (const name of names) if (typeof name === 'string' && cleanFolder(name)) extraFolders.add(cleanFolder(name));
+  } catch {}
+}
+function saveExtraFolders() {
+  try { localStorage.setItem(foldersKey(), JSON.stringify([...extraFolders])); }
+  catch { toast('Não foi possível guardar as pastas vazias neste perfil.', 6000); }
+}
 
 const folderHash = f => f ? '#/p/' + encodeURIComponent(f) : '#/';
 const byName = (a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
@@ -49,11 +63,13 @@ async function showGallery(folder = '') {
   hidePop();
   curFolder = folder;
   view = 'grid';
+  $('gSort').hidden = false;
   $('board').hidden = true;
   $('gallery').hidden = false;
   document.title = 'Giz Livre';
   try { boards = await listBoards(); }
   catch { boards = []; toast('Servidor local não respondeu. Abra pelo atalho "Giz Livre".', 6000); }
+  if (!jaEscolheu()) setTimeout(() => escolherDisciplinas({ primeira: true }), 300);   // primeira abertura: "O que você ensina?"
   renderGrid();
 }
 
@@ -133,6 +149,7 @@ async function newFolder() {
   const t = cleanFolder(await askText('Nova pasta (ex.: nome da disciplina)', ''));
   if (!t) return;
   if (!folderList().some(f => f.name === t)) extraFolders.add(t);
+  saveExtraFolders();
   openFolder(t);
 }
 
@@ -180,12 +197,14 @@ function folderMenu(anchor, name) {
       if (folderList().some(f => f.name === t) &&
         !await confirmBox('Juntar as pastas?', `Já existe a pasta "${t}". Os quadros de "${name}" vão para ela.`, 'Juntar')) return;
       if (extraFolders.delete(name)) extraFolders.add(t);
+      saveExtraFolders();
       await moveBoards(ids, t);
       if (curFolder === name) location.hash = folderHash(t); else refresh();
     });
     on('undo', async () => {
       if (ids.length && !await confirmBox('Remover a pasta?', `Os ${ids.length} quadro(s) de "${name}" voltam para a lista principal. Nenhum quadro é apagado.`, 'Remover a pasta')) return;
       extraFolders.delete(name);
+      saveExtraFolders();
       await moveBoards(ids, '');
       if (curFolder === name) location.hash = '#/'; else refresh();
     });
@@ -289,6 +308,7 @@ function cardMenu(anchor, id) {
     on('dup', async () => {
       const data = await loadBoard(id);
       data.title = (data.title || 'Sem título') + ' (cópia)';
+      delete data._rev;
       const nid = newId();
       const c = await boardThumb(data);
       await saveBoard(nid, data, c.toDataURL('image/png'));
@@ -303,6 +323,7 @@ function cardMenu(anchor, id) {
     on('lousa', async () => {
       const data = await loadBoard(id);
       data.items = await embedAssets(data.items);
+      delete data._rev;
       download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(data.title) + '.lousa');
     });
     on('del', async () => {
@@ -312,6 +333,55 @@ function cardMenu(anchor, id) {
       if (nome) toast('Quadro excluído', 8000, { label: 'Desfazer', fn: () => restore(nome) });
     });
   }, 'above');
+}
+
+// ---- catálogo de formas (#/formas e #/formas/<disciplina>): vitrine da biblioteca, com busca ----
+const DISC_DE = new Map(SHAPE_GROUPS.flatMap(g => g.secoes.flatMap(([, l]) => l.map(f => [f[0], g.nome]))));
+const imgForma = id => svgDataUrl(shapeSvg(id, '#323130').svg);
+const celulaForma = (f, disc) => `<div class="cat-forma" title="${esc(f[1])}"><img src="${imgForma(f[0])}" alt="" loading="lazy"><span>${esc(f[1])}${disc ? `<small>${esc(disc)}</small>` : ''}</span></div>`;
+function showShapes(discId = '') {
+  hidePop();
+  view = 'formas';
+  $('gSort').hidden = true;
+  curFolder = '';
+  $('board').hidden = true;
+  $('gallery').hidden = false;
+  const g = SHAPE_GROUPS.find(x => x.id === discId);
+  document.title = (g ? g.nome + ' — ' : '') + 'Formas — Giz Livre';
+  renderShapes(g);
+}
+let shapesQuery = '', shapesLimit = 600;
+function renderShapes(g = SHAPE_GROUPS.find(x => location.hash === '#/formas/' + x.id)) {
+  const q = plain($('gSearch').value.trim()), ocultas = abasOcultas();
+  if (q !== shapesQuery) { shapesQuery = q; shapesLimit = 600; }
+  const total = ALL_SHAPES.length;
+  let corpo;
+  if (q) {
+    const achadas = ALL_SHAPES.filter(f => plain(f[1]).includes(q));
+    corpo = `<div class="g-note">${achadas.length} forma${achadas.length === 1 ? '' : 's'} com "${esc($('gSearch').value.trim())}". Exibindo ${Math.min(shapesLimit, achadas.length)}.</div>
+      <div class="cat-grade">${achadas.slice(0, shapesLimit).map(f => celulaForma(f, DISC_DE.get(f[0]))).join('')}</div>
+      ${achadas.length > shapesLimit ? '<button class="btn" id="gMoreShapes">Mostrar mais formas</button>' : ''}`;
+  } else if (g) {
+    const mais = (g.destaques || []).map(shapeById).filter(Boolean);
+    corpo = `<a class="btn cat-voltar" href="#/formas">${ICON.back}<span>Todas as disciplinas</span></a><div class="g-note"><b>${esc(g.nome)}</b>: ${g.secoes.reduce((a, [, l]) => a + l.length, 0)} formas. No quadro, abra <b>Formas</b> na coluna da esquerda para inserir.</div>
+      ${mais.length ? `<h3 class="cat-sec">⚑ Mais usadas</h3><div class="cat-grade">${mais.map(f => celulaForma(f)).join('')}</div>` : ''}
+      ${g.secoes.map(([n, l]) => `<h3 class="cat-sec">${esc(n)} <small>${l.length}</small></h3><div class="cat-grade">${l.map(f => celulaForma(f)).join('')}</div>`).join('')}`;
+  } else {
+    corpo = `<div class="cat-topo"><div><b>${total.toLocaleString('pt-BR')} formas técnicas</b> em ${SHAPE_GROUPS.length} disciplinas, desenhadas para o Giz Livre (licença MIT).
+        Toque numa disciplina para ver todas; a pesquisa acima procura em todas.</div>
+        <button class="btn" id="gDisc">${ICON.shapes} Disciplinas no menu…</button></div>
+      ${agruparPorArea(SHAPE_GROUPS).map(([area, gs]) => `<h3 class="cat-area">${esc(area)}</h3><div class="cat-discs">${gs.map(d => {
+        const amostra = (d.destaques?.length ? d.destaques.map(shapeById) : d.secoes.flatMap(([, l]) => l)).filter(Boolean).slice(0, 6);
+        const n = d.secoes.reduce((a, [, l]) => a + l.length, 0);
+        return `<a class="cat-disc${ocultas.has(d.id) ? ' oculta' : ''}" href="#/formas/${d.id}">
+          <div class="cat-amostra">${amostra.map(f => `<img src="${imgForma(f[0])}" alt="" loading="lazy">`).join('')}</div>
+          <div class="cat-nome">${esc(d.nome)}</div><div class="cat-n">${n} formas${ocultas.has(d.id) ? ' · oculta no menu' : ''}</div></a>`;
+      }).join('')}</div>`).join('')}`;
+  }
+  $('gGrid').innerHTML = `${backNav(g && !q ? 'Formas › ' + g.nome : 'Formas', q ? 'pesquisa nas formas' : '')}<div class="cat">${corpo}</div>`;
+  bindBack();
+  $('gDisc')?.addEventListener('click', async () => { if (await escolherDisciplinas()) renderShapes(); });
+  $('gMoreShapes')?.addEventListener('click', () => { shapesLimit += 600; renderShapes(g); });
 }
 
 // ---- lixeira: quadros excluídos (quadros/lixeira), com "Restaurar"; nada é apagado de vez pela interface ----
@@ -325,6 +395,7 @@ async function restore(nome) {
 }
 
 async function showTrash() {
+  $('gSort').hidden = false;
   hidePop();
   view = 'trash';
   curFolder = '';
@@ -378,6 +449,7 @@ async function importFiles(files) {
         board.view = null;
       }
       board.title = board.title || f.name.replace(/\.[^.]+$/, '');
+      delete board._rev; // um arquivo importado começa uma revisão própria
       if (curFolder) board.folder = curFolder; else delete board.folder;   // entra na pasta aberta
       const c = await boardThumb(board);
       await saveBoard(newId(), board, c.toDataURL('image/png'));
@@ -396,6 +468,7 @@ async function route() {
   if (seq !== routeSeq) return;   // outra navegação começou enquanto fechava
   if (!ok) toast('Atenção: as últimas mudanças ainda não foram salvas. Vou continuar tentando.', 6000);
   if (!m && location.hash === '#/lixeira') return showTrash();
+  if (!m && location.hash.startsWith('#/formas')) return showShapes(location.hash.split('/')[2] || '');
   if (!m) {
     const mp = location.hash.match(/^#\/p\/(.+)$/);
     let folder = '';
@@ -417,8 +490,9 @@ async function route() {
 
 fillIcons();
 initEditor();
-$('gSearch').addEventListener('input', () => view === 'trash' ? renderTrash() : renderGrid());
-$('gSort').addEventListener('change', () => view === 'trash' ? renderTrash() : renderGrid());
+$('gSearch').addEventListener('input', () => view === 'trash' ? renderTrash() : view === 'formas' ? renderShapes() : renderGrid());
+$('gShapes').onclick = () => { $('gSearch').value = ''; location.hash = '#/formas'; };
+$('gSort').addEventListener('change', () => view === 'trash' ? renderTrash() : view === 'formas' ? renderShapes() : renderGrid());
 $('gImport').onclick = () => $('gImportFile').click();
 $('gNewFolder').onclick = newFolder;
 $('gTrash').onclick = () => { $('gSearch').value = ''; if (location.hash === '#/lixeira') showTrash(); else location.hash = '#/lixeira'; };
@@ -437,4 +511,4 @@ async function ping() {
 setInterval(ping, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
 addEventListener('hashchange', route);
-initSession().then(route, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });
+initSession().then(() => { loadExtraFolders(); route(); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });

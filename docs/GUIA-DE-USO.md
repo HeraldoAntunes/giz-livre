@@ -44,6 +44,7 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | Ferramentas | botão **Ferramentas** (esquadro e lápis): lupa de escrita, transferidor (a caneta corre presa ao arco e à base), compasso, cortina, holofote, cronômetro (dá para digitar o tempo: 7, 7,5 ou 7:30), relógio, fórmula LaTeX, tabela periódica, vidrarias. Marque "Mostrar todas abertas numa barra" para tê-las sempre à vista |
 | Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… ou escolha um **modelo por área** (Chick, DBO, Streeter-Phelps, senoide, RC, normal…) e ajuste os parâmetros. A curva sai com os eixos desenhados (dá para apagar ou mover). Escolha um parâmetro em "Animar" para vê-lo variar; "Fixar esta curva" grava o instante |
 | Texto, nota, forma, imagem | coluna à esquerda (ou cole uma imagem com `Ctrl+V`) |
+| Formas técnicas | **Formas → área → disciplina**; use a busca, **⚑ Mais usadas** e **↺ Recentes**. Em Engenharias estão Hidráulica, Saneamento, Recursos Hídricos e Topografia, além de Elétrica, Eletrônica e Embarcados |
 | Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas. Em "ver todas", marque várias miniaturas e toque em **Excluir** (ex.: tirar 2 páginas de um PDF) |
 | Apresentar | botão **Apresentar**: setas ou passador mudam de slide; `B` = página em branco; `Esc` sai. Na mini-bandeja: cor e espessura, "tinta vira forma" (desligado = desenho livre) e lupa |
 | Esconder as barras | `Tab` (modo aula); para voltar, `Tab` de novo ou o botão **Mostrar barras** no canto de baixo |
@@ -51,6 +52,11 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | PDF, imprimir, imagem | menu `…` → Exportar PDF / Imprimir / Exportar imagem |
 | Desfazer / refazer | `Ctrl+Z` / `Ctrl+Y` (o aviso de desfazer também tem **Refazer**) |
 | Salvar | automático |
+
+Para escolher quais disciplinas aparecem, use **Disciplinas…** no menu Formas. A busca encontra também as ocultas.
+Na galeria, **Formas** abre o catálogo. Selecione uma forma na lousa para mover, girar e redimensionar; use a opção de
+cor da seleção para recolorir. Modelos com campos vazios podem receber Texto ou escrita a caneta. A legenda interna
+faz parte da imagem SVG.
 
 ## 5. Trazer quadros de outros programas
 - **Microsoft Whiteboard:** exporte cada quadro como imagem e use **Importar** na galeria.

@@ -1,4 +1,4 @@
-﻿GIZ LIVRE 1.1.0
+﻿GIZ LIVRE 1.2.1
 Lousa livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.
 
 SOFTWARE LIVRE E GRATUITO - LICENÇA MIT

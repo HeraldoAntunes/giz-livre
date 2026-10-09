@@ -17,7 +17,7 @@ na pasta `licencas\`.
 | **PyInstaller** (bootloader e *runtime hooks*) | 6.11.1 | gera o `GizLivre.exe` | bootloader: GPL 2.0 com exceção, que permite distribuir o executável gerado sob qualquer licença; *runtime hooks* embutidos: Apache License 2.0 | https://github.com/pyinstaller/pyinstaller (arquivo COPYING.txt) |
 | **Inno Setup** (Jordan Russell e Martijn Laan) | 6.7.3 | gera o instalador | Licença do Inno Setup (uso gratuito, inclusive comercial) | https://jrsoftware.org/files/is/license.txt |
 
-**Formas e ícones da biblioteca:** não são de terceiros. As 1.384 formas de `app/js/shapes/` e os desenhos de
+**Formas e ícones da biblioteca:** não são de terceiros. As 3.379 formas de `app/js/shapes/` e os desenhos de
 `app/js/library.js` foram desenhados para o Giz Livre e estão sob a licença MIT do projeto (ver a seção "Autoria das
 formas e ícones" do README).
 

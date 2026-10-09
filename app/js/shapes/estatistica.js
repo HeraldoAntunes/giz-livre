@@ -65,12 +65,12 @@ const grade = (() => {
 
 const papelNormal = (() => {
   const ps = [['1', -2.326], ['5', -1.645], ['10', -1.282], ['20', -0.842], ['30', -0.524], ['50', 0], ['70', 0.524], ['80', 0.842], ['90', 1.282], ['95', 1.645], ['99', 2.326]];
-  const Y = z => 100 - z * 36;
+  const Y = z => 150 - z * 52;
   let h = '', lb = '', v = '';
-  for (const [s, z] of ps) { h += `M40,${r1(Y(z))} H194 `; lb += t(24, Y(z), s, 10); }
-  for (let x = 62; x < 194; x += 22) v += `M${x},6 V194 `;
-  return `<rect x="40" y="6" width="154" height="188"/>` + `<path d="${h}${v}" stroke-width=".9"/>` +
-    ln(40, Y(0), 194, Y(0), ' stroke-width="1.6"') + t(24, 196, '%', 10);
+  for (const [s, z] of ps) { h += `M64,${r1(Y(z))} H284 `; lb += t(40, Y(z), s, 14); }
+  for (let x = 86; x < 284; x += 22) v += `M${x},14 V286 `;
+  return `<rect x="64" y="14" width="220" height="272"/>` + `<path d="${h}${v}" stroke-width=".9"/>` + lb +
+    ln(64, Y(0), 284, Y(0), ' stroke-width="1.6"') + t(40, 293, '%', 14);
 })();
 
 const decadas = (a, b, n, ehX) => { // linhas de grade logarítmicas: n décadas entre a e b
@@ -103,19 +103,19 @@ const nPts = (a, b) => curva(fN, a, b, NX, NY, Math.max(8, Math.round((b - a) * 
 const nBase = `<path d="M6,${NYB} H214"/>` + path(nPts(-3.4, 3.4));
 
 const normal = (() => {
-  let v = '', tk = '';
-  for (const z of [-2, -1, 1, 2]) v += ln(NX(z), NYB, NX(z), NY(fN(z)), tracejado);
-  for (const z of [-2, -1, 0, 1, 2]) tk += `M${r1(NX(z))},${NYB - 4} V${NYB + 4} `;
-  return nBase + ln(NX(0), NYB, NX(0), NY(1), tracejado) + v + `<path d="${tk}"${fino}/>` +
-    t(NX(-2), 117, '−2σ') + t(NX(-1), 117, '−σ') + t(NX(0), 117, 'μ', 12) + t(NX(1), 117, '+σ') + t(NX(2), 117, '+2σ');
+  const X = z => 225 + 60 * z, Y = v => 150 - 125 * v;
+  let body = ln(14, 150, 436, 150) + path(curva(fN, -3.4, 3.4, X, Y, 100));
+  for (const [z, label] of [[-2, 'μ−2σ'], [-1, 'μ−σ'], [0, 'μ'], [1, 'μ+σ'], [2, 'μ+2σ']])
+    body += ln(X(z), 150, X(z), Y(fN(z)), tracejado) + ln(X(z), 146, X(z), 156) + t(X(z), 178, label, 14);
+  return body + t(225, 208, 'Distâncias a partir da média μ', 16);
 })();
 const zc = 1.65, zb = 1.96;
 const marcaZ = (z, s) => ln(NX(z), NYB - 4, NX(z), NYB + 4, fino) + t(NX(z), 117, s);
-const normalDir = area(nPts(zc, 3.4), NYB) + nBase + ln(NX(zc), NYB, NX(zc), NY(fN(zc)), fino) + marcaZ(0, 'μ') + marcaZ(zc, 'z') + t(NX(2.45), 80, 'α', 13);
-const normalEsq = area(nPts(-3.4, -zc), NYB) + nBase + ln(NX(-zc), NYB, NX(-zc), NY(fN(zc)), fino) + marcaZ(0, 'μ') + marcaZ(-zc, '−z') + t(NX(-2.45), 80, 'α', 13);
+const normalDir = area(nPts(zc, 3.4), NYB) + nBase + ln(NX(zc), NYB, NX(zc), NY(fN(zc)), fino) + marcaZ(0, '0') + marcaZ(zc, 'z') + t(NX(2.45), 80, 'α', 13);
+const normalEsq = area(nPts(-3.4, -zc), NYB) + nBase + ln(NX(-zc), NYB, NX(-zc), NY(fN(zc)), fino) + marcaZ(0, '0') + marcaZ(-zc, '−z') + t(NX(-2.45), 80, 'α', 13);
 const normalBi = area(nPts(-3.4, -zb), NYB) + area(nPts(zb, 3.4), NYB) + nBase +
   ln(NX(-zb), NYB, NX(-zb), NY(fN(zb)), fino) + ln(NX(zb), NYB, NX(zb), NY(fN(zb)), fino) +
-  marcaZ(0, 'μ') + marcaZ(-zb, '−z') + marcaZ(zb, '+z') + t(NX(-2.7), 82, 'α/2', 11) + t(NX(2.7), 82, 'α/2', 11);
+  marcaZ(0, '0') + marcaZ(-zb, '−z') + marcaZ(zb, '+z') + t(NX(-2.7), 82, 'α/2', 11) + t(NX(2.7), 82, 'α/2', 11);
 
 const tNormal = (() => {
   const fT = z => 0.3676 / 0.3989 * Math.pow(1 + z * z / 3, -2);
@@ -180,12 +180,19 @@ const assimetria = espelho => {
 };
 
 const curtose = (() => {
-  const X = z => 96 + z * 22, g = s => z => Math.exp(-z * z / (2 * s * s)) / s;
-  const k = 92 / (1 / 0.6), Y = v => 110 - k * v;
-  return `<path d="M4,110 H188"/>` + path(curva(g(0.6), -4, 4, X, Y, 120)) + path(curva(g(1), -4, 4, X, Y, 120), ' stroke-dasharray="7 5"') +
-    path(curva(g(1.6), -4, 4, X, Y, 120), pontilhado) +
-    ln(170, 14, 190, 14) + t(212, 14, 'lepto', 10) + ln(170, 30, 190, 30, ' stroke-dasharray="7 5"') + t(212, 30, 'meso', 10) +
-    ln(170, 46, 190, 46, pontilhado) + t(212, 46, 'plati', 10);
+  // Densidades com média 0 e variância 1; curtose de Pearson, sem subtrair 3.
+  const X = z => 175 + z * 38, Y = f => 200 - 210 * f;
+  const laplace = z => Math.exp(-Math.SQRT2 * Math.abs(z)) / Math.SQRT2;
+  const gaussian = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+  const u = Math.sqrt(3), hu = 1 / (2 * u);
+  return t(270, 20, 'Curtose: mesma média e variância', 18) + ln(18, 200, 332, 200)
+    + path(curva(laplace, -4, 4, X, Y, 160))
+    + path(curva(gaussian, -4, 4, X, Y, 160), ' stroke-dasharray="7 5"')
+    + `<path d="M${X(-u)},200 V${Y(hu)} H${X(u)} V200" stroke-dasharray="2 5"/>`
+    + ln(350, 75, 375, 75) + t(448, 75, 'Laplace: κ = 6', 14)
+    + ln(350, 111, 375, 111, ' stroke-dasharray="7 5"') + t(448, 111, 'Normal: κ = 3', 14)
+    + ln(350, 147, 375, 147, ' stroke-dasharray="2 5"') + t(448, 147, 'Uniforme: κ = 1,8', 14)
+    + t(270, 235, 'κ de Pearson; μ = 0 e σ² = 1', 16) + t(270, 260, 'Curtose caracteriza as caudas; não é apenas altura.', 16);
 })();
 const bimodal = (() => {
   const f = z => Math.exp(-((z + 1.4) ** 2) / (2 * 0.49)) + 0.85 * Math.exp(-((z - 1.5) ** 2) / (2 * 0.64));
@@ -351,13 +358,14 @@ const sub = (a, b) => `${a}<tspan font-size="9" dy="4">${b}</tspan>`;
 
 // ---------- Curva normal e testes ----------
 const normalRegra = (() => {
-  let v = '', tk = '', lb = '';
-  const nm = ['−3σ', '−2σ', '−σ', 'μ', '+σ', '+2σ', '+3σ'];
+  const X = z => 270 + z * 70, Y = v => 155 - 125 * v;
+  let body = ln(20, 155, 520, 155) + path(curva(fN, -3.4, 3.4, X, Y, 100));
+  const nm = ['μ−3σ', 'μ−2σ', 'μ−σ', 'μ', 'μ+σ', 'μ+2σ', 'μ+3σ'];
   for (let z = -3; z <= 3; z++) {
-    if (Math.abs(z) < 3) v += ln(NX(z), NYB, NX(z), NY(fN(z)), tracejado);
-    tk += `M${r1(NX(z))},${NYB - 4} V${NYB + 4} `; lb += t(NX(z), 117, nm[z + 3], 10);
+    if (Math.abs(z) < 3) body += ln(X(z), 155, X(z), Y(fN(z)), tracejado);
+    body += ln(X(z), 151, X(z), 161) + t(X(z), 180, nm[z + 3], 14);
   }
-  return nBase + v + `<path d="${tk}"${fino}/>` + lb + cota(NX(-1), NX(1), 134, '68%') + cota(NX(-2), NX(2), 150, '95%') + cota(NX(-3), NX(3), 166, '99,7%');
+  return body + cota(X(-1), X(1), 211, '68%', 14) + cota(X(-2), X(2), 240, '95%', 14) + cota(X(-3), X(3), 269, '99,7%', 14);
 })();
 const normalPadrao = (() => {
   let tk = '', lb = '';
@@ -371,7 +379,7 @@ const normalEntre = (() => {
 })();
 const normalAcum = area(nPts(-3.4, 0.8), NYB) + nBase + ln(NX(0.8), NYB, NX(0.8), NY(fN(0.8)), fino) + marcaZ(0.8, 'z') + t(NX(-0.6), 78, 'Φ(z)', 12);
 const normalIC = area(nPts(-zb, zb), NYB) + nBase + ln(NX(-zb), NYB, NX(-zb), NY(fN(zb)), fino) + ln(NX(zb), NYB, NX(zb), NY(fN(zb)), fino) +
-  marcaZ(-zb, '−z') + marcaZ(zb, '+z') + marcaZ(0, 'μ') + t(110, 76, '1 − α', 12) + t(NX(-2.7), 82, 'α/2', 10) + t(NX(2.7), 82, 'α/2', 10);
+  marcaZ(-zb, '−z') + marcaZ(zb, '+z') + marcaZ(0, '0') + t(110, 76, '1 − α', 12) + t(NX(-2.7), 82, 'α/2', 10) + t(NX(2.7), 82, 'α/2', 10);
 const normalMedias = (() => {
   const s = 0.75, f1 = z => fN((z + 1.2) / s), f2 = z => fN((z - 1.2) / s);
   return `<path d="M6,${NYB} H214"/>` + path(curva(f1, -3.4, 3.4, NX, NY, 120)) + path(curva(f2, -3.4, 3.4, NX, NY, 120), desv) +
@@ -447,7 +455,7 @@ const beta = (() => {
 })();
 const tlc = (() => {
   const nc = (s, est) => path(curva(z => 84 * 0.25 / s * Math.exp(-z * z / (2 * s * s)), -3.4, 3.4, NX, v => NYB - v, 160), est);
-  return `<path d="M6,${NYB} H214"/>` + nc(1, pontilhado) + nc(0.5, desv) + nc(0.25, '') + marcaZ(0, 'μ') +
+  return `<path d="M6,${NYB} H214"/>` + nc(1, pontilhado) + nc(0.5, desv) + nc(0.25, '') + marcaZ(0, '0') +
     leg(8, 14, 'n = 16') + leg(8, 28, 'n = 4', desv) + leg(8, 42, 'n = 1', pontilhado);
 })();
 const fdaDiscreta = (() => {
@@ -574,7 +582,7 @@ const cartaP = (() => {
     path(pts, ' stroke-width="1.6"') + pts.map(([x, y]) => pt(x, y, 2.8)).join('') + t(214, 26, 'LSC', 11) + t(214, lc, 'LC', 11) + t(214, 102, 'LIC', 11);
 })();
 const capabilidade = nBase + ln(NX(0), NYB, NX(0), NY(1), tracejado) + ln(NX(-3.25), NYB + 4, NX(-3.25), 18, ' stroke-width="2.4"') + ln(NX(3.25), NYB + 4, NX(3.25), 18, ' stroke-width="2.4"') +
-  t(NX(-3.25), 9, 'LIE', 11) + t(NX(3.25), 9, 'LSE', 11) + marcaZ(0, 'μ') + marcaZ(-3, '−3σ') + marcaZ(3, '+3σ');
+  t(NX(-3.25), 9, 'LIE', 11) + t(NX(3.25), 9, 'LSE', 11) + marcaZ(0, '0') + marcaZ(-3, '−3σ') + marcaZ(3, '+3σ');
 
 // ---------- Probabilidade e amostragem ----------
 const vennS = (d, s, ex = '') => `<path d="${d}" fill="#C" fill-opacity=".3" stroke="none"${ex}/>` + venn2 + t(188, 20, s, 12);
@@ -627,33 +635,188 @@ const roleta = (() => {
     `<path d="M${c},${c} L${pol(35, 32)}" stroke-width="3"/>` + head(...pol(35, 44), -55, 14) + `<circle cx="${c}" cy="${c}" r="5" fill="#C"/>`;
 })();
 
+// Ampliação 09/10/2026: desenhos autorais; espaços livres para anotar com Texto.
+const AMPLIACAO_20261009 = [
+  [
+    "Cálculo e interpretação — modelos",
+    [
+      [
+        "es-quartis-etapas",
+        "Quartis — sequência de análise",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Quartis — sequência de análise</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ordenar dados</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x₍₁₎ ≤ … ≤ x₍ₙ₎</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Definir método</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">métodos diferem</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Calcular Q₁–Q₃</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">registrar convenção</text>"
+      ],
+      [
+        "es-rol-preencher",
+        "Rol — posições e valores",
+        480,
+        262,
+        "<text x=\"240\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Rol — posições e valores</text><rect x=\"10\" y=\"42\" width=\"460\" height=\"216\" rx=\"3\"/><text x=\"86.66666666666667\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Posição i</text><text x=\"240\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x₍ᵢ₎</text><path d=\"M163.33333333333334 42 V258\"/><text x=\"393.33333333333337\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Observação</text><path d=\"M316.6666666666667 42 V258\"/><path d=\"M10 68 H470\"/><path d=\"M10 106 H470\"/><path d=\"M10 144 H470\"/><path d=\"M10 182 H470\"/><path d=\"M10 220 H470\"/>"
+      ],
+      [
+        "es-quartis-exemplo",
+        "Quartis — mediana das metades",
+        550,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"534\" height=\"198\" rx=\"3\"/><text x=\"275\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Quartis — mediana das metades</text><path d=\"M8 48 H542\"/><text x=\"275\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Rol: 2, 4, 6, 8, 10, 12, 14, 16</text><text x=\"275\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q₂ = (8 + 10)/2 = 9</text><text x=\"275\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q₁ = (4 + 6)/2 = 5; Q₃ = (12 + 14)/2 = 13</text><text x=\"275\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Convenção: medianas das duas metades.</text>"
+      ],
+      [
+        "es-iqr-limites",
+        "Amplitude interquartil e cercas",
+        500,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"198\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amplitude interquartil e cercas</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">AIQ = Q₃ − Q₁</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Cerca inferior: Q₁ − 1,5·AIQ</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Cerca superior: Q₃ + 1,5·AIQ</text><text x=\"250\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor externo é sinal para investigar.</text>"
+      ],
+      [
+        "es-frequencia-vazia",
+        "Frequências — tabela a completar",
+        500,
+        262,
+        "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Frequências — tabela a completar</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"216\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Classe</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">fᵢ</text><path d=\"M130 42 V258\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fᵢ</text><path d=\"M250 42 V258\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">fᵢ/n</text><path d=\"M370 42 V258\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/><path d=\"M10 220 H490\"/>"
+      ],
+      [
+        "es-frequencia-exemplo",
+        "Frequências — exemplo n = 10",
+        500,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"198\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Frequências — exemplo n = 10</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor 1: f = 2; F = 2; fr = 0,20</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor 2: f = 5; F = 7; fr = 0,50</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor 3: f = 3; F = 10; fr = 0,30</text><text x=\"250\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Σf = 10; Σfr = 1</text>"
+      ],
+      [
+        "es-classes-convencao",
+        "Classes — explicitar limites",
+        500,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Classes — explicitar limites</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">[a, b): inclui a e exclui b.</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Largura: h = b − a; unidade: ______</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Classes sem sobreposição: __________</text>"
+      ],
+      [
+        "es-histograma-densidade",
+        "Histograma — largura importa",
+        400,
+        260,
+        "<text x=\"200\" y=\"18\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Histograma — largura importa</text><path d=\"M56 44 V214 H374\"/><text x=\"24\" y=\"130\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\" transform=\"rotate(-90 24 130)\">Densidade</text><text x=\"374\" y=\"240\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"end\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Variável (unidade)</text><path d=\"M73 214 V164 H143 V214 M143 214 V114 H283 V214 M283 214 V94 H353 V214\"/><text x=\"220\" y=\"69\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Área ∝ frequência</text>"
+      ],
+      [
+        "es-ic-etapas",
+        "IC da média — sequência",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">IC da média — sequência</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estimar x̄</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">amostra: n = ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Calcular EP</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">s/√n</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Aplicar crítico</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x̄ ± t·EP</text>"
+      ],
+      [
+        "es-ic-t-modelo",
+        "IC da média — σ desconhecido",
+        540,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"524\" height=\"198\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">IC da média — σ desconhecido</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x̄ ± t₍₁₋α/₂; n₋₁₎ · s/√n</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n: ____ x̄: ____ s: ____ α: ____</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amostra independente; normalidade ou</text><text x=\"270\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">aproximação justificada para a média.</text>"
+      ],
+      [
+        "es-ic-interpretacao",
+        "IC — interpretação frequentista",
+        540,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"524\" height=\"198\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">IC — interpretação frequentista</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Em repetições do procedimento,</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">a proporção nominal de intervalos</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">contém o parâmetro fixo.</text><text x=\"270\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não é a chance de cada dado estar no IC.</text>"
+      ],
+      [
+        "es-ic-comparar",
+        "IC — precisão e tamanho amostral",
+        450,
+        210,
+        "<text x=\"225\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Mesmo nível e variabilidade</text><path d=\"M80 76 H370 M80 66 V86 M370 66 V86 M160 143 H290 M160 133 V153 M290 133 V153\"/><circle cx=\"225\" cy=\"76\" r=\"5\"/><circle cx=\"225\" cy=\"143\" r=\"5\"/><text x=\"225\" y=\"53\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n menor</text><text x=\"225\" y=\"180\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n maior → menor erro padrão</text>"
+      ],
+      [
+        "es-tamanho-amostra",
+        "Planejamento amostral — precisão",
+        520,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"504\" height=\"158\" rx=\"3\"/><text x=\"260\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Planejamento amostral — precisão</text><path d=\"M8 48 H512\"/><text x=\"260\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Média, σ conhecido: n ≥ (z·σ/E)²</text><text x=\"260\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">E: erro máximo na unidade da variável</text><text x=\"260\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Arredondar para cima; conferir hipóteses.</text>"
+      ],
+      [
+        "es-amostragem-plano",
+        "Amostragem — definir o desenho",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amostragem — definir o desenho</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">População-alvo</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">quem/onde: ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Cadastro</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">cobertura: ___</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Sorteio</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">método: ______</text>"
+      ],
+      [
+        "es-estratos-alocacao",
+        "Estratos — alocação proporcional",
+        500,
+        224,
+        "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estratos — alocação proporcional</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estrato</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Nₕ</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Nₕ/N</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">nₕ</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
+      ],
+      [
+        "es-sistematica-plano",
+        "Amostragem sistemática — plano",
+        520,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"504\" height=\"158\" rx=\"3\"/><text x=\"260\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amostragem sistemática — plano</text><path d=\"M8 48 H512\"/><text x=\"260\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Intervalo k: ______ início aleatório: ______</text><text x=\"260\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Selecionar r, r+k, r+2k, …</text><text x=\"260\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Investigar periodicidade do cadastro.</text>"
+      ],
+      [
+        "es-interpretacao-grafico",
+        "Leitura crítica de gráfico",
+        540,
+        186,
+        "<text x=\"270\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Leitura crítica de gráfico</text><rect x=\"10\" y=\"42\" width=\"520\" height=\"140\" rx=\"3\"/><text x=\"96.66666666666667\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Eixos/unidades</text><text x=\"270\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Padrão</text><path d=\"M183.33333333333334 42 V182\"/><text x=\"443.33333333333337\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Limitação</text><path d=\"M356.6666666666667 42 V182\"/><path d=\"M10 68 H530\"/><path d=\"M10 106 H530\"/><path d=\"M10 144 H530\"/>"
+      ],
+      [
+        "es-correlacao-cuidado",
+        "Associação e causalidade",
+        500,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Associação e causalidade</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Variáveis: ______ Relação: ______</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Confundidores possíveis: __________</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Associação isolada não prova causa.</text>"
+      ],
+      [
+        "es-residuos-registro",
+        "Resíduos — registro e diagnóstico",
+        500,
+        224,
+        "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resíduos — registro e diagnóstico</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">y</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ŷ</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">e = y − ŷ</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
+      ],
+      [
+        "es-teste-hipoteses",
+        "Teste de hipóteses — decisão",
+        540,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"524\" height=\"198\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Teste de hipóteses — decisão</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">H₀: ______ H₁: ______ α: ______</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estatística: ______ p-valor: ______</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">p ≤ α: rejeitar H₀; p > α: não rejeitar.</text><text x=\"270\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não rejeitar não demonstra igualdade.</text>"
+      ]
+    ]
+  ]
+];
+
 export default {
   id: 'estat', nome: 'Estatística e gráficos',
+  destaques: [
+    'es-eixo-1q', 'es-normal', 'es-normal-regra', 'es-normal-bi', 'es-t-normal', 'es-histograma',
+    'es-ogiva', 'es-box-h', 'es-disp-reta', 'es-corr-pos', 'es-barras', 'es-pizza', 'es-linha',
+    'es-tabela-freq', 'es-venn2', 'es-arvore',
+  ],
   secoes: [
+    ...AMPLIACAO_20261009,
     ['Eixos e grades', [
       ['es-eixo-1q', 'Eixos (1º quadrante)', 200, 160, eixo1q],
       ['es-eixo-4q', 'Eixos (4 quadrantes)', 200, 200, eixo4q],
       ['es-reta', 'Reta numérica', 240, 50, reta],
       ['es-grade', 'Eixos com grade', 190, 146, grade],
-      ['es-papel-normal', 'Papel de probabilidade normal', 200, 202, papelNormal],
-      ['es-semilog', 'Eixos semilog', 200, 182, semilog],
-      ['es-loglog', 'Eixos log-log', 200, 194, loglog],
+      ['es-papel-normal', 'Papel de probabilidade normal', 300, 310, papelNormal],
+      ['es-semilog', 'Eixos semilog', 200, 192, "<g transform=\"translate(0.00 3.69)\">" + (semilog) + "</g>"],
+      ['es-loglog', 'Eixos log-log', 203, 204, "<g transform=\"translate(0.00 3.56)\">" + (loglog) + "</g>"],
     ]],
     ['Distribuições', [
-      ['es-normal', 'Curva normal (μ, σ)', 220, 126, normal],
-      ['es-normal-dir', 'Normal: cauda à direita', 220, 126, normalDir],
-      ['es-normal-esq', 'Normal: cauda à esquerda', 220, 126, normalEsq],
-      ['es-normal-bi', 'Normal: bilateral', 220, 126, normalBi],
+      ['es-normal', 'Curva normal (μ, σ)', 450, 228, normal],
+      ['es-normal-dir', 'Normal padrão: cauda à direita', 220, 126, normalDir],
+      ['es-normal-esq', 'Normal padrão: cauda à esquerda', 220, 126, normalEsq],
+      ['es-normal-bi', 'Normal padrão: bilateral', 220, 126, normalBi],
       ['es-t-normal', 't de Student × normal', 220, 126, tNormal],
-      ['es-quiquad', 'Qui-quadrado', 220, 130, quiQuad],
+      ['es-quiquad', 'Qui-quadrado', 220, 136, "<g transform=\"translate(0.00 0.00)\">" + (quiQuad) + "</g>"],
       ['es-f', 'Distribuição F', 220, 130, distF],
       ['es-exponencial', 'Exponencial', 220, 130, exponencial],
       ['es-uniforme', 'Uniforme', 220, 130, uniforme],
       ['es-binomial', 'Binomial (barras)', 220, 130, binomial],
       ['es-poisson', 'Poisson (barras)', 220, 130, poisson],
-      ['es-assim-pos', 'Assimetria positiva', 220, 140, assimetria(false)],
-      ['es-assim-neg', 'Assimetria negativa', 220, 140, assimetria(true)],
-      ['es-curtose', 'Curtose', 230, 116, curtose],
+      ['es-assim-pos', 'Assimetria positiva', 220, 146, "<g transform=\"translate(0.00 0.00)\">" + (assimetria(false)) + "</g>"],
+      ['es-assim-neg', 'Assimetria negativa', 220, 146, "<g transform=\"translate(0.00 0.00)\">" + (assimetria(true)) + "</g>"],
+      ['es-curtose', 'Curtose — caudas e variância igual', 540, 280, curtose],
       ['es-bimodal', 'Bimodal', 220, 110, bimodal],
     ]],
     ['Gráficos', [
@@ -688,29 +851,29 @@ export default {
       ['es-contingencia', 'Tabela 2×2', 218, 128, contingencia],
     ]],
     ['Curva normal e testes', [
-      ['es-normal-regra', 'Regra 68–95–99,7', 220, 174, normalRegra],
+      ['es-normal-regra', 'Regra 68–95–99,7', 540, 286, normalRegra],
       ['es-normal-padrao', 'Normal padrão (z de −3 a 3)', 220, 126, normalPadrao],
       ['es-normal-entre', 'Normal: área entre a e b', 220, 126, normalEntre],
       ['es-normal-acum', 'Normal: área acumulada Φ(z)', 220, 126, normalAcum],
-      ['es-normal-ic', 'Normal: confiança (1 − α)', 220, 126, normalIC],
+      ['es-normal-ic', 'Normal padrão: área central (1 − α)', 220, 126, normalIC],
       ['es-normal-medias', 'Duas normais (μ₁ ≠ μ₂)', 220, 126, normalMedias],
-      ['es-normal-fda', 'Normal acumulada (curva S)', 220, 130, normalFda],
+      ['es-normal-fda', 'Normal acumulada (curva S)', 220, 137, "<g transform=\"translate(0.00 0.75)\">" + (normalFda) + "</g>"],
       ['es-t-bi', 't de Student: bilateral', 220, 126, tBi],
-      ['es-quiquad-dir', 'Qui-quadrado: região crítica', 220, 130, quiQuadDir],
-      ['es-f-dir', 'F: região crítica', 220, 130, fDir],
+      ['es-quiquad-dir', 'Qui-quadrado: região crítica', 220, 137, "<g transform=\"translate(0.00 0.00)\">" + (quiQuadDir) + "</g>"],
+      ['es-f-dir', 'F: região crítica', 220, 137, "<g transform=\"translate(0.00 0.00)\">" + (fDir) + "</g>"],
       ['es-erros', 'Erros tipo I e II (α, β)', 220, 128, errosTipo],
     ]],
     ['Mais distribuições', [
       ['es-binomial-sim', 'Binomial simétrica (p = 0,5)', 220, 130, binomialSim],
       ['es-geometrica', 'Geométrica (barras)', 220, 130, geometrica],
       ['es-unif-discreta', 'Uniforme discreta (dado)', 220, 130, unifDiscreta],
-      ['es-weibull', 'Weibull (vários k)', 220, 130, weibull],
-      ['es-gama', 'Gama (vários k)', 220, 130, gama],
-      ['es-exp-acum', 'Exponencial acumulada', 220, 130, expAcum],
+      ['es-weibull', 'Weibull (vários k)', 220, 136, "<g transform=\"translate(0.00 0.00)\">" + (weibull) + "</g>"],
+      ['es-gama', 'Gama (vários k)', 220, 136, "<g transform=\"translate(0.00 0.00)\">" + (gama) + "</g>"],
+      ['es-exp-acum', 'Exponencial acumulada', 220, 136, "<g transform=\"translate(0.00 0.00)\">" + (expAcum) + "</g>"],
       ['es-triangular', 'Triangular', 220, 130, triangular],
       ['es-beta', 'Beta (vários parâmetros)', 220, 130, beta],
       ['es-tlc', 'Distribuição amostral da média', 220, 126, tlc],
-      ['es-fda-discreta', 'Acumulada discreta (escada)', 220, 130, fdaDiscreta],
+      ['es-fda-discreta', 'Acumulada discreta (escada)', 220, 137, "<g transform=\"translate(0.00 0.00)\">" + (fdaDiscreta) + "</g>"],
     ]],
     ['Mais gráficos', [
       ['es-hist-normal', 'Histograma com curva normal', 220, 140, histNormal],

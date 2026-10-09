@@ -42,7 +42,7 @@ Detalhes em [SECURITY.md](../SECURITY.md).
 | `main.js` | galeria com pastas e lixeira, rotas (`#/`, `#/p/<pasta>`, `#/lixeira`, `#/b/<id>`), importação, sessão |
 | `editor.js` | o quadro: ferramentas, entrada da caneta, seleção, histórico, salvamento, páginas, ferramentas de professor. O índice das seções está no topo do arquivo |
 | `render.js` | desenho de cada tipo de item, contorno do traço (largura variável), caixas, toque, girar, tinta→forma |
-| `paper.js` | os 13 tipos de folha (desenhados só na área visível) |
+| `paper.js` | 58 tipos de folha em 13 grupos por área (`PAPER_GROUPS`, `PAPER_DISC`, `PAPER_PREVIEW`; desenhados só na área visível) |
 | `pages.js` | caderno/slides: geometria das páginas, mesa com folhas, PDF e impressão |
 | `stabilizer.js` | estabilizador do traço (One Euro, fio puxado, filtro de pressão, suavização) |
 | `beautify.js` | embelezar escrita (linha de base, inclinação, altura, espaçamento) |
@@ -78,15 +78,63 @@ Detalhes em [SECURITY.md](../SECURITY.md).
 **Regra de ouro:** os itens são **imutáveis**. Toda edição cria um objeto novo e passa por `commit(items, layout)`, que
 guarda o estado anterior no desfazer. Os caches (`WeakMap` de caixa e de `Path2D`) dependem disso.
 
+### Salvamento e conflitos
+
+O arquivo do quadro contém `_rev`, inteiro gerido pelo servidor. Arquivos antigos sem esse campo começam em zero.
+`PUT /api/boards/<id>` envia a revisão esperada (`revision`); sob a trava do quadro o servidor compara, grava
+atomicamente e incrementa a revisão. Responde com `revision`; divergências retornam **412**, sem sobrescrever.
+O **409** continua reservado à sessão expirada. Mover de pasta também incrementa a revisão.
+
+O editor mantém a última pendência de cada quadro em um `Map`, serializa tentativas e protege o fechamento enquanto
+houver trabalho não confirmado, inclusive na galeria. Conflitos suspendem a repetição automática e orientam exportar
+a edição como `.lousa` antes de recarregar. As pendências são em memória; não há garantia de recuperação após queda
+do processo ou do sistema. Exportações/cópias portáteis retiram `_rev`, e importações começam uma revisão própria.
+
+Importações assíncronas comparam a referência da abertura, não apenas o ID: fechar e reabrir o mesmo quadro também
+cancela uma operação anterior. Exportações capturam conteúdo e título antes de esperar.
+
+Pastas vazias ficam em `localStorage`, por pasta de dados do servidor e perfil do navegador; pastas com quadros
+continuam representadas por `folder`. Perfis diferentes não compartilham os nomes de pastas vazias.
+
+## Biblioteca de formas técnicas
+
+Cada disciplina exporta `{ id, nome, destaques, secoes }` em `app/js/shapes/`. A tupla de cada forma é
+`[id, nome, largura, altura, corpoSVG]`. O registro em `shapelib.js` e a área em `disciplinas.js` precisam acompanhar
+uma disciplina nova. `destaques` contém somente IDs da própria disciplina. IDs antigos são permanentes: quadros
+salvos usam `image.lib` para identificar a forma, além de guardar o SVG em `image.src`.
+
+O corpo herda `fill="none"`, traço 2,5 e cantos arredondados. `#C` representa a cor escolhida, incluindo textos e
+partes cheias; detalhes podem usar traço 1,4–1,8. Não usar imagens rasterizadas, scripts, recursos externos,
+gradientes ou cores fixas. Os caminhos são autorais. Preferir texto legível a partir de 14 px, margens de pelo menos
+4 px e um viewBox maior quando necessário, em vez de comprimir um esquema complexo. Ao ampliar geometria por
+transformação, preservar o peso do traço; `vector-effect="non-scaling-stroke"` nas primitivas pode ser usado para isso.
+
+A forma entra como imagem: pode ser movida, girada, redimensionada e recolorida. Campos vazios recebem Texto/caneta;
+legendas internas continuam no SVG. Pontas alinhadas ajudam a montar esquemas, mas não são conexões automáticas.
+
+O QA deve combinar XML/decodificação, IDs/destaques, cor, inserção/desfazer e inspeção visual com recorte real
+(`img` ou `overflow:hidden`). Fonte pequena e `getBBox` são indicadores de triagem, não vereditos. Conferir também
+sentidos de fluxo, zonas de curvas, nomes, unidades, balanços, pinagem e limites de exemplos em fontes primárias.
+Sinalização estilizada e esquemas didáticos não devem ser apresentados como símbolos certificados ou projetos
+dimensionados. Preservar o ID ao corrigir uma forma existente.
+
 ## Testes
 ```bash
 node tests/testes.mjs
+python tests/test_server.py
 ```
 Os testes cobrem desenho dos traços, interpretador de funções, estabilizador, embelezar e tabela periódica. Para testar a
 interface, rode o servidor numa pasta de dados descartável:
 ```bash
 python server.py --sem-janela --porta 8799 --dados /tmp/giz-teste
 ```
+O driver `scripts/teste-cdp/cdp.mjs` cria perfil e porta CDP próprios e devolve código diferente de zero diante de
+`FALHA`, exceção ou erro de JavaScript. `GIZ_TEST_URL` troca a URL nas suítes `t_v110.mjs`, `t_disciplinas.mjs` e
+`t_auditoria.mjs`; `GIZ_BROWSER` permite indicar outro executável Chromium. Usar sempre dados descartáveis.
+
+O exportador público aceita pasta vazia ou espelho reconhecido por `.giz-livre-publico` (migra automaticamente o
+espelho canônico anterior). Recusa origem, ancestrais, descendentes, pastas de dados e links/junções no destino.
+`python scripts/exportar_publico.py --prever` apenas lista a sincronização prevista, sem copiar, apagar ou gerar hash.
 
 ## Empacotamento (Windows)
 `installer/build.ps1`:

@@ -1,5 +1,37 @@
 # Histórico de versões
 
+## 1.2.1 (09/10/2026)
+Inclui tudo da 1.2.0 (abaixo), que não chegou a ser publicada.
+- Biblioteca ampliada para **3.379 formas em 29 disciplinas**: 326 novas e 194 antigas corrigidas, preservando os IDs e o padrão SVG recolorível.
+- Novas disciplinas Recursos Hídricos e Topografia. Ampliação de recalque, tratamento de água/esgoto, dosagem e mistura, coagulantes e cloração, elétrica, eletrônica, embarcados e energias renováveis.
+- Curadoria técnica de fórmulas, curvas estatísticas, perfis hidráulicos, rótulos e margens; modelos preenchíveis nas demais disciplinas. Revisão visual registrada de 927 formas.
+- Catálogo completo validado como XML/imagem; todas as 520 formas novas ou corrigidas verificadas por inserção, cor e desfazer/refazer no navegador.
+- Salvamento mantém uma pendência por quadro e protege o fechamento quando há alterações não confirmadas.
+- Revisão do arquivo impede que uma janela sobrescreva silenciosamente a edição de outra; conflitos pedem exportação da edição antes de recarregar. Arquivos antigos migram ao salvar.
+- Importações de imagens, PDF/PowerPoint, fórmulas e reconhecimento de escrita conferem a abertura de origem; exportações mantêm título e conteúdo capturados no início.
+- Curvas são recortadas geometricamente, sem patamares artificiais; modelos ajustam a faixa vertical aos parâmetros e ao envelope amostrado da animação.
+- Exportar `.lousa` recusa imagens ausentes/inválidas. Cópias e importações começam revisão própria.
+- Catálogo mantém sua vista ao ordenar; busca informa quantos resultados exibe e oferece carregar mais. Pastas vazias persistem no perfil local por pasta de dados.
+- Ícones de **⚑ Mais usadas** e **↺ Recentes** no lugar da estrela.
+- Novos testes automáticos de interface e do servidor.
+
+## 1.2.0 (não publicada; incluída na 1.2.1)
+Biblioteca para todas as áreas, a partir dos cursos do IFCE Limoeiro do Norte e das disciplinas básicas.
+- **3.053 formas em 27 disciplinas** (eram 1.384 em 12). Novas abas: Biologia, Física, Matemática e Geometria,
+  Geografia, História, Filosofia e Sociologia, Língua Portuguesa, Música, Empreendedorismo e Gestão, Ciência da
+  Computação (com desenvolvimento web), Agronomia, Tecnologia de Alimentos (com panificação), Nutrição, Educação Física
+  e Mecânica e Mecatrônica. Todas desenhadas para o Giz Livre (licença MIT).
+- **"⚑ Mais usadas"** no topo de cada disciplina e **"↺ Recentes"** (as últimas 24 formas inseridas).
+- **Menu Formas em dois níveis:** áreas e, embaixo, as disciplinas da área; com poucas disciplinas, uma linha só.
+- **"O que você ensina?":** na primeira abertura, o professor escolhe as disciplinas que aparecem no menu (todas ficam
+  instaladas e a busca encontra todas); dá para mudar em ⋯ → Disciplinas das formas.
+- **Catálogo "Formas" na galeria:** todas as disciplinas em cartões, a página de cada uma e a busca.
+- **58 folhas** (eram 13), em abas por área: diagrama de Moody, granulometria, semilog e log-log, probabilidade normal,
+  Gumbel, Weibull, carta de Smith, osciloscópio, Bode, diagrama fasorial, desenho técnico, ternário, eixos 3D, círculo
+  trigonométrico, folha de código, teste de mesa, quadro de Punnett, campo de microscópio, folha de redação, HQ,
+  storyboard, tablatura, pauta de piano, linha do tempo, latitude/longitude, Canvas, Kanban, calendário, planner,
+  croqui de área e outras.
+
 ## 1.1.0 (09/10/2026)
 Pedidos do professor depois do primeiro uso real (09/10/2026).
 - **Borracha com tamanho:** P, M, G, GG ou controle deslizante (de 3 a 120 px), no menu da borracha.

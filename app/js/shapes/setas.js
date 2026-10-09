@@ -35,6 +35,11 @@ const cLarga = (r, a) => pt(56, 58, r, a).join(',');
 // Setas de bloco e setas/conectores. Desenho próprio do Giz Livre.
 export default {
   id: 'setas', nome: 'Setas e conectores',
+  destaques: [
+    'st-simples', 'st-dupla', 'st-implica', 'st-tracejada', 'st-curva', 'st-retorno',
+    'st-equilibrio', 'st-reacao', 'st-bloco', 'st-L', 'st-divide', 'st-ciclo3', 'st-ciclo4',
+    'st-etapas-linha', 'st-chave-fecha', 'st-chamada-seta',
+  ],
   secoes: [
     ['Setas de bloco', [
       ['st-bloco', 'Seta larga', 130, 70, '<path d="M4 22 H80 V4 L126 35 L80 66 V48 H4 Z"/>'],

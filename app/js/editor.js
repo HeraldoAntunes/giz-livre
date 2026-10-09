@@ -20,7 +20,8 @@ import { VERSION } from './version.js';
 import { DEFAULT_TABLET, openTabletSettings } from './tablet.js';
 import { createStabilizer, smoothPts, resampleN } from './stabilizer.js';
 import { beautify, canBeautify, restoreOriginal, box as ptsBox } from './beautify.js';
-import { PAPERS, ANCHORED, SIZE as PAPER_SIZE, CELL } from './paper.js';
+import * as PAPER from './paper.js';
+const { PAPERS, ANCHORED, SIZE: PAPER_SIZE, CELL } = PAPER;
 import { compile as compileFn, plotStrokes, fitFrame, faixaY, axesStrokes, animatedCurve, drawPolylines, fmtNum } from './plot.js';
 import { AREAS as FN_AREAS, modelo as fnModelo, valoresPadrao } from './fnmodels.js';
 import * as PG from './pages.js';
@@ -28,7 +29,8 @@ import { slidesFromFile, slideItems, uploadAsset } from './importer.js';
 import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk } from './tools.js';
 import { LIBRARY, svgDataUrl } from './library.js';
 import { initBars, placeAll as placeBars, lockBars, resetBars, resetBar } from './bars.js';
-import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg } from './shapelib.js';
+import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
+import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas } from './disciplinas.js';
 
 const PALETTE = ['#000000', '#7a7574', '#ffffff', '#e81224', '#f7630c', '#ffb900', '#fff100', '#8cbd18',
   '#16c60c', '#0b6a0b', '#00b7c3', '#0078d4', '#1b3a8c', '#886ce4', '#e3008c', '#8e562e'];
@@ -72,7 +74,8 @@ const pointers = new Map();
 let cv, ctx, ov, octx, W = 0, H = 0, dpr = 1;
 let raf = 0, needStatic = false, needOverlay = false;
 let saveTimer = 0, saving = false, savePending = false;
-let dirtyVer = 0, savedVer = 0, failedSnap = null, retryTimer = 0, thumbTimer = 0;
+let dirtyVer = 0, savedVer = 0, retryTimer = 0, thumbTimer = 0;
+const failedSnaps = new Map(); // última edição não confirmada de CADA quadro
 let onBack = () => {};
 let hover = null;        // posição do ponteiro (tela) para o cursor da borracha
 let pendingBeauty = [], beautyTimer = 0, beautyAnim = null; // embelezar escrita
@@ -166,7 +169,7 @@ export function initEditor() {
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { flush(); resetInput(); } });
   addEventListener('pagehide', emergencySave);
-  addEventListener('beforeunload', e => { if (emergencySave() && (saveTimer || saving)) { e.preventDefault(); e.returnValue = ''; } });
+  addEventListener('beforeunload', e => { if (hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
   addEventListener('blur', resetInput);
   ov.addEventListener('lostpointercapture', e => { if (pointers.has(e.pointerId)) onUp(e); });
   fillIcons($('board'));
@@ -175,18 +178,22 @@ export function initEditor() {
 
 export function openBoard(id, board, back) {
   onBack = back;
+  const pending = failedSnaps.get(id);
+  if (pending) board = pending.board;
   board.background = { color: '#ffffff', pattern: 'none', ...(board.background || {}) };
   let view = board.view && isFinite(board.view.zoom) && board.view.zoom > 0 ? { ...board.view } : null;
   if (view) view.zoom = Math.max(0.1, Math.min(8, view.zoom));
   // limpeza: textos vazios deixados por versões antigas
   const items = (Array.isArray(board.items) ? board.items : []).filter(i => !(i.type === 'text' && !String(i.text || '').trim()));
   S = { id, board, items, view };
-  dirtyVer = savedVer = 0;
+  dirtyVer = pending?.ver || 0; savedVer = pending ? -1 : 0;
+  if (pending) pending.state = S;
   undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null;
   stopPlotAnim();
   $('bTitle').value = board.title === 'Sem título' ? '' : board.title;
   $('bTitle').title = board.title;
-  $('bStatus').textContent = '';
+  $('bStatus').textContent = pending ? (pending.conflict ? 'Conflito de edição — exporte como .lousa' : 'Alterações ainda não salvas') : '';
+  $('bStatus').classList.toggle('err', !!pending);
   resize();
   if (!S.view) { S.view = { x: 0, y: 0, zoom: 1 }; if (PG.isPages(S.board)) goToPage(0); else fitView(); } else updateZoomLabel();
   setPresent(false);
@@ -663,22 +670,33 @@ const KIND_OF = { lined: { kind: 'line', dash: true }, arrow2: { kind: 'arrow', 
 const isLineKind = k => ['line', 'arrow'].includes(KIND_OF[k]?.kind || k);
 
 // disciplina de cada forma (para a busca mostrar de onde vem)
+const RECENTES = '__recentes';
 const SHAPE_GROUP_OF = new Map(SHAPE_GROUPS.flatMap(g => g.secoes.flatMap(([, list]) => list.map(f => [f[0], g.nome]))));
 
 function shapesPop(anchor) {
-  const tab = SHAPE_GROUPS.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : SHAPE_GROUPS[0].id;
-  const groupHtml = id => SHAPE_GROUPS.find(g => g.id === id).secoes.map(([n, list]) => `<div class="shp-sec">${esc(n)}</div>${list.map(f => cell(f)).join('')}`).join('');
+  const grupos = gruposVisiveis();   // as disciplinas que o professor escolheu mostrar
+  const tab = grupos.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : grupos[0].id;
+  const groupHtml = id => {
+    const g = SHAPE_GROUPS.find(x => x.id === id);
+    const mais = (g.destaques || []).map(shapeById).filter(Boolean);   // "Mais usadas" no topo da aba
+    return (mais.length ? `<div class="shp-sec shp-mais">⚑ Mais usadas</div>${mais.map(f => cell(f)).join('')}` : '')
+      + g.secoes.map(([n, list]) => `<div class="shp-sec">${esc(n)}</div>${list.map(f => cell(f)).join('')}`).join('');
+  };
   const cell = ([id, n], g) => `<button class="libitem shp" data-lib="${id}" title="${esc(n)}${g ? ' (' + esc(g) + ')' : ''}"><img src="${svgDataUrl(shapeSvg(id, '#323130').svg)}" alt=""><span>${esc(n)}${g ? `<small>${esc(g)}</small>` : ''}</span></button>`;
   showPop(anchor, `<button class="btn shp-amplia" id="sBig" title="${cfg.shapesBig ? 'Voltar ao tamanho normal' : 'Ver mais formas de uma vez'}">${cfg.shapesBig ? '⤡ Reduzir' : '⤢ Ampliar'}</button><h4>Desenhar — arraste no quadro</h4><div class="shapes">${DRAW_KINDS.map(([k, n]) => `<button class="ib lbl${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}<small>${n}</small></button>`).join('')}</div>
     <label class="row"><input type="checkbox" id="sFill" ${cfg.shapeFill ? 'checked' : ''}> Preenchida (cor clara)</label>
     <h4>Biblioteca de formas</h4>
     <div class="row shp-cor"><span>Cor:</span><button class="sw-txt${cfg.shapeColor ? '' : ' on'}" data-sc="" title="Usar a cor da caneta atual">da caneta</button>${SHAPE_COLORS.map(c => `<button class="sw${cfg.shapeColor === c ? ' on' : ''}" data-sc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>
     <input class="shp-busca" id="sFind" placeholder="Procurar forma (ex.: válvula, bomba, resistor)…">
-    <div class="seg shp-tabs">${SHAPE_GROUPS.map(g => `<button data-tab="${g.id}" class="${g.id === tab ? 'on' : ''}">${g.nome}</button>`).join('')}</div>
-    <div class="libgrid shp-grid" id="sGrid">${groupHtml(tab)}</div>`,
+    <div class="shp-abas"><div class="shp-niveis">
+        <div class="seg shp-areas" id="sAreas"></div>
+        <div class="seg shp-tabs" id="sTabs"></div></div>
+      <button class="btn shp-disc" id="sDisc" title="Escolher quais disciplinas aparecem aqui (todas continuam na busca)">Disciplinas…</button></div>
+    <div class="libgrid shp-grid" id="sGrid"></div>`,
     p => {
       p.classList.toggle('shp-big', !!cfg.shapesBig);
       p.querySelector('#sBig').onclick = () => { cfg.shapesBig = !cfg.shapesBig; saveCfg(); hidePop(); shapesPop(anchor); };
+      p.querySelector('#sDisc').onclick = async () => { hidePop(); if (await escolherDisciplinas()) shapesPop(anchor); };
       p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; hidePop(); setTool('shape'); });
       p.querySelector('#sFill').onchange = e => { cfg.shapeFill = e.target.checked; saveCfg(); };
       p.querySelectorAll('[data-sc]').forEach(x => x.onclick = () => {
@@ -687,17 +705,50 @@ function shapesPop(anchor) {
       });
       const grid = p.querySelector('#sGrid');
       const bind = () => grid.querySelectorAll('[data-lib]').forEach(b => b.onclick = () => { hidePop(); insertLibShape(b.dataset.lib); });
-      p.querySelectorAll('[data-tab]').forEach(x => x.onclick = () => {
-        cfg.shapeTab = x.dataset.tab; saveCfg();
-        p.querySelectorAll('[data-tab]').forEach(y => y.classList.toggle('on', y === x));
+      // dois níveis: áreas (só com mais de 8 disciplinas visíveis) e, embaixo, as disciplinas da área; "↺ Recentes" primeiro
+      const areas = areasVisiveis(), usaAreas = grupos.length > 8;
+      const areaDe = id => areas.find(([, gs]) => gs.some(g => g.id === id))?.[0];
+      const recentes = () => (cfg.recentShapes || []).map(shapeById).filter(Boolean);
+      const sTabs = p.querySelector('#sTabs'), sAreas = p.querySelector('#sAreas');
+      sAreas.hidden = !usaAreas;
+      const mostra = id => {   // id de disciplina ou RECENTES
         p.querySelector('#sFind').value = '';
-        grid.innerHTML = groupHtml(x.dataset.tab); grid.scrollTop = 0; bind();
-      });
+        if (id === RECENTES) {
+          const r = recentes();
+          grid.innerHTML = r.length ? `<div class="shp-sec">Usadas por último</div>` + r.map(f => cell(f, SHAPE_GROUP_OF.get(f[0]))).join('')
+            : '<p class="muted">As formas que você inserir aparecem aqui, para achar de novo rápido.</p>';
+        } else grid.innerHTML = groupHtml(id);
+        grid.scrollTop = 0; bind();
+        p.querySelectorAll('[data-tab], [data-area]').forEach(b => b.classList.toggle('on',
+          b.dataset.tab === id || (id === RECENTES ? b.dataset.area === RECENTES : b.dataset.area === areaDe(id) && usaAreas)));
+      };
+      const abreTab = id => { cfg.shapeTab = id; if (id !== RECENTES) { cfg.shapeTabPorArea = { ...(cfg.shapeTabPorArea || {}), [areaDe(id)]: id }; } saveCfg(); mostra(id); };
+      const desenhaTabs = area => {
+        const lista = usaAreas ? (areas.find(([n]) => n === area)?.[1] || []) : grupos;
+        sTabs.hidden = usaAreas && area === RECENTES;
+        sTabs.innerHTML = (usaAreas ? '' : `<button data-tab="${RECENTES}" title="Formas usadas por último">↺ Recentes</button>`)
+          + lista.map(g => `<button data-tab="${g.id}">${esc(g.nome)}</button>`).join('');
+        sTabs.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => abreTab(b.dataset.tab));
+      };
+      if (usaAreas) {
+        sAreas.innerHTML = `<button data-area="${RECENTES}" title="Formas usadas por último">↺ Recentes</button>`
+          + areas.map(([n]) => `<button data-area="${esc(n)}">${esc(n)}</button>`).join('');
+        sAreas.querySelectorAll('[data-area]').forEach(b => b.onclick = () => {
+          const a = b.dataset.area;
+          if (a === RECENTES) { desenhaTabs(a); abreTab(RECENTES); return; }
+          desenhaTabs(a);
+          const lista = areas.find(([n]) => n === a)[1], lembrada = cfg.shapeTabPorArea?.[a];
+          abreTab(lista.some(g => g.id === lembrada) ? lembrada : lista[0].id);
+        });
+      }
+      const inicial = cfg.shapeTab === RECENTES ? RECENTES : tab;
+      desenhaTabs(inicial === RECENTES ? RECENTES : areaDe(inicial));
+      mostra(inicial);
       const plain = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const find = p.querySelector('#sFind');
       find.oninput = () => {
         const q = plain(find.value.trim());
-        if (!q) return p.querySelector(`[data-tab="${cfg.shapeTab || tab}"]`).click();
+        if (!q) return mostra(cfg.shapeTab === RECENTES ? RECENTES : (grupos.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : tab));
         p.querySelectorAll('[data-tab]').forEach(y => y.classList.remove('on'));
         const hits = ALL_SHAPES.filter(s => plain(s[1]).includes(q));
         grid.innerHTML = hits.length ? `<div class="shp-sec">${hits.length} forma${hits.length > 1 ? 's' : ''}</div>` + hits.map(f => cell(f, SHAPE_GROUP_OF.get(f[0]))).join('')
@@ -734,6 +785,7 @@ async function clearBoard() {
 }
 
 function insertLibShape(id) {
+  cfg.recentShapes = [id, ...(cfg.recentShapes || []).filter(x => x !== id)].slice(0, 24); saveCfg();   // "↺ Recentes"
   const tint = cfg.shapeColor || textColor();
   const m = shapeSvg(id, tint);
   if (!m) return;
@@ -806,7 +858,7 @@ function scheduleSave() {
   saveTimer = setTimeout(doSave, 500);
 }
 
-const snapshot = () => ({ id: S.id, ver: dirtyVer, board: { ...S.board, items: S.items, view: { ...S.view } } });
+const snapshot = () => ({ id: S.id, state: S, ver: dirtyVer, board: { ...S.board, items: S.items, view: { ...S.view } } });
 
 // miniatura separada do salvamento (não atrasa a gravação dos traços)
 function scheduleThumb(id) {
@@ -833,49 +885,73 @@ async function saveThumbNow() {
 }
 
 async function retryFailed() {
+  clearTimeout(retryTimer);
   retryTimer = 0;
-  const f = failedSnap;
-  if (!f) return;
-  if (S?.id === f.id && dirtyVer > f.ver && !saving) { failedSnap = null; return doSave(); }  // já há versão mais nova
+  if (saving) { retryTimer = setTimeout(retryFailed, 4000); return; }
+  for (const [id, f] of [...failedSnaps]) {
+    if (f.conflict) continue; // conflito exige decisão; nunca sobrescrever automaticamente
+    const snap = S === f.state && dirtyVer > f.ver ? snapshot() : f;
+    failedSnaps.set(id, snap);
+    await writeSnapshot(snap);
+  }
+  if (savePending) { savePending = false; await doSave(); }
+  clearTimeout(retryTimer);
+  if ([...failedSnaps.values()].some(f => !f.conflict)) retryTimer = setTimeout(retryFailed, 4000);
+}
+
+async function writeSnapshot(snap) {
+  saving = true;
+  const st = $('bStatus');
+  if (S === snap.state) st.textContent = 'Salvando…';
   try {
-    await saveBoard(f.id, f.board, null);
-    if (failedSnap === f) failedSnap = null;
-    if (S?.id === f.id) { $('bStatus').textContent = 'Salvo'; $('bStatus').classList.remove('err'); }
-  } catch { retryTimer = setTimeout(retryFailed, 4000); }
+    await saveBoard(snap.id, snap.board, null);
+    snap.state.board._rev = snap.board._rev;
+    if (failedSnaps.get(snap.id) === snap) failedSnaps.delete(snap.id);
+    if (S === snap.state) {
+      savedVer = snap.ver;
+      if (savedVer === dirtyVer) { st.textContent = 'Salvo'; st.classList.remove('err'); }
+    }
+    syncSaveError();
+    scheduleThumb(snap.id);
+  } catch (e) {
+    snap.conflict = !!e.conflict;
+    if (S === snap.state) { st.textContent = e.conflict ? e.message : 'Erro ao salvar — tentando de novo'; st.classList.add('err'); }
+    if (e.conflict) toast(e.message, 12000);
+    syncSaveError(); // aparece também na apresentação e no modo aula
+    clearTimeout(retryTimer);
+    if ([...failedSnaps.values()].some(f => !f.conflict)) retryTimer = setTimeout(retryFailed, 4000);
+  } finally {
+    saving = false;
+  }
+}
+
+function syncSaveError() {
+  const box = $('saveErr');
+  box.hidden = failedSnaps.size === 0;
+  box.textContent = [...failedSnaps.values()].some(f => f.conflict)
+    ? 'Há conflito de edição. Abra o quadro e exporte sua edição como .lousa antes de recarregar.'
+    : 'Não foi possível salvar: tentando de novo…';
 }
 
 async function doSave() {
   clearTimeout(saveTimer); saveTimer = 0;
   if (!S) return;
   if (saving) { savePending = true; return; }
-  saving = true;
-  const st = $('bStatus');
-  st.textContent = 'Salvando…';
+  const previous = failedSnaps.get(S.id);
   const snap = snapshot();
-  try {
-    await saveBoard(snap.id, snap.board, null);
-    if (failedSnap?.id === snap.id) failedSnap = null;
-    savedVer = snap.ver;
-    if (S?.id === snap.id && savedVer === dirtyVer) { st.textContent = 'Salvo'; st.classList.remove('err'); }
-    $('saveErr').hidden = true;
-    scheduleThumb(snap.id);
-  } catch (e) {
-    failedSnap = snap;  // a nova tentativa grava ESTE quadro, mesmo se o professor trocar de quadro
-    if (S?.id === snap.id) { st.textContent = 'Erro ao salvar — tentando de novo'; st.classList.add('err'); }
-    $('saveErr').hidden = false;   // aparece também na apresentação e no modo aula
-    clearTimeout(retryTimer); retryTimer = setTimeout(retryFailed, 4000);
-  } finally {
-    saving = false;
-    if (savePending) { savePending = false; doSave(); }
-  }
+  // Preserva a condição de conflito, mesmo se o professor continuar escrevendo.
+  snap.conflict = previous?.conflict;
+  failedSnaps.set(snap.id, snap);
+  if (!snap.conflict) await writeSnapshot(snap);
+  if (savePending) { savePending = false; await doSave(); }
 }
 
 export async function flush() {
   if (editing) commitText();
   if (saveTimer || savePending) await doSave();
   while (saving) await new Promise(r => setTimeout(r, 50));
-  if (failedSnap) await retryFailed();
-  return !failedSnap;
+  if (failedSnaps.size) await retryFailed();
+  return failedSnaps.size === 0;
 }
 
 // fecha o quadro: grava, atualiza a miniatura e desliga todos os timers (nada mais regrava este quadro)
@@ -896,11 +972,16 @@ export async function closeBoard() {
 }
 
 // gravação de emergência ao fechar a janela
+const hasUnsavedChanges = () => failedSnaps.size > 0 || !!(S && (dirtyVer !== savedVer || saveTimer || saving));
 function emergencySave() {
-  if (!S || (dirtyVer === savedVer && !saveTimer && !saving)) return false;
-  const body = JSON.stringify({ title: S.board.title, board: { ...S.board, items: S.items, view: { ...S.view } } });
-  try { fetch('/api/boards/' + S.id, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...tokenHeader() }, body, keepalive: body.length < 60000 }); } catch {}
-  return true;
+  const pending = new Map(failedSnaps);
+  if (S && (dirtyVer !== savedVer || saveTimer || saving)) pending.set(S.id, { ...snapshot(), conflict: failedSnaps.get(S.id)?.conflict });
+  for (const snap of pending.values()) {
+    if (saving || snap.conflict) continue;
+    const body = JSON.stringify({ title: snap.board.title, board: snap.board, revision: snap.board._rev || 0 });
+    try { fetch('/api/boards/' + snap.id, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...tokenHeader() }, body, keepalive: new TextEncoder().encode(body).length < 60000 }).catch(() => {}); } catch {}
+  }
+  return pending.size > 0;
 }
 
 // ================= vista (zoom/pan) =================
@@ -1719,16 +1800,20 @@ function commitText() {
 
 // ================= imagens e colar =================
 async function insertFiles(files, at) {
+  const target = S;
+  if (!target) return;
   let pos = at || toWorld(W / 2, H / 2);
   const added = [];
   for (const f of files) {
     try {
       const im = await readImageFile(f);
+      if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 6000);
       const z = S.view.zoom;
       const k = Math.min(1 / z, (W * 0.6) / z / im.w, (H * 0.6) / z / im.h);
       const w = im.w * k, h = im.h * k;
       let src = im.src;
       try { src = await uploadAsset(im.src); } catch {}
+      if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 6000);
       added.push({ id: newId(), type: 'image', x: pos.x - w / 2, y: pos.y - h / 2, w, h, src });
       pos = { x: pos.x + 30 / z, y: pos.y + 30 / z };
     } catch (e) { toast(e.message); }
@@ -1826,6 +1911,7 @@ function openMenu(anchor) {
       <hr>
       <button data-a="tablet">${ICON.pen} Caneta e escrita</button>
       <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
+      <button data-a="disc">${ICON.shapes} Disciplinas das formas…</button>
       <button data-a="keys">${ICON.keyboard} Atalhos de teclado</button>
       <button data-a="about">${ICON.ok} Sobre o Giz Livre</button>
       <hr>
@@ -1843,6 +1929,7 @@ function openMenu(anchor) {
     p.querySelector('[data-a="pngT"]').onclick = () => { hidePop(); exportPng(true); };
     p.querySelector('[data-a="lousa"]').onclick = () => { hidePop(); exportLousa(); };
     p.querySelector('[data-a="keys"]').onclick = () => { hidePop(); showKeys(); };
+    p.querySelector('[data-a="disc"]').onclick = () => { hidePop(); escolherDisciplinas(); };
     p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
@@ -1854,9 +1941,18 @@ function bgPop(anchor) {
   const sizes = [['s', 'P'], ['m', 'M'], ['l', 'G']], strengths = [['soft', 'Suave'], ['normal', 'Normal'], ['strong', 'Forte']];
   const LINE_COLORS = ['', '#0078d4', '#e81224', '#16c60c', '#7a7574', '#ffffff'];
   const pat = bg.pattern || 'none';
+  // folhas em abas por área; folhas ligadas a disciplinas ocultas não aparecem (a atual sempre aparece)
+  const nomeDe = new Map(PAPERS), ocultas = abasOcultas(), disc = PAPER.PAPER_DISC || {};
+  const visivel = k => k === pat || !disc[k] || disc[k].some(d => !ocultas.has(d));
+  const grupos = (PAPER.PAPER_GROUPS || [['Folhas', PAPERS.map(([k]) => k)]])
+    .map(([n, ks]) => [n, ks.filter(k => nomeDe.has(k) && visivel(k))]).filter(([, ks]) => ks.length);
+  const abaAtual = grupos.find(([, ks]) => ks.includes(pat))?.[0];
+  const aba = grupos.some(([n]) => n === cfg.paperTab) ? cfg.paperTab : abaAtual || grupos[0][0];
+  const cartoes = n => (grupos.find(([g]) => g === n)?.[1] || []).map(k => `<button class="paper${k === pat ? ' on' : ''}" data-p="${k}"><canvas width="96" height="58"></canvas><span>${esc(nomeDe.get(k))}</span></button>`).join('');
   showPop(anchor, `
     <h4>Folha</h4>
-    <div class="papers">${PAPERS.map(([k, n]) => `<button class="paper${k === pat ? ' on' : ''}" data-p="${k}"><canvas width="96" height="58"></canvas><span>${n}</span></button>`).join('')}</div>
+    ${grupos.length > 1 ? `<div class="seg paper-tabs">${grupos.map(([n]) => `<button data-pt="${esc(n)}" class="${n === aba ? 'on' : ''}">${esc(n)}</button>`).join('')}</div>` : ''}
+    <div class="papers" id="bgPapers">${cartoes(aba)}</div>
     <div class="bg-row">
       <div><h4>Tamanho da malha</h4><div class="seg">${sizes.map(([k, n]) => `<button class="${(bg.size || 'm') === k ? 'on' : ''}" data-s="${k}">${n}</button>`).join('')}</div></div>
       <div><h4>Intensidade</h4><div class="seg">${strengths.map(([k, n]) => `<button class="${(bg.strength || 'normal') === k ? 'on' : ''}" data-st="${k}">${n}</button>`).join('')}</div></div>
@@ -1864,11 +1960,11 @@ function bgPop(anchor) {
     <h4>Cor das linhas</h4><div class="swatches">${LINE_COLORS.map(c => c ? `<button class="sw${bg.lineColor === c ? ' on' : ''}" data-lc="${c}" style="background:${c}"></button>` : `<button class="sw auto${!bg.lineColor ? ' on' : ''}" data-lc="" title="Automática">A</button>`).join('')}</div>
     <h4>Cor do fundo</h4><div class="swatches">${BG_COLORS.map(c => `<button class="sw sq${c === bg.color ? ' on' : ''}" data-c="${c}" style="background:${c}" title="${corNome(c)}" aria-label="${corNome(c)}"></button>`).join('')}</div>
     ${ANCHORED.has(pat) ? '<button class="btn" id="bgOrigin" style="margin-top:12px">Trazer a folha para o centro da tela</button>' : ''}`, p => {
-    p.querySelectorAll('.paper canvas').forEach((c, i) => {
-      const k = PAPERS[i][0];
-      R.drawBackground(c.getContext('2d'), { ...S.board.background, pattern: k, origin: { x: 0, y: 0 } },
-        { x: 48, y: 29, zoom: k === 'cornell' ? 0.034 : k === 'polar' ? 0.35 : 0.5 }, 96, 58);
+    const previa = () => p.querySelectorAll('.paper').forEach(b => {
+      const k = b.dataset.p, zoom = PAPER.PAPER_PREVIEW?.[k] ?? (k === 'cornell' ? 0.034 : k === 'polar' ? 0.35 : 0.5);
+      R.drawBackground(b.querySelector('canvas').getContext('2d'), { ...S.board.background, pattern: k, origin: { x: 0, y: 0 } }, { x: 48, y: 29, zoom }, 96, 58);
     });
+    previa();
     const center = () => { const c = toWorld(W / 2, H / 2); return { x: Math.round(c.x), y: Math.round(c.y) }; };
     const set = patch => {
       undoStack.push(histEntry()); redoStack = [];   // trocar folha/cor também se desfaz com Ctrl+Z
@@ -1876,7 +1972,13 @@ function bgPop(anchor) {
       updateUndo(); requestRender(); scheduleSave(); syncToolbar();
       hidePop(); bgPop(anchor);
     };
-    p.querySelectorAll('[data-p]').forEach(x => x.onclick = () => set(ANCHORED.has(x.dataset.p) ? { pattern: x.dataset.p, origin: center() } : { pattern: x.dataset.p }));
+    const ligaFolhas = () => p.querySelectorAll('[data-p]').forEach(x => x.onclick = () => set(ANCHORED.has(x.dataset.p) ? { pattern: x.dataset.p, origin: center() } : { pattern: x.dataset.p }));
+    ligaFolhas();
+    p.querySelectorAll('[data-pt]').forEach(x => x.onclick = () => {
+      cfg.paperTab = x.dataset.pt; saveCfg();
+      p.querySelectorAll('[data-pt]').forEach(y => y.classList.toggle('on', y === x));
+      p.querySelector('#bgPapers').innerHTML = cartoes(x.dataset.pt); previa(); ligaFolhas();
+    });
     p.querySelectorAll('[data-s]').forEach(x => x.onclick = () => set({ size: x.dataset.s }));
     p.querySelectorAll('[data-st]').forEach(x => x.onclick = () => set({ strength: x.dataset.st }));
     p.querySelectorAll('[data-lc]').forEach(x => x.onclick = () => set({ lineColor: x.dataset.lc || null }));
@@ -1887,20 +1989,31 @@ function bgPop(anchor) {
 
 async function exportPng(transparent = false) {
   if (!S.items.length) return toast('O quadro está vazio');
+  const title = S.board.title;
   toast('Gerando imagem…');
   const c = await R.renderToCanvas({ ...S.board, items: S.items }, { scale: 2, transparent });
-  c.toBlob(b => download(b, safeName(S.board.title) + '.png'), 'image/png');
+  c.toBlob(b => download(b, safeName(title) + '.png'), 'image/png');
 }
 async function exportLousa() {
-  const items = await embedAssets(S.items);
-  const data = { ...S.board, items, view: S.view };
-  download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(S.board.title) + '.lousa');
+  const data = { ...S.board, items: S.items, view: { ...S.view } };
+  delete data._rev; // revisão pertence ao arquivo de origem, não à cópia portátil
+  try {
+    data.items = await embedAssets(data.items);
+    download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(data.title) + '.lousa');
+  } catch (e) { toast(e.message, 8000); }
 }
 export async function embedAssets(items) {
   const cache = new Map();
   return Promise.all(items.map(async it => {
     if (it.type !== 'image' || typeof it.src !== 'string' || !it.src.startsWith('/assets/')) return it;
-    if (!cache.has(it.src)) cache.set(it.src, fetch(it.src).then(r => r.blob()).then(b => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); })));
+    if (!cache.has(it.src)) cache.set(it.src, fetch(it.src).then(r => {
+      if (!r.ok || !r.headers.get('Content-Type')?.startsWith('image/')) throw new Error('Exportação interrompida: imagem ausente ou inválida (' + it.src + ').');
+      return r.blob();
+    }).then(b => new Promise((res, reject) => {
+      const fr = new FileReader(); fr.onload = () => res(fr.result);
+      fr.onerror = () => reject(new Error('Não foi possível ler uma imagem para exportar.'));
+      fr.readAsDataURL(b);
+    })));
     return { ...it, src: await cache.get(it.src) };
   }));
 }
@@ -2048,9 +2161,9 @@ async function convertToA4() {
 async function importSlidesIntoBoard(file) {
   try {
     toast('Importando ' + file.name + '…', 60000);
-    const alvo = S.id;
+    const alvo = S;
     const { size, srcs, sizes } = await slidesFromFile(file, m => toast(m, 60000));
-    if (S?.id !== alvo) return toast('Importação cancelada: o quadro foi fechado durante a conversão.', 6000);
+    if (S !== alvo) return toast('Importação cancelada: o quadro foi fechado durante a conversão.', 6000);
     let L = S.board.layout, items = S.items, start;
     if (!PG.isPages(S.board)) {
       L = PG.makeLayout('custom', srcs.length, size);
@@ -2072,10 +2185,11 @@ async function importSlidesIntoBoard(file) {
 }
 
 async function exportPdfFile() {
+  const title = S.board.title;
   try {
     toast('Gerando PDF…', 30000);
     const blob = await PG.exportPdf({ ...S.board, items: S.items });
-    download(blob, safeName(S.board.title) + '.pdf');
+    download(blob, safeName(title) + '.pdf');
     toast('PDF pronto');
   } catch (e) { toast(e.message, 6000); }
 }
@@ -2603,6 +2717,7 @@ function initStrip() {
 
 // ---------- fórmula ----------
 async function formulaDialog(edit = null) {
+  const target = S;
   const d = document.createElement('dialog');
   d.className = 'formula';
   d.innerHTML = `<div class="dlg-head"><h3>${edit ? 'Editar fórmula' : 'Inserir fórmula'}</h3><button class="ib" data-a="x" title="Fechar" aria-label="Fechar">${ICON.close}</button></div>
@@ -2622,11 +2737,14 @@ async function formulaDialog(edit = null) {
     const latex = inp.value.trim();
     if (!latex) return close();
     const bad = await validateLatex(latex);
+    if (S !== target || !d.open) return close();
     if (bad) { err.textContent = bad; return; }
     try {
       const color = edit?.color || textColor();
       const { blob, w, h } = await formulaImage(latex, color, 40);
+      if (S !== target || !d.open) return close();
       const src = await uploadAsset(blob);
+      if (S !== target || !d.open) return close();
       if (edit) {
         const k = edit.h / (edit.ph || h);
         const n = { ...edit, src, latex, w: w * k, h: h * k, ph: h };
@@ -2663,6 +2781,7 @@ function libraryPop(anchor) {
 
 // ---------- escrita → texto ----------
 async function inkToText(ids) {
+  const target = S;
   if (serverInfo().ocr === false) return toast('A conversão de escrita em texto usa o reconhecedor do Windows e não está disponível neste sistema.', 6000);
   const strokes = S.items.filter(i => ids.includes(i.id) && i.type === 'stroke' && i.tool === 'pen');
   if (!strokes.length) return toast('Selecione a escrita (traços de caneta) com o laço');
@@ -2671,6 +2790,7 @@ async function inkToText(ids) {
   let palavras;
   try { palavras = await recognizeInk(strokes.map(s => { const o = []; for (let i = 0; i < s.pts.length; i += 3) o.push(s.pts[i] * z, s.pts[i + 1] * z); return o; })); }
   catch (e) { return toast(e.message, 6000); }
+  if (S !== target) return toast('Reconhecimento cancelado: o quadro foi fechado.', 6000);
   if (!palavras.length) return toast('Não reconheci texto nessa seleção');
   const box = R.unionBox(strokes);
   const hs = strokes.map(s => R.bbox(s).h).sort((a, b) => a - b);
@@ -2691,6 +2811,7 @@ async function inkToText(ids) {
   d.querySelector('[data-a="ok"]').onclick = () => {
     const text = inp.value.trim(), f = d.querySelector('#ocrFont').value;
     d.close(); d.remove();
+    if (S !== target) return;
     if (!text) return;
     cfg.ocrFont = f; saveCfg();
     const meas = document.createElement('canvas').getContext('2d');
@@ -2899,8 +3020,14 @@ function plotDialog() {
     if (model) {
       const x0 = isFinite(a) ? a : model.x[0], x1 = isFinite(b) ? b : model.x[1];
       if (!(x1 > x0)) { err.textContent = 'O fim do intervalo precisa ser maior que o início.'; return; }
-      // com animação, a faixa y fica fixa (a sugerida pelo modelo) para a curva não "pular"
-      const yr = model.y || faixaY(f, [x0, x1], vals);
+      // A faixa inclui os parâmetros atuais e o envelope amostrado da animação.
+      const yr = faixaY(f, [x0, x1], vals);
+      if (model.y) { yr[0] = Math.min(yr[0], model.y[0]); yr[1] = Math.max(yr[1], model.y[1]); }
+      const p = model.params.find(p => p.n === $d('#plAnimP').value);
+      if (p) for (let k = 0; k <= 20; k++) {
+        const r = faixaY(f, [x0, x1], { ...vals, [p.n]: p.min + (p.max - p.min) * k / 20 });
+        yr[0] = Math.min(yr[0], r[0]); yr[1] = Math.max(yr[1], r[1]);
+      }
       fr = fitFrame(plotArea(), [x0, x1], yr);
     } else if (isCart && !axes) {
       fr = cartesianFrame();   // escala e origem vêm da folha plano cartesiano

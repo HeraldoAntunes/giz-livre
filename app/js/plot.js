@@ -157,23 +157,37 @@ export function faixaY(f, [x0, x1], valores, n = 200) {
 export function curvePolylines(f, frame, valores) {
   const { ox, oy, xmin, xmax, ymin, ymax } = frame, sx = cx(frame), sy = cy(frame);
   const n = Math.max(200, Math.min(4000, Math.round((xmax - xmin) * sx / 1.5)));
-  const salto = (ymax - ymin) * 0.5, folga = ymax - ymin;
+  const salto = (ymax - ymin) * 0.5;
   const linhas = [];
-  let cur = [], prevY = null;
+  let cur = [], prev = null;
   const flush = () => { if (cur.length >= 4) linhas.push(cur); cur = []; };
   for (let k = 0; k <= n; k++) {
     const x = xmin + (xmax - xmin) * k / n;
     let y;
     try { y = f(x, valores); } catch { y = NaN; }
-    const fora = !isFinite(y) || y < ymin - folga || y > ymax + folga;
-    if (fora || (prevY !== null && Math.abs(y - prevY) > salto)) {
-      flush(); prevY = isFinite(y) ? y : null;
-      if (fora) continue;
+    if (!isFinite(y)) { flush(); prev = null; continue; }
+    if (prev) {
+      const dy = y - prev.y;
+      if (Math.abs(dy) > salto) { flush(); }
+      else {
+        // Recorta o SEGMENTO nas bordas; nunca prende pontos fora da janela ao teto.
+        let a = 0, b = 1;
+        if (dy === 0) {
+          if (y < ymin || y > ymax) { flush(); prev = { x, y }; continue; }
+        } else {
+          const t0 = (ymin - prev.y) / dy, t1 = (ymax - prev.y) / dy;
+          a = Math.max(0, Math.min(t0, t1)); b = Math.min(1, Math.max(t0, t1));
+        }
+        if (a <= b) {
+          const ax = ox + (prev.x + (x - prev.x) * a) * sx, ay = oy - (prev.y + dy * a) * sy;
+          const bx = ox + (prev.x + (x - prev.x) * b) * sx, by = oy - (prev.y + dy * b) * sy;
+          if (!cur.length) cur.push(ax, ay);
+          cur.push(bx, by);
+          if (b < 1) flush();
+        } else flush();
+      }
     }
-    // limita à faixa visível (com folga) para não criar coordenadas gigantes
-    const yc = Math.max(ymin - folga * 0.02, Math.min(ymax + folga * 0.02, y));
-    cur.push(ox + x * sx, oy - yc * sy);
-    prevY = y;
+    prev = { x, y };
   }
   flush();
   return linhas;

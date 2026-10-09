@@ -65,8 +65,13 @@ const taboa = (x, y, h = 60) => `<path d="M${x} ${y} V${y - h} M${x} ${y - 10} Q
 const vapor = (x, y) => `<path d="M${x} ${y} q5 -6 0 -12 t0 -12" ${tn}/>`;
 const gradeFrente = (s, sw) => { let d = ''; for (let x = 20 + s; x < 120; x += s) d += `M${x} 20 V100`; return `<path d="M14 10 V104 H126 V10"/>${lv(14, 126, 40)}<path d="M14 20 H126" ${tn}/><path d="${d}" stroke-width="${sw}"/>`; };
 
-export default {
+const grupo = {
   id: 'saneamento', nome: 'Saneamento (ETA e ETE)',
+  destaques: [
+    'sn-captacao', 'sn-parshall-mistura', 'hd-floculador', 'hd-decantador', 'hd-filtro-areia',
+    'hd-contato', 'sn-reserv-tratada', 'sn-eta-blocos', 'hd-grade', 'hd-desarenador',
+    'sn-tanque-septico', 'hd-uasb', 'sn-lodo-ativado', 'hd-dec-sec', 'hd-lagoa', 'hd-leito',
+  ],
   secoes: [
     ['ETA: captação, mistura e floculação', [
       ['sn-captacao', 'Captação com poço de sucção', 200, 120, `<path d="M4 100 Q36 108 64 98 L96 30 H110 M150 30 H196 M110 30 V112 H150 V30"/>${lv(4, 86, 44)}${lv(110, 150, 50)}<path d="M30 76 H110 M30 86 H110"/><path d="M30 70 V92" stroke-width="3.5"/><path d="M130 100 V16 H166 M186 16 H196"/><circle cx="176" cy="16" r="10"/><rect x="124" y="100" width="12" height="8" ${tn}/>`],
@@ -133,7 +138,7 @@ export default {
       ['hd-desarenador', 'Desarenador (fluxo horizontal)', 160, 70, `<path d="M4 14 V40 H40 L60 60 H100 L120 40 H156 V14"/><path d="M4 22 H156" ${dash}/><path d="M62 59 H98 L92 51 H68 Z" fill="#C"/>`],
       ['sn-desarenador-aerado', 'Desarenador aerado', 140, 130, `<path d="M14 14 V100 H40 V116 H62 V100 L126 86 V14 M110 4 V76 H100"/>${lv(14, 126, 24)}${bolhas([[104, 66], [110, 54], [102, 44], [108, 34]])}<path d="M98 32 Q56 16 36 44 Q28 72 60 82" ${tn}/>${head(70, 80, -8, 9)}${dots(44, 58, 106, 112, 5)}`],
       ['sn-caixa-areia', 'Caixa de areia (planta)', 180, 100, `<rect x="10" y="10" width="160" height="80" rx="2"/><path d="M30 50 H150"/><path d="M36 12 V48 M36 52 V88 M144 12 V48 M144 52 V88" stroke-width="4"/>${dots(50, 130, 22, 38, 8)}${dots(50, 130, 62, 78, 8)}<path d="M4 50 H10 M170 50 H176"/>`],
-      ['sn-parshall-medidor', 'Calha Parshall com medidor de nível', 180, 110, `<path d="M4 30 H50 L80 46 H100 L176 34 M4 90 H50 L80 74 H100 L176 86"/><circle cx="40" cy="16" r="12"/><path d="M40 28 V54" stroke-dasharray="3 3" ${tn}/><circle cx="40" cy="60" r="3" fill="#C"/>${setaH(110, 152, 60, 10)}` + T(40, 16, 'LT', 11)],
+      ['sn-parshall-medidor', 'Calha Parshall com medidor de nível', 180, 110, `<path d="M4 30 H50 L80 46 H100 L176 34 M4 90 H50 L80 74 H100 L176 86"/><circle cx="60" cy="16" r="12"/><path d="M60 28 V54" stroke-dasharray="3 3" ${tn}/><circle cx="60" cy="60" r="3" fill="#C"/>${setaH(110, 152, 60, 10)}` + T(60, 16, 'LT', 11)],
       ['sn-elevatoria', 'Elevatória de esgoto (poço úmido)', 150, 150, `<path d="M4 30 H20 V140 H130 V30 H146 M20 30 H130 M4 52 H20 M4 62 H20 M54 112 V18 H146 M96 112 V18"/>${lv(20, 130, 76)}<rect x="44" y="112" width="20" height="24" rx="3"/><rect x="86" y="112" width="20" height="24" rx="3"/>` + T(54, 124, 'M', 11) + T(96, 124, 'M', 11)],
       ['sn-dec-prim-ret', 'Decantador primário retangular', 200, 110, `<path d="M10 14 V96 H38 L56 80 H190 V14 M4 28 H10 M190 22 H196 M24 96 V104"/>${lv(10, 190, 22)}<path d="M20 14 V44" ${tn}/><rect x="60" y="30" width="120" height="40" rx="20" ${tn}/><circle cx="80" cy="50" r="5" ${tn}/><circle cx="160" cy="50" r="5" ${tn}/><path d="M90 66 V78 M120 66 V78 M150 66 V78 M100 26 V34 M140 26 V34" stroke-width="2.2"/>` + dots(16, 34, 84, 92, 6)],
       ['sn-dec-prim-circ', 'Decantador circular com raspador', 190, 110, `<path d="M10 14 V66 L86 88 V100 H104 V88 L180 66 V14 M95 100 V106 M180 22 H186"/><path d="M10 10 H180" stroke-width="3"/>${lv(10, 180, 22)}<path d="M80 16 V44 M110 16 V44 M95 10 V82 M90 82 L20 62 M100 82 L170 62 M10 30 H22 V22 M180 30 H168 V22" ${tn}/>` + dots(90, 100, 92, 98, 5)],
@@ -236,3 +241,378 @@ export default {
     ]],
   ],
 };
+
+
+// Esquemas didáticos autorais; não são projetos dimensionados nem símbolos certificados.
+const aPath = (d, extra = '') => '<path d="' + d + '" ' + extra + '/>';
+const aText = (x, y, s, size = 14) => T(x, y, s, size);
+const aLine = (x, y, xx, yy, dash = false) => aPath('M'+x+' '+y+' L'+xx+' '+yy, dash ? 'stroke-width="1.6" stroke-dasharray="6 4"' : '');
+const aArrow = (x, y, xx, yy) => aLine(x,y,xx,yy) + head(xx,yy,Math.atan2(yy-y,xx-x)*180/Math.PI,8);
+const aBox = (x,y,w,h,labels) => '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="3"/>' + (Array.isArray(labels)?labels:(labels?[labels]:[])).map((s,i,all)=>aText(x+w/2,y+h/2+(i-(all.length-1)/2)*20,s)).join('');
+const aTank = (x,y,w,h,level) => aPath('M'+x+' '+y+' V'+(y+h)+' H'+(x+w)+' V'+y) + aLine(x,y+level,x+w,y+level,true);
+const aPump = (x,y,r=16) => '<circle cx="'+x+'" cy="'+y+'" r="'+r+'"/>' + aPath('M'+(x-6)+' '+(y-8)+' L'+(x+9)+' '+y+' L'+(x-6)+' '+(y+8)+'Z','fill="#C"');
+const aChain = (labels, note = '') => labels.map((s,i)=>aBox(8+i*164,36,140,62,s)+(i<labels.length-1?aArrow(148+i*164,67,172+i*164,67):'')).join('') + (note?aText((labels.length*164-8)/2,126,note):'');
+const aAxes = (w=340,h=220,x='Q (m³/s)',y='H (m)') => aArrow(48,h-42,w-14,h-42)+aArrow(48,h-42,48,34)+aText(w-65,h-16,x)+aText(53,16,y);
+const aForm = (id,n,w,h,body) => [id,n,w,h,body];
+
+const aSaneamento = [
+ ['Sistemas individuais: unidades e arranjos', [
+ aForm('sn-individual-trem','Sistema individual: sequência conceitual',648,150,aChain([['Esgoto','doméstico'],['Tanque','séptico'],['Tratamento','complementar'],['Destinação','avaliada']],'Seleção depende de solo, nível d’água, uso e exigências locais')),
+ aForm('sn-vala-infiltracao','Vala de infiltração: corte e solo não saturado',340,240,aPath('M8 46 H65 V142 H275 V46 H332 M65 142 L52 166 M275 142 L288 166')+aLine(8,206,332,206,true)+'<circle cx="170" cy="97" r="18" stroke-dasharray="4 4"/>'+aPath('M75 121 H265','stroke-dasharray="3 5"')+aArrow(130,147,130,178)+aArrow(210,147,210,178)+aText(170,24,'Tubo distribuidor / material granular')+aText(170,190,'Zona não saturada')+aText(170,225,'Nível d’água: medir em campo')),
+ aForm('sn-canteiro-elevado','Disposição no solo: leito elevado',350,230,aPath('M8 142 H50 L90 82 H260 L300 142 H342 M95 108 H255 M92 124 H258')+aPath('M102 96 H248','stroke-dasharray="4 4"')+aArrow(145,130,145,165)+aArrow(210,130,210,165)+aLine(8,195,342,195,true)+aText(175,28,'Leito elevado · distribuição dosada')+aText(175,61,'Material selecionado')+aText(175,216,'Viabilidade e afastamentos: avaliar')),
+ aForm('sn-caixa-distribuidora','Caixa de distribuição para valas',260,180,aBox(82,43,96,74,'CD')+aPath('M8 80 H82 M178 59 H252 M178 80 H252 M178 101 H252')+aText(130,23,'Divisão de vazão')+aText(130,151,'Saídas niveladas / projeto hidráulico')),
+ aForm('sn-dosagem-intermitente','Distribuição intermitente por dosagem',484,150,aChain([['Câmara','de dosagem'],['Bomba / sifão','volume por ciclo'],['Leito / valas','repouso entre ciclos']],'Operação por dose e intervalo definidos no projeto')),
+ aForm('sn-separacao-na-solo','Infiltração: distância até o nível d’água',300,220,aPath('M8 44 H292 M30 72 H270 M30 98 H270')+aLine(8,178,292,178,true)+aArrow(256,102,256,172)+head(256,102,-90,8)+aText(134,25,'Superfície')+aText(139,84,'Base de infiltração')+aText(134,139,'Separação vertical')+aText(134,199,'Critério local · sem valor universal')),
+ aForm('sn-individual-inspecao','Sistema individual: acesso e manutenção',484,150,aChain([['Inspeção','e registros'],['Remoção','periódica de lodo'],['Transporte','e destino autorizado']],'Frequência por uso e acúmulo; não entrar em espaço confinado')),
+ aForm('sn-aguas-cinzas-segregadas','Águas cinzas: coleta segregada',484,150,aChain([['Banho / lavatório','fontes selecionadas'],['Tratamento','conforme uso'],['Reservação','não potável']],'Águas de cozinha e riscos sanitários exigem avaliação própria')),
+ ]],
+ ['Reúso: arranjos, barreiras e controle', [
+ aForm('sn-reuso-nao-potavel','Reúso não potável: trem de tratamento',648,150,aChain([['Efluente','secundário'],['Polimento','filtração'],['Desinfecção','validada'],['Uso','não potável']],'A qualidade-alvo depende da exposição e do uso previsto')),
+ aForm('sn-rede-dupla','Redes separadas de água potável e reúso',400,200,aPath('M8 54 H35 M155 54 H392 M8 130 H35 M155 130 H392')+aBox(35,30,120,48,['Água potável'])+aBox(35,106,120,48,['Reúso'])+aPath('M250 54 V82 M250 130 V158')+aText(288,84,'ponto potável')+aText(279,174,'uso não potável')+aText(200,16,'Sem conexão cruzada')),
+ aForm('sn-air-gap','Separação atmosférica: abastecimento de apoio',280,220,aPath('M8 40 H140 V80 M110 120 V190 H250 V120')+aLine(110,151,250,151,true)+aPath('M140 89 V108','stroke-dasharray="3 5"')+aArrow(87,85,87,116)+head(87,85,-90,7)+aText(184,32,'Água de apoio')+aText(216,102,'vão de ar')+aText(180,174,'reservatório')),
+ aForm('sn-reuso-desvio','Reúso: desvio de água fora da meta',370,230,aBox(8,50,110,60,['Medição','de controle'])+aPath('M118 80 H166 M166 80 H252 M166 80 V170 H252')+aArrow(214,80,246,80)+aArrow(214,170,246,170)+aBox(252,50,110,60,['Uso','autorizado'])+aBox(252,140,110,60,['Retorno /','destino seguro'])+aText(171,23,'Lógica de intertravamento')),
+ aForm('sn-barreiras-multiplas','Barreiras múltiplas de tratamento',648,150,aChain([['Remoção','de sólidos'],['Barreira','microbiológica'],['Controle','químico'],['Monitoramento','e resposta']],'Barreiras são escolhidas e validadas conforme os perigos')),
+ aForm('sn-reuso-risco','Reúso: fonte, exposição e uso',484,150,aChain([['Caracterizar','a fonte'],['Avaliar','exposição'],['Definir metas','e controles']],'Não confundir desenho didático com autorização de reúso')),
+ aForm('sn-reuso-industrial','Reúso industrial: controle e purga',484,190,aChain([['Água de reúso','condicionada'],['Circuito','industrial'],['Purga','tratamento']])+aPath('M242 98 V155 H78 V98')+aArrow(170,155,128,155)+aText(245,177,'Retorno do circuito')),
+ aForm('sn-reuso-irrigacao','Reúso para irrigação: barreiras de exposição',484,150,aChain([['Qualidade','para o uso'],['Distribuição','controlada'],['Cultura / solo','e exposição']],'Considerar salinidade, nutrientes, patógenos e contato')),
+ ]],
+ ['Tratamento avançado: módulos conectáveis', [
+ aForm('sn-modulo-mf','Microfiltração: alimentação e concentrado',350,190,aBox(104,42,140,74,['Membrana','MF'])+aPath('M8 79 H104 M244 79 H342 M174 116 V150 H294')+aArrow(265,79,304,79)+aArrow(236,150,279,150)+aText(54,56,'entrada')+aText(289,56,'permeado')+aText(192,174,'retido / concentrado')),
+ aForm('sn-modulo-uf','Ultrafiltração: módulo e retrolavagem',350,230,aBox(104,42,140,74,['Membrana','UF'])+aPath('M8 79 H104 M244 79 H342 M174 116 V156 H294')+aArrow(265,79,304,79)+aPath('M342 132 H276 V98 H244')+head(244,98,180,8)+aText(174,25,'Separação por membrana')+aText(194,174,'concentrado')+aText(174,207,'Retrolavagem: retorno ao módulo')),
+ aForm('sn-modulo-nf','Nanofiltração: três correntes',350,190,aBox(104,42,140,74,['Membrana','NF'])+aPath('M8 79 H104 M244 79 H342 M174 116 V150 H294')+aText(50,56,'entrada')+aText(291,56,'permeado')+aText(185,174,'concentrado')+aArrow(268,79,309,79)),
+ aForm('sn-ro-balanco','Osmose reversa: balanço de vazões',420,210,aBox(145,57,130,70,['Osmose','reversa'])+aArrow(8,92,145,92)+aArrow(275,92,412,92)+aPath('M210 127 V163 H350')+head(350,163,0,8)+aText(70,65,'Qf')+aText(345,65,'Qp')+aText(274,145,'Qc')+aText(210,193,'Qf = Qp + Qc · recuperação = Qp/Qf')),
+ aForm('sn-oxidacao-avancada','Oxidação avançada: UV e peróxido',350,190,aBox(90,72,170,70,['UV + H₂O₂'])+aPath('M8 107 H90 M260 107 H342 M175 18 V72')+head(175,72,90,8)+aText(239,30,'H₂O₂')+aText(175,166,'Alvo e dose: validação específica')),
+ aForm('sn-eletrodialise','Eletrodiálise: membranas e eletrodos',340,200,aBox(48,32,244,120,'')+aPath('M73 48 V133 M267 48 V133 M115 48 V133 M153 48 V133 M191 48 V133 M229 48 V133','stroke-width="1.6"')+aText(73,18,'+')+aText(267,18,'−')+aArrow(122,88,143,88)+aText(133,69,'+')+aArrow(220,111,199,111)+aText(210,131,'−')+aText(170,175,'Compartimentos alternados · íons')),
+ aForm('sn-filtro-cag-modulo','Adsorção em CAG: módulo conectável',270,190,aBox(65,38,140,88,['Carvão ativado','granular'])+aPath('M8 82 H65 M205 82 H262 M135 126 V158')+aText(135,176,'Troca / regeneração controlada')),
+ aForm('sn-integridade-membrana','Membranas: teste de integridade',484,150,aChain([['Teste','de integridade'],['Comparar','com limite'],['Liberar / isolar','módulo']],'Procedimento e frequência definidos pelo sistema')),
+ ]],
+ ['Unidades conectáveis e monitoramento', [
+ aForm('sn-modulo-tanque-septico','Tanque séptico: módulo de processo',270,190,aBox(65,42,140,80,['Tanque','séptico'])+aPath('M8 82 H65 M205 82 H262 M135 122 V153')+head(135,153,90,8)+aText(135,174,'lodo: retirada periódica')),
+ aForm('sn-modulo-filtro-anaerobio','Filtro anaeróbio: módulo de processo',270,190,aBox(65,42,140,80,['Filtro','anaeróbio'])+aPath('M8 82 H65 M205 82 H262 M135 122 V153')+aText(135,174,'lodo / limpeza: manejo')),
+ aForm('sn-modulo-desinfeccao','Desinfecção: módulo com dose e controle',300,190,aBox(70,65,160,70,['Desinfecção'])+aPath('M8 100 H70 M230 100 H292 M150 18 V65')+head(150,65,90,8)+aText(221,30,'agente / energia')+aText(150,163,'Dose, tempo e condição de operação')),
+ aForm('sn-amostragem-entrada-saida','Monitoramento: amostras de entrada e saída',350,190,aBox(105,50,140,70,['Tratamento'])+aPath('M8 85 H105 M245 85 H342 M58 85 V135 M292 85 V135')+aText(58,155,'entrada')+aText(292,155,'saída')+aText(175,24,'Plano de amostragem')),
+ aForm('sn-tdh-preenchivel','Tempo de detenção hidráulica: modelo',330,180,aText(165,29,'TDH = V / Q',24)+aText(165,76,'V = ____ m³ · Q = ____ m³/d')+aText(165,113,'TDH = ____ dias')+aText(165,151,'Volume útil · mesma base temporal')),
+ aForm('sn-carga-eficiencia','Carga e remoção: modelo preenchível',420,180,aText(210,28,'Carga (kg/d) = Q (m³/d) · C (mg/L) / 1000',16)+aText(210,74,'η = (Centrada − Csaída) / Centrada · 100%',16)+aText(210,116,'Q = ____ · Centrada = ____ · Csaída = ____')+aText(210,153,'Concentrações comparáveis · carga se Q variar')),
+ ]],
+];
+grupo.secoes.push(...aSaneamento);
+// Detenção não implica lâmina permanente; explicitar a fase de esvaziamento.
+for(const [,fs] of grupo.secoes) for(const f of fs) if(f[0]==='sn-bacia-detencao') {
+ f[2]=340; f[3]=170; f[4]=aPath('M8 70 H40 L76 140 H260 L296 70 H332 M260 128 H332 M260 140 H332')+aLine(58,103,278,103,true)+aLine(74,133,262,133,true)+aText(170,28,'Bacia de detenção · armazenamento temporário')+aText(170,85,'NA durante o evento')+aText(170,155,'Saída controlada · esvaziamento');
+}
+
+
+const aPointEta = (x,y,t) => '<circle cx="'+x+'" cy="'+y+'" r="3" fill="#C"/>'+aText(x,y-17,t);
+
+// Peças para montar a ETA: desenhos conceituais, sem dosagem prescrita.
+const aEtaExtra = [
+ ['ETA: componentes para montar esquemas',[
+ aForm('sn-agitador-peca','Agitador: motor, eixo e hélice isolados',220,240,aBox(74,14,72,45,'M')+aPath('M110 59 V171 M68 169 L110 184 L152 169 M68 184 L110 169 L152 184 M67 75 H153')+aText(110,216,'Componente de mistura')),
+ aForm('sn-mistura-floco-comparar','Mistura rápida e floculação: funções distintas',484,180,aChain([['Mistura rápida','dispersar coagulante'],['Floculação','agregação gradual'],['Separação','dos flocos']],'Energia e tempo próprios; não aplicar uma rotação universal')),
+ aForm('sn-chicana-caminho','Floculador hidráulico: caminho em chicanas',410,240,aBox(25,32,360,145,'')+aPath('M97 32 V144 M169 177 V65 M241 32 V144 M313 177 V65 M8 55 H25 M385 154 H402')+aArrow(58,60,58,140)+aArrow(68,154,130,154)+aArrow(130,144,130,65)+aArrow(140,55,202,55)+aArrow(202,65,202,144)+aArrow(212,154,274,154)+aArrow(274,144,274,65)+aArrow(284,55,346,55)+aArrow(346,65,346,151)+aText(205,211,'Fluxo alternado · folgas livres nas pontas')),
+ aForm('sn-chicanas-vertical-caminho','Floculador vertical: passagem superior/inferior',410,260,aTank(25,44,360,155,25)+aPath('M97 44 V164 M169 199 V98 M241 44 V164 M313 199 V98 M8 80 H25 M385 80 H402')+aArrow(60,95,60,168)+aArrow(66,179,131,179)+aArrow(132,164,132,83)+aArrow(143,81,204,81)+aArrow(205,98,205,166)+aArrow(213,179,274,179)+aArrow(277,165,277,83)+aArrow(285,81,348,81)+aText(205,230,'Corte: lâmina acima das chicanas de fundo')),
+ aForm('sn-calha-parshall-pontos','Parshall: montante, garganta e jusante',410,220,aPath('M8 53 H110 L180 78 H234 L298 42 H402 M8 167 H110 L180 142 H234 L298 178 H402')+aLine(180,78,180,142,true)+aLine(234,78,234,142,true)+aArrow(36,110,93,110)+aArrow(263,110,325,110)+aPointEta(133,99,'Ha')+aPointEta(209,112,'Hb')+aText(208,160,'garganta')+aText(205,201,'Pontos de medição conforme geometria / regime')),
+ aForm('sn-dos-pac','Preparo e dosagem de PAC: esquema',390,240,aTank(20,48,112,139,40)+aBox(54,15,45,30,'M')+aPath('M76 45 V144 M56 144 L96 156 M56 156 L96 144 M132 161 H218 M250 161 H382')+aPump(234,161)+aText(103,109,'PAC')+aText(290,111,'injeção')+aText(195,217,'PAC: policloreto de alumínio · avaliar produto')),
+ aForm('sn-dos-alum-preparo','Sulfato de alumínio: dissolução e dosagem',410,250,aTank(30,55,120,139,35)+aPath('M60 12 H120 L107 38 H73Z M90 38 V58 M150 164 H238 M270 164 H402')+aPump(254,164)+aText(90,117,'solução')+aText(267,56,'Sulfato de alumínio')+aText(205,221,'Preparo conforme produto · ensaio e operação')),
+ aForm('sn-dos-cloro-contato','Hipoclorito: dosagem e tanque de contato',484,190,aChain([['Solução','de hipoclorito'],['Bomba dosadora','injeção'],['Tanque','de contato']],'Controlar demanda, residual, pH e tempo; sem dose universal')),
+ aForm('sn-bomba-dosadora-diafragma','Bomba dosadora: diafragma conceitual',260,242,aBox(8,62,90,80,'M')+aPath('M98 102 H122 M148 61 Q112 102 148 143 M148 61 H202 V143 H148 M175 61 V32 M175 143 V196')+aArrow(175,35,175,56)+aArrow(175,163,175,190)+aText(175,17,'entrada')+aText(175,224,'saída')),
+ aForm('sn-injecao-dosagem','Ponto de injeção na linha de água',330,210,aPath('M8 116 H322 M8 151 H322 M165 26 V132')+head(165,132,90,9)+aArrow(218,134,282,134)+aText(165,18,'solução dosada')+aText(165,182,'Mistura e compatibilidade a verificar')),
+ aForm('sn-coluna-calibracao','Coluna de calibração de bomba dosadora',280,240,aTank(104,32,72,130,50)+aPath('M140 162 V202 H220')+aPump(236,202)+[58,82,106,130].map(y=>aLine(108,y,122,y)).join('')+aText(140,17,'Coluna graduada')+aText(140,225,'Variação de volume por tempo')),
+ aForm('sn-amostrador-torneira','Torneira de amostragem em derivação',260,190,aPath('M8 129 H252 M120 129 V76 H192 V110 M111 72 H129 M120 76 V50 M108 50 H132')+aPath('M192 120 V133','stroke-dasharray="3 5"')+aText(130,22,'Ponto de amostragem')+aText(130,164,'Procedimento e higiene apropriados')),
+ ]],
+ ['Água, flocos e microrganismos ilustrativos',[
+ aForm('sn-copo-agua-clara','Copo de água visualmente clara',190,220,aPath('M34 26 L48 182 H142 L156 26 M34 26 H156')+aLine(42,78,149,78,true)+aText(95,199,'Clareza ≠ potabilidade')),
+ aForm('sn-copo-agua-turva','Copo com partículas em suspensão',190,220,aPath('M34 26 L48 182 H142 L156 26 M34 26 H156')+aLine(42,78,149,78,true)+[[60,102],[92,92],[127,110],[78,137],[115,151],[65,163],[134,169]].map(([x,y])=>'<circle cx="'+x+'" cy="'+y+'" r="3" fill="#C"/>').join('')+aText(95,199,'Suspensão ilustrativa')),
+ aForm('sn-flocos-formacao','Floculação: partículas e agregados',430,200,[[30,66],[66,42],[52,111],[96,99],[99,54]].map(([x,y])=>'<circle cx="'+x+'" cy="'+y+'" r="4"/>').join('')+aArrow(129,88,190,88)+[[231,83],[244,69],[249,95],[266,81],[280,68],[282,95],[298,82]].map(([x,y])=>'<circle cx="'+x+'" cy="'+y+'" r="9"/>').join('')+aText(69,153,'partículas')+aText(270,153,'agregado / floco')+aText(215,181,'Representação conceitual sem escala')),
+ aForm('sn-bacteria-bacilo','Bactéria: bacilo ilustrativo',250,180,'<rect x="58" y="56" width="130" height="56" rx="28"/>'+aPath('M188 84 Q219 54 239 80 M72 56 L64 43 M98 56 V41 M123 56 V41 M149 56 L156 42 M72 112 L64 126 M99 112 V128 M125 112 V128 M151 112 L158 126','stroke-width="1.6"')+aPath('M92 78 Q119 65 146 87 Q120 101 92 78','stroke-width="1.6"')+aText(125,156,'Microrganismo ilustrativo')),
+ aForm('sn-bacteria-cocos','Bactérias: agrupamento de cocos ilustrativo',240,180,[[80,58],[119,48],[157,63],[68,96],[109,88],[148,103],[106,128]].map(([x,y])=>'<circle cx="'+x+'" cy="'+y+'" r="17"/>').join('')+aText(120,160,'Agrupamento sem escala')),
+ aForm('sn-inativacao-conceito','Desinfecção: inativação conceitual',430,220,'<rect x="35" y="65" width="95" height="44" rx="22"/>'+aArrow(152,86,248,86)+'<rect x="270" y="65" width="95" height="44" rx="22" stroke-dasharray="5 4"/>'+aPath('M283 52 L352 123 M352 52 L283 123','stroke-width="1.6"')+aText(83,141,'antes')+aText(317,141,'inativado')+aText(215,182,'Inativação ≠ remoção física')+aText(215,207,'Efeito depende do organismo e da condição')),
+ ]],
+];
+grupo.secoes.push(...aEtaExtra);
+
+
+// Legados pequenos: ampliar sem deformar; manter traço natural 2,5 com non-scaling-stroke.
+// A fonte efetiva é fonte original × escala (>=14 px nos candidatos com fonte <12 px).
+const aAjustesLegados = {
+  "sn-mistura-rapida": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -1.6363636363636367,
+    "w": 142,
+    "h": 163
+  },
+  "sn-floc-horizontal": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -19.454545454545453,
+    "w": 282,
+    "h": 107
+  },
+  "sn-eta-blocos": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": -2.3999999999999986,
+    "w": 360,
+    "h": 169
+  },
+  "sn-eta-compacta": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": 3.2,
+    "w": 323,
+    "h": 186
+  },
+  "sn-filtro-lento": {
+    "k": 1,
+    "x": 2,
+    "y": -2,
+    "w": 212,
+    "h": 106
+  },
+  "sn-dos-sulfato": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": 1.5454545454545459,
+    "w": 188,
+    "h": 140
+  },
+  "sn-dos-cal": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": 1.5454545454545459,
+    "w": 188,
+    "h": 140
+  },
+  "sn-dos-fluor": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": 1.5454545454545459,
+    "w": 188,
+    "h": 140
+  },
+  "sn-equalizacao": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": 1.5454545454545459,
+    "w": 219,
+    "h": 140
+  },
+  "sn-dos-polimero": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": 1.5454545454545459,
+    "w": 188,
+    "h": 140
+  },
+  "sn-dos-cap": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": 1.5454545454545459,
+    "w": 188,
+    "h": 140
+  },
+  "sn-dos-hipoclorito": {
+    "k": 1.4,
+    "x": -13.599999999999998,
+    "y": -13.599999999999998,
+    "w": 197,
+    "h": 138
+  },
+  "sn-dosador-seco": {
+    "k": 1.4,
+    "x": -2.3999999999999986,
+    "y": -5.199999999999999,
+    "w": 252,
+    "h": 178
+  },
+  "sn-osmose": {
+    "k": 1.5555555555555556,
+    "x": -0.22222222222222232,
+    "y": -37.55555555555556,
+    "w": 385,
+    "h": 129
+  },
+  "sn-parshall-medidor": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": 0.9090909090909092,
+    "w": 231,
+    "h": 122
+  },
+  "sn-elevatoria": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -16.90909090909091,
+    "w": 193,
+    "h": 168
+  },
+  "sn-grade-mecanizada": {
+    "k": 1.5555555555555556,
+    "x": -0.22222222222222232,
+    "y": 1.333333333333333,
+    "w": 283,
+    "h": 188
+  },
+  "sn-uasb-completo": {
+    "k": 1.2727272727272727,
+    "x": -11.818181818181817,
+    "y": 6,
+    "w": 213,
+    "h": 234
+  },
+  "sn-lodo-ativado": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -6.727272727272727,
+    "w": 333,
+    "h": 165
+  },
+  "sn-rbs": {
+    "k": 1.4,
+    "x": -5.199999999999999,
+    "y": -5.199999999999999,
+    "w": 353,
+    "h": 158
+  },
+  "sn-aerador-sup": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": -4.181818181818182,
+    "w": 196,
+    "h": 147
+  },
+  "sn-dec-sec-recirc": {
+    "k": 1.2727272727272727,
+    "x": -11.18181818181818,
+    "y": -14.363636363636363,
+    "w": 245,
+    "h": 127
+  },
+  "sn-mle": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": 4.6,
+    "w": 365,
+    "h": 192
+  },
+  "sn-a2o": {
+    "k": 1.5555555555555556,
+    "x": -0.22222222222222232,
+    "y": 2.111111111111111,
+    "w": 398,
+    "h": 183
+  },
+  "sn-bas": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -6.727272727272727,
+    "w": 168,
+    "h": 191
+  },
+  "hd-contato": {
+    "k": 1,
+    "x": 2,
+    "y": 5.5,
+    "w": 164,
+    "h": 106
+  },
+  "sn-uv": {
+    "k": 1,
+    "x": 2,
+    "y": 4.5,
+    "w": 184,
+    "h": 97
+  },
+  "sn-uv-canal": {
+    "k": 1,
+    "x": 2,
+    "y": 7,
+    "w": 214,
+    "h": 117
+  },
+  "sn-clorador-pastilhas": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -6.727272727272727,
+    "w": 206,
+    "h": 142
+  },
+  "sn-gerador-hipoclorito": {
+    "k": 1.2727272727272727,
+    "x": -4.181818181818182,
+    "y": -3.545454545454545,
+    "w": 272,
+    "h": 140
+  },
+  "sn-centrifuga": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": 0.9090909090909092,
+    "w": 236,
+    "h": 127
+  },
+  "sn-calagem": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": -2.3999999999999986,
+    "w": 281,
+    "h": 161
+  },
+  "sn-aterro": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": -15,
+    "w": 365,
+    "h": 189
+  },
+  "sn-camadas-base": {
+    "k": 1.4,
+    "x": -5.199999999999999,
+    "y": -6.6,
+    "w": 272,
+    "h": 173
+  },
+  "sn-dreno-chorume": {
+    "k": 1,
+    "x": 2,
+    "y": -1,
+    "w": 188,
+    "h": 105
+  },
+  "sn-coleta-seletiva": {
+    "k": 1.4,
+    "x": -3.799999999999999,
+    "y": -27.599999999999994,
+    "w": 357,
+    "h": 140
+  },
+  "sn-sarjeta": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": -12.2,
+    "w": 281,
+    "h": 122
+  },
+  "sn-boca-lobo": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": -12.2,
+    "w": 253,
+    "h": 168
+  },
+  "sn-hidrograma": {
+    "k": 1.2727272727272727,
+    "x": -3.0184659090909083,
+    "y": -1,
+    "w": 263,
+    "h": 184
+  }
+};
+for(const [,fs] of grupo.secoes) for(const f of fs){
+ const a=aAjustesLegados[f[0]];if(!a)continue;
+ f[2]=a.w;f[3]=a.h;
+ f[4]='<g transform="translate('+a.x+' '+a.y+') scale('+a.k+')">'+f[4].replace(/<(path|rect|circle|ellipse|line|polyline|polygon)\b/g,'<$1 vector-effect="non-scaling-stroke"')+'</g>';
+}
+
+export default grupo;

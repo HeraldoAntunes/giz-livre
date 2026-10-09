@@ -15,7 +15,7 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 
 - **Grátis e livre:** licença [MIT](LICENSE). Use, copie e distribua à vontade, inclusive em escolas e redes de ensino.
 - **Sem internet, sem conta, sem anúncios:** os quadros ficam só no seu computador.
-- **Versão:** 1.0.1 ([novidades](CHANGELOG.md))
+- **Versão do código:** 1.2.1 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
 
 > **Aviso:** projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de qualquer
 > tipo**. Faça backup dos seus quadros. Não há vínculo com a Microsoft, a Wacom nem outras marcas citadas.
@@ -36,7 +36,7 @@ O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa nã
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página:
 ```bash
-certutil -hashfile Instalar-GizLivre-1.1.0.exe SHA256
+certutil -hashfile Instalar-GizLivre-1.2.1.exe SHA256
 ```
 
 ## Como é
@@ -59,8 +59,10 @@ certutil -hashfile Instalar-GizLivre-1.1.0.exe SHA256
 - **Escrita mais bonita:**
   - **embelezar escrita** (endireita a linha e iguala altura e espaço, sem trocar a sua letra);
   - **escrita à mão → texto** em fonte cursiva (no Windows, offline).
-- **Folhas:** quadriculada, milimetrada, pontilhada, pautada, caderno, caligrafia, isométrica, hexagonal, plano
-  cartesiano, polar, pauta musical e Cornell, com fundo branco, creme, verde-lousa ou preto.
+- **58 folhas** em abas por área, com fundo branco, creme, verde-lousa ou preto: as básicas (quadriculada, milimetrada,
+  pautada, caderno, isométrica, Cornell…) e folhas técnicas como diagrama de Moody, granulometria, semilog e log-log,
+  probabilidade normal, Gumbel, carta de Smith, osciloscópio, Bode, desenho técnico, ternário, eixos 3D, folha de
+  código, quadro de Punnett, folha de redação, HQ, tablatura, linha do tempo, Canvas, Kanban e calendário.
 - **Caderno A4** (e A3, 16:9): páginas prontas para **imprimir e exportar PDF**.
 - **Slides:** abra um **PowerPoint** ou **PDF**; cada slide vira uma página para escrever por cima. O **modo
   apresentação** passa os slides com as setas ou com o passador.
@@ -69,20 +71,19 @@ certutil -hashfile Instalar-GizLivre-1.1.0.exe SHA256
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
   - **fórmulas LaTeX**;
   - biblioteca com **tabela periódica** e **vidrarias**.
-- **Biblioteca de formas técnicas**, com **1.384 formas** em 12 disciplinas, separadas em seções e com busca:
-  - fluxograma;
-  - setas e conectores;
-  - química e processos (P&ID, estruturas, cinética, eletroquímica);
-  - hidráulica;
-  - saneamento (ETA e ETE, com jarteste, UASB, lodo ativado e lagoas);
-  - laboratório (vidrarias, equipamentos e pictogramas de segurança);
-  - elétrica (inclusive NBR 5444);
-  - eletrônica (com portas lógicas);
-  - sistemas embarcados (placas de prototipagem, sensores e módulos);
-  - energias renováveis;
-  - estatística e gráficos;
-  - ícones gerais para aula.
+- **Biblioteca de formas técnicas**, com **3.379 formas em 29 disciplinas**, desenhadas para o Giz Livre, com
+  "⚑ Mais usadas" em cada disciplina, "↺ Recentes" e busca:
+  - **gerais:** fluxograma, setas e conectores, ícones para aula;
+  - **engenharias e cursos técnicos:** química e processos (P&ID), laboratório, hidráulica, saneamento (ETA e ETE),
+    recursos hídricos e topografia, energias renováveis, elétrica (comandos e esquemas didáticos), eletrônica, sistemas embarcados, mecânica e mecatrônica
+    (pneumática ISO 1219, CLP/ladder, desenho técnico), ciência da computação (inclusive desenvolvimento web);
+  - **ciências e matemática:** matemática e geometria, estatística, física, biologia;
+  - **agrárias, alimentos e saúde:** agronomia, tecnologia de alimentos (com panificação), nutrição, educação física;
+  - **humanas, linguagens e artes:** língua portuguesa, história, geografia, filosofia e sociologia, música,
+    empreendedorismo e gestão.
 
+  Na primeira abertura o professor escolhe as disciplinas que aparecem no menu; o catálogo **Formas**, na galeria,
+  mostra todas.
   Cada forma entra na cor escolhida, pode ser recolorida, movida e redimensionada, e a borracha a apaga.
 - **Barras móveis:** o cadeado destrava as barras para arrastar cada uma até onde preferir.
 - **Organização:** galeria com miniaturas, busca, salvamento automático, desfazer/refazer, exportar PNG/PDF/`.lousa`

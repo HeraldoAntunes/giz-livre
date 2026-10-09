@@ -232,6 +232,24 @@ teste('ids únicos e todos os grupos com formas', () => {
   igual(new Set(ids).size, ids.length, 'ids repetidos');
   for (const g of SL.GROUPS) for (const [sec, list] of g.secoes) if (!list.length) throw new Error(`seção ${g.id}/${sec} vazia`);
 });
+
+teste('grupos únicos e destaques pertencem à própria disciplina', () => {
+  igual(new Set(SL.GROUPS.map(g => g.id)).size, SL.GROUPS.length, 'grupos repetidos');
+  for (const g of SL.GROUPS) {
+    const locais = new Set(g.secoes.flatMap(([, list]) => list.map(f => f[0])));
+    const destaques = g.destaques || [];
+    igual(new Set(destaques).size, destaques.length, `${g.id}: destaques repetidos`);
+    for (const id of destaques) if (!locais.has(id)) throw new Error(`${g.id}: destaque ${id} ausente da disciplina`);
+  }
+});
+
+teste('formas são vetores locais sem conteúdo ativo ou referências externas', () => {
+  for (const [id, nome, w, h, body] of SL.ALL_SHAPES) {
+    if (!nome.trim() || !Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) throw new Error(`${id}: descrição/tamanho inválido`);
+    const semReferenciasLocais = body.replace(/url\(#[\w-]+\)/g, '').replace(/\b(?:xlink:)?href\s*=\s*["']#[\w-]+["']/g, '');
+    if (/<(?:script|foreignObject|image|iframe)\b|\bon\w+\s*=|\b(?:xlink:)?href\s*=|url\s*\(/i.test(semReferenciasLocais)) throw new Error(`${id}: conteúdo não vetorial/local`);
+  }
+});
 teste('cada forma vira SVG bem formado na cor pedida', () => {
   for (const [id] of SL.ALL_SHAPES) {
     const m = SL.shapeSvg(id, '#e81224');
@@ -242,6 +260,53 @@ teste('cada forma vira SVG bem formado na cor pedida', () => {
     igual(abre, fecha, `${id}: tags desbalanceadas`);
     if (/<(?![a-zA-Z\/!?])/.test(m.svg) || /&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/i.test(m.svg)) throw new Error(`${id}: < ou & sem escape no texto (o navegador não abre)`);
   }
+});
+
+// ------------------------------------------------------------------
+console.log('Folhas (paper.js)');
+const PA = await mod('paper.js');
+teste('as 13 folhas antigas mantêm a chave e a ordem', () => {
+  igual(PA.PAPERS.slice(0, 13).map(p => p[0]).join(), 'none,grid,mm,dots,lines,notebook,calligraphy,iso,hex,cartesian,polar,music,cornell', 'chaves antigas');
+});
+teste('grupos cobrem todas as folhas uma vez; disciplinas e miniaturas válidas', () => {
+  const chaves = PA.PAPERS.map(p => p[0]), nos = PA.PAPER_GROUPS.flatMap(g => g[1]);
+  igual(new Set(chaves).size, chaves.length, 'chaves repetidas');
+  igual(nos.length, chaves.length, 'folhas nos grupos');
+  for (const k of chaves) if (!nos.includes(k)) throw new Error(`${k} fora dos grupos`);
+  const DISC = new Set('fluxo setas icones quimica hidra saneamento lab eletrica eletronica embarcados mecanica renov computacao matematica estat fisica biologia agronomia alimentos nutricao edfisica portugues historia geografia filosofia musica empreendedorismo'.split(' '));
+  for (const [k, ds] of Object.entries(PA.PAPER_DISC)) {
+    if (!chaves.includes(k)) throw new Error(`PAPER_DISC: ${k} não existe`);
+    for (const d of ds) if (!DISC.has(d)) throw new Error(`PAPER_DISC: disciplina ${d}`);
+  }
+  for (const k of PA.PAPER_GROUPS.slice(1).flatMap(g => g[1])) if (!PA.PAPER_DISC[k]) throw new Error(`${k} sem disciplina`);
+  for (const [k, z] of Object.entries(PA.PAPER_PREVIEW)) if (!chaves.includes(k) || !(z > 0 && z <= 1)) throw new Error(`PAPER_PREVIEW: ${k}`);
+});
+teste('toda folha desenha sem erro e com poucas primitivas, no quadro e na página', () => {
+  let n = 0, nan = '';
+  const PRIM = new Set(['moveTo', 'lineTo', 'arc', 'fillText', 'fillRect', 'bezierCurveTo', 'rect']);
+  const ctx = new Proxy({}, { get: (t, k) => k in t ? t[k] : (...a) => { if (PRIM.has(k)) { n++; if (a.some(v => typeof v === 'number' && !Number.isFinite(v))) nan = k; } }, set: (t, k, v) => ((t[k] = v), true) });
+  for (const [k] of PA.PAPERS.slice(13)) for (const zoom of [0.1, 1, 4]) for (const pageBox of [undefined, { x: 0, y: 0, w: 794, h: 1123 }]) {
+    n = 0; nan = '';
+    PA.drawBackground(ctx, { pattern: k, color: '#ffffff', size: 'm', origin: { x: 0, y: 0 }, pageBox }, { x: 800, y: 450, zoom }, 1600, 900);
+    if (nan) throw new Error(`${k} (zoom ${zoom}): número inválido em ${nan}`);
+    if (n > 20000) throw new Error(`${k} (zoom ${zoom}): ${n} primitivas`);
+  }
+});
+
+teste('recorte da curva não cria um patamar artificial no teto', () => {
+  const f = P.compile('1/(s*sqrt(2*pi))*exp(-x^2/(2*s^2))', { params: ['s'] });
+  const fr = { ox: 0, oy: 0, cell: 100, xmin: -5, xmax: 5, ymin: 0, ymax: .5 };
+  const lines = P.curvePolylines(f, fr, { s: .5 });
+  if (lines.length !== 2) throw new Error('o pico fora da janela deve separar as duas partes visíveis');
+  for (const l of lines) for (let i = 3; i < l.length; i += 2) {
+    if (Math.abs(l[i] + 50) < 1e-8 && Math.abs(l[i - 2] + 50) < 1e-8 && l[i - 1] !== l[i - 3]) throw new Error('segmento horizontal artificial no teto');
+  }
+});
+teste('recorte encontra a interseção da reta com a borda do gráfico', () => {
+  const lines = P.curvePolylines(x => x, { ox: 0, oy: 0, cell: 100, xmin: -2, xmax: 2, ymin: -.5, ymax: .5 });
+  igual(lines.length, 1, 'polilinhas');
+  perto(lines[0][0], -50, 1e-8, 'entrada');
+  perto(lines[0].at(-2), 50, 1e-8, 'saída');
 });
 
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);

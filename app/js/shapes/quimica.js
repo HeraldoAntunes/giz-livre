@@ -121,48 +121,48 @@ const NOVAS_SECOES = [
       + '<circle cx="35.5" cy="68.6" r="11"/><circle cx="114.5" cy="68.6" r="11"/>' + T(35.5, 68.6, 'H', 13) + T(114.5, 68.6, 'H', 13)
       + lig(60.8, 49, 44.2, 61.9) + lig(89.2, 49, 105.8, 61.9) + fino('M57.6 51.5 A22 22 0 0 0 92.4 51.5', 1.4)
       + T(75, 84, '104,5°', 12) + T(75, 9, 'δ⁻', 13) + T(20, 92, 'δ⁺', 13) + T(130, 92, 'δ⁺', 13)],
-    ['pq-ponte-h', 'Ligação de hidrogênio (água)', 200, 112, T(50, 46, 'O') + lig(42, 56, 28, 72) + T(22, 82, 'H') + lig(62, 50, 82, 58) + T(92, 62, 'H')
-      + tra('M104 62 H136', 2.2, '3 5') + T(150, 62, 'O') + lig(158, 52, 172, 34) + T(178, 24, 'H') + lig(158, 72, 172, 90) + T(178, 100, 'H')],
+    ['pq-ponte-h', 'Ligação de hidrogênio (água)', 200, 120, "<g transform=\"translate(0.00 0.00)\">" + (T(50, 46, 'O') + lig(42, 56, 28, 72) + T(22, 82, 'H') + lig(62, 50, 82, 58) + T(92, 62, 'H')
+      + tra('M104 62 H136', 2.2, '3 5') + T(150, 62, 'O') + lig(158, 52, 172, 34) + T(178, 24, 'H') + lig(158, 72, 172, 90) + T(178, 100, 'H')) + "</g>"],
   ]],
   ['Átomos, orbitais e ligações', [
     ['pq-orb-s', 'Orbital s', 100, 100, '<circle cx="50" cy="50" r="34"/>' + tra('M4 50 H96 M50 4 V96') + pto(50, 50, 2.5)],
     ['pq-orb-p', 'Orbital p', 140, 90, lobo(70, 45, 0, 62, 40) + lobo(70, 45, 180, 62, 40) + tra('M70 4 V86') + T(106, 45, '+', 18) + T(34, 45, '−', 18)],
     ['pq-orb-d', 'Orbital d (dxy)', 120, 120, [45, 135, 225, 315].map(a => lobo(60, 60, a, 52, 28)).join('') + tra('M4 60 H116 M60 4 V116')
       + T(81, 81, '+', 15) + T(39, 39, '+', 15) + T(39, 81, '−', 15) + T(81, 39, '−', 15)],
-    ['pq-orb-sp3', 'Orbitais híbridos sp³', 130, 130, lobo(65, 70, -90, 58, 30) + lobo(65, 70, 30, 58, 30) + lobo(65, 70, 150, 58, 30)
-      + lobo(65, 70, 90, 36, 22, ' stroke-dasharray="5 4" stroke-width="1.8"') + pto(65, 70, 3)],
+    ['pq-orb-sp3', 'Orbitais sp³ — projeção esquemática', 200, 160, lobo(65, 70, -90, 58, 30) + lobo(65, 70, 30, 58, 30) + lobo(65, 70, 150, 58, 30)
+      + lobo(65, 70, 90, 36, 22, ' stroke-dasharray="5 4" stroke-width="1.8"') + pto(65, 70, 3) + T(100, 145, 'projeção sem escala', 14)],
     ['pq-bohr', 'Átomo (modelo de Bohr)', 130, 130, '<g stroke-width="1.4"><circle cx="65" cy="65" r="22"/><circle cx="65" cy="65" r="38"/><circle cx="65" cy="65" r="56"/></g>' + pto(65, 65, 9)
       + [0, 180].map(a => pto(...polar(65, 65, 22, a), 3.5)).join('') + serie(8, i => pto(...polar(65, 65, 38, 22.5 + 45 * i), 3.5)) + pto(...polar(65, 65, 56, -60), 3.5)],
     ['pq-caixas', 'Diagrama de orbitais (caixas)', 200, 80, '<path d="M10 14 H40 V44 H10 Z M56 14 H86 V44 H56 Z M102 14 H192 V44 H102 Z M132 14 V44 M162 14 V44" stroke-width="2"/>'
       + sobe(20, 40, 18) + desce(30, 18, 40) + sobe(66, 40, 18) + desce(76, 18, 40) + sobe(112, 40, 18) + desce(122, 18, 40) + sobe(147, 40, 18) + sobe(177, 40, 18)
       + T(25, 62, '1s', 15) + T(71, 62, '2s', 15) + T(147, 62, '2p', 15)],
-    ['pq-sigma', 'Ligação σ (frontal)', 200, 84, lobo(62, 40, 0, 44, 26) + lobo(62, 40, 180, 26, 18) + lobo(138, 40, 180, 44, 26) + lobo(138, 40, 0, 26, 18)
-      + pto(62, 40) + pto(138, 40) + T(100, 74, 'σ', 18)],
+    ['pq-sigma', 'Ligação σ (frontal)', 200, 91, "<g transform=\"translate(0.00 0.00)\">" + (lobo(62, 40, 0, 44, 26) + lobo(62, 40, 180, 26, 18) + lobo(138, 40, 180, 44, 26) + lobo(138, 40, 0, 26, 18)
+      + pto(62, 40) + pto(138, 40) + T(100, 74, 'σ', 18)) + "</g>"],
     ['pq-pi', 'Ligação π (lateral)', 160, 150, lobo(55, 75, -90, 50, 24) + lobo(55, 75, 90, 50, 24) + lobo(105, 75, -90, 50, 24) + lobo(105, 75, 90, 50, 24)
       + fino('M55 75 H105', 1.4) + tra('M50 38 Q80 8 110 38 M50 112 Q80 142 110 112', 1.6, '5 4') + pto(55, 75) + pto(105, 75) + T(144, 75, 'π', 20)],
     ['pq-ionica', 'Ligação iônica (NaCl)', 220, 96, '<circle cx="40" cy="40" r="20"/>' + T(40, 40, 'Na', 15) + '<circle cx="176" cy="40" r="28"/>' + T(176, 40, 'Cl', 17)
       + fino('M62 32 Q106 2 142 26', 1.8) + head(146, 29, 37, 10) + T(104, 34, 'e⁻', 15) + T(40, 80, 'Na⁺', 16) + T(176, 84, 'Cl⁻', 16)],
-    ['pq-om', 'Orbitais moleculares (H₂)', 200, 150, '<path d="M16 80 H56 M144 80 H184 M80 36 H120 M80 116 H120"/>' + tra('M56 80 L80 36 M56 80 L80 116 M144 80 L120 36 M144 80 L120 116')
+    ['pq-om', 'Orbitais moleculares (H₂)', 200, 156, "<g transform=\"translate(0.00 0.00)\">" + ('<path d="M16 80 H56 M144 80 H184 M80 36 H120 M80 116 H120"/>' + tra('M56 80 L80 36 M56 80 L80 116 M144 80 L120 36 M144 80 L120 116')
       + sobe(36, 90, 68) + sobe(164, 90, 68) + sobe(94, 126, 104) + desce(106, 106, 128)
-      + T(100, 22, 'σ*', 15) + T(100, 141, 'σ', 15) + T(36, 101, '1s', 13) + T(164, 101, '1s', 13) + T(36, 56, 'H', 14) + T(164, 56, 'H', 14)],
+      + T(100, 22, 'σ*', 15) + T(100, 141, 'σ', 15) + T(36, 101, '1s', 13) + T(164, 101, '1s', 13) + T(36, 56, 'H', 14) + T(164, 56, 'H', 14)) + "</g>"],
   ]],
   ['Diagramas de fase e equilíbrio', [
-    ['pq-fase-agua', 'Diagrama de fases da água', 220, 170, eixos(24, 150, 212, 8) + '<path d="M30 146 Q58 138 80 112 Q140 100 180 40 M80 112 L68 18"/>' + pto(80, 112, 3.5) + pto(180, 40, 3.5)
-      + T(46, 64, 'sólido', 12) + T(112, 56, 'líquido', 12) + T(150, 126, 'vapor', 12) + T(96, 126, 'PT', 10) + T(196, 30, 'PC', 10) + T(12, 14, 'P', 14) + T(206, 162, 'T', 14)],
-    ['pq-fase-co2', 'Diagrama de fases do CO₂', 220, 170, eixos(24, 150, 212, 8) + '<path d="M30 146 Q58 138 80 112 Q140 100 180 40 M80 112 L100 18"/>' + pto(80, 112, 3.5) + pto(180, 40, 3.5)
-      + T(46, 64, 'sólido', 12) + T(136, 56, 'líquido', 12) + T(150, 126, 'gás', 12) + T(96, 126, 'PT', 10) + T(196, 30, 'PC', 10) + T(12, 14, 'P', 14) + T(206, 162, 'T', 14)],
-    ['pq-txy', 'Diagrama T-x-y (bolha e orvalho)', 200, 170, eixos(26, 150, 194, 8) + '<path d="M30 46 Q70 120 180 124 M30 46 Q140 50 180 124"/>'
-      + T(150, 40, 'V', 14) + T(60, 128, 'L', 14) + T(114, 86, 'L + V', 11) + T(14, 14, 'T', 14) + T(182, 163, 'x, y', 12)],
+    ['pq-fase-agua', 'Diagrama de fases da água', 220, 177, "<g transform=\"translate(0.00 0.50)\">" + (eixos(24, 150, 212, 8) + '<path d="M30 146 Q58 138 80 112 Q140 100 180 40 M80 112 L68 18"/>' + pto(80, 112, 3.5) + pto(180, 40, 3.5)
+      + T(46, 64, 'sólido', 12) + T(112, 56, 'líquido', 12) + T(150, 126, 'vapor', 12) + T(96, 126, 'PT', 10) + T(196, 30, 'PC', 10) + T(12, 14, 'P', 14) + T(206, 162, 'T', 14)) + "</g>"],
+    ['pq-fase-co2', 'Diagrama de fases do CO₂', 220, 177, "<g transform=\"translate(0.00 0.50)\">" + (eixos(24, 150, 212, 8) + '<path d="M30 146 Q58 138 80 112 Q140 100 180 40 M80 112 L100 18"/>' + pto(80, 112, 3.5) + pto(180, 40, 3.5)
+      + T(46, 64, 'sólido', 12) + T(136, 56, 'líquido', 12) + T(150, 126, 'gás', 12) + T(96, 126, 'PT', 10) + T(196, 30, 'PC', 10) + T(12, 14, 'P', 14) + T(206, 162, 'T', 14)) + "</g>"],
+    ['pq-txy', 'Diagrama T-x-y (bolha e orvalho)', 200, 177, "<g transform=\"translate(0.00 0.25)\">" + (eixos(26, 150, 194, 8) + '<path d="M30 46 Q70 120 180 124 M30 46 Q140 50 180 124"/>'
+      + T(150, 40, 'V', 14) + T(60, 128, 'L', 14) + T(114, 86, 'L + V', 11) + T(14, 14, 'T', 14) + T(182, 163, 'x, y', 12)) + "</g>"],
     ['pq-mccabe', 'Diagrama de McCabe-Thiele', 180, 180, eixos(24, 156, 174, 6) + fino('M24 156 L164 16', 1.4) + '<path d="M24 156 Q40 40 164 16"/>'
       + fino('M150 30 H117 V63 H67 V113 H35 V145', 1.8) + pto(150, 30) + T(12, 14, 'y', 14) + T(170, 170, 'x', 14)],
     ['pq-azeotropo', 'Azeótropo (mínimo de T)', 200, 170, eixos(26, 150, 194, 8)
       + '<path d="M30 60 C50 110 80 120 110 120 C140 120 170 110 180 80 M30 60 C80 62 100 120 110 120 C120 120 150 66 180 80"/>' + pto(110, 120)
       + T(110, 40, 'V', 14) + T(110, 138, 'L', 14) + T(14, 14, 'T', 14) + T(182, 163, 'x, y', 12)],
-    ['pq-curva-aquec', 'Curva de aquecimento (água)', 220, 160, eixos(24, 140, 212, 8) + '<path d="M28 134 L60 106 H100 L128 64 H178 L204 26"/>' + tra('M24 106 H60 M24 64 H128')
-      + T(80, 96, 'fusão', 11) + T(153, 54, 'ebulição', 11) + T(12, 14, 'T', 14) + T(206, 152, 't', 14)],
+    ['pq-curva-aquec', 'Curva de aquecimento (água)', 220, 167, "<g transform=\"translate(0.00 0.50)\">" + (eixos(24, 140, 212, 8) + '<path d="M28 134 L60 106 H100 L128 64 H178 L204 26"/>' + tra('M24 106 H60 M24 64 H128')
+      + T(80, 96, 'fusão', 11) + T(153, 54, 'ebulição', 11) + T(12, 14, 'T', 14) + T(206, 152, 't', 14)) + "</g>"],
     ['pq-ternario', 'Diagrama ternário', 200, 186, ternario()],
-    ['pq-titulacao', 'Curva de titulação (pH × V)', 200, 160, eixos(28, 140, 192, 8) + '<path d="M30 120 C80 112 100 110 108 96 L112 50 C120 36 140 32 186 28"/>'
-      + tra('M28 73 H110 V140') + pto(110, 73, 3.5) + T(126, 76, 'PE', 11) + T(14, 14, 'pH', 12) + T(186, 152, 'V', 13)],
+    ['pq-titulacao', 'Curva de titulação (pH × V)', 200, 166, "<g transform=\"translate(0.00 0.00)\">" + (eixos(28, 140, 192, 8) + '<path d="M30 120 C80 112 100 110 108 96 L112 50 C120 36 140 32 186 28"/>'
+      + tra('M28 73 H110 V140') + pto(110, 73, 3.5) + T(126, 76, 'PE', 11) + T(14, 14, 'pH', 12) + T(186, 152, 'V', 13)) + "</g>"],
   ]],
   ['Cinética', [
     ['pq-perfil-exo', 'Perfil de energia (exotérmica)', 220, 170, perfil(96, 126, 34, tra('M40 34 H108 M120 96 H200') + fino('M44 90 V42', 1.6) + head(44, 36, -90, 8) + head(44, 96, 90, 8)
@@ -171,17 +171,17 @@ const NOVAS_SECOES = [
       + T(60, 80, 'Eₐ', 13) + fino('M190 124 V96', 1.6) + head(190, 90, -90, 8) + T(172, 110, 'ΔH', 12))],
     ['pq-catalisador', 'Efeito do catalisador', 220, 170, perfil(96, 126, 34, '<path d="M60 96 C88 96 96 70 112 70 C128 70 136 126 164 126" stroke-width="1.8" stroke-dasharray="6 5"/>'
       + T(142, 40, 'sem', 11) + T(112, 90, 'com', 11))],
-    ['pq-conc-tempo', 'Concentração × tempo', 200, 160, eixos(24, 140, 192, 8) + '<path d="M28 30 C60 100 100 126 186 130 M28 136 C60 70 100 44 186 40"/>'
-      + T(176, 118, '[A]', 12) + T(176, 28, '[B]', 12) + T(12, 14, 'C', 14) + T(186, 152, 't', 14)],
-    ['pq-equilibrio', 'Equilíbrio químico (C × t)', 200, 160, eixos(24, 140, 192, 8) + '<path d="M28 26 C60 66 90 84 120 86 H186 M28 136 C60 100 90 72 120 70 H186"/>' + tra('M120 14 V140')
-      + T(160, 100, '[A]', 12) + T(160, 56, '[B]', 12) + T(156, 16, 'equilíbrio', 10) + T(12, 14, 'C', 14) + T(186, 152, 't', 14)],
+    ['pq-conc-tempo', 'Concentração × tempo', 200, 167, "<g transform=\"translate(0.00 0.50)\">" + (eixos(24, 140, 192, 8) + '<path d="M28 30 C60 100 100 126 186 130 M28 136 C60 70 100 44 186 40"/>'
+      + T(176, 118, '[A]', 12) + T(176, 28, '[B]', 12) + T(12, 14, 'C', 14) + T(186, 152, 't', 14)) + "</g>"],
+    ['pq-equilibrio', 'Equilíbrio químico (C × t)', 200, 167, "<g transform=\"translate(0.00 0.50)\">" + (eixos(24, 140, 192, 8) + '<path d="M28 26 C60 66 90 84 120 86 H186 M28 136 C60 100 90 72 120 70 H186"/>' + tra('M120 14 V140')
+      + T(160, 100, '[A]', 12) + T(160, 56, '[B]', 12) + T(156, 16, 'equilíbrio', 10) + T(12, 14, 'C', 14) + T(186, 152, 't', 14)) + "</g>"],
     ['pq-arrhenius', 'Gráfico de Arrhenius (ln k × 1/T)', 200, 160, eixos(24, 140, 192, 8) + fino('M40 30 L180 124', 1.8)
       + [[54, 40], [82, 57], [110, 79], [138, 95], [166, 116]].map(([x, y]) => pto(x, y, 3.5)).join('') + T(48, 12, 'ln k', 12) + T(178, 152, '1/T', 12) + T(140, 60, '−Eₐ/R', 12)],
     ['pq-maxwell', 'Distribuição de Maxwell-Boltzmann', 220, 160, eixos(24, 140, 212, 8) + '<path d="M26 138 C44 138 52 34 76 34 C104 34 118 126 204 134"/>'
       + '<path d="M26 138 C54 138 72 74 104 74 C136 74 150 120 204 128" stroke-width="2" stroke-dasharray="7 5"/>' + tra('M150 18 V140')
       + T(76, 24, 'T₁', 13) + T(128, 64, 'T₂', 13) + T(164, 20, 'Eₐ', 12) + T(12, 14, 'f', 14) + T(200, 152, 'E', 13)],
-    ['pq-michaelis', 'Michaelis-Menten / Monod', 200, 160, eixos(24, 140, 192, 8) + '<path d="M24 140 C50 60 100 40 186 34"/>' + tra('M24 28 H186 M24 84 H53 V140')
-      + T(172, 18, 'Vmáx', 11) + T(53, 152, 'Kₘ', 12) + T(12, 14, 'v', 14) + T(186, 152, 'S', 13)],
+    ['pq-michaelis', 'Michaelis-Menten / Monod', 200, 166, "<g transform=\"translate(0.00 0.25)\">" + (eixos(24, 140, 192, 8) + '<path d="M24 140 C50 60 100 40 186 34"/>' + tra('M24 28 H186 M24 84 H53 V140')
+      + T(172, 18, 'Vmáx', 11) + T(53, 152, 'Kₘ', 12) + T(12, 14, 'v', 14) + T(186, 152, 'S', 13)) + "</g>"],
   ]],
   ['Eletroquímica', [
     ['pq-daniell', 'Pilha de Daniell', 240, 170, bq(14, 94, 70, 160) + bq(146, 226, 70, 160) + nivel(16, 92, 90) + nivel(148, 224, 90)
@@ -212,9 +212,241 @@ const NOVAS_SECOES = [
 ];
 
 
+// Ampliação 09/10/2026: desenhos autorais; espaços livres para anotar com Texto.
+const AMPLIACAO_20261009 = [
+  [
+    "Ácido-base, soluções e cálculos",
+    [
+      [
+        "pq-ab-transferencia",
+        "Brønsted: transferência de próton",
+        420,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"404\" height=\"158\" rx=\"3\"/><text x=\"210\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Brønsted: transferência de próton</text><path d=\"M8 48 H412\"/><text x=\"210\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">HA + B ⇌ A⁻ + BH⁺</text><text x=\"210\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ácido + base ⇌ base + ácido</text><text x=\"210\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pares conjugados: HA/A⁻ e BH⁺/B</text>"
+      ],
+      [
+        "pq-ab-pares-vazio",
+        "Pares conjugados — preencher",
+        500,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pares conjugados — preencher</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ácido: ______ → Base conjugada: ______</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Base: ______ → Ácido conjugado: ______</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Transferência de H⁺: __________________</text>"
+      ],
+      [
+        "pq-ph-atividade",
+        "pH: atividade e aproximação",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">pH: atividade e aproximação</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">pH = −log₁₀ a(H⁺)</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Solução diluída ideal: a(H⁺) ≈ c(H⁺)/c°</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c° = 1 mol/L; atividade sem unidade</text>"
+      ],
+      [
+        "pq-ab-forte-fraco",
+        "Ácidos forte e fraco em água",
+        420,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"404\" height=\"158\" rx=\"3\"/><text x=\"210\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ácidos forte e fraco em água</text><path d=\"M8 48 H412\"/><text x=\"210\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Forte: HA + H₂O → H₃O⁺ + A⁻</text><text x=\"210\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fraco: HA + H₂O ⇌ H₃O⁺ + A⁻</text><text x=\"210\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Força não é concentração.</text>"
+      ],
+      [
+        "pq-tampao-modelo",
+        "Tampão — modelo de composição",
+        500,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Tampão — modelo de composição</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ácido fraco: ______  Base conjugada: ______</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Razão c(base)/c(ácido): _________________</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Adição de H⁺ ou OH⁻: _________________</text>"
+      ],
+      [
+        "pq-titulacao-preencher",
+        "Titulação — interpretar",
+        400,
+        260,
+        "<text x=\"200\" y=\"18\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Titulação — interpretar</text><path d=\"M56 44 V214 H374\"/><text x=\"24\" y=\"130\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\" transform=\"rotate(-90 24 130)\">pH</text><text x=\"374\" y=\"240\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"end\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">V titulante (mL)</text><path d=\"M64 182 C170 180 203 176 211 132 C218 73 250 67 362 64\"/><path d=\"M214 55 V214\" stroke-dasharray=\"5 4\"/><text x=\"270\" y=\"113\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Equivalência: ___</text>"
+      ],
+      [
+        "pq-sol-preparo",
+        "Solução: preparo por dissolução",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Solução: preparo por dissolução</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pesar soluto</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">m (g): ______</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Dissolver</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">solvente: _____</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Aferir volume</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">V (L): ______</text>"
+      ],
+      [
+        "pq-concentracao-conta",
+        "Concentração em quantidade",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Concentração em quantidade</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n = m/M; c = n/V</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">m (g): ____ M (g/mol): ____ V (L): ____</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n (mol): ______ c (mol/L): ______</text>"
+      ],
+      [
+        "pq-diluicao-etapas",
+        "Diluição: mesma quantidade de soluto",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Diluição: mesma quantidade de soluto</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pipetar alíquota</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c₁V₁ = c₂V₂</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Transferir</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c₁: ___ V₁: ___</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Completar volume</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c₂: ___ V₂: ___</text>"
+      ],
+      [
+        "pq-diluicao-bequeres",
+        "Diluição — comparar concentração",
+        400,
+        208,
+        "<text x=\"200\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Diluição: n constante; V aumenta</text><path d=\"M40 52 V162 H140 V52\"/><path d=\"M40 119 H140\" stroke-dasharray=\"6 4\" stroke-width=\"1.6\"/><path d=\"M245 52 V162 H360 V52\"/><path d=\"M245 87 H360\" stroke-dasharray=\"6 4\" stroke-width=\"1.6\"/><path d=\"M153 103 L228 103\"/><path d=\"M221 99 L228 103 L221 107\"/><circle cx=\"70\" cy=\"138\" r=\"3\"/><circle cx=\"100\" cy=\"138\" r=\"3\"/><circle cx=\"130\" cy=\"138\" r=\"3\"/><circle cx=\"270\" cy=\"138\" r=\"3\"/><circle cx=\"300\" cy=\"138\" r=\"3\"/><circle cx=\"330\" cy=\"138\" r=\"3\"/><text x=\"90\" y=\"188\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">V₁; c₁</text><text x=\"300\" y=\"188\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">V₂; c₂</text>"
+      ],
+      [
+        "pq-sol-comparar",
+        "Soluções — dados e unidades",
+        500,
+        224,
+        "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Soluções — dados e unidades</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Solução</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">m (g)</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">V (L)</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c (mol/L)</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
+      ],
+      [
+        "pq-fracao-massica",
+        "Fração mássica — preencher",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fração mássica — preencher</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">w = m(soluto)/m(solução)</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">m(solução) = m(soluto) + m(solvente)</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">w: ______  100w (%): ______</text>"
+      ],
+      [
+        "pq-esteq-sequencia",
+        "Estequiometria — caminho de cálculo",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estequiometria — caminho de cálculo</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Massa → mol</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n = m/M</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Razão molar</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">equação balanceada</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Mol → massa</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">m = nM</text>"
+      ],
+      [
+        "pq-esteq-ice",
+        "Reação — inicial, variação e final",
+        480,
+        186,
+        "<text x=\"240\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Reação — inicial, variação e final</text><rect x=\"10\" y=\"42\" width=\"460\" height=\"140\" rx=\"3\"/><text x=\"67.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Etapa</text><text x=\"182.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">A</text><path d=\"M125 42 V182\"/><text x=\"297.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">B</text><path d=\"M240 42 V182\"/><text x=\"412.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Produto</text><path d=\"M355 42 V182\"/><path d=\"M10 68 H470\"/><path d=\"M10 106 H470\"/><path d=\"M10 144 H470\"/>"
+      ],
+      [
+        "pq-limitante-tabela",
+        "Reagente limitante — comparar",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Reagente limitante — comparar</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Equação: aA + bB → produtos</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Compare n(A)/a e n(B)/b.</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Menor razão → limitante: __________</text>"
+      ],
+      [
+        "pq-rendimento-conta",
+        "Rendimento da reação",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Rendimento da reação</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">η = m(obtida)/m(teórica) × 100%</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Massa obtida (g): __________________</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Massa teórica (g): ______ η (%): ______</text>"
+      ],
+      [
+        "pq-kps-agcl",
+        "AgCl: dissolução e Kps",
+        500,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">AgCl: dissolução e Kps</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">AgCl(s) ⇌ Ag⁺(aq) + Cl⁻(aq)</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Kps = a(Ag⁺) · a(Cl⁻)</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Diluída ideal: Kps ≈ (cAg/c°)(cCl/c°)</text>"
+      ],
+      [
+        "pq-precipitacao-qp",
+        "Precipitação — Q e Kps",
+        480,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"464\" height=\"158\" rx=\"3\"/><text x=\"240\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Precipitação — Q e Kps</text><path d=\"M8 48 H472\"/><text x=\"240\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q &lt; Kps: insaturada; pode dissolver</text><text x=\"240\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q = Kps: saturação em equilíbrio</text><text x=\"240\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q > Kps: precipitação favorecida</text>"
+      ],
+      [
+        "pq-solubilidade-curva",
+        "Solubilidade — interpretar",
+        400,
+        260,
+        "<text x=\"200\" y=\"18\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Solubilidade — interpretar</text><path d=\"M56 44 V214 H374\"/><text x=\"24\" y=\"130\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\" transform=\"rotate(-90 24 130)\">g/100 g H₂O</text><text x=\"374\" y=\"240\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"end\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">T (°C)</text><path d=\"M65 190 Q225 170 358 67\"/><circle cx=\"174\" cy=\"126\" r=\"4\"/><circle cx=\"280\" cy=\"187\" r=\"4\"/><text x=\"179\" y=\"108\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">A</text><text x=\"301\" y=\"187\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">B</text><text x=\"232\" y=\"58\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Curva esquemática</text>"
+      ],
+      [
+        "pq-ion-comum",
+        "Efeito do íon comum",
+        500,
+        174,
+        "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Efeito do íon comum</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">AgCl(s) ⇌ Ag⁺(aq) + Cl⁻(aq)</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Adição de Cl⁻ reduz a solubilidade.</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Hipótese: sem complexação significativa.</text>"
+      ],
+      [
+        "pq-sn1-etapas",
+        "SN1 — esquema de etapas",
+        520,
+        158,
+        "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">SN1 — esquema de etapas</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Saída de X⁻</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">R–X → R⁺ + X⁻</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Carbocátion</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">intermediário</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ataque de Nu</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">R–Nu (após ajuste)</text>"
+      ],
+      [
+        "pq-sn2-mecanismo",
+        "SN2 — fluxo do par eletrônico",
+        620,
+        200,
+        "<text x=\"310\" y=\"22\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">SN2: ataque e saída em uma etapa</text><text x=\"60\" y=\"100\" font-size=\"22\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Nu:⁻</text><text x=\"210\" y=\"100\" font-size=\"23\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">R</text><path d=\"M224 100 H253 M309 100 H336\"/><text x=\"282\" y=\"100\" font-size=\"23\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">CH₂</text><text x=\"351\" y=\"100\" font-size=\"23\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">X</text><path d=\"M385 100 L418 100 M411 96 L418 100 L411 104\"/><text x=\"523\" y=\"88\" font-size=\"20\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">R–CH₂–Nu</text><text x=\"523\" y=\"124\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">+ X⁻</text><path d=\"M89 84 Q177 20 263 82 M323 87 Q346 37 357 79\" stroke-width=\"1.8\"/><path d=\"M255 79 L263 82 L258 89 M350 74 L357 79 L350 84\" stroke-width=\"1.8\"/><text x=\"310\" y=\"176\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Setas curvas: deslocamento de pares eletrônicos</text>"
+      ],
+      [
+        "pq-eta-sulfato-aluminio",
+        "Sulfato de alumínio — composição",
+        560,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"544\" height=\"198\" rx=\"3\"/><text x=\"280\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Sulfato de alumínio — composição</text><path d=\"M8 48 H552\"/><text x=\"280\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Anidro: Al₂(SO₄)₃</text><text x=\"280\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Hidratado: Al₂(SO₄)₃·xH₂O; x declarado</text><text x=\"280\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pureza e água de hidratação alteram a massa.</text><text x=\"280\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Conferir certificado e base da dosagem.</text>"
+      ],
+      [
+        "pq-eta-pac-composicao",
+        "Policloreto de alumínio — composição",
+        560,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"544\" height=\"198\" rx=\"3\"/><text x=\"280\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Policloreto de alumínio — composição</text><path d=\"M8 48 H552\"/><text x=\"280\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">PAC / PACl: coagulante pré-hidrolisado.</text><text x=\"280\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Composição e basicidade variam por produto.</text><text x=\"280\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não é uma substância pura de fórmula única.</text><text x=\"280\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Declarar teor: como Al, Al₂O₃ ou produto.</text>"
+      ],
+      [
+        "pq-eta-hidrolise",
+        "Hidrólise do alumínio — modelo global",
+        560,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"544\" height=\"198\" rx=\"3\"/><text x=\"280\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Hidrólise do alumínio — modelo global</text><path d=\"M8 48 H552\"/><text x=\"280\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Al³⁺ + 3H₂O ⇌ Al(OH)₃(s) + 3H⁺</text><text x=\"280\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Representação global simplificada.</text><text x=\"280\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">pH controla espécies e precipitação.</text><text x=\"280\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não descreve todas as espécies do PAC.</text>"
+      ],
+      [
+        "pq-eta-alcalinidade",
+        "Coagulação — pH e alcalinidade",
+        580,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"564\" height=\"198\" rx=\"3\"/><text x=\"290\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Coagulação — pH e alcalinidade</text><path d=\"M8 48 H572\"/><text x=\"290\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Sais de alumínio podem consumir alcalinidade.</text><text x=\"290\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">H⁺ + HCO₃⁻ ⇌ CO₂(aq) + H₂O</text><text x=\"290\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Medir pH, alcalinidade e resposta dos flocos.</text><text x=\"290\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Dose depende da água e do ensaio de jarros.</text>"
+      ],
+      [
+        "pq-eta-flocos",
+        "Coagulação e floculação — mecanismo",
+        560,
+        235,
+        "<text x=\"280\" y=\"22\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Desestabilização → agregação</text><circle cx=\"55\" cy=\"85\" r=\"7\"/><text x=\"55\" y=\"62\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">−</text><circle cx=\"90\" cy=\"125\" r=\"7\"/><text x=\"90\" y=\"102\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">−</text><circle cx=\"130\" cy=\"85\" r=\"7\"/><text x=\"130\" y=\"62\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">−</text><circle cx=\"155\" cy=\"125\" r=\"7\"/><text x=\"155\" y=\"102\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">−</text><path d=\"M185 105 L250 105 M243 101 L250 105 L243 109\"/><circle cx=\"345\" cy=\"95\" r=\"9\"/><circle cx=\"362\" cy=\"105\" r=\"9\"/><circle cx=\"375\" cy=\"88\" r=\"9\"/><circle cx=\"382\" cy=\"112\" r=\"9\"/><circle cx=\"399\" cy=\"98\" r=\"9\"/><text x=\"105\" y=\"174\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Coloides dispersos</text><text x=\"379\" y=\"174\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Floco esquemático</text><text x=\"280\" y=\"210\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Mecanismos dependem do coagulante e do pH.</text>"
+      ],
+      [
+        "pq-eta-cloro-equilibrio",
+        "Cloro livre — equilíbrio ácido-base",
+        620,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"604\" height=\"198\" rx=\"3\"/><text x=\"310\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Cloro livre — equilíbrio ácido-base</text><path d=\"M8 48 H612\"/><text x=\"310\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">HOCl ⇌ H⁺ + OCl⁻</text><text x=\"310\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Maior pH favorece a fração OCl⁻.</text><text x=\"310\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Dose aplicada ≠ residual medido.</text><text x=\"310\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Contato, demanda e condições devem ser avaliados.</text>"
+      ],
+      [
+        "pq-eta-dose-massa",
+        "Dosagem — balanço de unidades",
+        580,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"564\" height=\"198\" rx=\"3\"/><text x=\"290\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Dosagem — balanço de unidades</text><path d=\"M8 48 H572\"/><text x=\"290\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ṁ (g/h) = D (mg/L) × Q (m³/h)</text><text x=\"290\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">1 m³ = 1.000 L; 1 g = 1.000 mg</text><text x=\"290\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">D é a dose do mesmo ativo considerado.</text><text x=\"290\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Exemplo didático: 20 × 50 = 1.000 g/h</text>"
+      ],
+      [
+        "pq-eta-dose-solucao",
+        "Vazão da solução dosadora",
+        620,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"604\" height=\"198\" rx=\"3\"/><text x=\"310\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Vazão da solução dosadora</text><path d=\"M8 48 H612\"/><text x=\"310\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">q (L/h) = D (mg/L) × Q (m³/h) / C (g/L)</text><text x=\"310\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">D e C devem expressar o mesmo ativo.</text><text x=\"310\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">C = concentração na solução que será dosada.</text><text x=\"310\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Exemplo: 20 × 50 / 100 = 10 L/h</text>"
+      ],
+      [
+        "pq-eta-base-ativa",
+        "Produto comercial — base ativa",
+        580,
+        214,
+        "<rect x=\"8\" y=\"8\" width=\"564\" height=\"198\" rx=\"3\"/><text x=\"290\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Produto comercial — base ativa</text><path d=\"M8 48 H572\"/><text x=\"290\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ṁ produto = ṁ ativo / fração mássica ativa</text><text x=\"290\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">q produto = ṁ produto / ρ produto</text><text x=\"290\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Usar unidades coerentes de massa e volume.</text><text x=\"290\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Teor como Al ≠ teor como Al₂O₃ ≠ produto.</text>"
+      ]
+    ]
+  ]
+];
+
 export default {
   id: 'quimica', nome: 'Química e processos',
+  destaques: [
+    'pq-tanque', 'pq-reator', 'pq-pfr', 'pq-coluna', 'pq-destilacao', 'pq-trocador',
+    'pq-cascotubo', 'pq-bomba', 'pq-compressor', 'pq-valvula', 'pq-controle', 'pq-instr',
+    'pq-filtro', 'pq-decantador', 'pq-perfil-exo', 'pq-titulacao',
+  ],
   secoes: [
+    ...AMPLIACAO_20261009,
     ['Vasos e tanques', [
       ['pq-tanque', 'Tanque / vaso vertical', 110, 180, '<path d="M14 36 A41 22 0 0 1 96 36 V146 A41 22 0 0 1 14 146 Z"/><path d="M55 14 V4 M55 168 V177"/>'],
       ['pq-aberto', 'Tanque aberto', 120, 140, '<path d="M8 8 V132 H112 V8"/>' + nivel(8, 112, 40)],

@@ -11,3 +11,13 @@ dist/
 *.tmp
 # configurações locais de ferramentas de desenvolvimento
 .claude/
+
+scripts/vitrine/saida/
+# pasta de trabalho interna: só relatórios e dados de teste entram
+.agentes/**
+!.agentes/**/
+!.agentes/**/*.md
+!.agentes/*/baseline.json
+!.agentes/*/*/manifesto.json
+# marca da pasta de exportação pública (não versionar)
+.giz-livre-publico

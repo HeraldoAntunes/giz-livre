@@ -100,6 +100,11 @@ const asmeLinha = '<circle cx="20" cy="22" r="16"/><path d="M48 16 H70 V8 L88 22
 // Fluxograma (convenções ISO 5807) e blocos para diagramas. Desenho próprio do Giz Livre.
 export default {
   id: 'fluxo', nome: 'Fluxograma',
+  destaques: [
+    'fx-terminal', 'fx-processo', 'fx-decisao', 'fx-dados', 'fx-documento', 'fx-conector',
+    'fx-subprocesso', 'fx-banco', 'fx-nota', 'fx-decisao-sn', 'fx-est-sesenao', 'fx-est-enquanto',
+    'fx-ishikawa', 'fx-pdca', 'fx-mapa-mental', 'fx-organograma',
+  ],
   secoes: [
     ['Fluxograma básico', [
       ['fx-terminal', 'Início / fim', 120, 64, '<rect x="4" y="4" width="112" height="56" rx="28"/>'],

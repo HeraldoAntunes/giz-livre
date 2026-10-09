@@ -42,10 +42,18 @@ export async function saveBoard(id, board, thumb) {
   const r = await wfetch('/api/boards/' + id, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: board.title, board, thumb }),
+    body: JSON.stringify({ title: board.title, board, thumb, revision: board._rev || 0 }),
   });
-  if (!r.ok) throw new Error('Falha ao salvar');
-  return r.json();
+  if (!r.ok) {
+    const e = new Error(r.status === 412
+      ? 'Este quadro mudou em outra janela. Exporte sua edição como .lousa antes de recarregar.'
+      : 'Falha ao salvar');
+    e.conflict = r.status === 412;
+    throw e;
+  }
+  const result = await r.json();
+  board._rev = result.revision;
+  return result;
 }
 
 export async function saveThumb(id, thumb) {

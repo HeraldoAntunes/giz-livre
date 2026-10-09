@@ -51,8 +51,13 @@ const param = (g, t0, t1, n = 48) => { let d = ''; for (let i = 0; i <= n; i++) 
 // hachura de terreno sob uma reta (x0,y0)-(x1,y1)
 const terreno = (x0, y0, x1, y1, s = 14) => { let d = ''; for (let x = x0 + 8; x <= x1; x += s) d += `M${x} ${(y0 + (y1 - y0) * (x - x0) / (x1 - x0)).toFixed(1)} l-6 8`; return `<path d="${d}" ${tn}/>`; };
 
-export default {
+const grupo = {
   id: 'hidra', nome: 'Hidráulica',
+  destaques: [
+    'hd-tubo', 'hd-gaveta', 'hd-retencao', 'hd-bomba', 'hd-motobomba', 'hd-curva', 'hd-te',
+    'hd-hidrometro', 'hd-manometro', 'hd-parshall', 'hd-vertedor-ret', 'hd-venturi',
+    'hd-bernoulli', 'hd-curva-bomba', 'hd-elevado', 'hd-canal-trap',
+  ],
   secoes: [
     ['Válvulas e registros', [
       ['hd-gaveta', 'Registro de gaveta', 100, 70, V(50, '<path d="M50 50 V20 M38 20 H62"/>')],
@@ -96,7 +101,7 @@ export default {
       ['hd-submersivel', 'Bomba submersível', 80, 130, `<path d="M4 30 H76" ${dash}/><path d="M40 4 V40 M40 76 V80"/><rect x="28" y="40" width="24" height="36" rx="3"/><path d="M32 64 H48 M32 70 H48" ${tn}/><rect x="26" y="80" width="28" height="42" rx="4"/>` + T(40, 101, 'M', 16)],
       ['hd-motobomba', 'Motobomba', 160, 90, '<circle cx="40" cy="46" r="26"/><circle cx="40" cy="46" r="6" stroke-width="1.8"/><path d="M14 46 V4 M66 46 H86 M10 84 H156 M30 70 L26 84 M50 70 L54 84 M96 66 V84 M144 66 V84"/><rect x="86" y="26" width="68" height="40" rx="4"/>' + T(120, 46, 'M', 20)],
       ['hd-soprador', 'Soprador', 100, 90, '<circle cx="50" cy="45" r="30"/><path d="M24 30 L76 38 M24 60 L76 52 M4 45 H20 M80 45 H96"/>'],
-      ['hd-motor', 'Motor elétrico', 90, 70, '<circle cx="35" cy="35" r="26"/><path d="M61 35 H86"/>' + T(35, 30, 'M', 20) + T(35, 48, '~', 16)],
+      ['hd-motor', 'Motor elétrico', 90, 70, '<circle cx="35" cy="35" r="26"/><path d="M61 35 H86"/>' + T(35, 24, 'M', 20) + T(35, 50, '~', 16)],
       ['hd-bomba-axial', 'Bomba de fluxo axial (hélice)', 130, 90, `<path d="M4 24 H126 M4 66 H126 M4 45 H51"/><ellipse cx="60" cy="45" rx="9" ry="6"/><ellipse cx="62" cy="34" rx="4" ry="8" transform="rotate(25 62 34)"/><ellipse cx="62" cy="56" rx="4" ry="8" transform="rotate(-25 62 56)"/><path d="M84 24 V32 M84 66 V58 M94 24 V32 M94 66 V58" ${tn}/>${setaH(100, 122, 45, 8)}`],
       ['hd-parafuso', 'Parafuso de Arquimedes (elevatória)', 210, 130, `<path d="M4 124 H64 M166 50 V66 H206"/>${lv(4, 58, 100)}${lv(170, 206, 58)}<g transform="rotate(-28 105 70)"><rect x="25" y="58" width="160" height="24" rx="3"/><path d="M15 70 H195" stroke-width="2"/><path d="${[32, 44, 56, 68, 80, 92, 104, 116, 128, 140, 152, 164].map(x => `M${x} 58 l12 24`).join('')}" ${tn}/><rect x="195" y="62" width="16" height="16" rx="2"/>${T(203, 70, 'M', 10)}</g>`],
       ['hd-carneiro', 'Carneiro hidráulico', 200, 130, `<path d="M6 12 V44 H46 V12 M46 38 L118 96 M128 92 V82 M122 82 H134 M142 92 V64 Q142 52 152 52 Q162 52 162 64 V92 M162 102 H186 V16"/><rect x="118" y="92" width="48" height="20" rx="3"/>${lv(6, 46, 22)}<path d="M122 86 l-6 10 M134 86 l6 10" stroke-dasharray="3 3" ${tn}/>${head(186, 8, -90, 8)}` + T(152, 76, 'ar', 10)],
@@ -189,3 +194,168 @@ export default {
     ]],
   ],
 };
+
+
+// Esquemas didáticos autorais; não são projetos dimensionados nem símbolos certificados.
+const aPath = (d, extra = '') => '<path d="' + d + '" ' + extra + '/>';
+const aText = (x, y, s, size = 14) => T(x, y, s, size);
+const aLine = (x, y, xx, yy, dash = false) => aPath('M'+x+' '+y+' L'+xx+' '+yy, dash ? 'stroke-width="1.6" stroke-dasharray="6 4"' : '');
+const aArrow = (x, y, xx, yy) => aLine(x,y,xx,yy) + head(xx,yy,Math.atan2(yy-y,xx-x)*180/Math.PI,8);
+const aBox = (x,y,w,h,labels) => '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="3"/>' + (Array.isArray(labels)?labels:(labels?[labels]:[])).map((s,i,all)=>aText(x+w/2,y+h/2+(i-(all.length-1)/2)*20,s)).join('');
+const aTank = (x,y,w,h,level) => aPath('M'+x+' '+y+' V'+(y+h)+' H'+(x+w)+' V'+y) + aLine(x,y+level,x+w,y+level,true);
+const aPump = (x,y,r=16) => '<circle cx="'+x+'" cy="'+y+'" r="'+r+'"/>' + aPath('M'+(x-6)+' '+(y-8)+' L'+(x+9)+' '+y+' L'+(x-6)+' '+(y+8)+'Z','fill="#C"');
+const aChain = (labels, note = '') => labels.map((s,i)=>aBox(8+i*164,36,140,62,s)+(i<labels.length-1?aArrow(148+i*164,67,172+i*164,67):'')).join('') + (note?aText((labels.length*164-8)/2,126,note):'');
+const aAxes = (w=340,h=220,x='Q (m³/s)',y='H (m)') => aArrow(48,h-42,w-14,h-42)+aArrow(48,h-42,48,34)+aText(w-65,h-16,x)+aText(53,16,y);
+const aForm = (id,n,w,h,body) => [id,n,w,h,body];
+
+// Conjuntos de recalque: sucção à esquerda, descarga à direita; NA e cotas em perfil.
+const aLift = (flooded) => {
+  const na = flooded?64:158, py=112;
+  return aTank(12,40,100,162,na-40)+aText(62,22,flooded?'Sucção afogada':'Sucção negativa')+
+    aLine(64,na,144,na,true)+aLine(128,na,128,py)+head(128,na,flooded?-90:90,7)+head(128,py,flooded?90:-90,7)+aText(152,(na+py)/2,'zₛ',16)+
+    aPath('M62 182 V112 H190 M222 112 H264 V58 H326 V84')+aPump(206,112)+aTank(300,42,90,74,22)+
+    aArrow(246,100,246,74)+aText(345,140,'NA destino')+aText(202,190,'Esquema sem escala');
+};
+const aProfile = (kind) => {
+ const mild=kind[0]==='M', yN=mild?78:112, yC=mild?112:78;
+ const curves={M1:'M48 76 C112 78 208 58 274 45',M2:'M48 80 C138 96 216 114 274 143',M3:'M48 154 C112 146 212 149 274 151',S1:'M48 50 C130 58 212 58 274 55',S2:'M48 83 C134 126 214 131 274 143',S3:'M48 157 C134 142 214 150 274 153'};
+ return aPath('M42 172 L280 210')+aLine(48,yN,274,yN+36,true)+aLine(48,yC,274,yC+36,true)+aPath(curves[kind])+
+ aText(314,yN+36,'yₙ')+aText(314,yC+36,'y꜀')+aArrow(210,24,264,24)+aText(115,24,kind+' · '+(mild?'declive suave':'declive forte'))+aText(167,235,'Referências paralelas ao fundo');
+};
+const aRecalque = [
+ ['Perfis completos de recalque', [
+ aForm('hd-succao-afogada','Recalque com sucção afogada',410,220,aLift(true)),
+ aForm('hd-recalque-instrumentado','Recalque: instrumentos e válvulas',520,190,aPath('M8 100 H62 M94 100 H142 M174 100 H222 M254 100 H302 M334 100 H390 M430 100 H512')+aPump(78,100)+bow(158,100,8)+bow(238,100,8)+aPath('M222 112 L254 88')+aBox(302,84,32,32,'Q')+aBox(390,84,40,32,'VR')+aLine(118,100,118,62)+aBox(98,30,40,32,'P')+aText(78,148,'bomba')+aText(158,148,'registro')+aText(238,170,'retenção')+aText(318,148,'medição')+aText(411,170,'regulação')),
+ aForm('hd-paralelo-reserva','Elevatória: duas bombas e reserva operacional',370,210,aPath('M8 100 H50 M50 52 V148 M50 52 H110 M50 148 H110 M142 52 H196 M142 148 H196 M228 52 H288 M228 148 H288 M288 52 V148 M288 100 H362')+aPump(126,52)+aPump(126,148)+bow(212,52,8)+aPath('M196 64 L228 40')+bow(212,148,8)+aPath('M196 160 L228 136')+aText(120,22,'B1')+aText(120,185,'B2')+aText(260,22,'retenção')+aText(267,185,'Alternância / reserva')),
+ aForm('hd-booster-zonas','Reforço de pressão em duas zonas',484,150,aChain([['Reservatório','zona baixa'],['Booster','ΔH'],['Rede','zona alta']],'A pressão disponível depende de cota e perdas')),
+ aForm('hd-poco-submersa-perfil','Recalque de poço com bomba submersa',310,260,aPath('M16 54 H96 M154 54 H294 M96 54 V230 H154 V54 M114 212 V32 H250 V104')+aTank(222,66,72,82,52)+aLine(96,106,154,106,true)+aBox(108,174,34,38,'B')+aText(214,174,'Nível dinâmico')+aLine(154,106,266,106,true)+aText(214,14,'Recalque')+aArrow(178,32,212,32)),
+ aForm('hd-energia-recalque','Linhas de energia com salto na bomba',370,230,aAxes(370,230,'Distância (m)','Carga (m)')+aPath('M50 122 L140 137 V62 L338 98')+aPath('M50 137 L140 152 V77 L338 113','stroke-width="1.6" stroke-dasharray="6 4"')+aText(194,46,'LE')+aText(278,132,'LP')+aText(106,88,'Hᵦ')+aArrow(128,133,128,65)),
+ aForm('hd-altura-manometrica','Altura manométrica: cotas e perdas',380,180,aText(190,32,'Hᵦ = Δz + Δ(p/γ) + Δ(v²/2g) + hL',16)+aText(190,76,'Reservatórios abertos: Hᵦ = Hg + hL',16)+aText(190,118,'Hg: desnível geométrico · hL: perdas')+aText(190,153,'Cargas em metros do líquido bombeado')),
+ aForm('hd-recalque-montavel','Recalque: perfil preenchível',370,210,aTank(8,110,84,82,18)+aPump(172,132)+aPath('M50 174 V132 H156 M188 132 H244 V54 H294')+aTank(278,30,84,68,24)+aText(195,20,'Hg = ____ m')+aText(180,181,'Q = ____ m³/s · hL = ____ m')),
+ ]],
+ ['Sucção, NPSH e cavitação', [
+ aForm('hd-npsh-balanco','NPSH disponível: reservatório aberto',440,190,aText(220,32,'NPSHₐ = pₐₜₘ/γ + zₛ − hL,ₛ − pᵥ/γ',18)+aText(220,73,'zₛ = NA de sucção − cota do eixo')+aText(220,108,'zₛ positivo: afogada · negativo: aspiração')+aText(220,150,'Mesma referência · pressões absolutas · m')),
+ aForm('hd-npsh-margem','NPSH disponível e requerido: margem',360,268,aAxes(360,230,'Q (m³/s)','NPSH (m)')+aPath('M50 72 Q200 73 322 120 M50 156 Q220 154 322 82','stroke-width="2.5"')+aText(139,56,'disponível')+aText(139,169,'requerido')+aArrow(191,144,191,79)+aText(171,248,'Margem no ponto de operação')),
+ aForm('hd-cavitacao-rotor','Cavitação: formação e colapso de bolhas',484,150,aChain([['Baixa pressão','p local ≲ pᵥ'],['Bolhas','de vapor'],['Recuperação de p','colapso']],'Esquema conceitual: risco de ruído, erosão e queda de desempenho')),
+ aForm('hd-npsh-temperatura','Temperatura: efeito sobre pressão de vapor',340,249,aAxes(340,210,'T (°C)','pᵥ (kPa)')+aPath('M52 163 C165 160 232 124 304 44')+aText(170,229,'Consultar líquido e temperatura')),
+ aForm('hd-succao-ar','Sucção: entrada de ar em ponto alto',340,180,aPath('M8 124 H82 V54 H212 V124 H332 M8 144 H62 V34 H232 V144 H332')+aPath('M108 46 Q145 28 182 46','stroke-dasharray="5 4" stroke-width="1.6"')+aText(145,77,'bolsa de ar')+aText(172,166,'Evitar pontos altos sem análise')),
+ aForm('hd-excentrica-topo','Redução excêntrica: topo plano na sucção',330,130,aPath('M8 38 H322 M8 98 H100 L218 66 H322')+aText(171,20,'Topo plano · arranjo horizontal')+aArrow(68,67,107,67)+aText(194,112,'Evitar acúmulo de ar')),
+ ]],
+ ['Transientes e proteção de adutoras', [
+ aForm('hd-golpe-onda','Golpe de aríete: onda após fechamento',360,180,aPath('M8 60 H318 M8 110 H318 M318 48 V122')+aArrow(264,85,130,85)+aText(162,30,'onda de pressão retorna')+aText(292,145,'fechamento')+aText(149,157,'ΔH ≈ a Δv / g · caso rápido')),
+ aForm('hd-transiente-envoltoria','Adutora: envoltórias de pressão',380,240,aAxes(380,240,'Distância (m)','Carga (m)')+aPath('M50 165 L150 143 L244 169 L342 152')+aPath('M50 70 Q194 34 342 84','stroke-dasharray="8 4"')+aPath('M50 130 Q194 175 342 124','stroke-dasharray="3 4"')+aText(230,33,'envoltória máxima')+aText(230,191,'envoltória mínima')+aText(228,103,'Verificar pressão admissível')),
+ aForm('hd-reservatorio-hidropneum','Proteção: vaso hidropneumático em derivação',310,220,aPath('M8 178 H302 M150 178 V142')+'<rect x="110" y="28" width="80" height="114" rx="22"/>'+aLine(110,83,190,83,true)+aText(150,56,'ar')+aText(150,112,'água')+aText(150,204,'Dimensionar por análise de transientes')),
+ aForm('hd-chamine-conectada','Proteção: chaminé aberta em derivação',310,220,aPath('M8 178 H302 M142 178 V28 M170 178 V28')+aLine(142,88,170,88,true)+aText(88,88,'NA')+aLine(106,88,138,88)+aText(155,204,'Coluna aberta à atmosfera')),
+ aForm('hd-ventosa-perfil','Ventosa em ponto alto da adutora',330,190,aPath('M8 148 L140 86 H190 L322 148 M165 86 V61')+aBox(148,26,34,35,'V')+aArrow(165,25,165,8)+aText(165,174,'Expulsão / admissão de ar conforme tipo')),
+ aForm('hd-descarga-ponto-baixo','Descarga em ponto baixo da adutora',330,190,aPath('M8 48 L140 112 H190 L322 48 M165 112 V140 H220')+bow(196,140,6)+aArrow(220,140,245,140)+aText(160,172,'Esvaziamento controlado · destino seguro')),
+ aForm('hd-alivio-derivacao','Alívio: derivação para reservatório',330,190,aPath('M8 62 H322 M150 62 V116 H236')+'<g transform="rotate(90 150 92)">'+bow(150,92,8)+'</g>'+aTank(224,106,90,62,24)+aText(245,25,'linha de recalque')+aText(93,151,'Alívio')+aArrow(193,116,218,116)),
+ aForm('hd-retencao-fechamento','Retenção: desaceleração e fechamento',484,150,aChain([['Parada','da bomba'],['Desaceleração','do fluxo'],['Fechamento','da retenção']],'Tipo e tempo de fechamento alteram o transiente')),
+ ]],
+ ['Perfis gradualmente variados', [
+ ...['M2','M3','S1','S2','S3'].map(k=>aForm('hd-remanso-'+k.toLowerCase(),'Perfil '+k+' de escoamento gradualmente variado',350,252,aProfile(k))),
+ aForm('hd-remanso-classificar','Perfis: classificação por profundidades',420,180,aText(210,27,'Suave (M): yₙ &gt; y꜀ · Forte (S): yₙ &lt; y꜀',16)+aText(210,68,'Zona 1: y &gt; maior(yₙ, y꜀)')+aText(210,104,'Zona 2: y entre yₙ e y꜀')+aText(210,140,'Zona 3: y &lt; menor(yₙ, y꜀)')),
+ ]],
+];
+grupo.secoes.push(...aRecalque);
+// Correções de perfis históricos: identidade preservada.
+for (const [, fs] of grupo.secoes) for (const f of fs) {
+ if(f[0]==='hd-recalque') { f[2]=410; f[3]=220; f[4]=aLift(false); }
+ if(f[0]==='hd-remanso') { f[2]=350; f[3]=252; f[4]=aProfile('M1'); }
+}
+
+
+// Legados pequenos: ampliar sem deformar; manter traço natural 2,5 com non-scaling-stroke.
+// A fonte efetiva é fonte original × escala (>=14 px nos candidatos com fonte <12 px).
+const aAjustesLegados = {
+  "hd-parafuso": {
+    "k": 1.4,
+    "x": 0.40000000000000036,
+    "y": -7.496900367736815,
+    "w": 295,
+    "h": 173
+  },
+  "hd-carneiro": {
+    "k": 1.4,
+    "x": -2.3999999999999986,
+    "y": -5.199999999999999,
+    "w": 270,
+    "h": 158
+  },
+  "hd-airlift": {
+    "k": 1.2727272727272727,
+    "x": -6.727272727272727,
+    "y": -1.6363636363636367,
+    "w": 161,
+    "h": 214
+  },
+  "hd-curva-bomba": {
+    "k": 1.4,
+    "x": -5.626562499999999,
+    "y": -0.2999999999999998,
+    "w": 289,
+    "h": 214
+  },
+  "hd-pitot": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -9.272727272727273,
+    "w": 193,
+    "h": 124
+  },
+  "hd-bernoulli": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -19.454545454545453,
+    "w": 308,
+    "h": 124
+  },
+  "hd-canal-ret": {
+    "k": 1,
+    "x": -14,
+    "y": -8,
+    "w": 112,
+    "h": 123
+  },
+  "hd-canal-trap": {
+    "k": 1.2727272727272727,
+    "x": -6.727272727272727,
+    "y": -11.818181818181817,
+    "w": 216,
+    "h": 152
+  },
+  "hd-ressalto": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -37.27272727272727,
+    "w": 282,
+    "h": 84
+  },
+  "hd-comporta-escoamento": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": 0.9090909090909092,
+    "w": 257,
+    "h": 130
+  },
+  "hd-energia-especifica": {
+    "k": 1.4,
+    "x": -2.596874999999999,
+    "y": -2.3999999999999986,
+    "w": 278,
+    "h": 206
+  },
+  "hd-queda": {
+    "k": 1.2727272727272727,
+    "x": 0.9090909090909092,
+    "y": -29.636363636363633,
+    "w": 257,
+    "h": 109
+  }
+};
+for(const [,fs] of grupo.secoes) for(const f of fs){
+ const a=aAjustesLegados[f[0]];if(!a)continue;
+ f[2]=a.w;f[3]=a.h;
+ f[4]='<g transform="translate('+a.x+' '+a.y+') scale('+a.k+')">'+f[4].replace(/<(path|rect|circle|ellipse|line|polyline|polygon)\b/g,'<$1 vector-effect="non-scaling-stroke"')+'</g>';
+}
+
+export default grupo;
