@@ -30,6 +30,21 @@ Pedidos do professor depois do primeiro uso real (09/10/2026).
   pasta (nunca apaga quadros); a pesquisa procura em todas.
 - **+682 formas** (de 702 para 1.384), pelo menos 40 a mais em cada disciplina, todas desenhadas para o Giz Livre;
   a aba "Operações unitárias" virou "Química e processos" (as formas antigas mantêm o id).
+- **Lixeira na galeria:** quadro excluído pode ser restaurado (e logo após excluir aparece "Desfazer"); botão
+  **Nova pasta**; a pesquisa ignora acentos.
+- **Lupa de ampliação** (como a do PowerPoint), na apresentação e fora dela (botão na barra de zoom ou tecla Z):
+  escolha a área e ela enche a tela; Esc volta.
+- **Lupa de escrita móvel:** a caixa no quadro arrasta inteira ou vai para onde você tocar; o painel sobe e desce.
+- **Relógio com calendário do mês.**
+- **Animação de funções:** dá para escolher o valor do parâmetro à mão (controle ou digitado) e fixar exatamente
+  esse valor.
+- **Barra do professor** à esquerda ou à direita, com ou sem os nomes; **Voltar ao layout padrão** no menu ⋯.
+- **PDF:** botão na coluna da esquerda e arrastar o PDF/PowerPoint para o quadro.
+- **Menu de formas** com botão Ampliar e busca que mostra a disciplina de cada forma.
+- **Revisão de interface:** alça de girar livre da barra da seleção, modo aula com botão "Mostrar barras", aviso
+  visível se não conseguir salvar, dicas com os atalhos reais, alvos maiores para a caneta, troca de folha no desfazer.
+- **Licenças:** as fontes do KaTeX (SIL Open Font License 1.1) e o OpenJPEG (BSD), que vem dentro do pdf.js, agora
+  têm o aviso e o texto da licença no programa, no instalador e no repositório.
 - **Ícone na barra de tarefas:** a janela passa a se identificar como Giz Livre, e o pino da barra de tarefas abre o
   Giz Livre em vez do Edge.
 
