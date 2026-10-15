@@ -389,6 +389,11 @@ function drawStatic(clip) {
   }
   if (PG.isPages(S.board)) PG.drawPages(ctx, S.board, v, W, H);
   else R.drawBackground(ctx, S.board.background, v, W, H);
+  // P44: a captura ao vivo aparece por um "buraco" aberto depois do fundo e das imagens travadas (páginas de PDF,
+  // capturas congeladas) e antes do resto: o vídeo fica atrás do canvas e os riscos vêm por cima
+  let furo = !!cena?.rect;
+  const abreFuro = () => { furo = false; const r = cena.rect; ctx.clearRect(r.x, r.y, r.w, r.h); };
+  if (furo) posCena();
   const darkBg = R.isDark(S.board.background.color);
   R.setDarkBackground(darkBg);
   // fundo escuro com PDF: sobre a página do PDF (branca) a tinta preta não vira branca
@@ -401,6 +406,7 @@ function drawStatic(clip) {
   if (beautyAnim) { ta = (performance.now() - beautyAnim.t0) / 160; if (ta >= 1) { beautyAnim = null; ta = 1; } }
   const ease = 1 - (1 - ta) ** 3;
   for (const raw of S.items) {
+    if (furo && !(raw.type === 'image' && raw.locked)) abreFuro();
     if (erased?.has(raw.id) || oculto(raw)) continue;
     let it = previewItem(raw);
     if (!R.boxesTouch(R.bbox(it), vis)) continue;
@@ -426,6 +432,7 @@ function drawStatic(clip) {
     }
     else R.drawItem(ctx, it);
   }
+  if (furo) abreFuro();
   R.setDarkBackground(darkBg);
   ctx.restore();
 }
@@ -667,7 +674,7 @@ function syncToolbar() {
   $('tRascunho').classList.toggle('rasc-oculto', !!S?.board.rascunhoOculto);
   $('board').classList.toggle('no-rascunho', noRascunho);
   document.querySelectorAll('#createbar [data-create]').forEach(b =>
-    b.classList.toggle('on', (b.dataset.create === 'text' && tool === 'text') || (b.dataset.create === 'draw' && mostraDrawBar())));
+    b.classList.toggle('on', (b.dataset.create === 'text' && tool === 'text') || (b.dataset.create === 'draw' && mostraDrawBar()) || (b.dataset.create === 'cena' && !!cena)));
   document.querySelectorAll('#drawbar [data-k]').forEach(b => b.classList.toggle('active', tool === 'shape' && b.dataset.k === shapeKind));
   document.querySelector('#drawbar [data-fill]')?.classList.toggle('on', !!cfg.shapeFill);
   setCursor();
@@ -1024,6 +1031,115 @@ function createClick(b) {
   else if (k === 'shapes') shapesPop(b);
   else if (k === 'image') $('imgFile').click();
   else if (k === 'pdf') $('slideFile').click();
+  else if (k === 'cena') { if (cena) encerrarCena(); else iniciarCena(); }
+}
+
+// P44 (15/10/2026): Captura (nome interno: cena). Uma janela, aba ou tela capturada (como no OBS) fica por baixo do quadro e se mexe
+// ao vivo; tudo se risca por cima. "Congelar" guarda a imagem do momento no quadro, travada e por baixo dos riscos.
+let cena = null;   // {stream, video, mold, rect}: rect = moldura no mundo, como uma imagem
+async function iniciarCena() {
+  if (!navigator.mediaDevices?.getDisplayMedia) return toast('Este navegador não permite mostrar outra janela');
+  let stream;
+  try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false }); }
+  catch { return; }   // o professor cancelou a escolha
+  if (!S) { stream.getTracks().forEach(t => t.stop()); return; }
+  const antes = cena?.rect;   // "Trocar" mantém a moldura no lugar
+  encerrarCena(true);
+  const video = document.createElement('video');
+  video.id = 'cenaVid'; video.muted = true; video.autoplay = true; video.playsInline = true;
+  video.srcObject = stream;
+  $('board').insertBefore(video, $('cv'));
+  const mold = document.createElement('div');
+  mold.id = 'cenaMold';
+  mold.innerHTML = '<div class="cm-tit" title="Arraste para mover a captura">Captura ao vivo</div><div class="cm-canto" title="Arraste para mudar o tamanho"></div>';
+  $('board').appendChild(mold);
+  const c = { stream, video, mold, rect: null };
+  cena = c;
+  // a moldura nasce no meio da tela (70%) quando o tamanho do vídeo chega; se a janela capturada muda de formato, só a altura acompanha
+  const ajusta = () => {
+    if (cena !== c || !video.videoWidth || !S) return;
+    const vw = video.videoWidth, vh = video.videoHeight, z = S.view.zoom;
+    if (!c.rect) {
+      const base = antes || (() => { const k = Math.min(W * 0.7 / vw, H * 0.7 / vh), a = toWorld((W - vw * k) / 2, (H - vh * k) / 2); return { x: a.x, y: a.y, w: vw * k / z }; })();
+      c.rect = { x: base.x, y: base.y, w: base.w, h: base.w * vh / vw };
+    } else c.rect.h = c.rect.w * vh / vw;
+    requestRender();
+  };
+  video.addEventListener('loadedmetadata', ajusta);
+  video.addEventListener('resize', ajusta);
+  video.play().catch(() => {});
+  arrastoCena(mold.querySelector('.cm-tit'), (r, dx, dy) => { r.x += dx; r.y += dy; });
+  arrastoCena(mold.querySelector('.cm-canto'), (r, dx) => { const k = r.h / r.w; r.w = Math.max(80 / S.view.zoom, r.w + dx); r.h = r.w * k; });
+  stream.getVideoTracks()[0]?.addEventListener('ended', () => { if (cena === c) encerrarCena(); });
+  montaCenaBar(); syncToolbar(); requestRender();
+  toast('Captura ao vivo: risque por cima. Arraste a faixa azul para mover e o canto para o tamanho. A faixa do Edge some em "Ocultar"', 6000);
+}
+// posiciona o vídeo e a moldura (tela) a partir do retângulo no mundo
+function posCena() {
+  const r = cena?.rect;
+  if (!r) return;
+  const a = toScreen(r.x, r.y), z = S.view.zoom;
+  for (const el of [cena.video, cena.mold]) Object.assign(el.style, { left: a.x + 'px', top: a.y + 'px', width: r.w * z + 'px', height: r.h * z + 'px', display: 'block' });
+}
+function arrastoCena(el, muda) {
+  el.addEventListener('pointerdown', e => {
+    if (!cena?.rect) return;
+    e.preventDefault(); e.stopPropagation();
+    el.setPointerCapture(e.pointerId);
+    let px = e.clientX, py = e.clientY;
+    const move = ev => {
+      if (!cena?.rect) return;
+      const z = S.view.zoom;
+      muda(cena.rect, (ev.clientX - px) / z, (ev.clientY - py) / z);
+      px = ev.clientX; py = ev.clientY;
+      requestRender();
+    };
+    const fim = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', fim); el.removeEventListener('pointercancel', fim); };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', fim);
+    el.addEventListener('pointercancel', fim);
+  });
+}
+function encerrarCena(trocando) {
+  if (!cena) return;
+  cena.stream.getTracks().forEach(t => t.stop());
+  cena.video.remove(); cena.mold.remove();
+  cena = null;
+  if (!trocando) { montaCenaBar(); if (S) { syncToolbar(); requestRender(); } }
+}
+async function congelarCena() {
+  const v = cena?.video, r = cena?.rect;
+  if (!v?.videoWidth || !r) return toast('A captura ainda não começou');
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  if (!blob || !S) return;
+  const alvo = S, src = await uploadAsset(blob);
+  if (S !== alvo) return;
+  // a imagem fica no lugar da moldura, travada, por cima das outras imagens travadas (PDF, capturas antigas) e por baixo dos riscos
+  const it = { id: newId(), type: 'image', locked: true, src, x: r.x, y: r.y, w: r.w, h: r.h };
+  const k = S.items.findIndex(i => !(i.type === 'image' && i.locked)), pos = k < 0 ? S.items.length : k;
+  commit([...S.items.slice(0, pos), it, ...S.items.slice(pos)]);
+  encerrarCena();
+  toast('Captura congelada no quadro. Ctrl+Z desfaz');
+}
+function montaCenaBar() {
+  const bar = $('cenabar');
+  if (!bar) return;
+  bar.hidden = !cena || !S;
+  if (!bar.querySelector('[data-c]')) {
+    const min = bar.querySelector('.bar-min');
+    bar.innerHTML = `<span class="cn-tit">Captura ao vivo <small>experimental</small></span>
+      <button class="cb" data-c="trocar" title="Escolher outra janela, aba ou tela">${ICON.cena}<small>Trocar</small></button>
+      <button class="cb" data-c="congelar" title="Guarda a imagem de agora no quadro, por baixo dos riscos, e encerra a captura">${ICON.image}<small>Congelar</small></button>
+      <button class="cb" data-c="encerrar" title="Encerra a captura. Os riscos continuam no quadro">${ICON.close}<small>Encerrar</small></button>`;
+    if (min) bar.appendChild(min);
+    bar.querySelector('[data-c="trocar"]').onclick = () => iniciarCena();
+    bar.querySelector('[data-c="congelar"]').onclick = () => congelarCena();
+    bar.querySelector('[data-c="encerrar"]').onclick = () => encerrarCena();
+  }
+  placeBars();
 }
 
 function notePop(anchor) {
@@ -1353,7 +1469,7 @@ export async function flush() {
 // fecha o quadro: grava, atualiza a miniatura e desliga todos os timers (nada mais regrava este quadro)
 export async function closeBoard() {
   if (!S) return true;
-  stopPlotAnim(); spotOff();
+  stopPlotAnim(); spotOff(); encerrarCena();
   closeFloating();
   const ok = await flush();
   clearTimeout(thumbTimer); thumbTimer = 0;

@@ -86,6 +86,7 @@ const MAP = {
 for (const [k, f] of Object.entries(MAP)) if (FLUENT[f]) ICON[k] = FLUENT[f];
 // 1.2.2: ícones próprios onde o Fluent repetia ou não dizia o que é
 ICON.ocr = s('<path d="M2.5 15.5c1.2-3.4 2.6-4.2 3.3-2.4.6 1.6 1.5 2.7 2.6.4.8-1.6 1.5-1.9 2.1-.3"/><path d="M11.5 18.5h2.5m-1 -1.2 1 1.2-1 1.2"/><path d="M15 6.5h7M18.5 6.5v12"/>');   // escrita → texto
+ICON.cena = s('<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 16.5v4"/><path d="M6.5 12.5l3-3.5 2.5 2.5 2-2 3.5 3"/>');   // P44: monitor com a cena
 ICON.cortina = s('<path d="M3 4h18"/><path d="M5 4v10h14V4"/><path d="M5 7.5h14M5 11h14"/><path d="M12 14v4"/><circle cx="12" cy="19.6" r="1.4"/>');   // persiana
 
 // caneta desenhada com a cor da tinta (como a bandeja do Whiteboard)

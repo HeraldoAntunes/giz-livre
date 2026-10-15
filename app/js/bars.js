@@ -7,7 +7,7 @@ import { toast } from './ui.js';
 
 const KEY = 'lousa.bars', KEY_TRAVA = 'lousa.barsTravadas';
 // barras que podem mudar de lugar (a da seleção acompanha o que está selecionado, fica fora)
-const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar', draw: '#drawbar', rasc: '#rascbar' };
+const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar', draw: '#drawbar', rasc: '#rascbar', cena: '#cenabar' };
 // barras que podem ser recolhidas uma a uma (ficam só a alça e o botão de abrir; 15/10/2026)
 const RECOLHE = ['ink', 'create', 'zoom', 'pages', 'teach', 'draw', 'rasc'], KEY_MIN = 'lousa.barsMin';
 let pos = load(), unlocked = true;
@@ -20,12 +20,21 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // posição de fábrica da barra de desenho: logo abaixo da barra de criar (ou ao lado, se não couber); 15/10/2026
 function empilhaDesenho() {
   const d = el('draw'), c = el('create');
-  if (!d || d.hidden || !c || pos.draw) return;
+  if (!d || !c) return;
+  const aperta = ap => { c.classList.toggle('apertada', ap); d.classList.toggle('apertada', ap); };
+  if (d.hidden || pos.draw) return aperta(false);
   if (!pos.create) { c.style.top = '64px'; c.style.transform = 'none'; }
-  const r = c.getBoundingClientRect(), h = d.offsetHeight;
-  if (r.bottom + 8 + h <= innerHeight - 8) { d.style.left = r.left + 'px'; d.style.top = r.bottom + 8 + 'px'; }
-  else { d.style.left = r.right + 8 + 'px'; d.style.top = r.top + 'px'; }
   d.style.transform = 'none';
+  // 1.4.0: com o botão Captura as duas barras deixaram de caber empilhadas em telas de ~1000 px; antes de pôr a de
+  // desenho ao lado (em cima do quadro), tenta com os botões mais baixos
+  for (const ap of [false, true]) {
+    aperta(ap);
+    const r = c.getBoundingClientRect();
+    if (r.bottom + 8 + d.offsetHeight <= innerHeight - 8) { d.style.left = r.left + 'px'; d.style.top = r.bottom + 8 + 'px'; return; }
+  }
+  aperta(false);
+  const r = c.getBoundingClientRect();
+  d.style.left = r.right + 8 + 'px'; d.style.top = r.top + 'px';
 }
 function place(k) {
   const b = el(k), p = pos[k];

@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.4.0 (15/10/2026)
+Recurso novo pedido pelo professor depois da publicação da 1.3.0.
+- **Captura** (experimental): botão **Captura** na barra da esquerda, como a captura de janela do OBS. O Edge pergunta
+  qual janela, aba ou tela mostrar, e ela aparece **ao vivo** numa moldura no quadro (faixa azul para mover, canto para
+  o tamanho; acompanha o zoom). Tudo se risca por cima, e a captura fica por cima das páginas de PDF. **Congelar**
+  guarda a imagem do momento no lugar da moldura; **Trocar** escolhe outra janela; **Encerrar** desliga. O vídeo ao
+  vivo não é gravado no arquivo do quadro, só a imagem congelada.
+- Barras de criar e de desenho: em telas mais baixas (cerca de 1000 px) continuam empilhadas, com botões um pouco
+  menores, em vez de a barra de desenho ir para cima do quadro.
+
 ## 1.3.0 (15/10/2026)
 Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
 - **Cronômetro:** modo **Livre (sem limite)**, mostrador com dígitos de relógio (sete segmentos), botão **Reduzir**

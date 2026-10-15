@@ -145,6 +145,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #board.fundo-escuro .rascbar .rb-tit small { color: #c8c6c4; }
 #board.fundo-escuro .rascbar .cb.active { background: rgba(247, 99, 12, .3); color: #ffc49e; }
 #board.fundo-escuro .rascbar .cb.rb-limpar:hover { color: #ff8a95; }
+/* P44: cena ao vivo (vídeo capturado por baixo do quadro) e a barra dela */
+#cenaVid { position: absolute; display: none; object-fit: fill; background: #2b2b2b; pointer-events: none; }
+#cenaMold { position: absolute; display: none; pointer-events: none; outline: 2px solid #0f6cbd; }
+#cenaMold .cm-tit { position: absolute; left: -2px; bottom: 100%; pointer-events: auto; cursor: move; touch-action: none; user-select: none;
+  background: #0f6cbd; color: #fff; font: 600 12px "Segoe UI", sans-serif; padding: 3px 10px; border-radius: 6px 6px 0 0; white-space: nowrap; }
+#cenaMold .cm-canto { position: absolute; right: -9px; bottom: -9px; width: 16px; height: 16px; pointer-events: auto; cursor: nwse-resize; touch-action: none;
+  background: #fff; border: 2px solid #0f6cbd; border-radius: 3px; }
+.cenabar { top: 116px; left: 50%; transform: translateX(-50%); padding: 4px 8px; gap: 4px; border: 1px solid #a9c8ec; }
+.cenabar .cn-tit { font: 600 13px "Segoe UI", sans-serif; color: #0f6cbd; padding: 0 6px; white-space: nowrap; }
+.cenabar .cn-tit small { font-weight: 400; color: #8a8886; }
+.cenabar .cb { width: auto; min-width: 64px; padding: 4px 8px; }
+.cenabar .cb small { white-space: nowrap; }
+#board.fundo-escuro .cenabar .cn-tit { color: #8cc4ff; }
+#board.fundo-escuro .cenabar .cn-tit small { color: #c8c6c4; }
 #board.fundo-escuro #tRascunho.on { background: rgba(247, 99, 12, .3); color: #ffc49e; }
 /* menu Folha e fundo repensado (15/10/2026): áreas à esquerda, prévias P/M/G, ajustes agrupados embaixo */
 .pop.fl-pop { width: min(980px, 94vw); max-width: none !important; padding: 12px; }
@@ -221,6 +235,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .drawbar .cb svg { width: 20px; height: 20px; }
 .drawbar .cb small { font-size: 11px; }
 .drawbar .cb.active { background: var(--accent-soft); color: var(--accent); }
+/* 1.4.0: barras de criar e de desenho empilhadas em tela baixa (bars.js, empilhaDesenho) */
+.create.apertada .cb { padding: 2px 0 1px; }
+.create.apertada .cb svg { width: 18px; height: 18px; }
 .bar .bar-min { width: 26px; height: 26px; min-height: 0; opacity: .55; flex: none; }
 .bar .bar-min:hover { opacity: 1; }
 .bar .bar-min svg { width: 15px; height: 15px; }
