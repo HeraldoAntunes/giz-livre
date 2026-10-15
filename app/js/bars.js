@@ -7,7 +7,9 @@ import { toast } from './ui.js';
 
 const KEY = 'lousa.bars', KEY_TRAVA = 'lousa.barsTravadas';
 // barras que podem mudar de lugar (a da seleção acompanha o que está selecionado, fica fora)
-const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar' };
+const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar', draw: '#drawbar', rasc: '#rascbar' };
+// barras que podem ser recolhidas uma a uma (ficam só a alça e o botão de abrir; 15/10/2026)
+const RECOLHE = ['ink', 'create', 'zoom', 'pages', 'teach', 'draw', 'rasc'], KEY_MIN = 'lousa.barsMin';
 let pos = load(), unlocked = true;
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; } }
@@ -15,10 +17,24 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(pos)); } catch 
 const el = k => document.querySelector(BARS[k]);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// posição de fábrica da barra de desenho: logo abaixo da barra de criar (ou ao lado, se não couber); 15/10/2026
+function empilhaDesenho() {
+  const d = el('draw'), c = el('create');
+  if (!d || d.hidden || !c || pos.draw) return;
+  if (!pos.create) { c.style.top = '64px'; c.style.transform = 'none'; }
+  const r = c.getBoundingClientRect(), h = d.offsetHeight;
+  if (r.bottom + 8 + h <= innerHeight - 8) { d.style.left = r.left + 'px'; d.style.top = r.bottom + 8 + 'px'; }
+  else { d.style.left = r.right + 8 + 'px'; d.style.top = r.top + 'px'; }
+  d.style.transform = 'none';
+}
 function place(k) {
   const b = el(k), p = pos[k];
   if (!b) return;
-  if (!p) { b.classList.remove('moved'); b.style.left = b.style.top = b.style.right = b.style.bottom = b.style.transform = ''; return; }
+  if (!p) {
+    b.classList.remove('moved'); b.style.left = b.style.top = b.style.right = b.style.bottom = b.style.transform = '';
+    if (k === 'create' || k === 'draw') empilhaDesenho();
+    return;
+  }
   b.classList.add('moved');
   b.style.right = b.style.bottom = 'auto'; b.style.transform = 'none';
   const w = b.offsetWidth, h = b.offsetHeight;
@@ -60,8 +76,35 @@ function drag(k, b) {
   }, true);
 }
 
+function recolhivel(k) {
+  const b = el(k);
+  if (!b || b.querySelector(':scope > .bar-min')) return;
+  let min = [];
+  try { min = JSON.parse(localStorage.getItem(KEY_MIN) || '[]'); } catch {}
+  const btn = Object.assign(document.createElement('button'), { className: 'ib bar-min' });
+  const set = on => {
+    b.classList.toggle('recolhida', on);
+    btn.innerHTML = on ? ICON.expand || '+' : ICON.collapse;
+    btn.title = on ? 'Abrir esta barra' : 'Recolher esta barra';
+  };
+  btn.onclick = e => {
+    e.stopPropagation();
+    const on = !b.classList.contains('recolhida');
+    set(on);
+    let m = []; try { m = JSON.parse(localStorage.getItem(KEY_MIN) || '[]'); } catch {}
+    m = on ? [...new Set([...m, k])] : m.filter(x => x !== k);
+    try { localStorage.setItem(KEY_MIN, JSON.stringify(m)); } catch {}
+    placeAll();
+  };
+  b.appendChild(btn);
+  set(min.includes(k));
+}
+// a barra do professor é refeita por inteiro; o editor chama isto depois de montar
+export function recolhivelDeNovo(k) { recolhivel(k); }
+
 export function initBars() {
   for (const k in BARS) { const b = el(k); if (b) drag(k, b); }
+  for (const k of RECOLHE) recolhivel(k);
   document.getElementById('bLock').onclick = () => {
     setLock(!unlocked);
     toast(unlocked ? 'Barras soltas: arraste pela alça ⠿. Para voltar ao lugar de fábrica: ⋯ → Layout padrão' : 'Barras e painéis travados no lugar');

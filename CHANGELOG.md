@@ -1,5 +1,73 @@
 # Histórico de versões
 
+## 1.3.0 (15/10/2026)
+Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
+- **Cronômetro:** modo **Livre (sem limite)**, mostrador com dígitos de relógio (sete segmentos), botão **Reduzir**
+  que deixa só um mostrador pequeno (tocar nele volta ao painel) e opção de reduzir sozinho ao iniciar.
+- **Relógio e calendário** (novo nome), também reduzível; o calendário do mês vai para o quadro com **Pôr no quadro**.
+- **Mover a lousa:** setas do teclado (Shift = passo maior) e a ferramenta **Mão** (tecla M), como o botão do meio do mouse.
+- Ícone das ferramentas do professor agora é uma **caixa de ferramentas** (P42; o "giz e apagador" não se reconhecia pequeno). A lupa do modo normal diz que é a mesma da apresentação.
+- Menu da página diz **qual página** é a referência ("Duplicar a página 3", "a que está no centro da tela").
+- **Folha e fundo:** em volta das páginas (PDF, caderno, slides), cinza para contraste ou **mesma cor do fundo**.
+- **Ponteiro laser** com cor, tamanho, rastro (de nenhum a muito longo) e formato (ponto, anel, mira, seta).
+- **Marca-texto** mais largo (64 e 90) e opção de **mostrar a área** que será marcada antes de pintar.
+- **Texto e notas:** fonte, tamanho, **negrito**, *itálico* e alinhamento (esquerda, centro, direita, justificado).
+  As fontes são as instaladas no computador; nada é embutido no programa.
+- **Canetas extras:** até 8 canetas e 3 marca-textos na barra (botão **+**).
+- **Estojos:** conjuntos de canetas salvos com nome, trocados num toque; o estojo **Lousa verde (giz)** e o novo
+  quadro **Lousa verde (giz)** na galeria (fundo verde e canetas de giz). Quadro novo com canetas trocadas pergunta,
+  discretamente, se mantém ou volta ao padrão.
+- **Tinta vira forma** com opções: quais formas reconhecer, retas presas a 0°, 45° e 90°, círculo e quadrado perfeitos.
+- **Barra de Desenho** própria (linha, tracejada, setas, retângulo, elipse, triângulo, preencher), aberta de fábrica.
+- **Recolher barras:** cada barra tem o seu botão de recolher, e um botão recolhe todas de uma vez.
+- **Menu de formas** repensado: áreas em árvore à esquerda (com cores), formas à direita, miniaturas em três
+  tamanhos (P, M, G) e cartões com destaque.
+- **Rascunho** (camadas, versão simples): botão na barra de cima; o que se escreve com o rascunho ligado (moldura
+  laranja) pode ser ocultado e mostrado de uma vez, passado para o quadro ou apagado. Oculto, não é apagado, selecionado
+  nem exportado. O painel completo de camadas fica para depois, se fizer falta.
+- **Sobre o Giz Livre** reorganizado: autor, licença, privacidade, onde ficam os quadros, código e componentes.
+- **Mapas precisos** em Formas → Geografia → Contornos (precisos): Brasil, Brasil por regiões, Brasil por estados (com
+  as siglas), América do Sul, América do Norte e Central,
+  África, Europa, Ásia, Oceania, Antártida (vista polar) e planisfério, feitos com dados do Natural Earth (domínio
+  público). Os contornos simplificados continuam, com os mesmos ids.
+- Depois do primeiro teste do professor (15/10, tarde): o **rascunho** ganhou barra própria (Escrever, Ocultar/Mostrar,
+  Passar p/ quadro, Apagar, com a contagem); a barra de **Desenho** começa logo abaixo da barra de criar; **P, M e G**
+  das formas valem também com o menu ampliado; a **cor de cada área** vai para as subáreas e os títulos das seções;
+  a disciplina passa a se chamar **Laboratório de Química**.
+- **Silhuetas detalhadas** (Nutrição → Ciclos de vida): adulto, gestante de perfil, criança, idoso com bengala, bebê
+  enrolado, mamadeira e aleitamento; as antigas continuam.
+- **Mapas da História** sobre contornos fiéis: grandes navegações (rotas de Colombo, Cabral e Vasco da Gama),
+  Tratado de Tordesilhas (linha em 46°37′ O), bandeiras a partir de São Paulo e capitanias hereditárias (faixas
+  aproximadas cortadas no litoral real); os esquemas antigos continuam.
+- **Cronômetro e relógio reduzidos** se arrastam pelo próprio mostrador (um toque sem arrastar abre o painel).
+- **Cor e modelo do mostrador:** clássico, digital verde, placar vermelho, âmbar, azul, discreto e grande (projetor),
+  ou a cor que quiser; vale para cronômetro e relógio e fica lembrado.
+- **Menu Folha e fundo** repensado: áreas com cores à esquerda, prévias maiores (P, M, G), busca por nome e ajustes
+  (malha, intensidade, cores, em volta das páginas) agrupados embaixo.
+- **Estilo Giz** para as canetas: traço granulado, com falhas, como giz na lousa; as canetas do estojo
+  **Lousa verde (giz)** já vêm com ele (pedido do PDF: "estilos pré-setados simulando a época de giz").
+- Cabeçalho da galeria cabe em janela não maximizada (botões só com ícone quando falta espaço; o nome fica na dica).
+- **Mais estilos de caneta (P29):** **Lápis** (traço fino com grão de grafite), **Marcador** (ponta chata, largura
+  sem pressão, pontas retas, ângulo da ponta ajustável) e **Aquarela** (larga e translúcida, com o pigmento
+  acumulado na borda). Os 8 estilos aparecem em grade de 4 por linha no menu da caneta.
+- **Modo giz mais caprichado (P30):** o traço de giz ganhou pó em volta e falhas finas; o fundo pode ter a textura
+  **Lousa de giz** (manchas de apagador e pó, bem fracas), opcional no menu Folha e fundo (P39: não vem ligada).
+- **Mais 5 estojos (P31):** Ardósia (giz na lousa cinza), Projetor (traço grosso), Cores seguras (daltonismo),
+  Desenho técnico (traço fino) e Caderno (lápis, marcador e aquarela).
+- **Estojo à vista (P32, P33):** botão **Estojo** na barra das canetas e menu em cartões, com prévia das canetas no
+  fundo do estojo, marca "Em uso", escolha de trocar ou não o fundo e salvar as canetas atuais com ou sem o fundo.
+- Relógio e cronômetro reduzidos: os botões ficam ao lado do mostrador, sem cobrir os dígitos (P34).
+- Lousa escura: os ícones da barra da seleção não somem mais (P35).
+- O estojo e o quadro **Quadro-negro** passam a se chamar **Lousa verde (giz)** (P36).
+- Trocar de estojo: estojos sem fundo próprio devolvem o quadro branco ao sair de uma lousa, e as canetas da barra
+  mostram as cores certas logo após a troca (P37).
+- Barra do rascunho legível na lousa escura: o botão "Escrever" ligado não some mais (P38).
+- Rascunho: o botão "Apagar" virou **Limpar rascunho**, sem o vermelho fixo, e pede confirmação antes de apagar tudo
+  (ele se confundia com a borracha) (P43).
+- Estojo **Caderno** com a folha Caderno; ao trocar para um estojo sem folha, o quadro volta a ficar liso, a não ser
+  que a folha tenha sido escolhida à mão (P40). Prévias dos estojos com a folha e traços mais finos.
+- Testes automáticos: 69 (mostrador, tempo digitado, tinta vira forma e os estilos Giz, Lápis, Marcador e Aquarela).
+
 ## 1.2.2 (09/10/2026)
 - **Barra de ferramentas do professor** aberta à direita por padrão, com o nome embaixo de cada ícone (como a barra
   Texto/Nota/Formas); no menu, à direita, à esquerda ou só no menu. O botão de cima não fica mais marcado.

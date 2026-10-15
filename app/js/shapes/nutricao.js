@@ -67,6 +67,52 @@ const pessoa = (cx, y0, k = 1, extra = '') => {
     `<path stroke-width="${f(10 * k)}" d="M${p(-6, 104)} L${p(-7, 172)} M${p(6, 104)} L${p(7, 172)}"/>${extra}</g>`;
 };
 
+// --- silhuetas detalhadas (15/10/2026): contorno cheio, suave (Catmull-Rom), com proporções do corpo; desenho próprio ---
+const curva = pts => {   // curva fechada e suave passando pelos pontos
+  const n = pts.length; let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const a = pts[(i - 1 + n) % n], b = pts[i], c = pts[(i + 1) % n], e = pts[(i + 2) % n];
+    d += ` C${f(b[0] + (c[0] - a[0]) / 6)},${f(b[1] + (c[1] - a[1]) / 6)} ${f(c[0] - (e[0] - b[0]) / 6)},${f(c[1] - (e[1] - b[1]) / 6)} ${f(c[0])},${f(c[1])}`;
+  }
+  return d + ' Z';
+};
+const espelho = (meia, cx) => [...meia, ...meia.slice(0, -1).reverse().map(([x, y]) => [2 * cx - x, y])];
+const cheio = (d, extra = '') => `<path d="${d}" fill="#C" stroke="none"${extra}/>`;
+// adulto de frente (quadro 100 × 210): metade direita, do pescoço até o entrepernas
+const ADULTO = [[54, 37], [56, 43], [66, 46], [76, 50], [80, 58], [82, 74], [84, 92], [86, 110], [87, 124], [86, 132], [82, 137], [79, 131], [79, 118],
+  [76, 96], [73, 74], [70, 66], [68, 80], [67, 96], [69, 110], [71, 124], [69, 146], [66, 168], [65, 186], [66, 196], [70, 202], [56, 203], [55, 194],
+  [55, 176], [54, 156], [52, 136], [50, 128]];
+const CRIANCA = [[54, 43], [56, 48], [64, 51], [70, 55], [72, 64], [74, 78], [75, 92], [74, 99], [70, 100], [69, 92], [67, 78], [64, 66], [63, 76],
+  [63, 88], [64, 98], [64, 112], [62, 128], [62, 140], [65, 146], [55, 147], [54, 140], [54, 124], [52, 108], [50, 104]];
+const silAdulto = cheio(curva(espelho(ADULTO, 50))) + `<ellipse cx="50" cy="20" rx="12.5" ry="15" fill="#C" stroke="none"/>`;
+const silCrianca = cheio(curva(espelho(CRIANCA, 50))) + `<ellipse cx="50" cy="23" rx="15" ry="17" fill="#C" stroke="none"/>`;
+// gestante de perfil, olhando para a direita (quadro 100 × 210)
+const silGestante = cheio(curva([[44, 36], [38, 46], [35, 62], [35, 80], [33, 96], [35, 112], [33, 126], [37, 138], [40, 156], [41, 178], [40, 196],
+  [36, 203], [56, 204], [57, 197], [53, 176], [52, 158], [55, 144], [64, 136], [72, 124], [76, 108], [72, 92], [64, 82], [60, 76], [63, 68],
+  [61, 58], [57, 48], [55, 39]])) + `<ellipse cx="50" cy="21" rx="12" ry="14.5" fill="#C" stroke="none"/>`
+  + `<path d="M50,56 Q46,84 58,100 Q66,104 72,98" stroke-width="5" stroke-linecap="round" fill="none" opacity=".45"/>`;
+// idosa/idoso de perfil, costas curvadas, com bengala (quadro 120 × 210)
+const silIdoso = cheio(curva([[54, 40], [46, 46], [40, 56], [37, 72], [38, 90], [39, 108], [40, 122], [38, 134], [41, 150], [42, 174], [40, 196],
+  [36, 203], [54, 204], [55, 197], [54, 176], [57, 160], [55, 140], [56, 124], [60, 108], [61, 90], [62, 72], [64, 60], [62, 48]]))
+  + `<ellipse cx="62" cy="30" rx="11.5" ry="13.5" fill="#C" stroke="none"/>`
+  + `<path d="M56,60 Q70,84 86,104" stroke-width="9" stroke-linecap="round" fill="none"/>`
+  + `<path d="M80,106 Q84,96 92,102 L95,204" stroke-width="4.5" stroke-linecap="round" fill="none"/>`;
+// bebê enrolado em manta (quadro 130 × 76): cabeça cheia, manta com dobras
+const silBebe = `<circle cx="30" cy="38" r="14" fill="#C" stroke="none"/>`
+  + `<path d="M46,22 Q86,10 120,30 Q126,38 120,46 Q86,66 46,54 Q38,38 46,22 Z" fill="#C" fill-opacity=".22" stroke-width="2.5"/>`
+  + `<path d="M62,18 Q68,38 60,58 M82,15 Q92,38 82,61 M102,21 Q110,38 102,55" stroke-width="1.8" fill="none"/>`;
+// mamadeira (quadro 56 × 140): bico, rosca, corpo com cintura e graduação
+const silMamadeira = `<path d="M22,30 Q22,10 28,6 Q34,10 34,30 Z" fill="#C" stroke="none"/>`
+  + `<rect x="12" y="30" width="32" height="14" rx="3" fill="#C" stroke="none"/>`
+  + `<path d="M14,46 H42 Q46,70 40,82 Q46,96 46,120 Q46,134 34,134 H22 Q10,134 10,120 Q10,96 16,82 Q10,70 14,46 Z" stroke-width="2.5"/>`
+  + [60, 74, 88, 102, 116].map((y, i) => `<path d="M${i % 2 ? 36 : 32},${y} H42" stroke-width="1.6"/>`).join('');
+// aleitamento materno (quadro 130 × 130): mãe sentada de perfil segurando o bebê no colo
+const silAleitamento = `<ellipse cx="50" cy="22" rx="11.5" ry="13.5" fill="#C" stroke="none"/>`
+  + cheio(curva([[46, 37], [38, 48], [33, 68], [33, 94], [35, 124], [70, 124], [70, 112], [60, 106], [58, 90], [60, 74], [60, 58], [57, 46], [53, 39]]))
+  + `<circle cx="74" cy="76" r="9" fill="#C" stroke="none"/>`
+  + `<path d="M84,74 Q102,72 116,82 Q120,90 112,93 Q96,94 82,86 Z" fill="#C" stroke="none"/>`
+  + `<path d="M46,52 Q48,98 66,102 Q92,104 110,100" stroke-width="7" stroke-linecap="round" fill="none"/>`;
+
 // --- avaliação ---
 const marcasVert = (x, y0, y1, passo) => { let d = ''; for (let y = y0, i = 0; y <= y1; y += passo, i++) d += `M${x},${y} H${x + (i % 2 ? 5 : 9)} `; return fino(d, 1.3); };
 const marcasHor = (x0, x1, y, passo) => { let d = ''; for (let x = x0, i = 0; x <= x1; x += passo, i++) d += `M${x},${y} V${y + (i % 2 ? 5 : 9)} `; return fino(d, 1.3); };
@@ -237,6 +283,13 @@ export default {
       ['nut-bebe', 'Bebê (enrolado)', 100, 70, '<circle cx="24" cy="34" r="16"/><path d="M38,22 Q70,16 92,34 Q70,54 38,46"/>' + fino('M50,22 Q56,34 50,48 M66,22 Q72,34 66,50') + '<circle cx="19" cy="32" r="1.6" fill="#C"/><circle cx="29" cy="32" r="1.6" fill="#C"/>' + fino('M20,40 Q24,43 28,40')],
       ['nut-mamadeira', 'Mamadeira', 50, 120, '<path d="M20,22 Q20,6 25,4 Q30,6 30,22"/><rect x="12" y="22" width="26" height="10" rx="2"/><path d="M14,32 H36 V112 Q36,116 32,116 H18 Q14,116 14,112 Z"/>' + fino('M14,56 H22 M14,74 H22 M14,92 H22') + trac('M15,46 H35', 1.3)],
       ['nut-aleitamento', 'Aleitamento materno (ícone)', 120, 120, '<circle cx="72" cy="22" r="14" fill="#C" stroke="none"/><path d="M36,114 Q36,50 72,44 Q108,50 108,114"/><circle cx="56" cy="74" r="10" fill="#C" stroke="none"/><path stroke-width="7" d="M44,94 Q64,96 92,72"/><path d="M18,34 C10,26 14,18 20,22 C26,18 30,26 22,34 L20,36 Z"/>'],
+      ['nut-adulto-det', 'Adulto (silhueta detalhada)', 100, 210, silAdulto],
+      ['nut-gestante-det', 'Gestante (silhueta detalhada, perfil)', 100, 210, silGestante],
+      ['nut-crianca-det', 'Criança (silhueta detalhada)', 100, 150, silCrianca],
+      ['nut-idoso-det', 'Idoso com bengala (silhueta detalhada)', 120, 210, silIdoso],
+      ['nut-bebe-det', 'Bebê enrolado (detalhado)', 130, 76, silBebe],
+      ['nut-mamadeira-det', 'Mamadeira (detalhada)', 56, 140, silMamadeira],
+      ['nut-aleitamento-det', 'Aleitamento materno (detalhado)', 130, 130, silAleitamento],
       ['nut-sonda', 'Nutrição enteral (sonda nasoenteral)', 140, 180, '<rect x="6" y="4" width="30" height="40" rx="4"/>' + T(21, 24, 'D', 14) + '<path d="M21,44 V52 Q21,64 42,58"/>' +
         '<path d="M82,14 Q54,14 50,44 L42,56 L50,60 Q50,74 60,80 V100 M82,14 Q112,16 112,46 Q112,70 98,82 V100"/>' + trac('M48,58 Q66,64 72,92 V124', 1.8) +
         '<path d="M68,124 Q62,160 86,164 Q114,166 112,140 Q110,124 94,128 Q82,132 76,124"/>'],

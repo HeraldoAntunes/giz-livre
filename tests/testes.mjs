@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 // --- ambiente mínimo de navegador ---
-const medir = { measureText: t => ({ width: String(t).length * 8 }), set font(v) {} };
+const medir = { measureText: t => ({ width: String(t).length * 8 }), set font(v) {}, fillRect() {} };   // fillRect: texturas do giz, lápis e aquarela
 globalThis.document = { createElement: () => ({ getContext: () => medir }) };
 globalThis.Path2D = class { moveTo() {} lineTo() {} quadraticCurveTo() {} arc() {} closePath() {} };   // sem beginPath, como o real
 const ctxFalso = () => new Proxy({}, {
@@ -35,6 +35,10 @@ for (const [nome, it] of Object.entries({
   'caneta com pressão': { tool: 'pen', width: 3, pr: true, taper: true },
   'caligrafia': { tool: 'pen', width: 3, pr: true, style: 'calligraphy', nib: 45 },
   'pincel': { tool: 'pen', width: 3, pr: true, style: 'brush' },
+  'giz': { tool: 'pen', width: 6, pr: true, style: 'giz' },
+  'lápis': { tool: 'pen', width: 3, pr: true, style: 'pencil' },
+  'marcador': { tool: 'pen', width: 6, pr: true, style: 'marker', nib: 30 },
+  'aquarela': { tool: 'pen', width: 8, pr: true, taper: true, style: 'watercolor' },
   'com seta': { tool: 'pen', width: 3, arrow: true },
 })) {
   teste(`desenha ${nome} com e sem cache`, () => {
@@ -328,6 +332,40 @@ teste('recorte encontra a interseção da reta com a borda do gráfico', () => {
   igual(lines.length, 1, 'polilinhas');
   perto(lines[0][0], -50, 1e-8, 'entrada');
   perto(lines[0].at(-2), 50, 1e-8, 'saída');
+});
+
+// ------------------------------------------------------------------
+console.log('Tinta vira forma (render.js)');
+const traco = f => { const pts = []; for (let i = 0; i <= 60; i++) { const [x, y] = f(i / 60); pts.push(x, y, 0.5); } return { id: 'x', type: 'stroke', tool: 'pen', color: '#000', width: 3, pts }; };
+teste('reta quase horizontal fica presa a 0° só com a opção ligada', () => {
+  const s = traco(u => [u * 300, u * 20]);   // ~3,8° de inclinação
+  const livre = R.recognizeShape(s), presa = R.recognizeShape(s, { angulos: true });
+  igual(livre.kind, 'line', 'reconhece reta'); perto(livre.y2, 20, 1e-6, 'sem opção mantém a inclinação');
+  perto(presa.y2, 0, 1e-6, 'com opção vai para 0°');
+});
+teste('círculo um pouco achatado vira círculo perfeito só com a opção', () => {
+  const s = traco(u => [100 + 100 * Math.cos(u * 2 * Math.PI), 100 + 88 * Math.sin(u * 2 * Math.PI)]);
+  const e = R.recognizeShape(s), c = R.recognizeShape(s, { circulo: true });
+  igual(e.kind, 'ellipse', 'elipse'); igual(Math.abs((e.x2 - e.x1) - (e.y2 - e.y1)) > 10, true, 'sem opção continua achatada');
+  perto(c.x2 - c.x1, c.y2 - c.y1, 1e-6, 'com opção, largura = altura');
+});
+teste('forma desmarcada não é reconhecida', () => {
+  const s = traco(u => [u * 300, u * 20]);
+  igual(R.recognizeShape(s, { linha: false }), null, 'sem retas');
+});
+
+// ------------------------------------------------------------------
+console.log('Cronômetro e relógio (tools.js)');
+const TL = await mod('tools.js');
+teste('mostrador de sete segmentos acende os segmentos certos', () => {
+  const svg = TL.seg7('1:08');
+  igual((svg.match(/class="on"/g) || []).length, 2 + 6 + 7, 'segmentos acesos em 1 (2), 0 (6) e 8 (7)');
+  igual((svg.match(/<circle/g) || []).length, 2, 'dois pontos');
+  igual(/viewBox="0 0 106 52"/.test(svg), true, 'largura: 3 dígitos e os dois pontos');
+});
+teste('tempo digitado vira segundos (7, 7,5, 7:30, 1:05:00)', () => {
+  igual(TL.parseTempo('7'), 420, '7 min'); igual(TL.parseTempo('7,5'), 450, '7,5 min');
+  igual(TL.parseTempo('7:30'), 450, '7:30'); igual(TL.parseTempo('1:05:00'), 3900, '1h05'); igual(TL.parseTempo('x'), null, 'inválido');
 });
 
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);

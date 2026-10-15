@@ -44,10 +44,40 @@ function rgba(hex, a) {
   return `rgba(${parseInt(c.slice(0, 2), 16)},${parseInt(c.slice(2, 4), 16)},${parseInt(c.slice(4, 6), 16)},${Math.min(1, a)})`;
 }
 
+// P30 (15/10/2026): textura de lousa de giz, manchas de apagador e pó, presa ao quadro (anda com o zoom e o arrasto)
+const lousaCache = new Map();
+function lousaPadrao(ctx, dark) {
+  let c = lousaCache.get(dark);
+  if (!c) {
+    const T = 640, cor = dark ? '255,255,255' : '0,0,0';
+    c = document.createElement('canvas'); c.width = c.height = T;
+    const g = c.getContext('2d');
+    let semente = 7919;
+    const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+    const repete = fn => { for (const dx of [-T, 0, T]) for (const dy of [-T, 0, T]) { g.save(); g.translate(dx, dy); fn(); g.restore(); } };   // sem emenda
+    for (let i = 0; i < 40; i++) {   // manchas de apagador
+      const x = rnd() * T, y = rnd() * T, r = 50 + rnd() * 140, a = (dark ? 0.014 : 0.008) + rnd() * 0.018;
+      repete(() => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${cor},${a})`); gr.addColorStop(1, `rgba(${cor},0)`); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); });
+    }
+    g.lineCap = 'round';
+    for (let i = 0; i < 7; i++) {   // arrastos do apagador
+      const x = rnd() * T, y = rnd() * T, r = 80 + rnd() * 160, a0 = rnd() * Math.PI * 2, lw = 20 + rnd() * 30, al = 0.004 + rnd() * 0.006;
+      repete(() => { g.strokeStyle = `rgba(${cor},${al})`; g.lineWidth = lw; g.beginPath(); g.arc(x, y, r, a0, a0 + 0.6 + rnd() * 0.9); g.stroke(); });
+    }
+    for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(${cor},${0.02 + rnd() * 0.05})`; g.fillRect(rnd() * T, rnd() * T, 1, 1); }   // pó fino
+    lousaCache.set(dark, c);
+  }
+  return ctx.createPattern(c, 'repeat');
+}
+
 export function drawBackground(ctx, bg, view, w, h) {
   ctx.save();
   ctx.fillStyle = bg.color;
   ctx.fillRect(0, 0, w, h);
+  if (bg.textura === 'lousa' && typeof document !== 'undefined' && ctx.createPattern && typeof DOMMatrix !== 'undefined') {
+    const pat = lousaPadrao(ctx, isDark(bg.color));
+    if (pat) { pat.setTransform(new DOMMatrix([view.zoom, 0, 0, view.zoom, view.x, view.y])); ctx.fillStyle = pat; ctx.fillRect(0, 0, w, h); }
+  }
   const fn = DRAW[bg.pattern];
   if (fn) {
     const str = STRENGTH[bg.strength] || 1, dark = isDark(bg.color), pb = bg.pageBox;

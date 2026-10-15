@@ -1,6 +1,7 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // História (fundamental e médio): periodização, objetos, arquitetura e mapas esquemáticos. Desenho próprio do Giz Livre.
 import { T, head } from './base.js';
+import { MUNDO_NE, BRASIL_UF, BR_UF_DIV, BR_CAPITANIAS } from './geo-contornos.js';
 
 const fino = ' stroke-width="1.6"';
 const P = d => `<path d="${d}"/>`;
@@ -387,6 +388,61 @@ const capitanias = (() => { // faixas do litoral até a linha de Tordesilhas (es
     '<path d="M138 30 V196" stroke-dasharray="8 5" stroke-width="2.5"/>' + `<g transform="rotate(-90 124 118)">${T(124, 118, 'Tordesilhas', 14)}</g>`;
 })();
 
+// ---- mapas históricos sobre contornos fiéis (Natural Earth, domínio público), 15/10/2026 ----
+const q1 = v => (+v).toFixed(1);
+// projeção equiretangular de uma janela (lon0..lon1, lat0..lat1) num quadro W × H
+const janela = (lon0, lon1, lat0, lat1, W, H, m = 3) => ([lo, la]) => [m + (lo - lon0) / (lon1 - lon0) * (W - 2 * m), m + (lat1 - la) / (lat1 - lat0) * (H - 2 * m)];
+const polis = (lista, P) => lista.map(pl => 'M' + pl.map(P).map(p => p.map(q1).join(',')).join(' L') + ' Z').join(' ');
+const linha = (pts, P) => 'M' + pts.map(P).map(p => p.map(q1).join(',')).join(' L');
+// rota suave por pontos (lon, lat) com ponta de seta no fim
+const rotaGeo = (pts, P, w = 2.4) => {
+  const xy = pts.map(P);
+  let d = `M${xy[0].map(q1).join(',')}`;
+  for (let i = 1; i < xy.length; i++) {
+    const [ax, ay] = xy[i - 1], [bx, by] = xy[i];
+    d += i < xy.length - 1 ? ` Q${q1(bx)},${q1(by)} ${q1((bx + xy[i + 1][0]) / 2)},${q1((by + xy[i + 1][1]) / 2)}` : ` L${q1(bx)},${q1(by)}`;
+  }
+  const [px, py] = xy.at(-2), [ex, ey] = xy.at(-1), ang = Math.atan2(ey - py, ex - px) * 180 / Math.PI;
+  return `<path d="${d}" stroke-width="${w}" stroke-dasharray="7 4"/>` + head(+q1(ex), +q1(ey), ang, 9);
+};
+const TP = (x, y, s, size = 11) => T(q1(x), q1(y), s, size);
+const navegacoesPrecisas = (() => {
+  const W = 300, H = 160, P = janela(-100, 85, -42, 55, W, H);
+  const cabral = rotaGeo([[-9.1, 38.7], [-24, 15], [-31, -6], [-39.1, -16.4]], P);
+  const colombo = rotaGeo([[-6.9, 37.2], [-15.5, 28], [-45, 25], [-74.5, 24]], P);
+  // Vasco da Gama contorna o Cabo da Boa Esperança pelo mar e sobe pelo canal de Moçambique (pontos de passagem no oceano)
+  const gama = rotaGeo([[-9.1, 38.7], [-24, 15], [-28, -14], [-8, -34], [12, -39.5], [24, -38], [34, -32], [41, -24], [41.5, -15], [43, -6], [55, 4], [75.8, 11.3]], P);
+  const at = (lo, la, s) => { const [x, y] = P([lo, la]); return TP(x, y, s); };
+  return `<defs><clipPath id="janNav"><rect x="1" y="1" width="${W - 2}" height="${H - 2}"/></clipPath></defs><g clip-path="url(#janNav)"><path d="${polis(MUNDO_NE, P)}" fill="#C" fill-opacity=".12" stroke-width="1.1" stroke-linejoin="round"/></g>` + cabral + colombo + gama
+    + `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" stroke-width="1.2"/>`
+    + at(-62, 33, 'Colombo 1492') + at(-26, -24, 'Cabral 1500') + at(62, -37.5, 'Vasco da Gama 1498');
+})();
+const tordesilhasPreciso = (() => {
+  const W = 240, H = 178, P = janela(-92, 25, -42, 46, W, H), [xl] = P([-46.62, 0]);
+  return `<defs><clipPath id="janTor"><rect x="1" y="1" width="${W - 2}" height="${H - 2}"/></clipPath></defs><g clip-path="url(#janTor)"><path d="${polis(MUNDO_NE, P)}" fill="#C" fill-opacity=".12" stroke-width="1.1" stroke-linejoin="round"/></g>`
+    + `<path d="M${q1(xl)},4 V${H - 4}" stroke-dasharray="8 5" stroke-width="2.4"/>`
+    + `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" stroke-width="1.2"/>`
+    + TP(xl - 34, 16, 'Espanha', 13) + TP(xl + 36, 16, 'Portugal', 13) + TP(xl + 26, H - 12, '1494', 12) + TP(xl - 32, H - 12, '46°37′ O', 10);
+})();
+const molduraBR = (W, H) => janela(-74.3, -34.5, -34, 5.6, W, H, 4);
+const capitaniasPrecisas = (() => {
+  const W = 220, H = 226, P = molduraBR(W, H), [xl] = P([-46.62, 0]);
+  return `<path d="${polis(BRASIL_UF, P)}" fill="#C" fill-opacity=".08" stroke-width="1.8" stroke-linejoin="round"/>`
+    + BR_CAPITANIAS.map(s => `<path d="${linha(s, P)}" stroke-width="1.6"/>`).join('')
+    + `<path d="M${q1(xl)},4 V${H - 4}" stroke-dasharray="8 5" stroke-width="2.4"/>`
+    + `<g transform="rotate(-90 ${q1(xl - 8)} 150)">${T(q1(xl - 8), 150, 'Tordesilhas', 12)}</g>`;
+})();
+const bandeirasPrecisas = (() => {
+  const W = 220, H = 226, P = molduraBR(W, H), sp = [-46.63, -23.55], [sx, sy] = P(sp);
+  const ida = (dest, meio) => rotaGeo([sp, meio, dest], P, 2.2);
+  const at = (lo, la, s) => { const [x, y] = P([lo, la]); return TP(x, y, s, 11); };
+  return `<path d="${polis(BRASIL_UF, P)}" fill="#C" fill-opacity=".08" stroke-width="1.8" stroke-linejoin="round"/>`
+    + BR_UF_DIV.map(l => `<path d="${linha(l, P)}" stroke-width=".7" opacity=".55"/>`).join('')
+    + ida([-43.5, -20.4], [-45.5, -21.5]) + ida([-50.1, -15.9], [-49, -20]) + ida([-56.1, -15.6], [-52.5, -20.5]) + ida([-54.5, -28.3], [-50.5, -27])
+    + `<circle cx="${q1(sx)}" cy="${q1(sy)}" r="4" fill="#C"/>` + TP(sx + 14, sy + 10, 'São Paulo', 10)
+    + at(-42, -18.8, 'Minas') + at(-50.1, -13.8, 'Goiás') + at(-57.5, -13.6, 'Cuiabá') + at(-55.5, -30.2, 'Missões');
+})();
+
 // ====================== Idade Contemporânea ======================
 const fabrica = P('M10 150 V80 V56 L50 80 V56 L90 80 V56 L130 80 V56 L170 80 V150') + R(184, 30, 16, 120) + R(214, 46, 14, 104) +
   F('M186 26 C178 20 186 10 196 14 C200 6 214 8 212 16 C222 16 222 28 212 28 Z M216 42 C210 38 214 30 222 32 C226 26 236 30 234 36 C240 38 238 44 230 44 Z') +
@@ -560,6 +616,8 @@ export default {
       ['his-rosa-ventos', 'Rosa dos ventos', 130, 130, rosaVentos],
       ['his-mapa-navegacoes', 'Grandes navegações (rotas esquemáticas)', 260, 156, mapaNavegacoes],
       ['his-tordesilhas', 'Tratado de Tordesilhas (esquema)', 220, 180, tordesilhas],
+      ['his-navegacoes-mapa', 'Grandes navegações (mapa com rotas)', 300, 160, navegacoesPrecisas],
+      ['his-tordesilhas-mapa', 'Tratado de Tordesilhas (mapa)', 240, 178, tordesilhasPreciso],
       ['his-imprensa', 'Prensa de tipos móveis', 170, 180, imprensa],
       ['his-tipos-moveis', 'Tipos móveis', 150, 96, tiposMoveis],
       ['his-luneta', 'Luneta', 170, 110, luneta],
@@ -576,6 +634,8 @@ export default {
       ['his-casa-grande', 'Casa-grande e senzala (esquema)', 260, 148, casaGrande],
       ['his-bandeiras', 'Bandeiras: rotas a partir de São Paulo', 220, 206, bandeiras],
       ['his-capitanias', 'Capitanias hereditárias (esquema)', 220, 206, capitanias],
+      ['his-bandeiras-mapa', 'Bandeiras a partir de São Paulo (mapa)', 220, 226, bandeirasPrecisas],
+      ['his-capitanias-mapa', 'Capitanias hereditárias (mapa, faixas aproximadas)', 220, 226, capitaniasPrecisas],
       ['his-ouro', 'Ciclo do ouro (bateia)', 160, 100, ouro],
       ['his-cafe-ramo', 'Café (ramo com frutos)', 140, 124, cafeRamo],
       ['his-saca-cafe', 'Saca de café', 110, 118, sacaCafe],

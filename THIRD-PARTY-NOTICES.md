@@ -11,6 +11,7 @@ na pasta `licencas\`.
 | **KaTeX** (Khan Academy) | 0.16.11 | fórmulas LaTeX | MIT | `app/vendor/katex/LICENSE` |
 | **Fontes do KaTeX** (Design Science / MathJax e Khan Academy) | 0.16.11 | letras das fórmulas | SIL Open Font License 1.1 | `app/vendor/katex/fonts/OFL.txt` |
 | **Fluent UI System Icons** (Microsoft) | 1.1.343 | ícones da interface | MIT | `app/vendor/fluent/LICENSE` |
+| **Natural Earth** (dados geográficos 1:50m) | baixado em 15/10/2026 | contornos precisos do Brasil (com regiões e estados), continentes e planisfério (`app/js/shapes/geo-contornos.js`, simplificados) | domínio público | https://www.naturalearthdata.com/about/terms-of-use/ |
 | **Python** (Python Software Foundation) | 3.13 | servidor local; vai embutido no executável | PSF License Agreement | `licencas/python-LICENSE.txt` |
 | **libffi** | junto com o Python 3.13 | `ctypes` (janelas de aviso do Windows) | MIT | incluída em `licencas/python-LICENSE.txt` |
 | **Microsoft Visual C++ Runtime** (`VCRUNTIME140.dll`) | junto com o Python 3.13 | requisito do Python no Windows | redistribuível da Microsoft | termos da Microsoft para redistribuíveis do Visual Studio |

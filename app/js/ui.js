@@ -70,19 +70,23 @@ export function choiceBox(title, msg, options) {
     });
 }
 
+// "Sobre": cartão organizado só com o que é útil (P23, 15/10/2026)
 export function aboutBox(version) {
-  return infoBox('Sobre o Giz Livre', `
-    <p style="margin:0 0 8px"><b>Giz Livre ${version}</b>: lousa livre e offline para dar aula com mesa digitalizadora.</p>
-    <p style="margin:0 0 8px">© 2026 Heraldo Antunes. Software livre sob a <b>licença MIT</b>: uso, cópia, modificação e
-    distribuição gratuitos, mantendo o aviso de licença.</p>
-    <p style="margin:0 0 8px;font-size:12px;color:#616161">Fornecido "no estado em que se encontra", <b>sem garantia de qualquer
-    tipo</b>. Os autores não se responsabilizam por perda de dados, danos ou mau uso. Faça backup da pasta <i>quadros</i>.
-    Projeto independente, sem vínculo com Microsoft, Wacom ou outras marcas citadas.</p>
-    <p style="margin:0 0 8px;font-size:12px;color:#616161"><b>Desinstalar:</b> Menu Iniciar → "Desinstalar o Giz Livre", ou
-    Configurações do Windows → Aplicativos → Giz Livre. Os quadros (Documentos\\Giz Livre\\quadros) são mantidos.</p>
-    <p style="margin:0;font-size:12px;color:#616161">Usa pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e Fluent UI System
-    Icons (MIT); textos completos na pasta <i>licencas</i>.
-    Funciona sem internet; nada é enviado para fora do computador.</p>`);
+  const lin = (rot, txt) => `<div class="sb-l"><dt>${rot}</dt><dd>${txt}</dd></div>`;
+  return infoBox('Sobre o Giz Livre', `<div class="sobre">
+    <div class="sb-cab"><img src="icon.svg" alt="" width="56" height="56"><div><b>Giz Livre</b><span>versão ${esc(version)}</span>
+      <small>Lousa digital livre e offline, para dar aula com mesa digitalizadora.</small></div></div>
+    <dl>
+      ${lin('Autor', '© 2026 Heraldo Antunes')}
+      ${lin('Licença', 'Software livre, licença MIT: uso, cópia, modificação e distribuição gratuitos, mantendo o aviso de licença.')}
+      ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados.')}
+      ${lin('Seus quadros', 'Ficam em <i>Documentos\\Giz Livre\\quadros</i>. Faça cópia de segurança dessa pasta de vez em quando.')}
+      ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
+      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT). Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
+      ${lin('Desinstalar', 'Menu Iniciar → "Desinstalar o Giz Livre". Os quadros são mantidos.')}
+    </dl>
+    <p class="sb-aviso">Fornecido "no estado em que se encontra", sem garantia de qualquer tipo. Projeto independente, sem vínculo com Microsoft, Wacom ou outras marcas citadas.</p>
+  </div>`);
 }
 
 export function infoBox(title, html) {

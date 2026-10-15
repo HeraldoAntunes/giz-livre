@@ -65,14 +65,20 @@ function outlinePath(s) {
   for (let i = 1; i < n; i++) L[i] = L[i - 1] + Math.hypot(p[i * 3] - p[i * 3 - 3], p[i * 3 + 1] - p[i * 3 - 2]);
   const total = L[n - 1];
   // estilos: tinteiro (pressão já modulada pela velocidade), caligrafia (pena chanfrada), pincel (pontas bem finas)
-  const brush = s.style === 'brush', calli = s.style === 'calligraphy';
-  const tl = brush ? Math.min(s.width * 14, total * 0.45) : s.taper ? Math.min(s.width * 5, total * 0.28) : 0;
-  const tmin = brush ? 0.08 : 0.35;
-  const nib = (s.nib ?? 45) * Math.PI / 180;
+  // P29: lápis (mais fino), marcador (ponta chata, largura sem pressão), aquarela (larga, pontas suaves)
+  const brush = s.style === 'brush', calli = s.style === 'calligraphy', marker = s.style === 'marker';
+  const pencil = s.style === 'pencil', aqua = s.style === 'watercolor';
+  const tl = brush ? Math.min(s.width * 14, total * 0.45) : aqua ? Math.min(s.width * 8, total * 0.35)
+    : s.taper && !marker ? Math.min(s.width * 5, total * 0.28) : 0;
+  const tmin = brush ? 0.08 : aqua ? 0.2 : 0.35;
+  const nib = (s.nib ?? (marker ? 30 : 45)) * Math.PI / 180;
   const ease = x => Math.sin(Math.min(1, x) * Math.PI / 2);
   const rad = (i, nx, ny) => {
     let r = (s.pr ? pw(s, Math.max(0.05, p[i * 3 + 2])) : s.width) / 2;
     if (calli) r = s.width * 0.9 * (0.16 + 0.84 * Math.abs(Math.sin(Math.atan2(nx, -ny) - nib)));
+    else if (marker) r = s.width * 0.8 * (0.4 + 0.6 * Math.abs(Math.sin(Math.atan2(nx, -ny) - nib)));
+    else if (pencil) r *= 0.75;
+    else if (aqua) r *= 1.4;
     if (tl > 0) {
       const a = L[i] / tl, b = (total - L[i]) / tl;
       if (a < 1) r *= tmin + (1 - tmin) * ease(a);
@@ -95,11 +101,41 @@ function outlinePath(s) {
   path.moveTo(lx[0], ly[0]);
   for (let i = 1; i < n; i++) path.lineTo(lx[i], ly[i]);
   const e = n - 1;
-  path.arc(p[e * 3], p[e * 3 + 1], R[e], ang(e, lx[e], ly[e]), ang(e, rx[e], ry[e]), true);
+  if (!marker) path.arc(p[e * 3], p[e * 3 + 1], R[e], ang(e, lx[e], ly[e]), ang(e, rx[e], ry[e]), true);   // marcador: pontas retas
   for (let i = n - 1; i >= 0; i--) path.lineTo(rx[i], ry[i]);
-  path.arc(p[0], p[1], R[0], ang(0, rx[0], ry[0]), ang(0, lx[0], ly[0]), true);
+  if (!marker) path.arc(p[0], p[1], R[0], ang(0, rx[0], ry[0]), ang(0, lx[0], ly[0]), true);
   path.closePath();
   return path;
+}
+
+// estilo Giz (15/10/2026, "simulando a época de giz"): textura granulada fixa na cor da caneta, com falhas, como giz na
+// lousa. A textura é gerada uma vez por cor (sorteio determinístico) e preenche o contorno do traço; nada é apagado por baixo.
+// P29: o lápis usa grão fino e denso (grafite no papel).
+const TEXTURAS = { giz: [3200, 0.5, 1.3, 0.3], lapis: [5200, 0.3, 0.6, 0.2] };
+const texCache = new Map();
+function textura(ctx, color, tipo = 'giz') {
+  const k = tipo + color;
+  let c = texCache.get(k);
+  if (!c) {
+    const [qt, rmin, rvar, amin] = TEXTURAS[tipo];
+    c = document.createElement('canvas'); c.width = c.height = 96;
+    const g = c.getContext('2d');
+    let semente = 20261015;
+    const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+    g.fillStyle = color;
+    for (let i = 0; i < qt; i++) { g.globalAlpha = amin + rnd() * (1 - amin); const r = rmin + rnd() * rvar; g.fillRect(rnd() * 96, rnd() * 96, r, r * (0.6 + rnd() * 0.8)); }
+    if (tipo === 'giz') {   // P30: falhas em riscos finos, como o giz que pula nos poros da lousa (sem emenda na repetição)
+      g.globalCompositeOperation = 'destination-out';
+      for (let i = 0; i < 70; i++) {
+        const x = rnd() * 96, y = rnd() * 96, l = 4 + rnd() * 16, e = 0.6 + rnd() * 0.9;
+        g.globalAlpha = 0.35 + rnd() * 0.5;
+        for (const dx of [-96, 0, 96]) for (const dy of [-96, 0, 96]) g.fillRect(x + dx, y + dy, l, e);
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    texCache.set(k, c);
+  }
+  return ctx.createPattern(c, 'repeat');
 }
 
 export function drawStroke(ctx, s, cache = false) {
@@ -123,7 +159,23 @@ export function drawStroke(ctx, s, cache = false) {
   } else {
     let path = cache ? outlineCache.get(s) : null;
     if (!path) { path = outlinePath(s); if (cache) outlineCache.set(s, path); }
-    ctx.fill(path, 'nonzero');
+    const tex = typeof document !== 'undefined' && !!ctx.createPattern, a = ctx.globalAlpha;
+    if (s.style === 'giz' && tex) {
+      ctx.globalAlpha = a * 0.08; ctx.lineWidth = Math.max(1, s.width * 0.55); ctx.stroke(path);   // P30: pó espalhado em volta
+      ctx.globalAlpha = a * 0.36; ctx.fill(path, 'nonzero');   // pó de fundo, mais fraco
+      ctx.globalAlpha = a; ctx.fillStyle = textura(ctx, color, 'giz'); ctx.fill(path, 'nonzero');   // grãos
+    } else if (s.style === 'pencil' && tex) {
+      ctx.globalAlpha = a * 0.5; ctx.fill(path, 'nonzero');
+      ctx.globalAlpha = a * 0.9; ctx.fillStyle = textura(ctx, color, 'lapis'); ctx.fill(path, 'nonzero');
+    } else if (s.style === 'marker') {
+      ctx.globalAlpha = a * 0.88; ctx.fill(path, 'nonzero');   // tinta de marcador, levemente translúcida
+    } else if (s.style === 'watercolor') {
+      ctx.globalAlpha = a * 0.22; ctx.fill(path, 'nonzero');   // aguada
+      const dx = s.width * 0.18, dy = s.width * 0.12;   // segunda demão um pouco deslocada: a tinta "escorre"
+      ctx.translate(dx, dy); ctx.globalAlpha = a * 0.14; ctx.fill(path, 'nonzero'); ctx.translate(-dx, -dy);
+      ctx.globalAlpha = a * 0.32; ctx.lineWidth = Math.max(0.8, s.width * 0.12); ctx.stroke(path);   // pigmento junta na borda
+    } else ctx.fill(path, 'nonzero');
+    ctx.globalAlpha = a;
   }
   if (s.arrow && n > 1) {
     const ex = p[(n - 1) * 3], ey = p[(n - 1) * 3 + 1];
@@ -188,8 +240,10 @@ function drawShape(ctx, s) {
 
 // quebra o texto em linhas que cabem em `w`
 export const fontOf = it => it.font ? `"${it.font}", ${FONT}` : FONT;
-export function wrapText(text, size, w, font = FONT) {
-  measureCtx.font = `${size}px ${font}`;
+// negrito e itálico do item (texto e nota, 15/10/2026): prefixo da propriedade CSS font
+export const estiloDe = it => (it.i ? 'italic ' : '') + (it.b ? 'bold ' : '');
+export function wrapText(text, size, w, font = FONT, estilo = '') {
+  measureCtx.font = `${estilo}${size}px ${font}`;
   const out = [];
   for (const para of (text || '').split('\n')) {
     const words = para.split(' ');
@@ -205,17 +259,36 @@ export function wrapText(text, size, w, font = FONT) {
 }
 
 export function textHeight(it) {
-  return Math.max(1, wrapText(it.text, it.size, it.w, fontOf(it)).length) * it.size * 1.3;
+  return Math.max(1, wrapText(it.text, it.size, it.w, fontOf(it), estiloDe(it)).length) * it.size * 1.3;
+}
+
+// escreve o texto quebrado em linhas com o alinhamento pedido (esquerda, centro, direita, justificado)
+function desenhaLinhas(ctx, text, size, w, font, estilo, x, y, lh, al) {
+  let k = 0;
+  for (const para of (text || '').split('\n')) {
+    const linhas = wrapText(para, size, w, font, estilo);
+    linhas.forEach((l, j) => {
+      const yy = y + k++ * lh;
+      if (al === 'center') { ctx.textAlign = 'center'; ctx.fillText(l, x + w / 2, yy); }
+      else if (al === 'right') { ctx.textAlign = 'right'; ctx.fillText(l, x + w, yy); }
+      else if (al === 'justify' && j < linhas.length - 1 && l.includes(' ')) {
+        ctx.textAlign = 'left';
+        const pal = l.split(' '), larg = pal.reduce((s, p) => s + ctx.measureText(p).width, 0);
+        const vao = (w - larg) / (pal.length - 1);
+        let xx = x;
+        for (const p of pal) { ctx.fillText(p, xx, yy); xx += ctx.measureText(p).width + vao; }
+      } else { ctx.textAlign = 'left'; ctx.fillText(l, x, yy); }
+    });
+  }
 }
 
 function drawText(ctx, it) {
   if (it._editing) return;
   ctx.save();
   ctx.fillStyle = it.color;
-  ctx.font = `${it.size}px ${fontOf(it)}`;
+  ctx.font = `${estiloDe(it)}${it.size}px ${fontOf(it)}`;
   ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  wrapText(it.text, it.size, it.w, fontOf(it)).forEach((l, i) => ctx.fillText(l, it.x, it.y + i * it.size * 1.3));
+  desenhaLinhas(ctx, it.text, it.size, it.w, fontOf(it), estiloDe(it), it.x, it.y, it.size * 1.3, it.al);
   ctx.restore();
 }
 
@@ -227,10 +300,11 @@ export function noteFontSize(it) {
   return v;
 }
 function noteFontSizeRaw(it) {
+  if (it.fs) return it.fs;   // tamanho escolhido pelo professor; sem ele, o maior que cabe na nota
   let size = Math.round(it.w / 7);
   const pad = it.w * 0.08;
   while (size > 8) {
-    const lines = wrapText(it.text, size, it.w - pad * 2);
+    const lines = wrapText(it.text, size, it.w - pad * 2, fontOf(it), estiloDe(it));
     if (lines.length * size * 1.25 <= it.h - pad * 2) break;
     size -= 1;
   }
@@ -251,11 +325,9 @@ function drawNote(ctx, it) {
   ctx.save();
   const size = noteFontSize(it), pad = it.w * 0.08;
   ctx.fillStyle = '#252423';
-  ctx.font = `${size}px ${FONT}`;
+  ctx.font = `${estiloDe(it)}${size}px ${fontOf(it)}`;
   ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  const lines = wrapText(it.text, size, it.w - pad * 2);
-  lines.forEach((l, i) => ctx.fillText(l, it.x + pad, it.y + pad + i * size * 1.25));
+  desenhaLinhas(ctx, it.text, size, it.w - pad * 2, fontOf(it), estiloDe(it), it.x + pad, it.y + pad, size * 1.25, it.al);
   ctx.restore();
 }
 
@@ -319,7 +391,7 @@ export function bbox(it) {
         if (p[i] < x1) x1 = p[i]; if (p[i] > x2) x2 = p[i];
         if (p[i + 1] < y1) y1 = p[i + 1]; if (p[i + 1] > y2) y2 = p[i + 1];
       }
-      const m = it.width * (it.style === 'calligraphy' ? 0.95 : it.pr ? 0.75 : 0.5) + (it.arrow ? it.width * 4 : 0);
+      const m = it.width * (it.style === 'watercolor' ? 1.05 : it.style === 'calligraphy' || it.style === 'marker' ? 0.95 : it.pr ? 0.75 : 0.5) + (it.arrow ? it.width * 4 : 0);
       b = { x: x1 - m, y: y1 - m, w: x2 - x1 + 2 * m, h: y2 - y1 + 2 * m };
       break;
     }
@@ -463,7 +535,17 @@ const angleAt = (a, b, c) => {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
-export function recognizeShape(stroke) {
+// opções do "tinta vira forma" (P15, 15/10/2026); sem opção, vale o comportamento de antes
+export const FORMA_OPC = { linha: true, elipse: true, retangulo: true, poligono: true, angulos: false, circulo: false, quadrado: false };
+const ANG_PASSO = 45, ANG_TOL = 7;   // retas presas a 0°, 45°, 90°… quando o traço passa a menos de 7° disso
+function prendeAngulo(sx, sy, ex, ey) {
+  const L = Math.hypot(ex - sx, ey - sy), a = Math.atan2(ey - sy, ex - sx) * 180 / Math.PI, alvo = Math.round(a / ANG_PASSO) * ANG_PASSO;
+  if (Math.abs(a - alvo) > ANG_TOL) return [ex, ey];
+  const r = alvo * Math.PI / 180;
+  return [sx + L * Math.cos(r), sy + L * Math.sin(r)];
+}
+export function recognizeShape(stroke, opc = FORMA_OPC) {
+  const O = { ...FORMA_OPC, ...opc };
   const p = stroke.pts, n = p.length / 3;
   if (n < 6) return null;
   const pts = [];
@@ -476,7 +558,11 @@ export function recognizeShape(stroke) {
   const [sx, sy] = pts[0], [ex, ey] = pts[n - 1];
   const gap = Math.hypot(ex - sx, ey - sy);
   const base = { id: stroke.id, type: 'shape', color: stroke.color, width: stroke.width, fill: null };
-  if (gap / len > 0.94) return { ...base, kind: stroke.arrow ? 'arrow' : 'line', x1: sx, y1: sy, x2: ex, y2: ey };
+  if (gap / len > 0.94) {
+    if (!O.linha) return null;
+    const [fx, fy] = O.angulos ? prendeAngulo(sx, sy, ex, ey) : [ex, ey];
+    return { ...base, kind: stroke.arrow ? 'arrow' : 'line', x1: sx, y1: sy, x2: fx, y2: fy };
+  }
   if (gap > diag * 0.25) return null; // aberto e não reto: deixa como está
 
   let v = rdp(pts, diag * 0.07);
@@ -491,22 +577,25 @@ export function recognizeShape(stroke) {
     }
   }
   const x = b.x, y = b.y, w = b.w, h = b.h;
+  // quase quadrado/círculo vira perfeito (lado = média), centrado no desenho
+  const perfeito = () => { const m = (w + h) / 2; return { x1: x + w / 2 - m / 2, y1: y + h / 2 - m / 2, x2: x + w / 2 + m / 2, y2: y + h / 2 + m / 2 }; };
+  const quase = Math.abs(w - h) / Math.max(w, h) < 0.18;
   // elipse: raio normalizado constante?
   const cx = x + w / 2, cy = y + h / 2;
   let err = 0;
   for (const [px, py] of pts) err += Math.abs(Math.hypot((px - cx) / (w / 2), (py - cy) / (h / 2)) - 1);
   err /= pts.length;
-  const ellipse = { ...base, kind: 'ellipse', x1: x, y1: y, x2: x + w, y2: y + h };
+  const ellipse = O.elipse ? { ...base, kind: 'ellipse', x1: x, y1: y, x2: x + w, y2: y + h, ...(O.circulo && quase ? perfeito() : {}) } : null;
   if (err < 0.09) return ellipse;
-  if (v.length === 3) return { ...base, kind: 'polygon', pts: v.flat() };
+  if (v.length === 3) return O.poligono ? { ...base, kind: 'polygon', pts: v.flat() } : null;
   if (v.length === 4) {
     const axis = v.every((q, i) => {
       const r = v[(i + 1) % 4];
       const a = Math.abs(Math.atan2(r[1] - q[1], r[0] - q[0]) * 180 / Math.PI) % 90;
       return a < 15 || a > 75;
     });
-    if (axis) return { ...base, kind: 'rect', x1: x, y1: y, x2: x + w, y2: y + h };
-    return { ...base, kind: 'polygon', pts: v.flat() };
+    if (axis) return O.retangulo ? { ...base, kind: 'rect', x1: x, y1: y, x2: x + w, y2: y + h, ...(O.quadrado && quase ? perfeito() : {}) } : null;
+    return O.poligono ? { ...base, kind: 'polygon', pts: v.flat() } : null;
   }
   return err < 0.2 ? ellipse : null;
 }

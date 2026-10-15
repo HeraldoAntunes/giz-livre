@@ -15,7 +15,7 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 
 - **Grátis e livre:** licença [MIT](LICENSE). Use, copie e distribua à vontade, inclusive em escolas e redes de ensino.
 - **Sem internet, sem conta, sem anúncios:** os quadros ficam só no seu computador.
-- **Versão do código:** 1.2.2 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
+- **Versão do código:** 1.3.0 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
 
 > **Aviso:** projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de qualquer
 > tipo**. Faça backup dos seus quadros. Não há vínculo com a Microsoft, a Wacom nem outras marcas citadas.
@@ -70,7 +70,7 @@ certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
   - **plotar função** (digite `x^2 - 4` e o gráfico aparece no plano cartesiano);
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
   - **fórmulas LaTeX**;
-  - **tabela periódica** colorida (em Formas → Química → Especiais) e vidrarias (em Formas → Laboratório).
+  - **tabela periódica** colorida (em Formas → Química → Especiais) e vidrarias (em Formas → Laboratório de Química).
 - **Biblioteca de formas técnicas**, com **3.379 formas em 29 disciplinas**, desenhadas para o Giz Livre, com
   "⚑ Mais usadas" em cada disciplina, "↺ Recentes" e busca:
   - **gerais:** fluxograma, setas e conectores, ícones para aula;

@@ -1,6 +1,7 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Geografia (prefixo 'geo-'): desenhos próprios, à mão; contornos de continentes e do Brasil são SIMPLIFICADOS (poucos pontos, didáticos).
 import { T, head } from './base.js';
+import { BRASIL_UF, BR_REG_DIV, BR_UF_DIV, BR_REG_ROT, BR_UF_ROT, BRASIL_NE, AM_SUL_NE, AM_NORTE_NE, AFRICA_NE, EUROPA_NE, ASIA_NE, OCEANIA_NE, ANTARTIDA_NE, MUNDO_NE } from './geo-contornos.js';
 
 const f = n => +(+n).toFixed(1);
 const fino = (d, w = 1.6) => `<path stroke-width="${w}" d="${d}"/>`;
@@ -113,6 +114,9 @@ const encaixe = (polis, W, H, cosLat = 1, m = 5) => {
   const s = Math.min((W - 2 * m) / sx, (H - 2 * m) / sy), ox = (W - sx * s) / 2, oy = (H - sy * s) / 2;
   return ll => { const [x, y] = pr(ll); return [ox + (x - x0) * s, oy + (y - y0) * s]; };
 };
+// polígonos em linha reta (para contornos fiéis, sem suavização)
+const linhaReta = (polis, P) => polis.map(pl => 'M' + pl.map(P).map(q => q.map(f).join(',')).join(' L') + ' Z').join(' ');
+const preciso = (polis, W, H, cosLat = 1) => `<path stroke-width="1.6" stroke-linejoin="round" d="${linhaReta(polis, encaixe(polis, W, H, cosLat))}"/>`;
 const contorno = (polis, W, H, cosLat = 1) => {
   const P = encaixe(polis, W, H, cosLat);
   return `<path stroke-width="2" d="${polis.map(pl => suave(pl.map(P), true, 10)).join(' ')}"/>`;
@@ -431,6 +435,40 @@ const SECOES = [
       fino('M50,60 Q80,4 120,50 M120,50 Q170,80 130,112 M50,60 Q10,100 70,122 M70,122 Q100,150 130,112 M50,60 Q90,90 130,112', 1.8) + [[50, 60], [120, 50], [70, 122], [130, 112]].map(([x, y]) => ponto(x, y, 4.5)).join('')],
     ['geo-centro-periferia', 'Centro e periferia', 220, 150, `<circle cx="110" cy="75" r="30"/>` + t14(110, 75, 'centro') + [[30, 30], [190, 30], [30, 120], [190, 120]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="14" stroke-width="2"/>` + t14(x, y, 'P')).join('') +
       seta(44, 36, 84, 58, 1.6, 9) + seta(176, 36, 136, 58, 1.6, 9) + seta(84, 92, 44, 114, 1.6, 9) + seta(136, 92, 176, 114, 1.6, 9)],
+  ]],
+  // contornos fiéis (Natural Earth 1:50m, domínio público), em linha reta ponto a ponto, sem suavizar (15/10/2026)
+  ['Contornos (precisos)', [
+    ['geo-brasil-preciso', 'Brasil (contorno preciso)', 200, 200, preciso(BRASIL_NE, 200, 200, 0.98)],
+    ['geo-brasil-regioes-preciso', 'Brasil: regiões (preciso)', 200, 200, (() => {
+      const P = encaixe(BRASIL_UF, 200, 200, 0.98);
+      return `<path stroke-width="1.8" stroke-linejoin="round" d="${linhaReta(BRASIL_UF, P)}"/>`
+        + BR_REG_DIV.map(l => `<path stroke-width="1.4" stroke-dasharray="5 3" d="M${l.map(P).map(q => q.map(f).join(',')).join(' L')}"/>`).join('')
+        + BR_REG_ROT.map(([s, lo, la]) => { const [x, y] = P([lo, la]); return T(f(x), f(y), s, 15); }).join('');
+    })()],
+    ['geo-brasil-estados-preciso', 'Brasil: estados (preciso)', 240, 240, (() => {
+      const P = encaixe(BRASIL_UF, 240, 240, 0.98);
+      return `<path stroke-width="1.8" stroke-linejoin="round" d="${linhaReta(BRASIL_UF, P)}"/>`
+        + BR_UF_DIV.map(l => `<path stroke-width="0.9" d="M${l.map(P).map(q => q.map(f).join(',')).join(' L')}"/>`).join('')
+        + BR_UF_ROT.map(([s, lo, la]) => { const [x, y] = P([lo, la]); return T(f(x), f(y), s, ['DF', 'SE', 'AL', 'PB', 'RN', 'ES', 'RJ'].includes(s) ? 6.5 : 8.5); }).join('');
+    })()],
+    ['geo-america-sul-precisa', 'América do Sul (precisa)', 150, 200, preciso(AM_SUL_NE, 150, 200, 0.94)],
+    ['geo-america-norte-precisa', 'América do Norte e Central (precisa)', 210, 200, preciso(AM_NORTE_NE, 210, 200, 0.55)],
+    ['geo-africa-precisa', 'África (precisa)', 180, 196, preciso(AFRICA_NE, 180, 196, 1)],
+    ['geo-europa-precisa', 'Europa (precisa)', 210, 180, preciso(EUROPA_NE, 210, 180, 0.62)],
+    ['geo-asia-precisa', 'Ásia (precisa)', 240, 200, preciso(ASIA_NE, 240, 200, 0.75)],
+    ['geo-oceania-precisa', 'Oceania (precisa)', 220, 170, preciso(OCEANIA_NE, 220, 170, 0.9)],
+    ['geo-antartida-precisa', 'Antártida (vista polar, precisa)', 180, 180, (() => {
+      // projeção polar azimutal; os pontos da costura em 180° e no polo (lat < -84,5) ficam de fora
+      const P = ([lo, la]) => { const r = (90 + la) * 3.2, a = lo * Math.PI / 180; return [90 + r * Math.sin(a), 90 - r * Math.cos(a)]; };
+      const d = ANTARTIDA_NE.map(pl => pl.filter(([, la]) => la > -84.5)).filter(pl => pl.length > 3)
+        .map(pl => 'M' + pl.map(P).map(q => q.map(f).join(',')).join(' L') + ' Z').join(' ');
+      return `<path stroke-width="1.6" stroke-linejoin="round" d="${d}"/>` + ponto(90, 90, 3) + trac('M90,4 V176 M4,90 H176', 1, '2 5');
+    })()],
+    ['geo-planisferio-preciso', 'Planisfério (preciso)', 300, 150, (() => {
+      const P = encaixe([[[-180, 84], [180, -90]]], 300, 150, 1, 3);
+      return `<path stroke-width="1.1" stroke-linejoin="round" d="${linhaReta(MUNDO_NE, P)}"/>` +
+        `<rect x="3" y="3" width="294" height="144" stroke-width="1.2"/>` + trac(`M3,${f(P([0, 0])[1])} H297`, 1, '4 4');
+    })()],
   ]],
   ['Contornos (simplificados)', [
     ['geo-brasil', 'Brasil (contorno simplificado)', 200, 200, contorno([BRASIL], 200, 200, 0.98)],

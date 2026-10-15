@@ -29,7 +29,7 @@ import { paginasEscolhidas, slideItems, uploadAsset } from './importer.js';
 import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk, draggable } from './tools.js';
 import { svgDataUrl } from './library.js';
 import { ESPECIAIS } from './especiais.js';   // elementos didáticos coloridos (menu Formas → Especiais)
-import { initBars, placeAll as placeBars, resetBars, resetBar } from './bars.js';
+import { initBars, placeAll as placeBars, resetBars, resetBar, recolhivelDeNovo } from './bars.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
 import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas } from './disciplinas.js';
 
@@ -49,14 +49,53 @@ const COR_NOME = {
   '#ffc8dd': 'Rosa', '#d9c9ff': 'Lilás', '#c4e3ff': 'Azul-claro', '#c9f2c7': 'Verde-claro',
 };
 const corNome = c => COR_NOME[String(c).toLowerCase()] || c;
-const HL_WIDTHS = [12, 20, 30, 44];
+const HL_WIDTHS = [12, 20, 30, 44, 64, 90];
+// ponteiro laser configurável (P11, 15/10/2026): cor, tamanho, tempo do rastro e formato
+const LASER_PAD = { cor: '#e81224', tam: 1, rastro: 900, forma: 'ponto' };
+const LASER_CORES = ['#e81224', '#16c60c', '#0078d4', '#ffb900', '#886ce4', '#e3008c', '#000000', '#ffffff'];
+const LASER_RASTROS = [['Sem rastro', 0], ['Curto', 450], ['Normal', 900], ['Longo', 2500], ['Muito longo', 6000]];
+const LASER_FORMAS = [['ponto', 'Ponto brilhante'], ['anel', 'Anel'], ['mira', 'Mira'], ['seta', 'Seta']];
+const lz = () => ({ ...LASER_PAD, ...(cfg.laser || {}) });
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
 const DEFAULT_TOOLS = {
   pen0: { color: '#000000', width: 3, arrow: false },
   pen1: { color: '#e81224', width: 3, arrow: false },
   pen2: { color: '#0078d4', width: 3, arrow: false },
   pen3: { color: '#16c60c', width: 3, arrow: false },
   highlighter: { color: '#fff100', width: 20 },
+  // canetas e marca-textos extras (P16, 15/10/2026): aparecem na barra quando o professor os adiciona
+  pen4: { color: '#f7630c', width: 3, arrow: false }, pen5: { color: '#886ce4', width: 3, arrow: false },
+  pen6: { color: '#8e562e', width: 3, arrow: false }, pen7: { color: '#7a7574', width: 3, arrow: false },
+  hl2: { color: '#4cc2ff', width: 20 }, hl3: { color: '#ff8cd9', width: 20 },
 };
+const MAX_PENS = 8, MAX_HLS = 3;
+// estojos (P18/P19, 15/10/2026): conjuntos de canetas que o professor troca conforme a aula
+const PEN_KEYS = ['pen0', 'pen1', 'pen2', 'pen3', 'pen4', 'pen5', 'pen6', 'pen7', 'highlighter', 'hl2', 'hl3'];
+const giz = c => ({ color: c, width: 6, arrow: false, style: 'giz' });   // canetas da lousa verde já vêm com o estilo Giz
+const tr = (color, width = 3, extra = {}) => ({ color, width, arrow: false, ...extra });
+const comBase = over => ({ ...Object.fromEntries(PEN_KEYS.map(k => [k, DEFAULT_TOOLS[k]])), ...over });
+// fundo: cor do quadro; folha: tipo de folha (P40). A textura 'lousa' (P30) ficou só como opção no menu Folha e fundo (P39).
+const ESTOJOS_FABRICA = [
+  { id: 'padrao', nome: 'Padrão (quadro branco)', tools: comBase({}), nPens: 4, nHls: 1 },
+  { id: 'quadro-negro', nome: 'Lousa verde (giz)', fundo: '#20402f', nPens: 5, nHls: 1,
+    tools: comBase({ pen0: giz('#f4f1e8'), pen1: giz('#ffe36e'), pen2: giz('#8fd3ff'), pen3: giz('#ff9fb2'), pen4: giz('#a8e6a1'), highlighter: { color: '#fff100', width: 20 } }) },
+  // P31 (15/10/2026): mais 5 estojos de fábrica
+  { id: 'ardosia', nome: 'Ardósia (giz na lousa cinza)', fundo: '#2e3436', nPens: 5, nHls: 1,
+    tools: comBase({ pen0: giz('#f2f2ee'), pen1: giz('#ffd166'), pen2: giz('#ff9a76'), pen3: giz('#7fc8f8'), pen4: giz('#c3f584') }) },
+  { id: 'projetor', nome: 'Projetor (traço grosso)', nPens: 5, nHls: 1,
+    tools: comBase({ pen0: tr('#000000', 5), pen1: tr('#d50000', 5), pen2: tr('#0047ab', 5), pen3: tr('#00873e', 5), pen4: tr('#e65100', 5), highlighter: { color: '#fff100', width: 30 } }) },
+  { id: 'cores-seguras', nome: 'Cores seguras (daltonismo)', nPens: 6, nHls: 1,
+    tools: comBase({ pen0: tr('#000000'), pen1: tr('#0072b2'), pen2: tr('#d55e00'), pen3: tr('#009e73'), pen4: tr('#e69f00'), pen5: tr('#cc79a7'), highlighter: { color: '#f0e442', width: 20 } }) },
+  { id: 'tecnico', nome: 'Desenho técnico (traço fino)', nPens: 5, nHls: 1,
+    tools: comBase({ pen0: tr('#000000', 1.5), pen1: tr('#0050a0', 1.5), pen2: tr('#c50f1f', 1.5), pen3: tr('#000000', 3), pen4: tr('#7a7574', 1.5), highlighter: { color: '#fff100', width: 12 } }) },
+  { id: 'caderno', nome: 'Caderno (lápis, marcador e aquarela)', folha: 'notebook', nPens: 6, nHls: 1,
+    tools: comBase({ pen0: tr('#3c3c3c', 3, { style: 'pencil' }), pen1: tr('#b71c1c', 3, { style: 'pencil' }),
+      pen2: tr('#1565c0', 5, { style: 'marker', nib: 30 }), pen3: tr('#2e7d32', 5, { style: 'marker', nib: 30 }),
+      pen4: tr('#f9a825', 12, { style: 'watercolor' }), pen5: tr('#8e24aa', 12, { style: 'watercolor' }) }) },
+];
+const estojos = () => [...ESTOJOS_FABRICA, ...(cfg.estojos || [])];
+const canetasAtuais = () => ({ tools: Object.fromEntries(PEN_KEYS.map(k => [k, structuredClone(cfg.tools[k])])), nPens: cfg.nPens || 4, nHls: cfg.nHls || 1 });
+const mesmaCor = (a, b) => PEN_KEYS.every(k => a.tools[k]?.color === b.tools[k]?.color && a.tools[k]?.width === b.tools[k]?.width);
 const RULER_LEN = 1000, RULER_TH = 96; // px de tela
 
 let cfg = loadCfg();
@@ -101,7 +140,13 @@ const $ = id => document.getElementById(id);
 const toWorld = (sx, sy) => ({ x: (sx - S.view.x) / S.view.zoom, y: (sy - S.view.y) / S.view.zoom });
 const toScreen = (wx, wy) => ({ x: wx * S.view.zoom + S.view.x, y: wy * S.view.zoom + S.view.y });
 const byId = id => S.items.find(i => i.id === id);
+// camada de rascunho (P25, versão simples, 15/10/2026): o que se escreve com o modo ligado ganha camada 'rascunho';
+// com o rascunho oculto, esses itens não aparecem, não são tocados, apagados nem exportados (continuam salvos)
+let noRascunho = false;
+const oculto = it => it.camada === 'rascunho' && !!S?.board.rascunhoOculto;
+const visiveis = () => S.items.filter(i => !oculto(i));
 const isPen = t => t.startsWith('pen');
+const isHl = t => t === 'highlighter' || /^hl\d$/.test(t);   // marca-texto principal e os extras (hl2, hl3)
 
 // ================= inicialização =================
 export function initEditor() {
@@ -119,14 +164,21 @@ export function initEditor() {
   ov.addEventListener('contextmenu', e => e.preventDefault());
   ov.addEventListener('dblclick', onDblClick);
 
-  document.querySelectorAll('#inkbar [data-tool]').forEach(b => b.addEventListener('click', () => toolClick(b)));
+  montaCanetas();
+  montaDrawBar();
+  montaRascBar();
+  $('bCollapseAll').onclick = () => setClean(true);
+  document.querySelectorAll('#inkbar [data-tool]:not(.pen)').forEach(b => b.addEventListener('click', () => toolClick(b)));
   $('tRuler').onclick = toggleRuler;
-  $('tInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta vira forma: ligado' : 'Tinta vira forma: desligado (desenho livre)'); };
+  $('tInkShape').onclick = () => inkShapePop($('tInkShape'));
   $('tBeautify').onclick = () => beautyPop($('tBeautify'));
   $('tPaper').onclick = () => bgPop($('tPaper'));
+  $('tRascunho').onclick = () => { cfg.rascBar = !cfg.rascBar; saveCfg(); montaRascBar(); };
   $('tTools').onclick = () => toolsPop($('tTools'));
   initStrip();
   initPagesUI();
+  // imagem pronta vinda das caixas flutuantes (ex.: calendário do mês, 'Pôr no quadro')
+  addEventListener('giz:inserir-imagem', e => inserirImagemPronta(e.detail));
   document.querySelectorAll('#createbar [data-create]').forEach(b => b.addEventListener('click', () => createClick(b)));
   document.querySelectorAll('#selbar [data-sel]').forEach(b => b.addEventListener('click', () => selAction(b.dataset.sel, b)));
 
@@ -190,7 +242,7 @@ export function openBoard(id, board, back) {
   S = { id, board, items, view };
   dirtyVer = pending?.ver || 0; savedVer = pending ? -1 : 0;
   if (pending) pending.state = S;
-  undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null;
+  undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null; noRascunho = false;
   stopPlotAnim(); spotOff();
   $('bTitle').value = board.title === 'Sem título' ? '' : board.title;
   $('bTitle').title = board.title;
@@ -203,8 +255,65 @@ export function openBoard(id, board, back) {
   syncToolbar();
   updateUndo();
   buildTeachBar();
+  montaRascBar();
   placeBars();
   requestRender();
+  if (board.novo) {
+    delete board.novo;
+    const ini = board.estojo && estojos().find(e => e.id === board.estojo);
+    delete board.estojo;
+    scheduleSave();   // grava sem as marcas de quadro novo
+    if (ini) usarEstojo(ini, false);
+    else if (!mesmaCor(canetasAtuais(), ESTOJOS_FABRICA[0])) perguntaCanetas();
+  }
+}
+
+// quadro novo com canetas trocadas: pergunta discreta (some sozinha), sem travar o professor
+function perguntaCanetas() {
+  document.querySelector('.estojo-aviso')?.remove();
+  const el = document.createElement('div');
+  el.className = 'estojo-aviso';
+  el.innerHTML = `<span>Quadro novo: as canetas continuam como no último quadro.</span>
+    <button class="btn" data-a="manter">Manter</button><button class="btn" data-a="padrao">Voltar ao padrão</button><button class="btn" data-a="estojo">Estojos…</button>`;
+  $('board').appendChild(el);
+  const fecha = () => { el.remove(); clearTimeout(t); };
+  const t = setTimeout(fecha, 12000);
+  el.querySelector('[data-a="manter"]').onclick = fecha;
+  el.querySelector('[data-a="padrao"]').onclick = () => { fecha(); usarEstojo(ESTOJOS_FABRICA[0], false); };
+  el.querySelector('[data-a="estojo"]').onclick = () => { fecha(); estojoPop(document.querySelector('#inkbar .estojo-btn')); };
+}
+
+// troca as canetas pelas do estojo; comFundo: também muda a cor do fundo do quadro (se o estojo tiver uma)
+function usarEstojo(e, comFundo = true) {
+  for (const k of PEN_KEYS) if (e.tools[k]) cfg.tools[k] = structuredClone(e.tools[k]);
+  cfg.nPens = e.nPens || 4; cfg.nHls = e.nHls || 1; cfg.estojoAtual = e.id;
+  if (!isPen(tool) && !isHl(tool)) tool = 'pen0';
+  // P37: o fundo muda ANTES de redesenhar a barra (a cor mostrada de cada caneta depende de a lousa ser escura).
+  // Estojo sem fundo próprio, saindo de um fundo de estojo (lousa verde, ardósia…), volta ao quadro branco.
+  // P40: a folha do estojo segue a mesma opção; ao sair, só volta a lisa se a folha atual veio de um estojo
+  // (bg.folhaEstojo); folha escolhida à mão fica.
+  const bg = S.board.background, alvo = {};
+  if (e.fundo) { alvo.color = e.fundo; if (e.textura) alvo.textura = e.textura; }
+  else if (estojos().some(x => x.fundo && x.fundo === bg.color)) alvo.color = '#ffffff';
+  if (e.folha) {
+    if (bg.pattern !== e.folha) {
+      alvo.pattern = e.folha;
+      if (PAPER.ANCHORED.has(e.folha)) { const c = toWorld(W / 2, H / 2); alvo.origin = { x: Math.round(c.x), y: Math.round(c.y) }; }
+    }
+    alvo.folhaEstojo = e.folha;
+  } else if (bg.folhaEstojo) {
+    if (bg.pattern === bg.folhaEstojo) alvo.pattern = 'none';
+    alvo.folhaEstojo = undefined;
+  }
+  const muda = Object.keys(alvo).some(k => bg[k] !== alvo[k]);
+  if (muda && (comFundo || S.items.length === 0)) {
+    undoStack.push(histEntry()); redoStack = [];
+    S.board.background = { ...bg, ...alvo };
+    if (!S.board.background.folhaEstojo) delete S.board.background.folhaEstojo;
+    updateUndo(); requestRender(); scheduleSave();
+  }
+  saveCfg(); montaCanetas(); syncToolbar();
+  toast(`Estojo: ${e.nome}`);
 }
 
 // gancho de depuração (testes automatizados)
@@ -292,7 +401,7 @@ function drawStatic(clip) {
   if (beautyAnim) { ta = (performance.now() - beautyAnim.t0) / 160; if (ta >= 1) { beautyAnim = null; ta = 1; } }
   const ease = 1 - (1 - ta) ** 3;
   for (const raw of S.items) {
-    if (erased?.has(raw.id)) continue;
+    if (erased?.has(raw.id) || oculto(raw)) continue;
     let it = previewItem(raw);
     if (!R.boxesTouch(R.bbox(it), vis)) continue;
     if (slides?.size) R.setDarkBackground(!slides.has(PG.pageOf(L, it)));
@@ -383,23 +492,27 @@ function drawOverlay() {
   }
   // rastro do laser
   if (laser.length) {
-    const now = performance.now();
-    laser = laser.filter(p => now - p.t < 900);
+    const now = performance.now(), L = lz(), dur = L.rastro, k = L.tam;
+    laser = laser.filter(p => now - p.t < Math.max(dur, 130));
     octx.save();
     octx.lineCap = octx.lineJoin = 'round';
-    for (let i = 1; i < laser.length; i++) {
+    if (dur > 0) for (let i = 1; i < laser.length; i++) {
       const a = laser[i - 1], b = laser[i];
       if (b.t - a.t > 200 || b.brk) continue;
-      const age = Math.min(1, (now - b.t) / 900);
-      octx.strokeStyle = `rgba(232,18,36,${(1 - age) * 0.9})`;
-      octx.lineWidth = (6 * (1 - age) + 2) / v.zoom;
+      const age = Math.min(1, (now - b.t) / dur);
+      octx.strokeStyle = rgba(L.cor, (1 - age) * 0.9);
+      octx.lineWidth = (6 * (1 - age) + 2) * k / v.zoom;
       octx.beginPath(); octx.moveTo(a.x, a.y); octx.lineTo(b.x, b.y); octx.stroke();
     }
     const last = laser[laser.length - 1];
     if (last && now - last.t < 120) {
-      octx.shadowColor = '#ff2d2d'; octx.shadowBlur = 16;
-      octx.fillStyle = '#ff3b3b';
-      octx.beginPath(); octx.arc(last.x, last.y, 7 / v.zoom, 0, Math.PI * 2); octx.fill();
+      const r = 7 * k / v.zoom;
+      octx.shadowColor = L.cor; octx.shadowBlur = 16 * k;
+      octx.fillStyle = L.cor; octx.strokeStyle = L.cor; octx.lineWidth = 2.5 * k / v.zoom;
+      if (L.forma === 'anel') { octx.beginPath(); octx.arc(last.x, last.y, r * 1.6, 0, Math.PI * 2); octx.stroke(); octx.beginPath(); octx.arc(last.x, last.y, r * 0.35, 0, Math.PI * 2); octx.fill(); }
+      else if (L.forma === 'mira') { const d = r * 2.2; octx.beginPath(); octx.moveTo(last.x - d, last.y); octx.lineTo(last.x - r * .6, last.y); octx.moveTo(last.x + r * .6, last.y); octx.lineTo(last.x + d, last.y); octx.moveTo(last.x, last.y - d); octx.lineTo(last.x, last.y - r * .6); octx.moveTo(last.x, last.y + r * .6); octx.lineTo(last.x, last.y + d); octx.stroke(); }
+      else if (L.forma === 'seta') { const s = r * 3; octx.beginPath(); octx.moveTo(last.x, last.y); octx.lineTo(last.x + s * .35, last.y + s); octx.lineTo(last.x + s * .5, last.y + s * .55); octx.lineTo(last.x + s, last.y + s * .45); octx.closePath(); octx.fill(); }
+      else { octx.beginPath(); octx.arc(last.x, last.y, r, 0, Math.PI * 2); octx.fill(); }
     }
     octx.restore();
   }
@@ -418,6 +531,13 @@ function drawOverlay() {
   }
   drawShades();
   drawZoomLens();
+  if (isHl(tool) && cfg.hlPrevia && hover && !spaceDown && action?.type !== 'draw') {
+    const c = cfg.tools.highlighter, w = c.width;
+    octx.save();
+    octx.fillStyle = rgba(c.color, 0.35); octx.strokeStyle = 'rgba(0,0,0,.45)'; octx.lineWidth = 1; octx.setLineDash([4, 3]);
+    octx.beginPath(); octx.roundRect(hover.x - w / 2, hover.y - w / 2, w, w, w * 0.15); octx.fill(); octx.stroke();
+    octx.restore();
+  }
   if ((tool === 'eraser' || action?.type === 'erase') && hover && !spaceDown) {
     octx.save();
     octx.strokeStyle = '#605e5c'; octx.fillStyle = 'rgba(255,255,255,0.6)'; octx.lineWidth = 1.5;
@@ -463,7 +583,7 @@ function drawSelection() {
   bar.querySelector('[data-sel="beautify"]').hidden = ![...sel].some(id => { const it = byId(id); return it && canBeautify(it); });
   bar.querySelector('[data-sel="original"]').hidden = ![...sel].some(id => byId(id)?.orig || byId(id)?.ink);
   bar.querySelector('[data-sel="ocr"]').hidden = serverInfo().ocr === false || ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
-  bar.querySelector('[data-sel="font"]').hidden = ![...sel].some(id => byId(id)?.type === 'text');
+  bar.querySelector('[data-sel="font"]').hidden = ![...sel].some(id => ['text', 'note'].includes(byId(id)?.type));
   const grps = new Set([...sel].map(id => byId(id)?.grp || ''));
   bar.querySelector('[data-sel="group"]').hidden = sel.size < 2 || (grps.size === 1 && !grps.has(''));
   bar.querySelector('[data-sel="ungroup"]').hidden = ![...grps].some(Boolean);
@@ -533,15 +653,23 @@ function syncToolbar() {
     b.classList.toggle('active', t === tool);
     if (b.classList.contains('pen')) {
       const c = cfg.tools[t];
-      b.innerHTML = penIcon(t === 'highlighter' ? c.color : inkShown(c.color), t === 'highlighter' ? 'highlighter' : 'pen');
-      b.title = t === 'highlighter' ? 'Marca-texto (H): toque de novo para cor e espessura' : `Caneta ${+t.slice(3) + 1} (tecla ${+t.slice(3) + 1}): toque de novo para cor e espessura`;
+      b.innerHTML = penIcon(isHl(t) ? c.color : inkShown(c.color), isHl(t) ? 'highlighter' : 'pen');
+      b.title = t === 'highlighter' ? 'Marca-texto (H): toque de novo para cor e espessura'
+        : isHl(t) ? `Marca-texto ${t.slice(2)}: toque de novo para cor e espessura`
+        : `Caneta ${+t.slice(3) + 1}${+t.slice(3) < 9 ? ` (tecla ${+t.slice(3) + 1})` : ''}: toque de novo para cor e espessura`;
     }
   });
   $('tRuler').classList.toggle('on', !!ruler);
   $('tInkShape').classList.toggle('on', cfg.inkShape);
   $('tBeautify').classList.toggle('on', !!cfg.tablet.beautify);
+  $('tRascunho').classList.toggle('on', noRascunho || !!cfg.rascBar);
+  syncRascBar();
+  $('tRascunho').classList.toggle('rasc-oculto', !!S?.board.rascunhoOculto);
+  $('board').classList.toggle('no-rascunho', noRascunho);
   document.querySelectorAll('#createbar [data-create]').forEach(b =>
-    b.classList.toggle('on', (b.dataset.create === 'text' && tool === 'text') || (b.dataset.create === 'shapes' && tool === 'shape')));
+    b.classList.toggle('on', (b.dataset.create === 'text' && tool === 'text') || (b.dataset.create === 'draw' && mostraDrawBar())));
+  document.querySelectorAll('#drawbar [data-k]').forEach(b => b.classList.toggle('active', tool === 'shape' && b.dataset.k === shapeKind));
+  document.querySelector('#drawbar [data-fill]')?.classList.toggle('on', !!cfg.shapeFill);
   setCursor();
   syncPresentBar();
   syncTeachBar();
@@ -549,7 +677,7 @@ function syncToolbar() {
 
 function setTool(t) {
   if (t !== 'compass') compassSt = null;
-  if (t !== tool && (isPen(t) || t === 'highlighter' || t === 'eraser' || t === 'laser')) clearSel();
+  if (t !== tool && (isPen(t) || isHl(t) || t === 'eraser' || t === 'laser')) clearSel();
   tool = t;
   saveCfg();
   syncToolbar();
@@ -558,15 +686,112 @@ function setTool(t) {
 
 function setCursor(state) {
   if (!ov) return;
-  let c = 'c-' + (state || ({ select: 'select', lasso: 'select', text: 'text', eraser: 'eraser' }[tool] || 'draw'));
+  let c = 'c-' + (state || ({ select: 'select', lasso: 'select', text: 'text', eraser: 'eraser', hand: 'pan' }[tool] || 'draw'));
   if (spaceDown && !state) c = 'c-pan';
   ov.className = c;
 }
 
+// botões de caneta e marca-texto na barra: 4 + 1 de fábrica; o professor pode adicionar até 8 canetas e 3 marca-textos
+function montaCanetas() {
+  const bar = $('inkbar');
+  bar.querySelectorAll('.pen, .pen-add, .estojo-btn').forEach(b => b.remove());
+  const np = Math.max(4, Math.min(MAX_PENS, cfg.nPens || 4)), nh = Math.max(1, Math.min(MAX_HLS, cfg.nHls || 1));
+  const ts = [...Array(np).keys()].map(i => 'pen' + i).concat(['highlighter'], [...Array(nh - 1).keys()].map(i => 'hl' + (i + 2)));
+  const ref = bar.querySelector('.sep');
+  for (const tt of ts) {
+    const b = Object.assign(document.createElement('button'), { className: 'pen' });
+    b.dataset.tool = tt;
+    b.addEventListener('click', () => toolClick(b));
+    bar.insertBefore(b, ref);
+  }
+  const add = Object.assign(document.createElement('button'), { className: 'ib pen-add', title: 'Adicionar ou tirar canetas e marca-textos da barra', innerHTML: ICON.plus });
+  add.onclick = () => canetasPop(add);
+  bar.insertBefore(add, ref);
+  // P33: o estojo tem botão próprio, com nome, em vez de ficar escondido no "+"
+  const est = Object.assign(document.createElement('button'), { className: 'ib estojo-btn',
+    title: 'Estojos: trocar todas as canetas de uma vez (quadro branco, giz, projetor, lápis…)', innerHTML: ICON.estojo + '<small>Estojo</small>' });
+  est.onclick = () => estojoPop(est);
+  bar.insertBefore(est, ref);
+  if (!ts.includes(tool) && (isPen(tool) || isHl(tool))) tool = 'pen0';
+}
+function canetasPop(anchor) {
+  const np = cfg.nPens || 4, nh = cfg.nHls || 1;
+  showPop(anchor, `<h4>Canetas na barra</h4>
+    <div class="row"><span style="flex:1">Canetas: <b>${np}</b> (até ${MAX_PENS})</span><button class="btn" data-a="p-" ${np <= 4 ? 'disabled' : ''}>−</button><button class="btn" data-a="p+" ${np >= MAX_PENS ? 'disabled' : ''}>+</button></div>
+    <div class="row"><span style="flex:1">Marca-textos: <b>${nh}</b> (até ${MAX_HLS})</span><button class="btn" data-a="h-" ${nh <= 1 ? 'disabled' : ''}>−</button><button class="btn" data-a="h+" ${nh >= MAX_HLS ? 'disabled' : ''}>+</button></div>
+    <small style="color:#666">Cada uma guarda a própria cor e espessura. Tirar da barra não apaga o que já foi escrito.</small>
+    <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn" data-a="estojos" title="Trocar todas as canetas de uma vez">${ICON.estojo} Estojos…</button></div>`, p => {
+    const muda = (k, d) => { cfg[k] = (cfg[k] || (k === 'nPens' ? 4 : 1)) + d; saveCfg(); montaCanetas(); syncToolbar(); hidePop(); canetasPop(anchor); };
+    p.querySelector('[data-a="p-"]').onclick = () => muda('nPens', -1);
+    p.querySelector('[data-a="p+"]').onclick = () => muda('nPens', 1);
+    p.querySelector('[data-a="h-"]').onclick = () => muda('nHls', -1);
+    p.querySelector('[data-a="h+"]').onclick = () => muda('nHls', 1);
+    p.querySelector('[data-a="estojos"]').onclick = () => { hidePop(); estojoPop(document.querySelector('#inkbar .estojo-btn') || anchor); };
+  });
+}
+
+// P32 (15/10/2026): menu de estojos em cartões, cada um com a prévia das canetas no fundo do próprio estojo
+function estojoPrevia(cv, e) {
+  const W = 200, H = 60, g = cv.getContext('2d'), fundo = e.fundo || '#ffffff';
+  cv.width = W * 2; cv.height = H * 2; g.setTransform(2, 0, 0, 2, 0, 0);
+  R.drawBackground(g, { color: fundo, textura: e.textura, pattern: e.folha || 'none', origin: { x: -60, y: -12 } }, { x: 0, y: 0, zoom: 0.6 }, W, H);
+  const n = Math.max(1, e.nPens || 4), passo = (W - 16) / n;
+  R.withDarkBackground(R.isDark(fundo), () => {
+    for (let i = 0; i < n; i++) {
+      const t = e.tools['pen' + i] || DEFAULT_TOOLS['pen' + i], x0 = 8 + i * passo + 3, ww = passo - 6, pts = [];
+      for (let j = 0; j <= 18; j++) { const u = j / 18; pts.push(x0 + u * ww, H * 0.44 - Math.sin(u * Math.PI * 2) * H * 0.2, 0.4 + 0.5 * Math.sin(u * Math.PI)); }
+      const s = { type: 'stroke', tool: 'pen', color: t.color, width: Math.min(5, Math.max(1.5, t.width * 0.7)), pts, pr: true, taper: true };
+      if (t.style && t.style !== 'normal') { s.style = t.style; s.nib = t.nib ?? (t.style === 'marker' ? 30 : 45); }
+      R.drawStroke(g, s);
+    }
+  });
+  const hlt = e.tools.highlighter || DEFAULT_TOOLS.highlighter;
+  g.globalAlpha = 0.45; g.fillStyle = hlt.color; g.fillRect(10, H - 11, W - 20, 6); g.globalAlpha = 1;
+}
+function estojoPop(anchor) {
+  const fab = new Set(ESTOJOS_FABRICA.map(e => e.id));
+  showPop(anchor, `<h4>Estojos de canetas</h4>
+    <small style="color:#666">Um toque troca as cores, as espessuras e os estilos de todas as canetas.</small>
+    <div class="est-grade">${estojos().map(e => `<div class="est-card${cfg.estojoAtual === e.id ? ' on' : ''}" data-u="${esc(e.id)}" role="button" tabindex="0" title="Usar o estojo ${esc(e.nome)}">
+      <canvas></canvas><div class="est-nome">${esc(e.nome)}</div>
+      <div class="est-tags">${cfg.estojoAtual === e.id ? '<span class="em-uso">Em uso</span>' : ''}${e.fundo ? '<span>Muda o fundo</span>' : ''}${e.folha ? '<span>Com folha</span>' : ''}${fab.has(e.id) ? '' : '<span>Meu</span>'}</div>
+      ${fab.has(e.id) ? '' : `<button class="ib est-del" data-del="${esc(e.id)}" title="Excluir este estojo">${ICON.trash}</button>`}</div>`).join('')}</div>
+    <label class="row"><input type="checkbox" id="estFundo" ${cfg.estojoFundo !== false ? 'checked' : ''}> Trocar também o fundo e a folha do quadro, quando o estojo tiver</label>
+    <h4>Guardar as canetas atuais</h4>
+    <div class="row"><input id="estNome" placeholder="Nome do estojo (ex.: Hidráulica)" maxlength="40" style="flex:1"><button class="btn" data-a="salvar" title="Guarda as cores, espessuras e estilos atuais das canetas com esse nome">Salvar</button></div>
+    <label class="row"><input type="checkbox" id="estComFundo"> Guardar junto a cor e a textura do fundo atual</label>`, p => {
+    p.classList.add('est-pop');
+    const lista = estojos();
+    p.querySelectorAll('.est-card').forEach(card => {
+      const e = lista.find(x => x.id === card.dataset.u);
+      estojoPrevia(card.querySelector('canvas'), e);
+      const usa = () => { hidePop(); usarEstojo(e, cfg.estojoFundo !== false); };
+      card.onclick = usa;
+      card.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); usa(); } };
+    });
+    p.querySelectorAll('[data-del]').forEach(x => x.onclick = ev => {
+      ev.stopPropagation();
+      cfg.estojos = (cfg.estojos || []).filter(e => e.id !== x.dataset.del); saveCfg(); hidePop(); estojoPop(anchor);
+    });
+    p.querySelector('#estFundo').onchange = ev => { cfg.estojoFundo = ev.target.checked; saveCfg(); };
+    const nome = p.querySelector('#estNome');
+    nome.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') p.querySelector('[data-a="salvar"]').click(); });
+    p.querySelector('[data-a="salvar"]').onclick = () => {
+      const n = nome.value.trim();
+      if (!n) { nome.focus(); return toast('Dê um nome ao estojo'); }
+      const e = { id: 'e' + Date.now().toString(36), nome: n, ...canetasAtuais() };
+      if (p.querySelector('#estComFundo').checked) { e.fundo = S.board.background.color; if (S.board.background.textura) e.textura = S.board.background.textura; }
+      cfg.estojos = [...(cfg.estojos || []), e]; cfg.estojoAtual = e.id; saveCfg();
+      hidePop(); estojoPop(anchor); toast(`Estojo "${n}" salvo`);
+    };
+  });
+}
+
 function toolClick(b) {
   const t = b.dataset.tool;
-  if (t === tool && (isPen(t) || t === 'highlighter')) return penPop(b, t);
+  if (t === tool && (isPen(t) || isHl(t))) return penPop(b, t);
   if (t === tool && t === 'eraser') return eraserPop(b);
+  if (t === tool && t === 'laser') return laserPop(b);
   hidePop();
   setTool(t);
 }
@@ -580,10 +805,11 @@ const CURSORS = [
 ];
 
 function penPop(anchor, t) {
-  const c = cfg.tools[t], hl = t === 'highlighter';
+  const c = cfg.tools[t], hl = isHl(t);
   const pal = hl ? HL_PALETTE : PALETTE, widths = hl ? HL_WIDTHS : PEN_WIDTHS;
   const recent = (cfg.recent || []).filter(x => !pal.includes(x)).slice(0, 8);
-  const styles = [['normal', 'Normal'], ['fountain', 'Tinteiro'], ['calligraphy', 'Caligrafia'], ['brush', 'Pincel']];
+  const styles = [['normal', 'Normal'], ['fountain', 'Tinteiro'], ['calligraphy', 'Caligrafia'], ['brush', 'Pincel'], ['giz', 'Giz'],
+    ['pencil', 'Lápis'], ['marker', 'Marcador'], ['watercolor', 'Aquarela']];
   const st = c.style || 'normal';
   showPop(anchor, `
     <canvas class="pen-prev" width="300" height="64"></canvas>
@@ -591,8 +817,9 @@ function penPop(anchor, t) {
     <div class="swatches" style="margin-top:6px">${recent.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="Usada há pouco: ${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}
       <label class="sw custom" title="Outra cor…"><input type="color" id="pCustom" value="${c.color}">+</label></div>
     <h4>Espessura</h4><div class="widths">${widths.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${w}"><i style="width:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;height:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;background:${c.color === '#ffffff' ? '#ccc' : c.color}"></i></button>`).join('')}</div>
-    ${hl ? '' : `<h4>Estilo</h4><div class="seg">${styles.map(([k, n]) => `<button data-s="${k}" class="${k === st ? 'on' : ''}">${n}</button>`).join('')}</div>
-      ${st === 'calligraphy' ? `<div class="row"><small>Ângulo da pena</small><input type="range" id="pNib" min="0" max="90" value="${c.nib ?? 45}"><small id="pNibV">${c.nib ?? 45}°</small></div>` : ''}
+    ${hl ? `<label class="row"><input type="checkbox" id="pHlPrev" ${cfg.hlPrevia ? 'checked' : ''}> Mostrar a área que será marcada antes de pintar</label>` : ''}
+    ${hl ? '' : `<h4>Estilo</h4><div class="seg estilos">${styles.map(([k, n]) => `<button data-s="${k}" class="${k === st ? 'on' : ''}">${n}</button>`).join('')}</div>
+      ${st === 'calligraphy' || st === 'marker' ? `<div class="row"><small>${st === 'marker' ? 'Ângulo da ponta' : 'Ângulo da pena'}</small><input type="range" id="pNib" min="0" max="90" value="${c.nib ?? (st === 'marker' ? 30 : 45)}"><small id="pNibV">${c.nib ?? (st === 'marker' ? 30 : 45)}°</small></div>` : ''}
       <label class="row"><input type="checkbox" id="pArrow" ${c.arrow ? 'checked' : ''}> Ponta de seta no fim do traço</label>`}
     <h4>Ponteiro da caneta na tela</h4><div class="seg cursors">${CURSORS.map(([k, n, svg]) => `<button data-k="${k}" class="${k === (cfg.tablet.cursor || 'ponta') ? 'on' : ''}" title="${n}">${svg}<small>${n}</small></button>`).join('')}</div>
     <label class="row"><input type="checkbox" id="pCurDraw" ${cfg.tablet.cursorDraw !== false ? 'checked' : ''}> Manter o ponteiro visível enquanto escreve</label>
@@ -614,6 +841,7 @@ function penPop(anchor, t) {
         cfg.tools[t] = structuredClone(DEFAULT_TOOLS[t]); cfg.tablet.cursor = 'ponta'; cfg.tablet.cursorDraw = true;
         saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); toast('Caneta de volta ao padrão');
       };
+      p.querySelector('#pHlPrev')?.addEventListener('change', e => { cfg.hlPrevia = e.target.checked; saveCfg(); });
       const ar = p.querySelector('#pArrow');
       if (ar) ar.onchange = () => { c.arrow = ar.checked; saveCfg(); drawPrev(); };
       // pré-visualização do traço com a cor, espessura e estilo escolhidos
@@ -625,7 +853,7 @@ function penPop(anchor, t) {
         const pts = [];
         for (let i = 0; i <= 60; i++) { const u = i / 60; pts.push(14 + u * 272, 34 - Math.sin(u * Math.PI * 2) * 16, hl ? 0.5 : 0.25 + 0.6 * Math.sin(u * Math.PI)); }
         const s = { type: 'stroke', tool: hl ? 'highlighter' : 'pen', color: c.color, width: c.width, pts, pr: !hl, taper: !hl, arrow: !hl && c.arrow };
-        if (!hl && st !== 'normal') { s.style = st; s.nib = c.nib ?? 45; }
+        if (!hl && st !== 'normal') { s.style = st; s.nib = c.nib ?? (st === 'marker' ? 30 : 45); }
         R.withDarkBackground(R.isDark(S.board.background.color), () => R.drawStroke(g, s));
       }
       drawPrev();
@@ -654,11 +882,145 @@ function eraserPop(anchor) {
   });
 }
 
+// tinta vira forma: liga/desliga e escolhe o que reconhecer (P15, 15/10/2026)
+function inkShapePop(anchor) {
+  const O = { ...R.FORMA_OPC, ...(cfg.formaOpc || {}) };
+  const OP = [['linha', 'Retas'], ['elipse', 'Círculos e elipses'], ['retangulo', 'Retângulos'], ['poligono', 'Triângulos e polígonos'],
+    ['angulos', 'Prender retas em 0°, 45° e 90°'], ['circulo', 'Quase redondo vira círculo perfeito'], ['quadrado', 'Quase quadrado vira quadrado perfeito']];
+  showPop(anchor, `<h4>Tinta vira forma</h4>
+    <div class="seg"><button data-on="1" class="${cfg.inkShape ? 'on' : ''}">Ligado</button><button data-on="0" class="${cfg.inkShape ? '' : 'on'}">Desligado (desenho livre)</button></div>
+    <h4>Reconhecer</h4>${OP.slice(0, 4).map(([k, n]) => `<label class="row"><input type="checkbox" data-o="${k}" ${O[k] ? 'checked' : ''}> ${n}</label>`).join('')}
+    <h4>Ajustes</h4>${OP.slice(4).map(([k, n]) => `<label class="row"><input type="checkbox" data-o="${k}" ${O[k] ? 'checked' : ''}> ${n}</label>`).join('')}
+    <small style="color:#666">Vale para as canetas; desenhe a forma num traço só e solte.</small>`, p => {
+    p.querySelectorAll('[data-on]').forEach(x => x.onclick = () => { cfg.inkShape = x.dataset.on === '1'; saveCfg(); syncToolbar(); hidePop(); inkShapePop(anchor); });
+    p.querySelectorAll('[data-o]').forEach(x => x.onchange = () => { cfg.formaOpc = { ...O, ...(cfg.formaOpc || {}), [x.dataset.o]: x.checked }; saveCfg(); });
+  });
+}
+
+// barra própria do rascunho (pedido de 15/10/2026, à tarde): quatro botões grandes e a contagem, em vez de um menu
+function montaRascBar() {
+  const bar = $('rascbar');
+  if (!bar) return;
+  bar.hidden = !cfg.rascBar || !S;
+  if (!bar.querySelector('[data-r]')) {
+    const min = bar.querySelector('.bar-min');
+    bar.innerHTML = `<span class="rb-tit">Rascunho <small id="rbN"></small></span>
+      <button class="cb" data-r="escrever" title="Ligado: o que for escrito vai para o rascunho (moldura laranja)">${ICON.pen}<small>Escrever</small></button>
+      <button class="cb" data-r="ver" title="Esconder ou mostrar todo o rascunho">${ICON.layers}<small id="rbVer">Ocultar</small></button>
+      <button class="cb" data-r="passar" title="O rascunho passa a fazer parte do quadro">${ICON.restore}<small>Passar p/ quadro</small></button>
+      <button class="cb rb-limpar" data-r="apagar" title="Apaga TODO o rascunho de uma vez (pede confirmação; Ctrl+Z desfaz). Para apagar só um pedaço, use a borracha">${ICON.trash}<small>Limpar rascunho</small></button>
+      <button class="ib" data-r="x" title="Fechar a barra do rascunho (ela volta pelo botão de camadas, em cima)">${ICON.close}</button>`;
+    if (min) bar.appendChild(min);
+    bar.querySelector('[data-r="escrever"]').onclick = () => {
+      noRascunho = !noRascunho;
+      if (noRascunho && S.board.rascunhoOculto) { S.board.rascunhoOculto = false; scheduleSave(); }   // escrever num rascunho escondido confunde
+      if (noRascunho && !isPen(tool) && !isHl(tool)) setTool(cfg.lastPen || 'pen0');
+      toast(noRascunho ? 'Escrevendo no rascunho (moldura laranja)' : 'Escrevendo no quadro');
+      syncToolbar(); requestRender();
+    };
+    bar.querySelector('[data-r="ver"]').onclick = () => {
+      S.board.rascunhoOculto = !S.board.rascunhoOculto;
+      if (S.board.rascunhoOculto) { noRascunho = false; sel = new Set([...sel].filter(id => !oculto(byId(id) || {}))); }
+      scheduleSave(); syncToolbar(); requestRender();
+    };
+    bar.querySelector('[data-r="passar"]').onclick = () => {
+      if (!contaRasc()) return toast('O rascunho está vazio');
+      commit(S.items.map(i => { if (i.camada !== 'rascunho') return i; const { camada, ...r } = i; return r; }));
+      S.board.rascunhoOculto = false; syncToolbar(); requestRender(); toast('O rascunho passou a fazer parte do quadro');
+    };
+    bar.querySelector('[data-r="apagar"]').onclick = () => limparRascunho();
+    bar.querySelector('[data-r="x"]').onclick = () => { cfg.rascBar = false; saveCfg(); montaRascBar(); syncToolbar(); };
+  }
+  syncRascBar(); placeBars();
+}
+const contaRasc = () => S ? S.items.filter(i => i.camada === 'rascunho').length : 0;
+// P43 (15/10/2026): apagar o rascunho inteiro pede confirmação (o botão se confundia com a borracha)
+async function limparRascunho(depois) {
+  const n = contaRasc();
+  if (!n) return toast('O rascunho está vazio');
+  const quais = n === 1 ? 'o único item' : `os ${n} itens`;
+  if (!await confirmBox('Limpar o rascunho', `Apagar ${quais} do rascunho? O que está no quadro fica. Dá para desfazer com Ctrl+Z.`, 'Limpar rascunho', true)) return;
+  commit(S.items.filter(i => i.camada !== 'rascunho'));
+  sel = new Set([...sel].filter(id => byId(id)));
+  syncToolbar(); requestRender(); toast(`Rascunho limpo (${n} ite${n === 1 ? 'm' : 'ns'}). Ctrl+Z desfaz.`);
+  depois?.();
+}
+function syncRascBar() {
+  const bar = $('rascbar');
+  if (!bar || bar.hidden || !S) return;
+  const n = contaRasc(), oc = !!S.board.rascunhoOculto;
+  bar.querySelector('#rbN').textContent = `(${n} ite${n === 1 ? 'm' : 'ns'})`;
+  bar.querySelector('[data-r="escrever"]').classList.toggle('active', noRascunho);
+  bar.querySelector('#rbVer').textContent = oc ? 'Mostrar' : 'Ocultar';
+  bar.querySelector('[data-r="ver"]').classList.toggle('active', oc);
+}
+
+function rascunhoPop(anchor) {
+  const n = S.items.filter(i => i.camada === 'rascunho').length, oc = !!S.board.rascunhoOculto;
+  showPop(anchor, `<h4>Rascunho</h4>
+    <small style="color:#666">Uma camada à parte: o que for escrito com ela ligada pode ser escondido de uma vez e mostrado de novo.</small>
+    <h4>Escrever no rascunho</h4><div class="seg"><button data-e="1" class="${noRascunho ? 'on' : ''}">Ligado</button><button data-e="0" class="${noRascunho ? '' : 'on'}">Desligado</button></div>
+    <h4>Rascunho no quadro (${n} ite${n === 1 ? 'm' : 'ns'})</h4><div class="seg"><button data-v="1" class="${oc ? '' : 'on'}">Visível</button><button data-v="0" class="${oc ? 'on' : ''}">Oculto</button></div>
+    <div class="menu" style="padding:8px 0 0"><button data-a="passar" ${n ? '' : 'disabled'}>${ICON.restore} Passar o rascunho para o quadro</button>
+      <button data-a="apagar" class="danger" ${n ? '' : 'disabled'}>${ICON.trash} Limpar o rascunho</button></div>`, p => {
+    const reabre = () => { syncToolbar(); requestRender(); hidePop(); rascunhoPop(anchor); };
+    p.querySelectorAll('[data-e]').forEach(x => x.onclick = () => {
+      noRascunho = x.dataset.e === '1';
+      if (noRascunho && S.board.rascunhoOculto) { S.board.rascunhoOculto = false; scheduleSave(); }   // escrever num rascunho escondido confunde
+      if (noRascunho && !isPen(tool) && !isHl(tool)) setTool(cfg.lastPen || 'pen0');
+      reabre();
+    });
+    p.querySelectorAll('[data-v]').forEach(x => x.onclick = () => {
+      S.board.rascunhoOculto = x.dataset.v === '0';
+      if (S.board.rascunhoOculto) { noRascunho = false; sel = new Set([...sel].filter(id => !oculto(byId(id) || {}))); }
+      scheduleSave(); reabre();
+    });
+    p.querySelector('[data-a="passar"]').onclick = () => { commit(S.items.map(i => { if (i.camada !== 'rascunho') return i; const { camada, ...r } = i; return r; })); S.board.rascunhoOculto = false; reabre(); toast('O rascunho passou a fazer parte do quadro'); };
+    p.querySelector('[data-a="apagar"]').onclick = () => { hidePop(); limparRascunho(); };
+  });
+}
+
+function laserPop(anchor) {
+  const L = lz();
+  showPop(anchor, `<h4>Ponteiro laser</h4>
+    <h4>Cor</h4><div class="swatches">${LASER_CORES.map(x => `<button class="sw${x === L.cor ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>
+    <h4>Tamanho</h4><div class="seg">${[['P', 0.7], ['M', 1], ['G', 1.6], ['GG', 2.4]].map(([n, v]) => `<button data-t="${v}" class="${v === L.tam ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <h4>Rastro na tela</h4><div class="seg">${LASER_RASTROS.map(([n, v]) => `<button data-r="${v}" class="${v === L.rastro ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <h4>Formato</h4><div class="seg">${LASER_FORMAS.map(([k, n]) => `<button data-f="${k}" class="${k === L.forma ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn" id="lzReset">Restaurar padrão</button></div>`, p => {
+    const set = patch => { cfg.laser = { ...lz(), ...patch }; saveCfg(); hidePop(); laserPop(anchor); };
+    p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => set({ cor: x.dataset.c }));
+    p.querySelectorAll('[data-t]').forEach(x => x.onclick = () => set({ tam: +x.dataset.t }));
+    p.querySelectorAll('[data-r]').forEach(x => x.onclick = () => set({ rastro: +x.dataset.r }));
+    p.querySelectorAll('[data-f]').forEach(x => x.onclick = () => set({ forma: x.dataset.f }));
+    p.querySelector('#lzReset').onclick = () => { cfg.laser = null; saveCfg(); hidePop(); laserPop(anchor); };
+  });
+}
+
+// barra de desenho (P21, 15/10/2026): linhas, setas e formas simples num menu próprio, aberta de fábrica
+const mostraDrawBar = () => cfg.drawBar !== false;
+function montaDrawBar() {
+  const bar = $('drawbar');
+  if (!bar) return;
+  bar.hidden = !mostraDrawBar();
+  if (!bar.querySelector('[data-k]')) {
+    const min = bar.querySelector('.bar-min');
+    bar.innerHTML = DRAW_KINDS.map(([k, n]) => `<button class="cb" data-k="${k}" title="${n}: arraste no quadro">${ICON[k]}<small>${n.replace('Linha tracejada', 'Tracejada').replace('Seta tracejada', 'Seta trac.')}</small></button>`).join('')
+      + `<button class="cb" data-fill title="Formas fechadas preenchidas com a cor clara">${ICON.color}<small>Preencher</small></button>`;
+    if (min) bar.appendChild(min);
+    bar.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; hidePop(); setTool(tool === 'shape' && shapeKind === x.dataset.k && x.classList.contains('active') ? (cfg.lastPen || 'pen0') : 'shape'); });
+    bar.querySelector('[data-fill]').onclick = () => { cfg.shapeFill = !cfg.shapeFill; saveCfg(); syncToolbar(); toast(cfg.shapeFill ? 'Formas preenchidas' : 'Formas só com contorno'); };
+  }
+  document.querySelector('#createbar [data-create="draw"]')?.classList.toggle('on', mostraDrawBar());
+  placeBars();
+}
+
 function createClick(b) {
   const k = b.dataset.create;
   hidePop();
   if (k === 'text') { setTool(tool === 'text' ? 'pen0' : 'text'); toast('Toque no quadro para escrever'); }
   else if (k === 'note') notePop(b);
+  else if (k === 'draw') { cfg.drawBar = !mostraDrawBar(); saveCfg(); montaDrawBar(); }
   else if (k === 'shapes') shapesPop(b);
   else if (k === 'image') $('imgFile').click();
   else if (k === 'pdf') $('slideFile').click();
@@ -693,37 +1055,46 @@ function shapesPop(anchor) {
   };
   const espCell = (e, g) => `<button class="libitem shp" data-esp="${e.id}" title="${esc(e.nome)}"><img src="${svgDataUrl(e.make().svg)}" alt=""><span>${esc(e.nome)}${g ? `<small>${esc(g)}</small>` : ''}</span></button>`;
   const cell = ([id, n], g) => `<button class="libitem shp" data-lib="${id}" title="${esc(n)}${g ? ' (' + esc(g) + ')' : ''}"><img src="${svgDataUrl(shapeSvg(id, '#323130').svg)}" alt=""><span>${esc(n)}${g ? `<small>${esc(g)}</small>` : ''}</span></button>`;
-  showPop(anchor, `<button class="btn shp-amplia" id="sBig" title="${cfg.shapesBig ? 'Voltar ao tamanho normal' : 'Ver mais formas de uma vez'}">${cfg.shapesBig ? '⤡ Reduzir' : '⤢ Ampliar'}</button><h4>Desenhar — arraste no quadro</h4><div class="shapes">${DRAW_KINDS.map(([k, n]) => `<button class="ib lbl${k === shapeKind && tool === 'shape' ? ' on' : ''}" data-k="${k}" title="${n}">${ICON[k]}<small>${n}</small></button>`).join('')}</div>
-    <label class="row"><input type="checkbox" id="sFill" ${cfg.shapeFill ? 'checked' : ''}> Preenchida (cor clara)</label>
-    <h4>Biblioteca de formas</h4>
-    <div class="row shp-cor"><span>Cor:</span><button class="sw-txt${cfg.shapeColor ? '' : ' on'}" data-sc="" title="Usar a cor da caneta atual">da caneta</button>${SHAPE_COLORS.map(c => `<button class="sw${cfg.shapeColor === c ? ' on' : ''}" data-sc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>
-    <input class="shp-busca" id="sFind" placeholder="Procurar forma (ex.: válvula, bomba, resistor)…">
-    <div class="shp-abas"><div class="shp-niveis">
-        <div class="seg shp-areas" id="sAreas"></div>
-        <div class="seg shp-tabs" id="sTabs"></div></div>
-      <button class="btn shp-disc" id="sDisc" title="Escolher quais áreas aparecem aqui (todas continuam na busca)">Áreas…</button></div>
-    <div class="libgrid shp-grid" id="sGrid"></div>`,
+  const TAMS = [['p', 'P'], ['m', 'M'], ['g', 'G']], tam = cfg.shpTam || 'm';
+  showPop(anchor, `<div class="shp-topo">
+      <input class="shp-busca" id="sFind" placeholder="Procurar forma (ex.: válvula, bomba, resistor)…">
+      <div class="row shp-cor"><span>Cor:</span><button class="sw-txt${cfg.shapeColor ? '' : ' on'}" data-sc="" title="Usar a cor da caneta atual">da caneta</button>${SHAPE_COLORS.map(c => `<button class="sw${cfg.shapeColor === c ? ' on' : ''}" data-sc="${c}" style="background:${c}" title="${corNome(c)}"></button>`).join('')}</div>
+      <div class="seg shp-tam" title="Tamanho das miniaturas">${TAMS.map(([k, n]) => `<button data-tam="${k}" class="${k === tam ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <button class="btn shp-disc" id="sDisc" title="Escolher quais áreas aparecem aqui (todas continuam na busca)">Áreas…</button>
+      <button class="btn shp-amplia" id="sBig" title="${cfg.shapesBig ? 'Voltar ao tamanho normal' : 'Usar a tela inteira'}">${cfg.shapesBig ? '⤡ Reduzir' : '⤢ Ampliar'}</button>
+    </div>
+    <div class="shp-corpo"><nav class="shp-arvore" id="sTree" aria-label="Áreas e disciplinas"></nav><div class="libgrid shp-grid" id="sGrid"></div></div>`,
     p => {
+      p.classList.add('shp-pop', 'shp-t-' + tam);
       p.classList.toggle('shp-big', !!cfg.shapesBig);
       p.querySelector('#sBig').onclick = () => { cfg.shapesBig = !cfg.shapesBig; saveCfg(); hidePop(); shapesPop(anchor); };
       p.querySelector('#sDisc').onclick = async () => { hidePop(); if (await escolherDisciplinas()) shapesPop(anchor); };
-      p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; hidePop(); setTool('shape'); });
-      p.querySelector('#sFill').onchange = e => { cfg.shapeFill = e.target.checked; saveCfg(); };
+      p.querySelectorAll('[data-tam]').forEach(x => x.onclick = () => {
+        cfg.shpTam = x.dataset.tam; saveCfg();
+        p.classList.remove('shp-t-p', 'shp-t-m', 'shp-t-g'); p.classList.add('shp-t-' + x.dataset.tam);
+        p.querySelectorAll('[data-tam]').forEach(y => y.classList.toggle('on', y === x));
+      });
       p.querySelectorAll('[data-sc]').forEach(x => x.onclick = () => {
         cfg.shapeColor = x.dataset.sc || null; saveCfg();
         p.querySelectorAll('[data-sc]').forEach(y => y.classList.toggle('on', y === x));
       });
-      const grid = p.querySelector('#sGrid');
+      const grid = p.querySelector('#sGrid'), tree = p.querySelector('#sTree');
       const bind = () => {
         grid.querySelectorAll('[data-lib]').forEach(b => b.onclick = () => { hidePop(); insertLibShape(b.dataset.lib); });
         grid.querySelectorAll('[data-esp]').forEach(b => b.onclick = () => { hidePop(); insertEspecial(b.dataset.esp); });
       };
-      // dois níveis: áreas (só com mais de 8 disciplinas visíveis) e, embaixo, as disciplinas da área; "↺ Recentes" primeiro
+      // árvore: áreas (raízes) com as disciplinas (ramos); com até 8 disciplinas visíveis, lista simples
       const areas = areasVisiveis(), usaAreas = grupos.length > 8;
       const areaDe = id => areas.find(([, gs]) => gs.some(g => g.id === id))?.[0];
       const recentes = () => (cfg.recentShapes || []).map(shapeById).filter(Boolean);
-      const sTabs = p.querySelector('#sTabs'), sAreas = p.querySelector('#sAreas');
-      sAreas.hidden = !usaAreas;
+      const COR_AREA = ['#0f6cbd', '#c239b3', '#107c10', '#ca5010', '#8764b8', '#038387', '#986f0b', '#c50f1f', '#5c2e91', '#486860'];
+      tree.innerHTML = `<button class="shp-raiz shp-rec" data-tab="${RECENTES}" title="Formas usadas por último"><span class="shp-ico">↺</span>Recentes</button>`
+        + (usaAreas
+          ? areas.map(([n, gs], i) => `<div class="shp-ramo" data-ramo="${esc(n)}" style="--c:${COR_AREA[i % COR_AREA.length]}">
+              <button class="shp-raiz" data-area="${esc(n)}"><span class="shp-ico"></span><span class="shp-nome">${esc(n)}</span><span class="shp-chev">›</span></button>
+              <div class="shp-galhos">${gs.map(g => `<button data-tab="${g.id}">${esc(g.nome)}</button>`).join('')}</div></div>`).join('')
+          : `<div class="shp-ramo aberto" style="--c:${COR_AREA[0]}"><div class="shp-galhos">${grupos.map(g => `<button data-tab="${g.id}">${esc(g.nome)}</button>`).join('')}</div></div>`);
+      const abreRamo = (area, so = true) => tree.querySelectorAll('.shp-ramo[data-ramo]').forEach(r => r.classList.toggle('aberto', r.dataset.ramo === area || (!so && r.classList.contains('aberto'))));
       const mostra = id => {   // id de disciplina ou RECENTES
         p.querySelector('#sFind').value = '';
         if (id === RECENTES) {
@@ -732,37 +1103,30 @@ function shapesPop(anchor) {
             : '<p class="muted">As formas que você inserir aparecem aqui, para achar de novo rápido.</p>';
         } else grid.innerHTML = groupHtml(id);
         grid.scrollTop = 0; bind();
-        p.querySelectorAll('[data-tab], [data-area]').forEach(b => b.classList.toggle('on',
-          b.dataset.tab === id || (id === RECENTES ? b.dataset.area === RECENTES : b.dataset.area === areaDe(id) && usaAreas)));
+        // a cor da área vale também para os títulos das seções das formas (pedido de 15/10/2026)
+        const ramo = id === RECENTES ? null : usaAreas ? tree.querySelector(`.shp-ramo[data-ramo="${CSS.escape(areaDe(id) || '')}"]`) : tree.querySelector('.shp-ramo');
+        grid.style.setProperty('--c', ramo ? ramo.style.getPropertyValue('--c') : 'var(--accent)');
+        tree.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === id));
+        tree.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('on', id !== RECENTES && b.dataset.area === areaDe(id)));
+        if (usaAreas && id !== RECENTES) abreRamo(areaDe(id));
       };
-      const abreTab = id => { cfg.shapeTab = id; if (id !== RECENTES) { cfg.shapeTabPorArea = { ...(cfg.shapeTabPorArea || {}), [areaDe(id)]: id }; } saveCfg(); mostra(id); };
-      const desenhaTabs = area => {
-        const lista = usaAreas ? (areas.find(([n]) => n === area)?.[1] || []) : grupos;
-        sTabs.hidden = usaAreas && area === RECENTES;
-        sTabs.innerHTML = (usaAreas ? '' : `<button data-tab="${RECENTES}" title="Formas usadas por último">↺ Recentes</button>`)
-          + lista.map(g => `<button data-tab="${g.id}">${esc(g.nome)}</button>`).join('');
-        sTabs.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => abreTab(b.dataset.tab));
-      };
-      if (usaAreas) {
-        sAreas.innerHTML = `<button data-area="${RECENTES}" title="Formas usadas por último">↺ Recentes</button>`
-          + areas.map(([n]) => `<button data-area="${esc(n)}">${esc(n)}</button>`).join('');
-        sAreas.querySelectorAll('[data-area]').forEach(b => b.onclick = () => {
-          const a = b.dataset.area;
-          if (a === RECENTES) { desenhaTabs(a); abreTab(RECENTES); return; }
-          desenhaTabs(a);
-          const lista = areas.find(([n]) => n === a)[1], lembrada = cfg.shapeTabPorArea?.[a];
-          abreTab(lista.some(g => g.id === lembrada) ? lembrada : lista[0].id);
-        });
-      }
+      const abreTab = id => { cfg.shapeTab = id; if (id !== RECENTES && usaAreas) { cfg.shapeTabPorArea = { ...(cfg.shapeTabPorArea || {}), [areaDe(id)]: id }; } saveCfg(); mostra(id); };
+      tree.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => abreTab(b.dataset.tab));
+      tree.querySelectorAll('[data-area]').forEach(b => b.onclick = () => {
+        const a = b.dataset.area, ramo = b.closest('.shp-ramo');
+        if (ramo.classList.contains('aberto') && b.classList.contains('on')) { ramo.classList.remove('aberto'); return; }   // toque de novo recolhe
+        const lista = areas.find(([n]) => n === a)[1], lembrada = cfg.shapeTabPorArea?.[a];
+        abreTab(lista.some(g => g.id === lembrada) ? lembrada : lista[0].id);
+      });
       const inicial = cfg.shapeTab === RECENTES ? RECENTES : tab;
-      desenhaTabs(inicial === RECENTES ? RECENTES : areaDe(inicial));
       mostra(inicial);
+      tree.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
       const plain = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const find = p.querySelector('#sFind');
       find.oninput = () => {
         const q = plain(find.value.trim());
         if (!q) return mostra(cfg.shapeTab === RECENTES ? RECENTES : (grupos.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : tab));
-        p.querySelectorAll('[data-tab]').forEach(y => y.classList.remove('on'));
+        tree.querySelectorAll('.on').forEach(y => y.classList.remove('on'));
         const hits = ALL_SHAPES.filter(s => plain(s[1]).includes(q));
         const esp = ESPECIAIS.filter(e => plain(e.nome).includes(q)), n = hits.length + esp.length;
         grid.innerHTML = n ? `<div class="shp-sec">${n} forma${n > 1 ? 's' : ''}</div>`
@@ -770,6 +1134,7 @@ function shapesPop(anchor) {
           : '<p class="muted">Nenhuma forma com esse nome.</p>'; bind();
       };
       find.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') hidePop(); });
+      setTimeout(() => find.focus(), 50);
       bind();
     }, 'right');
 }
@@ -836,12 +1201,17 @@ function currentInk() {
 
 // ================= histórico e salvamento =================
 function commit(items, layout) {
+  if (noRascunho && !S.board.rascunhoOculto) {
+    const antes = new Set(S.items.map(i => i.id));
+    items = items.map(i => antes.has(i.id) || i.camada === 'rascunho' ? i : { ...i, camada: 'rascunho' });
+  }
   undoStack.push(histEntry());
   if (undoStack.length > 400) undoStack.shift();
   redoStack = [];
   S.items = items;
   if (layout !== undefined) S.board.layout = layout;
   changed();
+  syncRascBar();
 }
 const histEntry = () => ({ items: S.items, layout: S.board.layout, bg: S.board.background });
 function restore(entry) {
@@ -1123,7 +1493,8 @@ function onDown(e) {
   const barrel = e.pointerType === 'pen' && !eraserBtn && (e.button === 2 || (e.buttons & 2));
   const tt = cfg.tablet.touch;
   const touchPans = e.pointerType === 'touch' && (tt === 'pan' || (tt === 'auto' && penSeen));
-  const pan = e.button === 1 || (e.button === 2 && !barrel) || spaceDown || touchPans || (barrel && cfg.tablet.barrel === 'pan');
+  const pan = e.button === 1 || (e.button === 2 && !barrel) || spaceDown || touchPans || (barrel && cfg.tablet.barrel === 'pan')
+    || (tool === 'hand' && !eraserBtn);   // ferramenta mão: arrasta a lousa com a caneta ou o botão esquerdo
   if (pan) {
     action = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y, id: e.pointerId };
     setCursor('panning');
@@ -1165,16 +1536,16 @@ function onDown(e) {
   let t = eraserBtn ? 'eraser' : tool;
   if (barrel && ['eraser', 'lasso', 'select', 'laser'].includes(cfg.tablet.barrel)) t = cfg.tablet.barrel;
 
-  if (isPen(t) || t === 'highlighter') {
+  if (isPen(t) || isHl(t)) {
     const c = cfg.tools[t];
     if (isPen(t)) cfg.lastPen = t;
     const stroke = {
-      id: newId(), type: 'stroke', tool: t === 'highlighter' ? 'highlighter' : 'pen',
-      color: c.color, width: c.width / S.view.zoom, pr: t !== 'highlighter' && e.pointerType === 'pen' && cfg.tablet.pressure,
+      id: newId(), type: 'stroke', tool: isHl(t) ? 'highlighter' : 'pen',
+      color: c.color, width: c.width / S.view.zoom, pr: !isHl(t) && e.pointerType === 'pen' && cfg.tablet.pressure,
       pts: [P.x, P.y, P.p],
     };
     if (c.arrow && isPen(t)) stroke.arrow = true;
-    if (isPen(t) && c.style && c.style !== 'normal') { stroke.style = c.style; stroke.pr = true; if (c.style === 'calligraphy') stroke.nib = c.nib ?? 45; }
+    if (isPen(t) && c.style && c.style !== 'normal') { stroke.style = c.style; stroke.pr = true; if (c.style === 'calligraphy' || c.style === 'marker') stroke.nib = c.nib ?? (c.style === 'marker' ? 30 : 45); }
     if (stroke.pr && cfg.tablet.taper) stroke.taper = true;
     if (cfg.tablet.beautify && isPen(t)) beautifyIfMovedOn(P.x, P.y);
     const stab = createStabilizer(cfg.tablet);
@@ -1389,7 +1760,7 @@ function hoverCursor(e) {
     if ((tool === 'select' || tool === 'lasso') && e.clientX >= sb.x && e.clientX <= sb.x + sb.w && e.clientY >= sb.y && e.clientY <= sb.y + sb.h) return setCursor('move');
   }
   if (ruler) { const w = toWorld(e.clientX, e.clientY); if (onRuler(w.x, w.y)) return setCursor('move'); }
-  setCursor(penCursorFor(e) && (isPen(tool) || tool === 'highlighter') ? 'none' : undefined);
+  setCursor(penCursorFor(e) && (isPen(tool) || isHl(tool)) ? 'none' : undefined);
 }
 // ponteiro desenhado (ponta, mira…) no lugar da cruz: sempre na caneta; no mouse, se a opção estiver ligada
 function penCursorFor(e) { return e.pointerType === 'pen' || (e.pointerType === 'mouse' && cfg.tablet.mouseCursor !== false); }
@@ -1421,7 +1792,7 @@ function onUp(e) {
         if (cfg.tablet.smoothUp && s.pts.length >= 12) s = { ...s, pts: smoothPts(s.pts, 1.6 / S.view.zoom, 2) };
       }
       if (cfg.inkShape && s.tool === 'pen' && a.snap == null && !s.arrow) {
-        const shp = R.recognizeShape(s);
+        const shp = R.recognizeShape(s, cfg.formaOpc);
         if (shp) s = shp;
       }
       commit([...S.items, s]);
@@ -1449,7 +1820,7 @@ function onUp(e) {
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
         for (let i = 0; i < p.length; i += 2) { x0 = Math.min(x0, p[i]); x1 = Math.max(x1, p[i]); y0 = Math.min(y0, p[i + 1]); y1 = Math.max(y1, p[i + 1]); }
         const pb = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-        for (const it of S.items) if (!it.locked && R.boxesTouch(R.bbox(it), pb) && R.inLasso(it, p)) sel.add(it.id);
+        for (const it of S.items) if (!it.locked && !oculto(it) && R.boxesTouch(R.bbox(it), pb) && R.inLasso(it, p)) sel.add(it.id);
         sel = withGroups(sel);
       }
       requestRender(false);
@@ -1460,7 +1831,7 @@ function onUp(e) {
       if (box.w * S.view.zoom > 4 || box.h * S.view.zoom > 4)
         for (const it of S.items) {
           const b = R.bbox(it);
-          if (!it.locked && b.x >= box.x && b.y >= box.y && b.x + b.w <= box.x + box.w && b.y + b.h <= box.y + box.h) sel.add(it.id);
+          if (!it.locked && !oculto(it) && b.x >= box.x && b.y >= box.y && b.x + b.w <= box.x + box.w && b.y + b.h <= box.y + box.h) sel.add(it.id);
         }
       sel = withGroups(sel);
       requestRender(false);
@@ -1605,7 +1976,7 @@ function eraseAt(x, y) {
     // corta só os pontos dentro do círculo da borracha; o resto vira pedaços
     action.parts = action.parts || new Map();
     for (const it of S.items) {
-      if (it.type !== 'stroke' || action.erased.has(it.id)) continue;
+      if (it.type !== 'stroke' || action.erased.has(it.id) || oculto(it)) continue;
       if (action.parts.has(it.id)) {
         const b = R.bbox(it);
         if (x < b.x - tol || x > b.x + b.w + tol || y < b.y - tol || y > b.y + b.h + tol) continue;
@@ -1623,18 +1994,18 @@ function eraseAt(x, y) {
       }
       if (changed) { action.parts.set(it.id, out); requestDirty(R.bbox(it)); } // o afinamento das pontas muda o pedaço inteiro
     }
-    for (const it of S.items) if ((it.type === 'shape' && R.hitItem(it, x, y, tol, true) || hitLib(it, x, y, tol)) && !action.erased.has(it.id)) { action.erased.add(it.id); requestDirty(R.bbox(it)); }
+    for (const it of S.items) if ((it.type === 'shape' && R.hitItem(it, x, y, tol, true) || hitLib(it, x, y, tol)) && !action.erased.has(it.id) && !oculto(it)) { action.erased.add(it.id); requestDirty(R.bbox(it)); }
     return;
   }
   for (const it of S.items) {
-    if (action.erased.has(it.id)) continue;
+    if (action.erased.has(it.id) || oculto(it)) continue;
     if ((it.type === 'stroke' || it.type === 'shape') && R.hitItem(it, x, y, tol, true) || hitLib(it, x, y, tol)) { action.erased.add(it.id); requestDirty(R.bbox(it)); }
   }
 }
 
 function topHit(x, y) {
   const tol = 6 / S.view.zoom;
-  for (let i = S.items.length - 1; i >= 0; i--) if (!S.items[i].locked && R.hitItem(S.items[i], x, y, tol)) return S.items[i];
+  for (let i = S.items.length - 1; i >= 0; i--) if (!S.items[i].locked && !oculto(S.items[i]) && R.hitItem(S.items[i], x, y, tol)) return S.items[i];
   return null;
 }
 
@@ -1770,6 +2141,7 @@ function positionTextEditor() {
     te.style.width = it.w * z - pad * 2 + 'px'; te.style.height = it.h * z - pad * 2 + 'px';
     te.style.fontSize = R.noteFontSize({ ...it, text: te.value || 'x' }) * z + 'px';
     te.style.color = '#252423';
+    te.style.fontFamily = R.fontOf(it);
   } else {
     te.style.left = a.x - 2 + 'px'; te.style.top = a.y - 2 + 'px';
     te.style.fontSize = it.size * z + 'px';
@@ -1777,6 +2149,8 @@ function positionTextEditor() {
     te.style.color = te.style.caretColor = inkShown(it.color);
     sizeTextEditor();
   }
+  te.style.fontWeight = it.b ? 'bold' : ''; te.style.fontStyle = it.i ? 'italic' : '';
+  te.style.textAlign = it.al && it.al !== 'justify' ? it.al : it.al === 'justify' ? 'justify' : '';
 }
 
 function sizeTextEditor() {
@@ -1785,7 +2159,7 @@ function sizeTextEditor() {
   const te = $('textEdit'), z = S.view.zoom;
   if (it.type === 'note') { te.style.fontSize = R.noteFontSize({ ...it, text: te.value || 'x' }) * z + 'px'; return; }
   const meas = document.createElement('canvas').getContext('2d');
-  meas.font = `${it.size * z}px "Segoe UI", system-ui, sans-serif`;
+  meas.font = `${R.estiloDe(it)}${it.size * z}px ${R.fontOf(it)}`;
   const lines = te.value.split('\n');
   const w = Math.max(40, ...lines.map(l => meas.measureText(l).width)) + 24;
   te.style.width = Math.min(w, W - parseFloat(te.style.left) - 10) + 'px';
@@ -1810,7 +2184,7 @@ function commitText() {
       return;
     }
     const meas = document.createElement('canvas').getContext('2d');
-    meas.font = `${it.size}px ${R.fontOf(it)}`;
+    meas.font = `${R.estiloDe(it)}${it.size}px ${R.fontOf(it)}`;
     const w = Math.max(...text.split('\n').map(l => meas.measureText(l).width)) + 2;
     const n = { ...it, text, w };
     const base = isNew ? others : S.items;
@@ -1887,7 +2261,7 @@ function onKey(e) {
   else if (ctrl && k === 'x') { if (sel.size) { copySel(); commit(S.items.filter(i => !sel.has(i.id))); sel = new Set(); } }
   else if (ctrl && k === 'd') { e.preventDefault(); duplicateSel(); }
   else if (ctrl && k === 'g') { e.preventDefault(); if (e.shiftKey) ungroupSel(); else groupSel(); }
-  else if (ctrl && k === 'a') { e.preventDefault(); sel = new Set(S.items.filter(i => !i.locked).map(i => i.id)); setTool('select'); }
+  else if (ctrl && k === 'a') { e.preventDefault(); sel = new Set(S.items.filter(i => !i.locked && !oculto(i)).map(i => i.id)); setTool('select'); }
   else if (ctrl && k === '0') { e.preventDefault(); fitView(); }
   else if (ctrl && (k === '=' || k === '+')) { e.preventDefault(); zoomAt(W / 2, H / 2, S.view.zoom * 1.25); }
   else if (ctrl && k === '-') { e.preventDefault(); zoomAt(W / 2, H / 2, S.view.zoom / 1.25); }
@@ -1899,10 +2273,18 @@ function onKey(e) {
   else if (PG.isPages(S.board) && ['PageDown', 'ArrowRight', 'ArrowDown'].includes(e.key) && (present || e.key === 'PageDown') && !sel.size) { e.preventDefault(); goToPage(curPage() + 1, present); }
   else if (PG.isPages(S.board) && ['PageUp', 'ArrowLeft', 'ArrowUp'].includes(e.key) && (present || e.key === 'PageUp') && !sel.size) { e.preventDefault(); goToPage(curPage() - 1, present); }
   else if (present && k === 'b') addBlankAfter();
+  // setas sem seleção: deslocam a lousa (Shift = passo maior); no modo apresentação continuam passando a página
+  else if (!present && !sel.size && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+    e.preventDefault();
+    const passo = (e.shiftKey ? 0.5 : 0.15) * Math.min(W, H);
+    S.view.x += e.key === 'ArrowLeft' ? passo : e.key === 'ArrowRight' ? -passo : 0;
+    S.view.y += e.key === 'ArrowUp' ? passo : e.key === 'ArrowDown' ? -passo : 0;
+    viewChanged();
+  }
   else if (e.key === 'Enter' && sel.size === 1) { const it = byId([...sel][0]); if (it && (it.type === 'text' || it.type === 'note')) { e.preventDefault(); startEdit(it.id); } }
   else if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); }
   else if (k === 'p') setTool(isPen(tool) ? tool : (cfg.lastPen || 'pen0'));
-  else if (k >= '1' && k <= '4') setTool('pen' + (+k - 1));
+  else if (k >= '1' && k <= '8' && +k <= (cfg.nPens || 4)) setTool('pen' + (+k - 1));
   else if (k === 'h') setTool('highlighter');
   else if (k === 'e') setTool('eraser');
   else if (k === 'l') setTool('lasso');
@@ -1910,6 +2292,7 @@ function onKey(e) {
   else if (k === 't') setTool('text');
   else if (k === 'r') toggleRuler();
   else if (k === 'k') setTool('laser');
+  else if (k === 'm') setTool('hand');
   else if (k === 'z') toggleZoomLens();
   else if (e.key === '[' || e.key === ']') stepWidth(e.key === ']' ? 1 : -1);
 }
@@ -1967,53 +2350,93 @@ function openMenu(anchor) {
   });
 }
 
+// menu "Folha e fundo" repensado (15/10/2026): áreas à esquerda com cores, prévias maiores (P/M/G), busca e ajustes agrupados
 function bgPop(anchor) {
   const bg = S.board.background;
   const sizes = [['s', 'P'], ['m', 'M'], ['l', 'G']], strengths = [['soft', 'Suave'], ['normal', 'Normal'], ['strong', 'Forte']];
   const LINE_COLORS = ['', '#0078d4', '#e81224', '#16c60c', '#7a7574', '#ffffff'];
+  const COR_AREA = ['#0f6cbd', '#c239b3', '#107c10', '#ca5010', '#8764b8', '#038387', '#986f0b', '#c50f1f', '#5c2e91', '#486860', '#004e8c', '#8e562e', '#498205', '#a4262c'];
   const pat = bg.pattern || 'none';
-  // folhas em abas por área; folhas ligadas a disciplinas ocultas não aparecem (a atual sempre aparece)
+  // folhas por área; folhas ligadas a disciplinas ocultas não aparecem (a atual sempre aparece)
   const nomeDe = new Map(PAPERS), ocultas = abasOcultas(), disc = PAPER.PAPER_DISC || {};
   const visivel = k => k === pat || !disc[k] || disc[k].some(d => !ocultas.has(d));
   const grupos = (PAPER.PAPER_GROUPS || [['Folhas', PAPERS.map(([k]) => k)]])
     .map(([n, ks]) => [n, ks.filter(k => nomeDe.has(k) && visivel(k))]).filter(([, ks]) => ks.length);
+  const corDe = n => COR_AREA[Math.max(0, grupos.findIndex(([g]) => g === n)) % COR_AREA.length];
   const abaAtual = grupos.find(([, ks]) => ks.includes(pat))?.[0];
   const aba = grupos.some(([n]) => n === cfg.paperTab) ? cfg.paperTab : abaAtual || grupos[0][0];
-  const cartoes = n => (grupos.find(([g]) => g === n)?.[1] || []).map(k => `<button class="paper${k === pat ? ' on' : ''}" data-p="${k}"><canvas width="96" height="58"></canvas><span>${esc(nomeDe.get(k))}</span></button>`).join('');
-  showPop(anchor, `
-    <h4>Folha</h4>
-    ${grupos.length > 1 ? `<div class="seg paper-tabs">${grupos.map(([n]) => `<button data-pt="${esc(n)}" class="${n === aba ? 'on' : ''}">${esc(n)}</button>`).join('')}</div>` : ''}
-    <div class="papers" id="bgPapers">${cartoes(aba)}</div>
-    <div class="bg-row">
-      <div><h4>Tamanho da malha</h4><div class="seg">${sizes.map(([k, n]) => `<button class="${(bg.size || 'm') === k ? 'on' : ''}" data-s="${k}">${n}</button>`).join('')}</div></div>
+  const tam = cfg.folhaTam || 'm', DIM = { p: [96, 58], m: [132, 80], g: [180, 110] };
+  const cartoes = ks => ks.map(k => `<button class="paper${k === pat ? ' on' : ''}" data-p="${k}" title="${esc(nomeDe.get(k))}"><canvas></canvas><span>${esc(nomeDe.get(k))}</span></button>`).join('');
+  const sw = (lista, atual, attr, extra = '') => lista.map(c => c ? `<button class="sw${extra}${c === atual ? ' on' : ''}" data-${attr}="${c}" style="background:${c}" title="${corNome(c)}" aria-label="${corNome(c)}"></button>` : `<button class="sw auto${!atual ? ' on' : ''}" data-${attr}="" title="Automática">A</button>`).join('');
+  showPop(anchor, `<div class="fl-topo"><b>Folha e fundo</b>
+      <input class="shp-busca fl-busca" id="flFind" placeholder="Procurar folha (ex.: Moody, Smith, pautada)…">
+      <div class="seg" title="Tamanho das prévias">${[['p', 'P'], ['m', 'M'], ['g', 'G']].map(([k, n]) => `<button data-ft="${k}" class="${k === tam ? 'on' : ''}">${n}</button>`).join('')}</div></div>
+    <div class="fl-corpo"><nav class="fl-areas" id="flAreas">${grupos.map(([n]) => `<button data-pt="${esc(n)}" style="--c:${corDe(n)}" class="${n === aba ? 'on' : ''}"><span class="shp-ico"></span>${esc(n)}</button>`).join('')}</nav>
+      <div class="papers fl-grid" id="bgPapers"></div></div>
+    <div class="fl-ajustes">
+      <div><h4>Malha</h4><div class="seg">${sizes.map(([k, n]) => `<button class="${(bg.size || 'm') === k ? 'on' : ''}" data-s="${k}">${n}</button>`).join('')}</div></div>
       <div><h4>Intensidade</h4><div class="seg">${strengths.map(([k, n]) => `<button class="${(bg.strength || 'normal') === k ? 'on' : ''}" data-st="${k}">${n}</button>`).join('')}</div></div>
-    </div>
-    <h4>Cor das linhas</h4><div class="swatches">${LINE_COLORS.map(c => c ? `<button class="sw${bg.lineColor === c ? ' on' : ''}" data-lc="${c}" style="background:${c}"></button>` : `<button class="sw auto${!bg.lineColor ? ' on' : ''}" data-lc="" title="Automática">A</button>`).join('')}</div>
-    <h4>Cor do fundo</h4><div class="swatches">${BG_COLORS.map(c => `<button class="sw sq${c === bg.color ? ' on' : ''}" data-c="${c}" style="background:${c}" title="${corNome(c)}" aria-label="${corNome(c)}"></button>`).join('')}</div>
-    ${ANCHORED.has(pat) ? '<button class="btn" id="bgOrigin" style="margin-top:12px">Trazer a folha para o centro da tela</button>' : ''}`, p => {
-    const previa = () => p.querySelectorAll('.paper').forEach(b => {
-      const k = b.dataset.p, zoom = PAPER.PAPER_PREVIEW?.[k] ?? (k === 'cornell' ? 0.034 : k === 'polar' ? 0.35 : 0.5);
-      R.drawBackground(b.querySelector('canvas').getContext('2d'), { ...S.board.background, pattern: k, origin: { x: 0, y: 0 } }, { x: 48, y: 29, zoom }, 96, 58);
-    });
-    previa();
+      <div><h4>Cor das linhas</h4><div class="swatches">${sw(LINE_COLORS, bg.lineColor || '', 'lc')}</div></div>
+      <div><h4>Cor do fundo</h4><div class="swatches">${sw(BG_COLORS, bg.color, 'c', ' sq')}</div></div>
+      <div><h4>Textura</h4><div class="seg">${[['', 'Lisa'], ['lousa', 'Lousa de giz']].map(([k, n]) => `<button class="${(bg.textura || '') === k ? 'on' : ''}" data-tx="${k}" title="${k ? 'Manchas de apagador e pó de giz, bem fracas' : 'Fundo liso'}">${n}</button>`).join('')}</div></div>
+      ${PG.isPages(S.board) ? `<div><h4>Em volta das páginas</h4><div class="seg">${[['contraste', 'Cinza'], ['igual', 'Cor do fundo']].map(([k, n]) => `<button class="${(bg.mesa || 'contraste') === k ? 'on' : ''}" data-mesa="${k}">${n}</button>`).join('')}</div></div>` : ''}
+      ${ANCHORED.has(pat) ? '<div><h4>&nbsp;</h4><button class="btn" id="bgOrigin">Trazer a folha para o centro</button></div>' : ''}
+    </div>`, p => {
+    p.classList.add('fl-pop', 'fl-t-' + tam);
+    const grid = p.querySelector('#bgPapers');
+    const previa = () => {
+      const [w, h] = DIM[cfg.folhaTam || 'm'], dpr = Math.min(2, devicePixelRatio || 1);
+      grid.querySelectorAll('.paper').forEach(b => {
+        const k = b.dataset.p, c = b.querySelector('canvas'), zoom = (PAPER.PAPER_PREVIEW?.[k] ?? (k === 'cornell' ? 0.034 : k === 'polar' ? 0.35 : 0.5)) * w / 96;
+        c.width = w * dpr; c.height = h * dpr; c.style.width = w + 'px'; c.style.height = h + 'px';
+        const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        R.drawBackground(g, { ...S.board.background, pattern: k, origin: { x: 0, y: 0 } }, { x: w / 2, y: h / 2, zoom }, w, h);
+      });
+    };
     const center = () => { const c = toWorld(W / 2, H / 2); return { x: Math.round(c.x), y: Math.round(c.y) }; };
     const set = patch => {
       undoStack.push(histEntry()); redoStack = [];   // trocar folha/cor também se desfaz com Ctrl+Z
       S.board.background = { ...S.board.background, ...patch };
+      if ('pattern' in patch) delete S.board.background.folhaEstojo;   // P40: folha escolhida à mão fica ao trocar de estojo
       updateUndo(); requestRender(); scheduleSave(); syncToolbar();
       hidePop(); bgPop(anchor);
     };
-    const ligaFolhas = () => p.querySelectorAll('[data-p]').forEach(x => x.onclick = () => set(ANCHORED.has(x.dataset.p) ? { pattern: x.dataset.p, origin: center() } : { pattern: x.dataset.p }));
-    ligaFolhas();
-    p.querySelectorAll('[data-pt]').forEach(x => x.onclick = () => {
-      cfg.paperTab = x.dataset.pt; saveCfg();
-      p.querySelectorAll('[data-pt]').forEach(y => y.classList.toggle('on', y === x));
-      p.querySelector('#bgPapers').innerHTML = cartoes(x.dataset.pt); previa(); ligaFolhas();
+    const mostra = (ks, cab) => {
+      grid.innerHTML = (cab ? `<div class="shp-sec">${cab}</div>` : '') + cartoes(ks);
+      grid.querySelectorAll('[data-p]').forEach(x => x.onclick = () => set(ANCHORED.has(x.dataset.p) ? { pattern: x.dataset.p, origin: center() } : { pattern: x.dataset.p }));
+      previa();
+    };
+    const abre = n => {
+      cfg.paperTab = n; saveCfg();
+      p.querySelectorAll('[data-pt]').forEach(y => y.classList.toggle('on', y.dataset.pt === n));
+      grid.style.setProperty('--c', corDe(n));
+      mostra(grupos.find(([g]) => g === n)?.[1] || []);
+    };
+    p.querySelectorAll('[data-pt]').forEach(x => x.onclick = () => abre(x.dataset.pt));
+    abre(aba);
+    p.querySelector('#flAreas .on')?.scrollIntoView({ block: 'nearest' });
+    const plain = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const find = p.querySelector('#flFind');
+    find.oninput = () => {
+      const q = plain(find.value.trim());
+      if (!q) return abre(cfg.paperTab || aba);
+      p.querySelectorAll('[data-pt]').forEach(y => y.classList.remove('on'));
+      const hits = grupos.flatMap(([, ks]) => ks).filter((k, i, a) => a.indexOf(k) === i && plain(nomeDe.get(k)).includes(q));
+      if (hits.length) mostra(hits, `${hits.length} folha${hits.length > 1 ? 's' : ''}`);
+      else grid.innerHTML = '<p class="muted">Nenhuma folha com esse nome.</p>';
+    };
+    find.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') hidePop(); });
+    p.querySelectorAll('[data-ft]').forEach(x => x.onclick = () => {
+      cfg.folhaTam = x.dataset.ft; saveCfg();
+      p.classList.remove('fl-t-p', 'fl-t-m', 'fl-t-g'); p.classList.add('fl-t-' + x.dataset.ft);
+      p.querySelectorAll('[data-ft]').forEach(y => y.classList.toggle('on', y === x)); previa();
     });
     p.querySelectorAll('[data-s]').forEach(x => x.onclick = () => set({ size: x.dataset.s }));
     p.querySelectorAll('[data-st]').forEach(x => x.onclick = () => set({ strength: x.dataset.st }));
     p.querySelectorAll('[data-lc]').forEach(x => x.onclick = () => set({ lineColor: x.dataset.lc || null }));
     p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => set({ color: x.dataset.c }));
+    p.querySelectorAll('[data-mesa]').forEach(x => x.onclick = () => set({ mesa: x.dataset.mesa }));
+    p.querySelectorAll('[data-tx]').forEach(x => x.onclick = () => set({ textura: x.dataset.tx || undefined }));
     p.querySelector('#bgOrigin')?.addEventListener('click', () => set({ origin: center() }));
   });
 }
@@ -2022,7 +2445,7 @@ async function exportPng(transparent = false) {
   if (!S.items.length) return toast('O quadro está vazio');
   const title = S.board.title;
   toast('Gerando imagem…');
-  const c = await R.renderToCanvas({ ...S.board, items: S.items }, { scale: 2, transparent });
+  const c = await R.renderToCanvas({ ...S.board, items: visiveis() }, { scale: 2, transparent });
   c.toBlob(b => download(b, safeName(title) + '.png'), 'image/png');
 }
 async function exportLousa() {
@@ -2079,8 +2502,8 @@ function lighten(hex) {
 }
 
 function stepWidth(dir) {
-  const t = isPen(tool) || tool === 'highlighter' ? tool : (cfg.lastPen || 'pen0');
-  const list = t === 'highlighter' ? HL_WIDTHS : PEN_WIDTHS, c = cfg.tools[t];
+  const t = isPen(tool) || isHl(tool) ? tool : (cfg.lastPen || 'pen0');
+  const list = isHl(t) ? HL_WIDTHS : PEN_WIDTHS, c = cfg.tools[t];
   let i = list.findIndex(w => w >= c.width);
   if (i < 0) i = list.length - 1;
   c.width = list[Math.max(0, Math.min(list.length - 1, i + dir))];
@@ -2222,14 +2645,14 @@ async function exportPdfFile() {
   const title = S.board.title;
   try {
     toast('Gerando PDF…', 30000);
-    const blob = await PG.exportPdf({ ...S.board, items: S.items });
+    const blob = await PG.exportPdf({ ...S.board, items: visiveis() });
     download(blob, safeName(title) + '.pdf');
     toast('PDF pronto');
   } catch (e) { toast(e.message, 6000); }
 }
 async function printNow() {
   toast('Preparando impressão…');
-  await PG.printBoard({ ...S.board, items: S.items });
+  await PG.printBoard({ ...S.board, items: visiveis() });
 }
 
 // painel lateral com as miniaturas das páginas
@@ -2277,11 +2700,13 @@ function markPanel() {
 }
 
 function pageMenu(anchor) {
-  const i = curPage();
+  const i = curPage(), n = i + 1, tot = S.board.layout.count;
+  // "esta página" = a que está no centro da tela; o número deixa claro qual é (pedido de 15/10/2026)
   showPop(anchor, `<div class="menu">
-      <button data-a="ins">${ICON.plus} Nova página depois desta</button>
-      <button data-a="dup">${ICON.copy} Duplicar esta página</button>
-      <button data-a="del" class="danger">${ICON.trash} Excluir esta página</button>
+      <div class="menu-cab">Página ${n} de ${tot} <small>(a que está no centro da tela)</small></div>
+      <button data-a="ins">${ICON.plus} Nova página depois da página ${n}</button>
+      <button data-a="dup">${ICON.copy} Duplicar a página ${n}</button>
+      <button data-a="del" class="danger">${ICON.trash} Excluir a página ${n}</button>
       <hr>
       <button data-a="all">${ICON.gallery} Ver todas as páginas</button>
       <button data-a="slides">${ICON.slides} Inserir PDF ou apresentação aqui</button>
@@ -2427,7 +2852,7 @@ const TEACH_ITEMS = () => [
     ['curtain', ICON.cortina, 'Cortina', 'esconde a parte de baixo; arraste a alça para revelar', 'Cortina'],
     ['spot', ICON.spotlight, 'Holofote', 'escurece tudo menos em volta do ponteiro; tamanho, formato e escurecimento ajustáveis', 'Holofote'],
     ['timer', ICON.timer, 'Cronômetro', 'contagem regressiva com aviso sonoro; dá para digitar o tempo', 'Cronômetro'],
-    ['clock', ICON.clock, 'Relógio', 'hora do computador, flutuando sobre o quadro', 'Relógio'],
+    ['clock', ICON.clock, 'Relógio e calendário', 'hora do computador e calendário do mês; o calendário pode ir para o quadro', 'Relógio'],
     ['plot', ICON.fx, 'Plotar função', 'digite uma função ou escolha um modelo; a curva sai com os eixos', 'Função'],
     ['formula', ICON.formula, 'Fórmula (LaTeX)', 'equações nítidas: \\frac{a}{b}, x^2, \\Delta H', 'Fórmula'],
     ['ocr', ICON.ocr, 'Converter escrita em texto', 'selecione a escrita com o laço antes', 'Escrita→texto'],
@@ -2478,6 +2903,7 @@ function buildTeachBar() {
   b.querySelector('[data-x]').onclick = () => setTeachBar(false);
   b.querySelector('[data-lado]').onclick = () => setTeachBar(true, cfg.teachSide === 'esq' ? 'dir' : 'esq');
   b.querySelector('[data-nomes]').onclick = () => { cfg.teachNames = !cfg.teachNames; saveCfg(); buildTeachBar(); placeBars(); };
+  recolhivelDeNovo('teach');   // o botão de recolher some quando a barra é refeita
   syncTeachBar();
 }
 function syncTeachBar() {
@@ -2510,6 +2936,20 @@ function toggleSpot() {
     spot.forma = b.dataset.f; el.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); salva();
   });
   draggable(el, 'lousa.spotPos');
+}
+
+// insere no centro da tela uma imagem já gerada ({blob, w, h} em px), selecionada para mover
+async function inserirImagemPronta(im) {
+  if (!S || !im?.blob) return;
+  const alvo = S, src = await uploadAsset(im.blob);
+  if (S !== alvo) return;
+  const c = toWorld(W / 2, H / 2), z = S.view.zoom, k = Math.min(1, (W * 0.6) / im.w);
+  const w = im.w * k / z, h = im.h * k / z;
+  const it = { id: newId(), type: 'image', src, x: c.x - w / 2, y: c.y - h / 2, w, h };
+  commit([...S.items, it]);
+  sel = new Set([it.id]);
+  setTool('select');
+  toast('Calendário no quadro: arraste para posicionar');
 }
 
 function toolAction(k, anchor) {
@@ -2659,7 +3099,7 @@ function drawInstruments() {
 
 function instrumentDown(e, P) {
   if (curtain && Math.abs(e.clientY - curtain.y) < 18) { action = { type: 'curtain', id: e.pointerId }; return true; }
-  const inking = isPen(tool) || tool === 'highlighter';
+  const inking = isPen(tool) || isHl(tool);
   if (protractor && onProtractor(P.x, P.y) && !(inking && (e.pointerType === 'pen' || protEdge(P.x, P.y)))) { action = { type: 'protractor', id: e.pointerId, px: P.x, py: P.y }; return true; }
   if (strip) {
     // "Levar a caixa": o próximo toque no quadro põe a caixa ali
@@ -2730,7 +3170,7 @@ function drawStrip() {
   g.beginPath(); g.moveTo(0, strip.sh * 0.72); g.lineTo(strip.sw, strip.sh * 0.72); g.stroke(); g.setLineDash([]);
   g.setTransform(dpr * k, 0, 0, dpr * k, dpr * view.x, dpr * view.y);
   const box = { x: strip.x, y: strip.y, w: strip.w, h: strip.h };
-  for (const it of S.items) if (R.boxesTouch(R.bbox(it), box)) R.drawItem(g, it);
+  for (const it of S.items) if (!oculto(it) && R.boxesTouch(R.bbox(it), box)) R.drawItem(g, it);
   if (action?.type === 'draw') R.drawStroke(g, action.stroke);
 }
 function initStrip() {
@@ -2745,7 +3185,7 @@ function initStrip() {
     m.getPredictedEvents = () => [];
     return m;
   };
-  cv.addEventListener('pointerdown', e => { if (!strip) return; try { cv.setPointerCapture(e.pointerId); } catch {} if (!isPen(tool) && tool !== 'highlighter' && tool !== 'eraser') setTool(cfg.lastPen || 'pen0'); onDown(fake(e)); });
+  cv.addEventListener('pointerdown', e => { if (!strip) return; try { cv.setPointerCapture(e.pointerId); } catch {} if (!isPen(tool) && !isHl(tool) && tool !== 'eraser') setTool(cfg.lastPen || 'pen0'); onDown(fake(e)); });
   cv.addEventListener('pointermove', e => { if (!strip) return; onMove(fake(e, e.getCoalescedEvents?.())); });
   cv.addEventListener('pointerup', e => {
     if (!strip) return;
@@ -2878,20 +3318,40 @@ async function inkToText(ids) {
 }
 
 
+// formatação do texto selecionado (caixas de texto e notas): fonte, tamanho, negrito, itálico e alinhamento
 function fontPop(anchor) {
-  const fonts = ['Segoe UI', 'Segoe Script', 'Segoe Print', 'Ink Free', 'Lucida Handwriting', 'Comic Sans MS', 'Times New Roman', 'Consolas'];
-  showPop(anchor, `<h4>Fonte</h4><div class="menu">${fonts.map(f => `<button data-f="${f}" style="font-family:'${f}'">${f}</button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-f]').forEach(b => b.onclick = () => {
-      hidePop();
-      const meas = document.createElement('canvas').getContext('2d');
+  const fonts = ['Segoe UI', 'Arial', 'Calibri', 'Cambria', 'Georgia', 'Times New Roman', 'Verdana', 'Consolas', 'Segoe Script', 'Segoe Print', 'Ink Free', 'Lucida Handwriting', 'Comic Sans MS'];
+  const alvo = S.items.filter(i => sel.has(i.id) && (i.type === 'text' || i.type === 'note'));
+  if (!alvo.length) return;
+  const a0 = alvo[0], temTexto = alvo.some(i => i.type === 'text'), temNota = alvo.some(i => i.type === 'note');
+  const ALS = [['left', 'Esquerda', '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>'], ['center', 'Centro', '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>'],
+    ['right', 'Direita', '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>'], ['justify', 'Justificar', '<path d="M4 6h16M4 10h16M4 14h16M4 18h10"/>']];
+  const ic = d => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">${d}</svg>`;
+  const TAM_T = [16, 24, 32, 48, 72, 96], TAM_N = [['Auto', 0], ['16', 16], ['24', 24], ['32', 32], ['48', 48]];
+  showPop(anchor, `<h4>Texto</h4>
+    <div class="seg"><button data-x="b" class="${a0.b ? 'on' : ''}" title="Negrito"><b>N</b></button><button data-x="i" class="${a0.i ? 'on' : ''}" title="Itálico"><i>I</i></button>
+      ${ALS.map(([k, n, d]) => `<button data-al="${k}" class="${(a0.al || 'left') === k ? 'on' : ''}" title="${n}">${ic(d)}</button>`).join('')}</div>
+    ${temTexto ? `<h4>Tamanho</h4><div class="seg"><button data-z="-1" title="Diminuir">A−</button>${TAM_T.map(v => `<button data-ts="${v}">${v}</button>`).join('')}<button data-z="1" title="Aumentar">A+</button></div>` : ''}
+    ${temNota ? `<h4>Tamanho na nota</h4><div class="seg">${TAM_N.map(([n, v]) => `<button data-ns="${v}" class="${((alvo.find(i => i.type === 'note') || {}).fs || 0) === v ? 'on' : ''}">${n}</button>`).join('')}</div>` : ''}
+    <h4>Fonte <small style="font-weight:400;color:#666">(instaladas no computador; nada é embutido no Giz Livre)</small></h4><div class="menu fontes">${fonts.map(f => `<button data-f="${f}" class="${(a0.font || 'Segoe UI') === f ? 'on' : ''}" style="font-family:'${f}'">${f}</button>`).join('')}</div>`, p => {
+    const meas = document.createElement('canvas').getContext('2d');
+    const larg = n => { meas.font = `${R.estiloDe(n)}${n.size}px ${R.fontOf(n)}`; return Math.max(...n.text.split('\n').map(l => meas.measureText(l).width)) + 2; };
+    const aplica = fn => {
       commit(S.items.map(i => {
-        if (!sel.has(i.id) || i.type !== 'text') return i;
-        const n = { ...i, font: b.dataset.f === 'Segoe UI' ? undefined : b.dataset.f };
-        meas.font = `${n.size}px ${R.fontOf(n)}`;
-        n.w = Math.max(...n.text.split('\n').map(l => meas.measureText(l).width)) + 2;
+        if (!sel.has(i.id) || (i.type !== 'text' && i.type !== 'note')) return i;
+        const n = fn({ ...i });
+        if (n.type === 'text') n.w = larg(n);   // caixa de texto acompanha a linha mais longa
         return n;
       }));
-    });
+      hidePop(); fontPop(anchor);
+    };
+    p.querySelector('[data-x="b"]').onclick = () => { const v = !a0.b; aplica(n => ({ ...n, b: v || undefined })); };
+    p.querySelector('[data-x="i"]').onclick = () => { const v = !a0.i; aplica(n => ({ ...n, i: v || undefined })); };
+    p.querySelectorAll('[data-al]').forEach(x => x.onclick = () => aplica(n => ({ ...n, al: x.dataset.al === 'left' ? undefined : x.dataset.al })));
+    p.querySelectorAll('[data-ts]').forEach(x => x.onclick = () => aplica(n => n.type === 'text' ? { ...n, size: +x.dataset.ts } : n));
+    p.querySelectorAll('[data-z]').forEach(x => x.onclick = () => aplica(n => n.type === 'text' ? { ...n, size: Math.max(6, n.size * (+x.dataset.z > 0 ? 1.2 : 1 / 1.2)) } : n));
+    p.querySelectorAll('[data-ns]').forEach(x => x.onclick = () => aplica(n => n.type === 'note' ? { ...n, fs: +x.dataset.ns || undefined } : n));
+    p.querySelectorAll('[data-f]').forEach(x => x.onclick = () => aplica(n => ({ ...n, font: x.dataset.f === 'Segoe UI' ? undefined : x.dataset.f })));
   }, 'above');
 }
 

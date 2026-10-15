@@ -18,11 +18,11 @@
     <h1>Giz Livre <small id="gVer" class="g-ver" title="Versão instalada"></small></h1>
     <div class="g-search"><span data-icon="search"></span><input id="gSearch" type="search" placeholder="Pesquisar quadros" aria-label="Pesquisar quadros"></div>
     <select id="gSort" class="btn" aria-label="Ordenar"><option value="date">Mais recentes</option><option value="name">Nome (A–Z)</option></select>
-    <button id="gTablet" class="btn" title="Configurar e testar a mesa digitalizadora"><span data-icon="pen"></span>Caneta e escrita</button>
-    <button id="gNewFolder" class="btn" title="Criar uma pasta (ex.: uma disciplina) e mover quadros para ela"><span data-icon="folder"></span>Nova pasta</button>
-    <button id="gImport" class="btn"><span data-icon="import"></span>Importar</button>
-    <button id="gShapes" class="btn" title="Catálogo de formas: todas as disciplinas, com busca"><span data-icon="shapes"></span>Formas</button>
-    <button id="gTrash" class="btn" title="Quadros excluídos: ver e restaurar"><span data-icon="trash"></span>Lixeira</button>
+    <button id="gTablet" class="btn" title="Configurar e testar a mesa digitalizadora"><span data-icon="pen"></span><span class="g-rot">Caneta e escrita</span></button>
+    <button id="gNewFolder" class="btn" title="Criar uma pasta (ex.: uma disciplina) e mover quadros para ela"><span data-icon="folder"></span><span class="g-rot">Nova pasta</span></button>
+    <button id="gImport" class="btn" title="Importar quadros, imagens, PDF ou apresentações"><span data-icon="import"></span><span class="g-rot">Importar</span></button>
+    <button id="gShapes" class="btn" title="Catálogo de formas: todas as disciplinas, com busca"><span data-icon="shapes"></span><span class="g-rot">Formas</span></button>
+    <button id="gTrash" class="btn" title="Quadros excluídos: ver e restaurar"><span data-icon="trash"></span><span class="g-rot">Lixeira</span></button>
     <button id="gAbout" class="btn" title="Versão, licença e aviso">Sobre</button>
   </header>
   <div id="gGrid" class="g-grid"></div>
@@ -49,17 +49,19 @@
     <button class="pen" data-tool="pen3"></button>
     <button class="pen" data-tool="highlighter"></button>
     <span class="sep"></span>
-    <button class="ib" data-tool="laser" title="Ponteiro laser (K)"><span data-icon="laser"></span></button>
+    <button class="ib" data-tool="laser" title="Ponteiro laser (K): toque de novo para cor, tamanho, rastro e formato"><span data-icon="laser"></span></button>
     <button class="ib" data-tool="eraser" title="Borracha (E)"><span data-icon="eraser"></span></button>
     <button class="ib" data-tool="lasso" title="Laço de seleção (L)"><span data-icon="lasso"></span></button>
     <button class="ib" data-tool="select" title="Selecionar (V)"><span data-icon="select"></span></button>
+    <button class="ib" data-tool="hand" title="Mão: arrastar a lousa, como o botão do meio do mouse (M). As setas do teclado também movem a lousa"><span data-icon="hand"></span></button>
     <span class="sep"></span>
     <button class="ib toggle" id="tRuler" title="Régua (R)"><span data-icon="ruler"></span></button>
-    <button class="ib toggle" id="tInkShape" title="Tinta vira forma (traço quase reto vira reta; círculo vira círculo)"><span data-icon="shapeInk"></span></button>
+    <button class="ib toggle" id="tInkShape" title="Tinta vira forma: ligar, desligar e escolher o que reconhecer (retas, círculos, retângulos, polígonos, ângulos)"><span data-icon="shapeInk"></span></button>
+    <button class="ib toggle" id="tRascunho" title="Rascunho: mostra ou esconde a barra do rascunho (camada à parte, que dá para esconder e mostrar de uma vez)"><span data-icon="layers"></span></button>
     <button class="ib toggle" id="tBeautify" title="Embelezar ao escrever (liga/desliga)"><span data-icon="sparkle"></span></button>
     <span class="sep"></span>
     <button class="ib" id="tPaper" title="Folha e fundo (quadriculada, milimetrada, cartesiano…)"><span data-icon="paper"></span></button>
-    <button class="ib" id="tTools" title="Ferramentas do professor: lupa, transferidor, compasso, cortina, cronômetro, fórmulas…"><span data-icon="tools"></span></button>
+    <button class="ib" id="tTools" title="Ferramentas do professor: lupa de escrita, transferidor, compasso, cortina, cronômetro, relógio e calendário, fórmulas…"><span data-icon="tools"></span></button>
   </div>
 
   <div class="bar teachbar" id="teachbar" hidden></div>
@@ -72,23 +74,28 @@
     <button class="ib" id="bPresent" title="Apresentar (tela cheia, só a mini-bandeja)"><span data-icon="present"></span></button>
     <button class="ib" id="bFull" title="Tela cheia"><span data-icon="fullscreen"></span></button>
     <button class="ib" id="bLock" title="Destravar as barras para mudar de lugar"></button>
+    <button class="ib" id="bCollapseAll" title="Recolher todas as barras de uma vez (Tab); cada barra também tem o seu botão de recolher"><span data-icon="collapse"></span></button>
     <button class="ib" id="bMenu" title="Mais opções: folha, páginas, exportar, imprimir, atalhos"><span data-icon="more"></span></button>
   </div>
 
   <div class="bar create" id="createbar">
     <button class="cb" data-create="text" title="Texto (T)"><span data-icon="text"></span><small>Texto</small></button>
     <button class="cb" data-create="note" title="Nota adesiva"><span data-icon="note"></span><small>Nota</small></button>
-    <button class="cb" data-create="shapes" title="Formas"><span data-icon="shapes"></span><small>Formas</small></button>
+    <button class="cb" data-create="draw" title="Desenho: linha, seta, retângulo, elipse, triângulo (mostra ou esconde a barra de desenho)"><span data-icon="arrow"></span><small>Desenho</small></button>
+    <button class="cb" data-create="shapes" title="Biblioteca de formas técnicas, por área"><span data-icon="shapes"></span><small>Formas</small></button>
     <button class="cb" data-create="image" title="Imagem"><span data-icon="image"></span><small>Imagem</small></button>
     <button class="cb" data-create="pdf" title="Inserir PDF ou apresentação (PowerPoint .pptx/.ppt, LibreOffice .odp, Keynote .key); você escolhe as páginas. Também dá para arrastar o arquivo para o quadro"><span data-icon="slides"></span><small>PDF/Slides</small></button>
   </div>
+
+  <div class="bar create drawbar" id="drawbar" hidden></div>
+  <div class="bar rascbar" id="rascbar" hidden></div>
 
   <div class="bar zoom">
     <button class="ib" id="zOut" title="Diminuir zoom (Ctrl+−)"><span data-icon="zoomOut"></span></button>
     <button class="zl" id="zLabel" title="Voltar a 100%">100%</button>
     <button class="ib" id="zIn" title="Aumentar zoom (Ctrl+=)"><span data-icon="zoomIn"></span></button>
     <button class="ib" id="zFit" title="Ajustar à tela (Ctrl+0)"><span data-icon="fit"></span></button>
-    <button class="ib toggle" id="zLens" title="Lupa (Z): toque onde quer ampliar; toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
+    <button class="ib toggle" id="zLens" title="Lupa (Z), a mesma da apresentação: toque onde quer ampliar (a roda do mouse muda o tamanho); toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
   </div>
 
   <div class="bar selbar" id="selbar" hidden>
@@ -96,7 +103,7 @@
     <button class="ib" data-sel="beautify" title="Embelezar escrita"><span data-icon="sparkle"></span></button>
     <button class="ib" data-sel="original" title="Voltar ao original"><span data-icon="restore"></span></button>
     <button class="ib" data-sel="ocr" title="Converter escrita em texto"><span data-icon="inkText"></span></button>
-    <button class="ib" data-sel="font" title="Fonte do texto"><span data-icon="fontAa"></span></button>
+    <button class="ib" data-sel="font" title="Texto: fonte, tamanho, negrito, itálico e alinhamento"><span data-icon="fontAa"></span></button>
     <button class="ib" data-sel="color" title="Cor"><span data-icon="color"></span></button>
     <button class="ib" data-sel="duplicate" title="Duplicar (Ctrl+D)"><span data-icon="duplicate"></span></button>
     <button class="ib" data-sel="copy" title="Copiar (Ctrl+C)"><span data-icon="copy"></span></button>

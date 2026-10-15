@@ -39,6 +39,17 @@
 /* alvos de pelo menos 36 px na galeria (caneta) */
 .g-head .btn, .g-search { min-height: 36px; }
 .g-head { gap: 12px; }
+/* cabeçalho que cabe em janela não maximizada (15/10/2026): nada quebra em três linhas nem some pela direita */
+.g-head { flex-wrap: wrap; row-gap: 8px; padding: 12px 20px; }
+.g-head h1 { white-space: nowrap; display: flex; align-items: baseline; }
+.g-head .btn, .g-head select { white-space: nowrap; flex: none; }
+.g-head .g-search { flex: 1 1 180px; min-width: 150px; max-width: 360px; }
+.g-head .g-search input { width: 100%; min-width: 0; }
+@media (max-width: 1320px) {
+  .g-head .g-rot { display: none; }   /* só o ícone; o nome continua na dica (title) */
+  .g-head .btn { padding: 6px 9px; }
+}
+@media (max-width: 640px) { .g-head h1 .g-ver { display: none; } }
 .card .dots, .fcard .dots { min-width: 36px; min-height: 36px; display: grid; place-items: center; }
 .card .dots { right: 4px; bottom: 6px; }
 .fcard { padding-right: 46px; }

@@ -329,7 +329,7 @@ const AMPLIACAO_20261009 = [
 ];
 
 export default {
-  id: 'lab', nome: 'Laboratório',
+  id: 'lab', nome: 'Laboratório de Química',
   destaques: [
     'lb-bequer', 'lb-erlenmeyer', 'lb-balao-volumetrico', 'lb-proveta', 'lb-tubo-ensaio',
     'lb-pipeta-volumetrica', 'lb-bureta', 'lb-funil', 'lb-suporte-universal', 'lb-bico-bunsen',

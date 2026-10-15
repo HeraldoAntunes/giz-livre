@@ -42,7 +42,9 @@ function paperFor(bg, r) {
 }
 
 // cor da "mesa" em volta das folhas: segue a cor de fundo escolhida (um tom abaixo, para as folhas se destacarem)
-export function deskColor(c) {
+// mesa: 'contraste' (padrão) ou 'igual' (a mesa fica da cor do fundo, ex.: tudo branco; pedido de 15/10/2026)
+export function deskColor(c, mesa) {
+  if (mesa === 'igual') return c || '#ffffff';
   if (!c || c.toLowerCase() === '#ffffff') return '#e4e4e4';
   const n = parseInt(c.slice(1), 16), dark = R.isDark(c);
   const ch = s => { const v = (n >> s) & 255; return Math.round(dark ? v + (255 - v) * 0.1 : v * 0.9); };
@@ -64,7 +66,7 @@ export function slidePages(L, items) {
 export function drawPages(ctx, board, view, w, h) {
   const L = board.layout, bg = board.background, z = view.zoom;
   const dark = R.isDark(bg.color);
-  ctx.fillStyle = deskColor(bg.color);
+  ctx.fillStyle = deskColor(bg.color, bg.mesa);
   ctx.fillRect(0, 0, w, h);
   const wy0 = -view.y / z, wy1 = (h - view.y) / z;
   const i0 = Math.max(0, Math.floor(wy0 / (L.h + L.gap))), i1 = Math.min(L.count - 1, Math.floor(wy1 / (L.h + L.gap)));
@@ -112,7 +114,7 @@ export async function boardThumb(board, w = 480, h = 270, box = null) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const g = c.getContext('2d');
-  g.fillStyle = deskColor(board.background.color);
+  g.fillStyle = deskColor(board.background.color, board.background.mesa);
   g.fillRect(0, 0, w, h);
   const k = Math.min((w - 16) / pg.width, (h - 16) / pg.height);
   g.drawImage(pg, (w - pg.width * k) / 2, (h - pg.height * k) / 2, pg.width * k, pg.height * k);

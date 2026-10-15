@@ -252,6 +252,7 @@ function createBoard() {
     ['a4', ICON.paper, 'Caderno A4', 'folhas A4 em pé, prontas para imprimir/PDF'],
     ['a4l', ICON.paper, 'Caderno A4 deitado', 'folhas A4 em paisagem'],
     ['s169', ICON.slides, 'Slides 16:9 em branco', 'páginas no formato de apresentação'],
+    ['chalk', ICON.grid, 'Lousa verde (giz)', 'fundo verde e canetas de giz; dá para trocar depois'],
     ['import', ICON.import, 'Abrir PowerPoint ou PDF…', 'cada slide/página vira uma folha para escrever por cima'],
   ];
   showPop($('gNew'), `<h4>Novo quadro</h4><div class="menu newkind">${kinds.map(([k, ic, n, d]) =>
@@ -262,7 +263,10 @@ function createBoard() {
       if (k === 'import') return $('gSlideFile').click();
       try {
         const id = newId();
-        const board = emptyBoard(autoTitle(k === 'free' ? 'Quadro' : k.startsWith('s') ? 'Slides' : 'Caderno'), k === 'free' ? null : makeLayout(k, 1));
+        const livre = k === 'free' || k === 'chalk';
+        const board = emptyBoard(autoTitle(livre ? 'Quadro' : k.startsWith('s') ? 'Slides' : 'Caderno'), livre ? null : makeLayout(k, 1));
+        board.novo = true;   // o editor oferece o estojo inicial ou pergunta sobre as canetas
+        if (k === 'chalk') { board.background.color = '#20402f'; board.estojo = 'quadro-negro'; }
         if (curFolder) board.folder = curFolder;   // criado dentro da pasta aberta
         await saveBoard(id, board, null);
         location.hash = '#/b/' + id;
