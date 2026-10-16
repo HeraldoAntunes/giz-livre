@@ -238,6 +238,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* 1.4.0: barras de criar e de desenho empilhadas em tela baixa (bars.js, empilhaDesenho) */
 .create.apertada .cb { padding: 2px 0 1px; }
 .create.apertada .cb svg { width: 18px; height: 18px; }
+/* P48 (notebook): barra de desenho em duas colunas, embaixo da barra de criar */
+.drawbar.duas-col { display: grid; grid-template-columns: repeat(2, auto); }
+.drawbar.duas-col::before, .drawbar.duas-col .bar-min { grid-column: 1 / -1; justify-self: center; }
 .bar .bar-min { width: 26px; height: 26px; min-height: 0; opacity: .55; flex: none; }
 .bar .bar-min:hover { opacity: 1; }
 .bar .bar-min svg { width: 15px; height: 15px; }

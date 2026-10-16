@@ -21,14 +21,15 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function empilhaDesenho() {
   const d = el('draw'), c = el('create');
   if (!d || !c) return;
-  const aperta = ap => { c.classList.toggle('apertada', ap); d.classList.toggle('apertada', ap); };
+  const aperta = (ap, duas) => { c.classList.toggle('apertada', ap); d.classList.toggle('apertada', ap); d.classList.toggle('duas-col', !!duas); };
   if (d.hidden || pos.draw) return aperta(false);
   if (!pos.create) { c.style.top = '64px'; c.style.transform = 'none'; }
   d.style.transform = 'none';
   // 1.4.0: com o botão Captura as duas barras deixaram de caber empilhadas em telas de ~1000 px; antes de pôr a de
-  // desenho ao lado (em cima do quadro), tenta com os botões mais baixos
-  for (const ap of [false, true]) {
-    aperta(ap);
+  // desenho ao lado (em cima do quadro), tenta com os botões mais baixos e, no notebook (P48, 16/10/2026), com a
+  // barra de desenho em duas colunas
+  for (const [ap, duas] of [[false, false], [true, false], [true, true]]) {
+    aperta(ap, duas);
     const r = c.getBoundingClientRect();
     if (r.bottom + 8 + d.offsetHeight <= innerHeight - 8) { d.style.left = r.left + 'px'; d.style.top = r.bottom + 8 + 'px'; return; }
   }

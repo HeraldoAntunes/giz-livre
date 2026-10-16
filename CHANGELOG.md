@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.4.1 (16/10/2026)
+Correções pedidas pelo professor depois de instalar a 1.4.0.
+- **Apresentação:** com o quadro ampliado (lupa ou Ctrl), o slide seguinte abre com a mesma ampliação e no mesmo ponto
+  da página; o Esc tira a ampliação e mostra o slide inteiro. Passar o slide no meio da animação da lupa não puxa mais
+  a tela de volta para a página anterior. Ctrl+0 na apresentação enquadra o slide em tela cheia.
+- **Notebook:** em telas baixas, a barra de desenho fica embaixo da barra de criar, em duas colunas, em vez de ao lado.
+- O texto da licença no instalador mostra a versão certa (mostrava 1.2.2).
+
 ## 1.4.0 (15/10/2026)
 Recurso novo pedido pelo professor depois da publicação da 1.3.0.
 - **Captura** (experimental): botão **Captura** na barra da esquerda, como a captura de janela do OBS. O Edge pergunta

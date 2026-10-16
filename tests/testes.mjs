@@ -368,5 +368,23 @@ teste('tempo digitado vira segundos (7, 7,5, 7:30, 1:05:00)', () => {
   igual(TL.parseTempo('7:30'), 450, '7:30'); igual(TL.parseTempo('1:05:00'), 3900, '1h05'); igual(TL.parseTempo('x'), null, 'inválido');
 });
 
+// ------------------------------------------------------------------
+console.log('Versão igual em todos os lugares (P47, 16/10/2026)');
+{
+  const { readFileSync } = await import('node:fs');
+  const lê = f => readFileSync(path.join(raiz, '..', '..', f), 'utf8').replace(/^\uFEFF/, '');
+  const { VERSION } = await mod('version.js');
+  const [M, m, c] = VERSION.split('.');
+  teste(`a versão ${VERSION} está em server.py, instalador, build, texto da licença do instalador e CHANGELOG`, () => {
+    igual(lê('server.py').includes(`VERSAO = "${VERSION}"`), true, 'server.py (VERSAO)');
+    igual(lê('installer/lousa.iss').includes(`#define AppVer "${VERSION}"`), true, 'installer/lousa.iss');
+    igual(lê('installer/build.ps1').includes(`$versao = '${VERSION}'`), true, 'installer/build.ps1');
+    const vt = lê('installer/versao.txt');
+    igual(vt.includes(`(${M}, ${m}, ${c}, 0)`) && vt.includes(`'${VERSION}'`), true, 'installer/versao.txt');
+    igual(lê('installer/licenca-instalador.txt').split(/\r?\n/)[0], `GIZ LIVRE ${VERSION}`, 'installer/licenca-instalador.txt (1ª linha)');
+    igual(lê('CHANGELOG.md').includes(`\n## ${VERSION} (`), true, 'CHANGELOG.md');
+  });
+}
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

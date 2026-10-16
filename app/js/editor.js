@@ -1516,7 +1516,7 @@ function viewChanged() {
 function updateZoomLabel() { $('zLabel').textContent = Math.round(S.view.zoom * 100) + '%'; }
 
 function fitView() {
-  if (PG.isPages(S.board)) return goToPage(curPage());
+  if (PG.isPages(S.board)) return goToPage(curPage(), present);
   const b = R.unionBox(S.items);
   if (!b) { S.view = { x: 0, y: 0, zoom: 1 }; viewChanged(); return; }
   const mx = 90, my = 90;
@@ -2639,15 +2639,32 @@ function curPage() {
   return PG.pageIndexAt(S.board.layout, toWorld(W / 2, H / 2).y);
 }
 
+// vista que enquadra a página i (fill: ocupa a tela toda, para apresentar)
+function vistaDaPagina(i, fill) {
+  const r = PG.pageRect(S.board.layout, i), m = fill ? 0 : 28, top = fill ? 0 : 64, bottom = fill ? 0 : 70;
+  const z = Math.max(0.1, Math.min(4, Math.min((W - m * 2) / r.w, (H - top - bottom) / r.h)));
+  return { zoom: z, x: W / 2 - (r.x + r.w / 2) * z, y: top + (H - top - bottom) / 2 - (r.y + r.h / 2) * z };
+}
 // enquadra a página i (fill: ocupa a tela toda, para apresentar)
+// P49 (16/10/2026): na apresentação com o quadro ampliado (lupa ou Ctrl+roda), o slide seguinte abre com a mesma
+// ampliação e no mesmo ponto do slide; e mudar de página interrompe uma animação de vista em curso (ela puxava a tela
+// de volta para a página antiga)
 function goToPage(i, fill = false) {
   if (!S || !PG.isPages(S.board)) return;
-  if (zoomLens) { zoomLens = null; syncPresentBar(); }   // mudar de página desfaz a lupa
-  const L = S.board.layout;
+  animVista++;
+  const L = S.board.layout, de = curPage();
   i = Math.max(0, Math.min(L.count - 1, i));
-  const r = PG.pageRect(L, i), m = fill ? 0 : 28, top = fill ? 0 : 64, bottom = fill ? 0 : 70;
-  const z = Math.max(0.1, Math.min(4, Math.min((W - m * 2) / r.w, (H - top - bottom) / r.h)));
-  S.view = { zoom: z, x: W / 2 - (r.x + r.w / 2) * z, y: top + (H - top - bottom) / 2 - (r.y + r.h / 2) * z };
+  const alvo = vistaDaPagina(i, fill);
+  const ampliado = present && fill && S.view.zoom > vistaDaPagina(de, true).zoom * 1.05;
+  if (ampliado) {
+    const a = PG.pageRect(L, de), b = PG.pageRect(L, i), z = S.view.zoom;
+    S.view = { zoom: z, x: S.view.x - (b.x - a.x) * z, y: S.view.y - (b.y - a.y) * z };
+    if (zoomLens?.modo === 'ampliado') zoomLens.antes = alvo;
+    else if (zoomLens) { zoomLens = null; syncPresentBar(); }
+  } else {
+    if (zoomLens) { zoomLens = null; syncPresentBar(); }   // sem ampliação, mudar de página desfaz a lupa
+    S.view = alvo;
+  }
   viewChanged();
 }
 
@@ -2865,11 +2882,16 @@ function toggleZoomLens() {
   toast('Toque onde quer ampliar · roda do mouse muda o tamanho · Esc cancela', 3500);
   syncPresentBar(); requestRender(false);
 }
+// a animação para se outra começar, se a página mudar (goToPage) ou se o professor mexer na vista no meio dela
+let animVista = 0;
 function animarVista(alvo, ms = 280) {
-  const de = { ...S.view }, t0 = performance.now();
+  const id = ++animVista, de = { ...S.view }, t0 = performance.now(), quadro = S;
+  let ultimo = de;
   const passo = t => {
+    if (id !== animVista || S !== quadro) return;
+    if (S.view.x !== ultimo.x || S.view.y !== ultimo.y || S.view.zoom !== ultimo.zoom) return;
     const u = Math.min(1, (t - t0) / ms), k = 1 - (1 - u) ** 3;
-    S.view = { zoom: de.zoom + (alvo.zoom - de.zoom) * k, x: de.x + (alvo.x - de.x) * k, y: de.y + (alvo.y - de.y) * k };
+    S.view = ultimo = { zoom: de.zoom + (alvo.zoom - de.zoom) * k, x: de.x + (alvo.x - de.x) * k, y: de.y + (alvo.y - de.y) * k };
     viewChanged();
     if (u < 1) requestAnimationFrame(passo);
   };
