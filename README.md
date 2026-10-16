@@ -3,7 +3,7 @@
 # Giz Livre
 
 **Lousa digital livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.**
-Nasceu como substituta do Microsoft Whiteboard para Windows (descontinuado em outubro de 2026) e foi além: caderno A4,
+Feita por um professor para as próprias aulas e distribuída livremente: quadro infinito, caderno A4,
 slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, fórmulas e ferramentas de professor.
 
 <p align="center">
@@ -18,7 +18,7 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 - **Versão do código:** 1.3.0 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
 
 > **Aviso:** projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de qualquer
-> tipo**. Faça backup dos seus quadros. Não há vínculo com a Microsoft, a Wacom nem outras marcas citadas.
+> tipo**. Faça backup dos seus quadros. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.
 
 ## Como baixar e instalar (Windows)
 1. Abra a página de **[downloads (Releases)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)**.
@@ -52,7 +52,7 @@ certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
   - marca-texto, ponteiro laser, borracha (de traço inteiro ou só onde passar);
   - formas (linha, seta simples, dupla e tracejada, retângulo, elipse, triângulo), texto, notas adesivas e imagens;
   - **limpar a lousa** de uma vez (dá para desfazer).
-- **Mesa digitalizadora** (Wacom, XP-Pen, Huion, Gaomon, telas com caneta):
+- **Mesa digitalizadora** (testado com Wacom Intuos; outras mesas e telas com caneta compatíveis com Windows Ink devem funcionar):
   - pressão, botão lateral e ponta-borracha;
   - **estabilizador contra tremido**;
   - painel de teste.
@@ -90,7 +90,7 @@ certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
   e importar imagens do Microsoft Whiteboard.
 
 ## Sistemas
-| | Windows 10/11 | Linux (experimental) | macOS (experimental) |
+| | Windows 11 | Linux (experimental) | macOS (experimental) |
 |---|---|---|---|
 | Instalador e atalhos | ✅ | — (rodar pelo código) | — (rodar pelo código) |
 | Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | ✅ testado no Ubuntu | ⚠️ não testado |
@@ -100,6 +100,9 @@ certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
 | Escrita à mão → texto | ✅ | ❌ (usa o reconhecedor do Windows) | ❌ |
 
 É preciso ter o **Microsoft Edge** ou o **Google Chrome/Chromium** instalado; o programa abre numa janela própria deles.
+
+Testado com Windows 11, Microsoft Edge e mesa Wacom Intuos. No Windows 10, em outros navegadores baseados em Chromium e
+com outras mesas digitalizadoras deve funcionar, mas não foi verificado.
 
 ### Linux e macOS (experimental)
 Precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.

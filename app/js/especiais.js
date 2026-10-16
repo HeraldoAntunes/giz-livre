@@ -15,7 +15,7 @@ import { CONSULTA as biologia } from './especiais/biologia.js';
 import { CONSULTA as musica } from './especiais/musica.js';
 
 // CONSULTA contém só as referências refeitas/novas. Os demais IDs antigos continuam ocultos e preservados.
-// Só constantes e dados fixos de consulta; legislação e norma ficam fora (decisão do professor, 09/10/2026).
+// Só constantes e dados fixos de consulta; legislação e norma ficam fora.
 export const ESPECIAIS = [
   { id: 'esp-tabela-periodica', nome: 'Tabela periódica (colorida)', grupo: 'quimica', make: periodicTableSVG },
   ...hidra, ...saneamento, ...quimica, ...fisica, ...estat, ...matematica, ...eletronica, ...biologia, ...musica,

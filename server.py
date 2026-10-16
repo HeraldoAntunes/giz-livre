@@ -9,6 +9,7 @@ import argparse
 import base64
 import hashlib
 import json
+import math
 import os
 import re
 import secrets
@@ -58,8 +59,9 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.4.1"
-ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+VERSAO = "1.4.2"
+# nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo
+ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$)[A-Za-z0-9_-]{1,64}$", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
 LIXO_OK = re.compile(r"^([A-Za-z0-9_-]{1,64})_(\d{8}-\d{6})(?:-\d{1,4})?$")
 ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)$")
@@ -107,6 +109,11 @@ def nome_pasta(valor) -> str:
     return re.sub(r"\s+", " ", "".join(c for c in valor if c.isprintable())).strip()[:80]
 
 
+def numero(v) -> float:
+    """Número finito vindo de um JSON; qualquer outra coisa vira 0."""
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else 0
+
+
 def resumo_quadro(arq: Path) -> dict:
     st = arq.stat()
     chave = (st.st_mtime_ns, st.st_size)
@@ -116,7 +123,7 @@ def resumo_quadro(arq: Path) -> dict:
     with open(arq, encoding="utf-8") as f:
         b = json.load(f)
     r = {"id": arq.stem, "title": b.get("title") or "Sem título",
-         "updated": b.get("updated") or st.st_mtime * 1000,
+         "updated": numero(b.get("updated")) or st.st_mtime * 1000,
          "mode": (b.get("layout") or {}).get("mode", "free")}
     pasta = nome_pasta(b.get("folder"))
     if pasta:
@@ -156,15 +163,20 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):  # silencioso
         pass
 
+    def list_directory(self, path):   # pastas de app/ não são listadas
+        self.send_error(404)
+        return None
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("Content-Security-Policy",
                          "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
                          "font-src 'self' data:; script-src 'self'; worker-src 'self' blob:; connect-src 'self' data: blob:; "
-                         "object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+                         "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
         super().end_headers()
 
     # ---- utilidades ----
@@ -542,7 +554,12 @@ def guardar_asset(dados: bytes) -> str:
     pasta = DADOS / "assets"
     pasta.mkdir(exist_ok=True)
     arq = pasta / nome
-    if not arq.exists():
+    if arq.exists():
+        try:
+            os.utime(arq)
+        except OSError:
+            pass
+    else:
         gravar_atomico(arq, dados)
     return "/assets/" + nome
 
@@ -620,15 +637,21 @@ def checar_pptx(conteudo: bytes) -> str:
     try:
         with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
             nomes = [n.lower() for n in z.namelist()]
+
+            def ler(nome: str) -> bytes:
+                if z.getinfo(nome).file_size > 2 * 1024 * 1024:
+                    raise ValueError("O arquivo da apresentação está corrompido.")
+                return z.read(nome)
+
             # apresentação aberta (LibreOffice/OpenOffice): o PowerPoint e o LibreOffice abrem
-            if "mimetype" in nomes and b"opendocument.presentation" in z.read("mimetype"):
-                if any(n.startswith("basic/") for n in nomes):
+            if "mimetype" in nomes and b"opendocument.presentation" in ler("mimetype"):
+                if any(n.startswith(("basic/", "scripts/")) for n in nomes):
                     raise ValueError("Apresentações com macros não são aceitas. Salve sem macros e importe de novo.")
                 return ".odp"
             # Keynote (Mac): só o LibreOffice converte
             if any(n.startswith("index/") and n.endswith(".iwa") for n in nomes) or "index.zip" in nomes:
                 return ".key"
-            tipos = z.read("[Content_Types].xml").decode("utf-8", "replace").lower()
+            tipos = ler("[Content_Types].xml").decode("utf-8", "replace").lower()
     except ValueError:
         raise
     except Exception:

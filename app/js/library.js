@@ -70,7 +70,7 @@ function pos(z) {
   return [7, z - 100];   // 104–118
 }
 
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export function periodicTableSVG() {
   const cw = 64, ch = 72, ox = 20, oy = 60;

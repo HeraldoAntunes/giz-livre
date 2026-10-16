@@ -42,12 +42,12 @@ body:
     id: entrada
     attributes:
       label: Com o que você estava escrevendo?
-      options: [Mesa digitalizadora sem tela (ex. Wacom Intuos), Tela com caneta (ex. Wacom One/Cintiq, Surface), Toque com o dedo, Mouse]
+      options: [Mesa digitalizadora sem tela, Tela com caneta, Toque com o dedo, Mouse]
   - type: input
     id: mesa
     attributes:
       label: Modelo da mesa digitalizadora (se houver)
-      placeholder: "Wacom Intuos S"
+      placeholder: "marca e modelo da mesa"
   - type: textarea
     id: extra
     attributes:

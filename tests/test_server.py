@@ -126,6 +126,50 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(path.read_text(encoding="utf-8"), "{incompleto")
 
 
+# funções puras do servidor (sem abrir porta): validação de apresentações e de nomes
+class GuardTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("servidor", ROOT / "server.py")
+        cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def test_presentation_bomb_is_refused(self):
+        import io, zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("[Content_Types].xml", b" " * (3 * 1024 * 1024))   # 3 MB que comprimem para poucos KB
+            z.writestr("ppt/presentation.xml", b"<p/>")
+        with self.assertRaises(ValueError):
+            self.srv.checar_pptx(buf.getvalue())
+
+    def test_normal_presentation_and_odp_scripts(self):
+        import io, zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("[Content_Types].xml", b"<Types>presentationml.presentation.main</Types>")
+        self.assertEqual(self.srv.checar_pptx(buf.getvalue()), ".pptx")
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("mimetype", b"application/vnd.oasis.opendocument.presentation")
+            z.writestr("Scripts/python/x.py", b"print(1)")
+        with self.assertRaises(ValueError):
+            self.srv.checar_pptx(buf.getvalue())
+
+    def test_reserved_windows_names_are_not_ids(self):
+        for nome in ["CON", "nul", "Com1", "LPT9", "aux"]:
+            with self.subTest(nome=nome):
+                self.assertIsNone(self.srv.ID_OK.match(nome))
+        for nome in ["console", "com10x", "quadro-1", "a_b"]:
+            with self.subTest(nome=nome):
+                self.assertIsNotNone(self.srv.ID_OK.match(nome))
+
+    def test_updated_must_be_a_number(self):
+        self.assertEqual(self.srv.numero("1') onmouseover=x"), 0)
+        self.assertEqual(self.srv.numero(True), 0)
+        self.assertEqual(self.srv.numero(float("nan")), 0)
+        self.assertEqual(self.srv.numero(1792154741000), 1792154741000)
+
+
 # o exportador só existe no repositório de desenvolvimento; no público, o teste é pulado
 @unittest.skipUnless((ROOT / "scripts/exportar_publico.py").exists(), "sem scripts/exportar_publico.py")
 class ExportTests(unittest.TestCase):

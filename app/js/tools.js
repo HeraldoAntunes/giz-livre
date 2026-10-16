@@ -3,6 +3,9 @@
 import { ICON } from './icons.js';
 import { wfetch } from './api.js';
 
+// limites do KaTeX: uma fórmula malformada gravada num arquivo não trava a janela
+const KATEX_LIM = { maxExpand: 1000, maxSize: 50 };
+
 // ---------------- cronômetro / timer ----------------
 let timer = null;
 export const timerOpen = () => !!timer;
@@ -18,7 +21,7 @@ export function parseTempo(s) {
   const m = Number(s);
   return isFinite(m) && m > 0 ? Math.round(m * 60) : null;
 }
-// dígitos de mostrador (sete segmentos) em SVG: "parece relógio de verdade" (pedido de 15/10/2026)
+// dígitos de mostrador (sete segmentos) em SVG: "parece relógio de verdade"
 const SEG = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg', '-': 'g' };
 const SEGP = {   // segmentos num dígito 30×52 (polígonos chanfrados)
   a: '5,2 25,2 21,6 9,6', b: '26,3 26,24 23,26 22,7', c: '26,28 26,49 22,45 23,28', d: '5,50 25,50 21,46 9,46',
@@ -51,7 +54,7 @@ function reduzivel(el) {
     if (arrastou) { arrastou = false; return; }   // foi arrasto, não toque
     set(false);
   }, true);
-  // reduzido, o cabeçalho some: o próprio mostrador vira alça (P27, 15/10/2026)
+  // reduzido, o cabeçalho some: o próprio mostrador vira alça
   tm.addEventListener('pointerdown', e => {
     if (!el.classList.contains('mini') || document.body.classList.contains('barras-travadas')) return;
     const r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top, x0 = e.clientX, y0 = e.clientY;
@@ -72,7 +75,7 @@ function reduzivel(el) {
   return set;
 }
 
-// P28 (15/10/2026): cor dos dígitos e modelos de mostrador, os mesmos para cronômetro e relógio (lembrados)
+// cor dos dígitos e modelos de mostrador, os mesmos para cronômetro e relógio (lembrados)
 export const MODELOS = [
   ['classico', 'Clássico', { on: '#1f1f1f', fundo: 'transparent', apagado: .06 }],
   ['digital', 'Digital verde', { on: '#39ff14', fundo: '#0b1a0b', apagado: .1 }],
@@ -241,7 +244,7 @@ export function toggleClock() {
   draggable(el, 'lousa.clockPos');
   show();
 }
-// calendário mensal como imagem (PNG), para inserir no quadro (pedido de 15/10/2026)
+// calendário mensal como imagem (PNG), para inserir no quadro
 export async function calendarioImagem(ano, mes, marcarHoje = true) {
   const W = 700, cab = 90, cw = 100, ch = 74, ini = new Date(ano, mes, 1).getDay(), dias = new Date(ano, mes + 1, 0).getDate();
   const linhas = Math.ceil((ini + dias) / 7), H = cab + 40 + linhas * ch + 10, hoje = new Date();
@@ -304,7 +307,7 @@ async function embeddedCss() {
 // devolve { blob (PNG), w, h } em px de tela no tamanho de fonte `size`
 export async function formulaImage(latex, color = '#000000', size = 40) {
   const katex = await loadKatex();
-  const html = katex.renderToString(latex, { displayMode: true, throwOnError: true, output: 'html' });
+  const html = katex.renderToString(String(latex), { ...KATEX_LIM, displayMode: true, throwOnError: true, output: 'html' });
   const box = document.createElement('div');
   box.style.cssText = `position:fixed;left:-10000px;top:0;font-size:${size}px;color:${color};padding:6px 10px;display:inline-block`;
   box.innerHTML = html;
@@ -328,11 +331,11 @@ export async function formulaImage(latex, color = '#000000', size = 40) {
 
 export async function validateLatex(latex) {
   const katex = await loadKatex();
-  try { katex.renderToString(latex, { throwOnError: true }); return null; } catch (e) { return e.message.replace(/^KaTeX parse error: /, ''); }
+  try { katex.renderToString(String(latex), { ...KATEX_LIM, throwOnError: true }); return null; } catch (e) { return e.message.replace(/^KaTeX parse error: /, ''); }
 }
 export async function previewLatex(el, latex) {
   const katex = await loadKatex();
-  try { katex.render(latex || '\\;', el, { displayMode: true, throwOnError: false }); } catch {}
+  try { katex.render(String(latex || '\\;'), el, { ...KATEX_LIM, displayMode: true, throwOnError: false }); } catch {}
 }
 
 // ---------------- escrita à mão → texto (reconhecedor do Windows, offline) ----------------

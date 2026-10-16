@@ -8,7 +8,7 @@ import { toast } from './ui.js';
 const KEY = 'lousa.bars', KEY_TRAVA = 'lousa.barsTravadas';
 // barras que podem mudar de lugar (a da seleção acompanha o que está selecionado, fica fora)
 const BARS = { title: '.bar.top-left', ink: '#inkbar', menu: '.bar.top-right', create: '#createbar', zoom: '.bar.zoom', pages: '#pagebar', teach: '#teachbar', draw: '#drawbar', rasc: '#rascbar', cena: '#cenabar' };
-// barras que podem ser recolhidas uma a uma (ficam só a alça e o botão de abrir; 15/10/2026)
+// barras que podem ser recolhidas uma a uma (ficam só a alça e o botão de abrir)
 const RECOLHE = ['ink', 'create', 'zoom', 'pages', 'teach', 'draw', 'rasc'], KEY_MIN = 'lousa.barsMin';
 let pos = load(), unlocked = true;
 
@@ -17,7 +17,7 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(pos)); } catch 
 const el = k => document.querySelector(BARS[k]);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// posição de fábrica da barra de desenho: logo abaixo da barra de criar (ou ao lado, se não couber); 15/10/2026
+// posição de fábrica da barra de desenho: logo abaixo da barra de criar (ou ao lado, se não couber)
 function empilhaDesenho() {
   const d = el('draw'), c = el('create');
   if (!d || !c) return;
@@ -26,7 +26,7 @@ function empilhaDesenho() {
   if (!pos.create) { c.style.top = '64px'; c.style.transform = 'none'; }
   d.style.transform = 'none';
   // 1.4.0: com o botão Captura as duas barras deixaram de caber empilhadas em telas de ~1000 px; antes de pôr a de
-  // desenho ao lado (em cima do quadro), tenta com os botões mais baixos e, no notebook (P48, 16/10/2026), com a
+  // desenho ao lado (em cima do quadro), tenta com os botões mais baixos e, no notebook, com a
   // barra de desenho em duas colunas
   for (const [ap, duas] of [[false, false], [true, false], [true, true]]) {
     aperta(ap, duas);

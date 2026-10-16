@@ -73,10 +73,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ib.danger:hover { color: #c50f1f; background: #fdf3f4; }
 .sep { width: 1px; height: 28px; background: var(--line); margin: 0 4px 8px; }
 .ink .ib { margin-bottom: 4px; }
-/* P33: botão do estojo com nome, ao lado das canetas */
+/* botão do estojo com nome, ao lado das canetas */
 .ink .estojo-btn { width: auto; height: 46px; padding: 2px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
 .estojo-btn small { font-size: 10px; line-height: 1; }
-/* P32: menu de estojos em cartões */
+/* menu de estojos em cartões */
 .est-pop { width: min(470px, 94vw); }
 .est-pop .btn svg, .pop .btn > svg { width: 16px; height: 16px; vertical-align: -3px; }
 .est-grade { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 52vh; overflow: auto; padding: 2px; margin: 8px 0 6px; }
@@ -126,7 +126,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .menu button:hover { background: #f0f0f0; }
 .menu button.danger { color: #c50f1f; }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
-/* camada de rascunho (P25, versão simples): moldura laranja enquanto se escreve no rascunho; botão riscado se oculto */
+/* camada de rascunho (versão simples): moldura laranja enquanto se escreve no rascunho; botão riscado se oculto */
 #board.no-rascunho #ov { box-shadow: inset 0 0 0 3px rgba(202, 80, 16, .55); }
 #tRascunho.on { background: #fde7d9; color: #ca5010; }
 #tRascunho.rasc-oculto { opacity: .55; }
@@ -138,14 +138,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .rascbar .cb { width: auto; min-width: 64px; padding: 4px 8px; }
 .rascbar .cb small { white-space: nowrap; }
 .rascbar .cb.active { background: #fde7d9; color: #ca5010; }
-.rascbar .cb.rb-limpar:hover { color: #c50f1f; }   /* P43: vermelho só no passar do mouse, para não chamar mais atenção que a borracha */
-/* P38: na lousa escura a regra geral das barras deixava o botão ligado com nome branco no fundo pêssego */
+.rascbar .cb.rb-limpar:hover { color: #c50f1f; }   /* vermelho só no passar do mouse, para não chamar mais atenção que a borracha */
+/* na lousa escura a regra geral das barras deixava o botão ligado com nome branco no fundo pêssego */
 #board.fundo-escuro .rascbar { border-color: rgba(247, 99, 12, .55); }
 #board.fundo-escuro .rascbar .rb-tit { color: #ffa36b; }
 #board.fundo-escuro .rascbar .rb-tit small { color: #c8c6c4; }
 #board.fundo-escuro .rascbar .cb.active { background: rgba(247, 99, 12, .3); color: #ffc49e; }
 #board.fundo-escuro .rascbar .cb.rb-limpar:hover { color: #ff8a95; }
-/* P44: cena ao vivo (vídeo capturado por baixo do quadro) e a barra dela */
+/* cena ao vivo (vídeo capturado por baixo do quadro) e a barra dela */
 #cenaVid { position: absolute; display: none; object-fit: fill; background: #2b2b2b; pointer-events: none; }
 #cenaMold { position: absolute; display: none; pointer-events: none; outline: 2px solid #0f6cbd; }
 #cenaMold .cm-tit { position: absolute; left: -2px; bottom: 100%; pointer-events: auto; cursor: move; touch-action: none; user-select: none;
@@ -160,7 +160,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #board.fundo-escuro .cenabar .cn-tit { color: #8cc4ff; }
 #board.fundo-escuro .cenabar .cn-tit small { color: #c8c6c4; }
 #board.fundo-escuro #tRascunho.on { background: rgba(247, 99, 12, .3); color: #ffc49e; }
-/* menu Folha e fundo repensado (15/10/2026): áreas à esquerda, prévias P/M/G, ajustes agrupados embaixo */
+/* menu Folha e fundo repensado: áreas à esquerda, prévias P/M/G, ajustes agrupados embaixo */
 .pop.fl-pop { width: min(980px, 94vw); max-width: none !important; padding: 12px; }
 .fl-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .fl-topo b { font-size: 15px; white-space: nowrap; }
@@ -182,7 +182,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pop.fl-pop .fl-grid .shp-sec { color: color-mix(in srgb, var(--c, #424242) 85%, #000); }
 .fl-ajustes { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 .fl-ajustes h4 { margin: 4px 0 6px; }
-/* Sobre o Giz Livre (P23, 15/10/2026) */
+/* Sobre o Giz Livre */
 .sobre { max-width: 560px; font-size: 14px; }
 .sobre .sb-cab { display: flex; gap: 14px; align-items: center; padding: 4px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .sobre .sb-cab b { display: block; font-size: 22px; }
@@ -193,7 +193,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sobre dt { font-weight: 600; color: #424242; }
 .sobre dd { margin: 0; color: #242424; }
 .sobre .sb-aviso { font-size: 12px; color: #757575; margin: 10px 0 0; }
-/* menu de formas repensado (P20, 15/10/2026): árvore de áreas à esquerda, formas à direita, miniaturas em 3 tamanhos */
+/* menu de formas repensado: árvore de áreas à esquerda, formas à direita, miniaturas em 3 tamanhos */
 .pop.shp-pop { width: min(1040px, 94vw); max-width: none !important; padding: 12px; }
 .pop.shp-pop.shp-big { width: calc(100vw - 32px); }
 .shp-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -230,7 +230,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .shp-t-m .libitem.shp span, .shp-t-g .libitem.shp span { font-size: 12px; }
 .shp-pop .shp-sec { font-size: 13px; padding-bottom: 2px; margin-top: 10px; }
 #board.fundo-escuro .shp-raiz, .tema-escuro .shp-raiz { color: #242424; }
-/* barra de desenho ao lado da barra de criar (P21) e barras recolhíveis (P22), 15/10/2026 */
+/* barra de desenho ao lado da barra de criar e barras recolhíveis */
 .drawbar { left: 84px; }
 .drawbar .cb svg { width: 20px; height: 20px; }
 .drawbar .cb small { font-size: 11px; }
@@ -238,7 +238,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* 1.4.0: barras de criar e de desenho empilhadas em tela baixa (bars.js, empilhaDesenho) */
 .create.apertada .cb { padding: 2px 0 1px; }
 .create.apertada .cb svg { width: 18px; height: 18px; }
-/* P48 (notebook): barra de desenho em duas colunas, embaixo da barra de criar */
+/* notebook: barra de desenho em duas colunas, embaixo da barra de criar */
 .drawbar.duas-col { display: grid; grid-template-columns: repeat(2, auto); }
 .drawbar.duas-col::before, .drawbar.duas-col .bar-min { grid-column: 1 / -1; justify-self: center; }
 .bar .bar-min { width: 26px; height: 26px; min-height: 0; opacity: .55; flex: none; }
@@ -247,7 +247,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .bar.recolhida > :not(.bar-min) { display: none !important; }
 .bar.recolhida { padding: 4px; }
 .bar.recolhida .bar-min { opacity: .9; }
-/* pergunta discreta sobre as canetas ao abrir um quadro novo (15/10/2026) */
+/* pergunta discreta sobre as canetas ao abrir um quadro novo */
 .estojo-aviso { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 35; background: #fff; border-radius: 10px;
   box-shadow: var(--shadow); padding: 8px 10px 8px 14px; display: flex; gap: 8px; align-items: center; font-size: 14px; }
 .menu.estojos .row { gap: 4px; margin: 0; }
@@ -321,7 +321,7 @@ dialog.tablet { width: min(900px, 96vw); }
 .seg button { border: 0; background: #fff; padding: 8px 12px; font-size: 12px; min-height: 36px; }
 .seg button + button { border-left: 1px solid #d1d1d1; }
 .seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-/* estilos da caneta (P29: 8 estilos): grade de 4 por linha, com as linhas divisórias pelo vão */
+/* estilos da caneta (8 estilos): grade de 4 por linha, com as linhas divisórias pelo vão */
 .seg.estilos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #d1d1d1; }
 .seg.estilos button + button { border-left: 0; }
 .seg.estilos button { padding: 8px 4px; }
@@ -404,11 +404,11 @@ label.tb-line { flex-wrap: nowrap; align-items: flex-start; } label.tb-line inpu
 @keyframes piscar { 50% { opacity: .3 } }
 .tm-row { display: flex; gap: 6px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
 .tm-row .btn { padding: 8px 12px; min-height: 36px; }
-/* mostrador de sete segmentos (cronômetro e relógio, 15/10/2026) */
+/* mostrador de sete segmentos (cronômetro e relógio) */
 .tm-time .seg7 { height: var(--seg-h, 64px); width: auto; max-width: 100%; display: block; margin: 6px auto; }
 .seg7 .on, .seg7 circle { fill: var(--seg-on, #1f1f1f); } .seg7 .off { fill: var(--seg-on, #1f1f1f); opacity: var(--seg-off, .06); }
 .timerbox .tm-time { background: var(--tm-bg, transparent); border-radius: 10px; padding: 2px 8px; }
-/* cor/modelo escolhidos (P28) valem também no modo livre; o vermelho do fim de contagem continua */
+/* cor/modelo escolhidos valem também no modo livre; o vermelho do fim de contagem continua */
 .timerbox.cor-propria.livre .seg7 .on, .timerbox.cor-propria.livre .seg7 circle { fill: var(--seg-on); }
 .tm-modelos { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
 .tm-mod-lista { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -425,7 +425,7 @@ label.tb-line { flex-wrap: nowrap; align-items: flex-start; } label.tb-line inpu
 .timerbox.mini { min-width: 0; padding: 4px 8px; opacity: .85; }
 .timerbox.mini > :not(.tm-time):not(.tm-head) { display: none; }
 .timerbox.mini .tm-head > span:first-child, .timerbox.mini .tm-head .ck-sec, .timerbox.mini .tm-head [data-a="x"] { display: none; }
-/* P34: botões do mostrador reduzido ficam ao lado, em coluna, sem cobrir os dígitos */
+/* botões do mostrador reduzido ficam ao lado, em coluna, sem cobrir os dígitos */
 .timerbox.mini .tm-head { position: absolute; left: calc(100% + 5px); top: 50%; transform: translateY(-50%); }
 .timerbox.mini .tm-head > span:last-child { flex-direction: column; gap: 4px; }
 .timerbox.mini .tm-head .ib { width: 22px; height: 22px; background: #fff; border-radius: 50%; box-shadow: var(--shadow); }
@@ -512,7 +512,7 @@ dialog .choices .btn { text-align: left; padding: 8px 12px; }
 #board.fundo-escuro .bar .sep { background: rgba(255,255,255,.18); }
 #board.fundo-escuro .bar .status { color: #c8c6c4; }
 #board.fundo-escuro.bars-free .bar:not(.selbar):not(.presentbar)::before { color: #a19f9d; }
-/* P35: a barra da seleção fica branca mesmo na lousa escura, então os ícones dela voltam ao cinza-escuro */
+/* a barra da seleção fica branca mesmo na lousa escura, então os ícones dela voltam ao cinza-escuro */
 #board.fundo-escuro .selbar .ib { color: #424242; }
 #board.fundo-escuro .selbar .ib:hover { background: #f0f0f0; }
 #board.fundo-escuro .selbar .ib.on, #board.fundo-escuro .selbar .ib.active { background: var(--accent-soft); color: var(--accent); }

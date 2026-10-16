@@ -29,5 +29,4 @@ OpenSSL, bzip2, xz e libmpdec não fazem parte do pacote.
 `.pptx`), o reconhecedor de manuscrito do Windows (Windows Ink) e o navegador Microsoft Edge ou Google Chrome. Eles precisam
 estar instalados no computador e seguem as licenças dos seus fabricantes.
 
-As marcas citadas (Microsoft, Windows, PowerPoint, Whiteboard, OneNote, Wacom, Intuos etc.) pertencem aos seus donos. O
-Giz Livre é um projeto independente, sem vínculo com essas empresas.
+As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.

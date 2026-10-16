@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path $PSScriptRoot -Parent
 Set-Location $raiz
-$versao = '1.4.1'
+$versao = '1.4.2'
 
 # 1) ambiente de build dedicado, recriado do zero, com dependências fixadas por hash
 $py313 = Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'
@@ -34,10 +34,12 @@ Copy-Item app\vendor\pdfjs\OPENJPEG-LICENSE.txt "$dist\licencas\openjpeg-LICENSE
 Copy-Item app\vendor\katex\LICENSE "$dist\licencas\katex-LICENSE.txt"
 Copy-Item app\vendor\katex\fonts\OFL.txt "$dist\licencas\katex-fontes-OFL.txt"
 Copy-Item app\vendor\fluent\LICENSE "$dist\licencas\fluent-icons-LICENSE.txt"
+Copy-Item (Get-ChildItem .venv-build\Lib\site-packages\pyinstaller-*.dist-info\COPYING.txt | Select-Object -First 1).FullName "$dist\licencas\pyinstaller-COPYING.txt"
 
 # 3) instalador
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $iscc) { throw 'Inno Setup 6 não encontrado' }
+Copy-Item (Join-Path (Split-Path $iscc) 'license.txt') "$dist\licencas\innosetup-license.txt"
 New-Item -ItemType Directory -Force dist | Out-Null
 Remove-Item dist\* -Force -ErrorAction SilentlyContinue
 & $iscc /Qp installer\lousa.iss | Out-Host

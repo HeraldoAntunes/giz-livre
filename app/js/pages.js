@@ -42,7 +42,7 @@ function paperFor(bg, r) {
 }
 
 // cor da "mesa" em volta das folhas: segue a cor de fundo escolhida (um tom abaixo, para as folhas se destacarem)
-// mesa: 'contraste' (padrão) ou 'igual' (a mesa fica da cor do fundo, ex.: tudo branco; pedido de 15/10/2026)
+// mesa: 'contraste' (padrão) ou 'igual' (a mesa fica da cor do fundo, ex.: tudo branco)
 export function deskColor(c, mesa) {
   if (mesa === 'igual') return c || '#ffffff';
   if (!c || c.toLowerCase() === '#ffffff') return '#e4e4e4';

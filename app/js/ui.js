@@ -70,7 +70,7 @@ export function choiceBox(title, msg, options) {
     });
 }
 
-// "Sobre": cartão organizado só com o que é útil (P23, 15/10/2026)
+// "Sobre": cartão organizado só com o que é útil
 export function aboutBox(version) {
   const lin = (rot, txt) => `<div class="sb-l"><dt>${rot}</dt><dd>${txt}</dd></div>`;
   return infoBox('Sobre o Giz Livre', `<div class="sobre">
@@ -82,10 +82,10 @@ export function aboutBox(version) {
       ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados.')}
       ${lin('Seus quadros', 'Ficam em <i>Documentos\\Giz Livre\\quadros</i>. Faça cópia de segurança dessa pasta de vez em quando.')}
       ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
-      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT). Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
+      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT); contornos de mapas do Natural Earth (domínio público); programa empacotado com Python (PSF) e PyInstaller (GPL com exceção e Apache 2.0). Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
       ${lin('Desinstalar', 'Menu Iniciar → "Desinstalar o Giz Livre". Os quadros são mantidos.')}
     </dl>
-    <p class="sb-aviso">Fornecido "no estado em que se encontra", sem garantia de qualquer tipo. Projeto independente, sem vínculo com Microsoft, Wacom ou outras marcas citadas.</p>
+    <p class="sb-aviso">Fornecido "no estado em que se encontra", sem garantia de qualquer tipo. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.</p>
   </div>`);
 }
 

@@ -74,8 +74,8 @@ async function showGallery(folder = '') {
 }
 
 const boardCard = (b, showFolder) => `
-      <div class="card" data-id="${b.id}">
-        <div class="thumb" style="background-image:url('/thumbs/${b.id}.png?t=${b.updated}')"></div>
+      <div class="card" data-id="${esc(b.id)}">
+        <div class="thumb" style="background-image:url('/thumbs/${esc(b.id)}.png?t=${+b.updated || 0}')"></div>
         <div class="meta"><div class="t">${esc(b.title)}</div><div class="d">${showFolder && b.folder ? `<span class="g-inf">${esc(b.folder)}</span> · ` : ''}Editado: ${fmt(b.updated)}</div></div>
         <button class="dots" title="Mais opções" aria-label="Mais opções">${ICON.more}</button>
       </div>`;
@@ -159,7 +159,7 @@ function pickBoards(folder) {
   const d = document.createElement('dialog');
   d.className = 'g-pick';
   d.innerHTML = `<h3>Mover quadros para "${esc(folder)}"</h3>
-    <div class="g-pick-list">${cand.map(b => `<label><input type="checkbox" value="${b.id}">
+    <div class="g-pick-list">${cand.map(b => `<label><input type="checkbox" value="${esc(b.id)}">
       <span class="t">${esc(b.title)}</span><small>${b.folder ? esc(b.folder) + ' · ' : ''}${fmt(b.updated)}</small></label>`).join('')}</div>
     <div class="acts"><button class="btn" data-a="0">Cancelar</button><button class="btn primary" data-a="1" disabled>Mover</button></div>`;
   document.body.appendChild(d);
@@ -245,10 +245,10 @@ function moveMenu(anchor, id) {
   }, 'above');
 }
 
-// escolha do tipo de quadro (como o "Novo" do Whiteboard/OneNote)
+// escolha do tipo de quadro
 function createBoard() {
   const kinds = [
-    ['free', ICON.grid, 'Quadro livre', 'tela infinita, como no Whiteboard'],
+    ['free', ICON.grid, 'Quadro livre', 'tela infinita, sem bordas'],
     ['a4', ICON.paper, 'Caderno A4', 'folhas A4 em pé, prontas para imprimir/PDF'],
     ['a4l', ICON.paper, 'Caderno A4 deitado', 'folhas A4 em paisagem'],
     ['s169', ICON.slides, 'Slides 16:9 em branco', 'páginas no formato de apresentação'],
@@ -429,7 +429,7 @@ function renderTrash() {
   });
 }
 
-// Importa imagens exportadas do Microsoft Whiteboard (um quadro por imagem) ou arquivos .lousa
+// Importa imagens (um quadro por imagem, ex.: quadros exportados de outra lousa) ou arquivos .lousa
 async function importFiles(files) {
   let n = 0;
   for (const f of files) {
@@ -441,14 +441,23 @@ async function importFiles(files) {
         board.title = String(board.title || f.name.replace(/\.[^.]+$/, '')).slice(0, 200);
         // só imagens embutidas ou do próprio programa: nada de endereços externos (privacidade)
         const okSrc = s => typeof s === 'string' && (/^data:image\/(png|jpeg|gif|webp|svg\+xml)[;,]/.test(s) || /^\/assets\/[0-9a-f]{40}\.(png|jpg)$/.test(s));
-        board.items = board.items.filter(i => i && typeof i === 'object' && (i.type !== 'image' || okSrc(i.src))).map(i => ({ ...i, id: i.id || newId() }));
+        board.items = board.items.filter(i => i && typeof i === 'object' && typeof i.type === 'string' && (i.type !== 'image' || okSrc(i.src)) && (i.src === undefined || okSrc(i.src)))
+          .map(i => ({ ...i, id: i.id || newId() }));
+        // páginas: números finitos e quantidade limitada, para um arquivo malformado não travar o programa
+        const L = board.layout, fin = (v, min, max) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+        if (L != null && (typeof L !== 'object' || (L.mode === 'pages' &&
+            !(fin(L.w, 1, 1e5) && fin(L.h, 1, 1e5) && fin(L.gap ?? 0, 0, 1e4) && fin(L.count, 1, 500))))) {
+          throw new Error('Arquivo .lousa inválido (páginas): ' + f.name);
+        }
+        if (L?.mode === 'pages') L.count = Math.round(L.count);
+        if (!board.background || typeof board.background !== 'object') board.background = emptyBoard().background;
       } else if (isPptx(f) || isPdf(f)) {
         board = await boardFromSlides(f, m => toast(m, 120000));
       } else {
         const im = await readImageFile(f, 3200);
         board = emptyBoard(f.name.replace(/\.[^.]+$/, ''));
         let src = im.src;
-        try { src = await uploadAsset(im.src); } catch {}
+        try { src = await uploadAsset(im.src); } catch (e) { console.warn('Imagem guardada dentro do quadro (o envio para a pasta de imagens falhou):', e); }
         board.items = [{ id: newId(), type: 'image', x: 0, y: 0, w: im.w, h: im.h, src }];
         board.view = null;
       }

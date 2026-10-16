@@ -50,7 +50,7 @@ const COR_NOME = {
 };
 const corNome = c => COR_NOME[String(c).toLowerCase()] || c;
 const HL_WIDTHS = [12, 20, 30, 44, 64, 90];
-// ponteiro laser configurável (P11, 15/10/2026): cor, tamanho, tempo do rastro e formato
+// ponteiro laser configurável: cor, tamanho, tempo do rastro e formato
 const LASER_PAD = { cor: '#e81224', tam: 1, rastro: 900, forma: 'ponto' };
 const LASER_CORES = ['#e81224', '#16c60c', '#0078d4', '#ffb900', '#886ce4', '#e3008c', '#000000', '#ffffff'];
 const LASER_RASTROS = [['Sem rastro', 0], ['Curto', 450], ['Normal', 900], ['Longo', 2500], ['Muito longo', 6000]];
@@ -63,23 +63,23 @@ const DEFAULT_TOOLS = {
   pen2: { color: '#0078d4', width: 3, arrow: false },
   pen3: { color: '#16c60c', width: 3, arrow: false },
   highlighter: { color: '#fff100', width: 20 },
-  // canetas e marca-textos extras (P16, 15/10/2026): aparecem na barra quando o professor os adiciona
+  // canetas e marca-textos extras: aparecem na barra quando o professor os adiciona
   pen4: { color: '#f7630c', width: 3, arrow: false }, pen5: { color: '#886ce4', width: 3, arrow: false },
   pen6: { color: '#8e562e', width: 3, arrow: false }, pen7: { color: '#7a7574', width: 3, arrow: false },
   hl2: { color: '#4cc2ff', width: 20 }, hl3: { color: '#ff8cd9', width: 20 },
 };
 const MAX_PENS = 8, MAX_HLS = 3;
-// estojos (P18/P19, 15/10/2026): conjuntos de canetas que o professor troca conforme a aula
+// estojos: conjuntos de canetas que o professor troca conforme a aula
 const PEN_KEYS = ['pen0', 'pen1', 'pen2', 'pen3', 'pen4', 'pen5', 'pen6', 'pen7', 'highlighter', 'hl2', 'hl3'];
 const giz = c => ({ color: c, width: 6, arrow: false, style: 'giz' });   // canetas da lousa verde já vêm com o estilo Giz
 const tr = (color, width = 3, extra = {}) => ({ color, width, arrow: false, ...extra });
 const comBase = over => ({ ...Object.fromEntries(PEN_KEYS.map(k => [k, DEFAULT_TOOLS[k]])), ...over });
-// fundo: cor do quadro; folha: tipo de folha (P40). A textura 'lousa' (P30) ficou só como opção no menu Folha e fundo (P39).
+// fundo: cor do quadro; folha: tipo de folha. A textura 'lousa' ficou só como opção no menu Folha e fundo.
 const ESTOJOS_FABRICA = [
   { id: 'padrao', nome: 'Padrão (quadro branco)', tools: comBase({}), nPens: 4, nHls: 1 },
   { id: 'quadro-negro', nome: 'Lousa verde (giz)', fundo: '#20402f', nPens: 5, nHls: 1,
     tools: comBase({ pen0: giz('#f4f1e8'), pen1: giz('#ffe36e'), pen2: giz('#8fd3ff'), pen3: giz('#ff9fb2'), pen4: giz('#a8e6a1'), highlighter: { color: '#fff100', width: 20 } }) },
-  // P31 (15/10/2026): mais 5 estojos de fábrica
+  // mais 5 estojos de fábrica
   { id: 'ardosia', nome: 'Ardósia (giz na lousa cinza)', fundo: '#2e3436', nPens: 5, nHls: 1,
     tools: comBase({ pen0: giz('#f2f2ee'), pen1: giz('#ffd166'), pen2: giz('#ff9a76'), pen3: giz('#7fc8f8'), pen4: giz('#c3f584') }) },
   { id: 'projetor', nome: 'Projetor (traço grosso)', nPens: 5, nHls: 1,
@@ -140,7 +140,7 @@ const $ = id => document.getElementById(id);
 const toWorld = (sx, sy) => ({ x: (sx - S.view.x) / S.view.zoom, y: (sy - S.view.y) / S.view.zoom });
 const toScreen = (wx, wy) => ({ x: wx * S.view.zoom + S.view.x, y: wy * S.view.zoom + S.view.y });
 const byId = id => S.items.find(i => i.id === id);
-// camada de rascunho (P25, versão simples, 15/10/2026): o que se escreve com o modo ligado ganha camada 'rascunho';
+// camada de rascunho (versão simples): o que se escreve com o modo ligado ganha camada 'rascunho';
 // com o rascunho oculto, esses itens não aparecem, não são tocados, apagados nem exportados (continuam salvos)
 let noRascunho = false;
 const oculto = it => it.camada === 'rascunho' && !!S?.board.rascunhoOculto;
@@ -288,9 +288,9 @@ function usarEstojo(e, comFundo = true) {
   for (const k of PEN_KEYS) if (e.tools[k]) cfg.tools[k] = structuredClone(e.tools[k]);
   cfg.nPens = e.nPens || 4; cfg.nHls = e.nHls || 1; cfg.estojoAtual = e.id;
   if (!isPen(tool) && !isHl(tool)) tool = 'pen0';
-  // P37: o fundo muda ANTES de redesenhar a barra (a cor mostrada de cada caneta depende de a lousa ser escura).
+  // o fundo muda ANTES de redesenhar a barra (a cor mostrada de cada caneta depende de a lousa ser escura).
   // Estojo sem fundo próprio, saindo de um fundo de estojo (lousa verde, ardósia…), volta ao quadro branco.
-  // P40: a folha do estojo segue a mesma opção; ao sair, só volta a lisa se a folha atual veio de um estojo
+  // a folha do estojo segue a mesma opção; ao sair, só volta a lisa se a folha atual veio de um estojo
   // (bg.folhaEstojo); folha escolhida à mão fica.
   const bg = S.board.background, alvo = {};
   if (e.fundo) { alvo.color = e.fundo; if (e.textura) alvo.textura = e.textura; }
@@ -389,7 +389,7 @@ function drawStatic(clip) {
   }
   if (PG.isPages(S.board)) PG.drawPages(ctx, S.board, v, W, H);
   else R.drawBackground(ctx, S.board.background, v, W, H);
-  // P44: a captura ao vivo aparece por um "buraco" aberto depois do fundo e das imagens travadas (páginas de PDF,
+  // a captura ao vivo aparece por um "buraco" aberto depois do fundo e das imagens travadas (páginas de PDF,
   // capturas congeladas) e antes do resto: o vídeo fica atrás do canvas e os riscos vêm por cima
   let furo = !!cena?.rect;
   const abreFuro = () => { furo = false; const r = cena.rect; ctx.clearRect(r.x, r.y, r.w, r.h); };
@@ -533,7 +533,7 @@ function drawOverlay() {
   }
   drawSelection();
   if (hover?.pen && ov.className === 'c-none' && (!action || action.type === 'draw' && cfg.tablet.cursorDraw !== false)) {
-    // ponteiro da caneta pairando (a mesa digitalizadora não mostra cursor próprio; na Intuos o professor olha a tela)
+    // ponteiro da caneta pairando (a mesa digitalizadora não mostra cursor próprio; em mesa sem tela o professor olha o monitor)
     drawPenCursor(hover.x, hover.y, cfg.tools[tool] || cfg.tools.pen0, cfg.tablet.cursor || 'ponta');
   }
   drawShades();
@@ -714,7 +714,7 @@ function montaCanetas() {
   const add = Object.assign(document.createElement('button'), { className: 'ib pen-add', title: 'Adicionar ou tirar canetas e marca-textos da barra', innerHTML: ICON.plus });
   add.onclick = () => canetasPop(add);
   bar.insertBefore(add, ref);
-  // P33: o estojo tem botão próprio, com nome, em vez de ficar escondido no "+"
+  // o estojo tem botão próprio, com nome, em vez de ficar escondido no "+"
   const est = Object.assign(document.createElement('button'), { className: 'ib estojo-btn',
     title: 'Estojos: trocar todas as canetas de uma vez (quadro branco, giz, projetor, lápis…)', innerHTML: ICON.estojo + '<small>Estojo</small>' });
   est.onclick = () => estojoPop(est);
@@ -737,7 +737,7 @@ function canetasPop(anchor) {
   });
 }
 
-// P32 (15/10/2026): menu de estojos em cartões, cada um com a prévia das canetas no fundo do próprio estojo
+// menu de estojos em cartões, cada um com a prévia das canetas no fundo do próprio estojo
 function estojoPrevia(cv, e) {
   const W = 200, H = 60, g = cv.getContext('2d'), fundo = e.fundo || '#ffffff';
   cv.width = W * 2; cv.height = H * 2; g.setTransform(2, 0, 0, 2, 0, 0);
@@ -889,7 +889,7 @@ function eraserPop(anchor) {
   });
 }
 
-// tinta vira forma: liga/desliga e escolhe o que reconhecer (P15, 15/10/2026)
+// tinta vira forma: liga/desliga e escolhe o que reconhecer
 function inkShapePop(anchor) {
   const O = { ...R.FORMA_OPC, ...(cfg.formaOpc || {}) };
   const OP = [['linha', 'Retas'], ['elipse', 'Círculos e elipses'], ['retangulo', 'Retângulos'], ['poligono', 'Triângulos e polígonos'],
@@ -904,7 +904,7 @@ function inkShapePop(anchor) {
   });
 }
 
-// barra própria do rascunho (pedido de 15/10/2026, à tarde): quatro botões grandes e a contagem, em vez de um menu
+// barra própria do rascunho: quatro botões grandes e a contagem, em vez de um menu
 function montaRascBar() {
   const bar = $('rascbar');
   if (!bar) return;
@@ -941,7 +941,7 @@ function montaRascBar() {
   syncRascBar(); placeBars();
 }
 const contaRasc = () => S ? S.items.filter(i => i.camada === 'rascunho').length : 0;
-// P43 (15/10/2026): apagar o rascunho inteiro pede confirmação (o botão se confundia com a borracha)
+// apagar o rascunho inteiro pede confirmação (o botão se confundia com a borracha)
 async function limparRascunho(depois) {
   const n = contaRasc();
   if (!n) return toast('O rascunho está vazio');
@@ -1004,7 +1004,7 @@ function laserPop(anchor) {
   });
 }
 
-// barra de desenho (P21, 15/10/2026): linhas, setas e formas simples num menu próprio, aberta de fábrica
+// barra de desenho: linhas, setas e formas simples num menu próprio, aberta de fábrica
 const mostraDrawBar = () => cfg.drawBar !== false;
 function montaDrawBar() {
   const bar = $('drawbar');
@@ -1034,7 +1034,7 @@ function createClick(b) {
   else if (k === 'cena') { if (cena) encerrarCena(); else iniciarCena(); }
 }
 
-// P44 (15/10/2026): Captura (nome interno: cena). Uma janela, aba ou tela capturada (como no OBS) fica por baixo do quadro e se mexe
+// Captura (nome interno: cena). Uma janela, aba ou tela capturada fica por baixo do quadro e se mexe
 // ao vivo; tudo se risca por cima. "Congelar" guarda a imagem do momento no quadro, travada e por baixo dos riscos.
 let cena = null;   // {stream, video, mold, rect}: rect = moldura no mundo, como uma imagem
 async function iniciarCena() {
@@ -1072,7 +1072,7 @@ async function iniciarCena() {
   arrastoCena(mold.querySelector('.cm-canto'), (r, dx) => { const k = r.h / r.w; r.w = Math.max(80 / S.view.zoom, r.w + dx); r.h = r.w * k; });
   stream.getVideoTracks()[0]?.addEventListener('ended', () => { if (cena === c) encerrarCena(); });
   montaCenaBar(); syncToolbar(); requestRender();
-  toast('Captura ao vivo: risque por cima. Arraste a faixa azul para mover e o canto para o tamanho. A faixa do Edge some em "Ocultar"', 6000);
+  toast('Captura ao vivo: risque por cima. Arraste a faixa azul para mover e o canto para o tamanho. A faixa do navegador some em "Ocultar"', 6000);
 }
 // posiciona o vídeo e a moldura (tela) a partir do retângulo no mundo
 function posCena() {
@@ -1219,7 +1219,7 @@ function shapesPop(anchor) {
             : '<p class="muted">As formas que você inserir aparecem aqui, para achar de novo rápido.</p>';
         } else grid.innerHTML = groupHtml(id);
         grid.scrollTop = 0; bind();
-        // a cor da área vale também para os títulos das seções das formas (pedido de 15/10/2026)
+        // a cor da área vale também para os títulos das seções das formas
         const ramo = id === RECENTES ? null : usaAreas ? tree.querySelector(`.shp-ramo[data-ramo="${CSS.escape(areaDe(id) || '')}"]`) : tree.querySelector('.shp-ramo');
         grid.style.setProperty('--c', ramo ? ramo.style.getPropertyValue('--c') : 'var(--accent)');
         tree.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === id));
@@ -2327,7 +2327,7 @@ async function insertFiles(files, at) {
       const k = Math.min(1 / z, (W * 0.6) / z / im.w, (H * 0.6) / z / im.h);
       const w = im.w * k, h = im.h * k;
       let src = im.src;
-      try { src = await uploadAsset(im.src); } catch {}
+      try { src = await uploadAsset(im.src); } catch (e) { console.warn('Imagem guardada dentro do quadro (o envio para a pasta de imagens falhou):', e); }
       if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 6000);
       added.push({ id: newId(), type: 'image', x: pos.x - w / 2, y: pos.y - h / 2, w, h, src });
       pos = { x: pos.x + 30 / z, y: pos.y + 30 / z };
@@ -2466,7 +2466,7 @@ function openMenu(anchor) {
   });
 }
 
-// menu "Folha e fundo" repensado (15/10/2026): áreas à esquerda com cores, prévias maiores (P/M/G), busca e ajustes agrupados
+// menu "Folha e fundo" repensado: áreas à esquerda com cores, prévias maiores (P/M/G), busca e ajustes agrupados
 function bgPop(anchor) {
   const bg = S.board.background;
   const sizes = [['s', 'P'], ['m', 'M'], ['l', 'G']], strengths = [['soft', 'Suave'], ['normal', 'Normal'], ['strong', 'Forte']];
@@ -2513,7 +2513,7 @@ function bgPop(anchor) {
     const set = patch => {
       undoStack.push(histEntry()); redoStack = [];   // trocar folha/cor também se desfaz com Ctrl+Z
       S.board.background = { ...S.board.background, ...patch };
-      if ('pattern' in patch) delete S.board.background.folhaEstojo;   // P40: folha escolhida à mão fica ao trocar de estojo
+      if ('pattern' in patch) delete S.board.background.folhaEstojo;   // folha escolhida à mão fica ao trocar de estojo
       updateUndo(); requestRender(); scheduleSave(); syncToolbar();
       hidePop(); bgPop(anchor);
     };
@@ -2646,7 +2646,7 @@ function vistaDaPagina(i, fill) {
   return { zoom: z, x: W / 2 - (r.x + r.w / 2) * z, y: top + (H - top - bottom) / 2 - (r.y + r.h / 2) * z };
 }
 // enquadra a página i (fill: ocupa a tela toda, para apresentar)
-// P49 (16/10/2026): na apresentação com o quadro ampliado (lupa ou Ctrl+roda), o slide seguinte abre com a mesma
+// na apresentação com o quadro ampliado (lupa ou Ctrl+roda), o slide seguinte abre com a mesma
 // ampliação e no mesmo ponto do slide; e mudar de página interrompe uma animação de vista em curso (ela puxava a tela
 // de volta para a página antiga)
 function goToPage(i, fill = false) {
@@ -2834,7 +2834,7 @@ function markPanel() {
 
 function pageMenu(anchor) {
   const i = curPage(), n = i + 1, tot = S.board.layout.count;
-  // "esta página" = a que está no centro da tela; o número deixa claro qual é (pedido de 15/10/2026)
+  // "esta página" = a que está no centro da tela; o número deixa claro qual é
   showPop(anchor, `<div class="menu">
       <div class="menu-cab">Página ${n} de ${tot} <small>(a que está no centro da tela)</small></div>
       <button data-a="ins">${ICON.plus} Nova página depois da página ${n}</button>

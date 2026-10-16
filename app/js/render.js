@@ -14,7 +14,7 @@ import { svgDataUrl } from './library.js';
 import { drawBackground, isDark } from './paper.js';
 
 // ---------- itens ----------
-// fundo escuro: tinta preta aparece branca e vice-versa (só na exibição, como no Whiteboard)
+// fundo escuro: tinta preta aparece branca e vice-versa (só na exibição)
 let darkBg = false;
 export function setDarkBackground(v) { darkBg = !!v; }
 export function withDarkBackground(v, fn) { const p = darkBg; darkBg = !!v; try { return fn(); } finally { darkBg = p; } }
@@ -65,7 +65,7 @@ function outlinePath(s) {
   for (let i = 1; i < n; i++) L[i] = L[i - 1] + Math.hypot(p[i * 3] - p[i * 3 - 3], p[i * 3 + 1] - p[i * 3 - 2]);
   const total = L[n - 1];
   // estilos: tinteiro (pressão já modulada pela velocidade), caligrafia (pena chanfrada), pincel (pontas bem finas)
-  // P29: lápis (mais fino), marcador (ponta chata, largura sem pressão), aquarela (larga, pontas suaves)
+  // lápis (mais fino), marcador (ponta chata, largura sem pressão), aquarela (larga, pontas suaves)
   const brush = s.style === 'brush', calli = s.style === 'calligraphy', marker = s.style === 'marker';
   const pencil = s.style === 'pencil', aqua = s.style === 'watercolor';
   const tl = brush ? Math.min(s.width * 14, total * 0.45) : aqua ? Math.min(s.width * 8, total * 0.35)
@@ -108,9 +108,9 @@ function outlinePath(s) {
   return path;
 }
 
-// estilo Giz (15/10/2026, "simulando a época de giz"): textura granulada fixa na cor da caneta, com falhas, como giz na
+// estilo Giz ("simulando a época de giz"): textura granulada fixa na cor da caneta, com falhas, como giz na
 // lousa. A textura é gerada uma vez por cor (sorteio determinístico) e preenche o contorno do traço; nada é apagado por baixo.
-// P29: o lápis usa grão fino e denso (grafite no papel).
+// o lápis usa grão fino e denso (grafite no papel).
 const TEXTURAS = { giz: [3200, 0.5, 1.3, 0.3], lapis: [5200, 0.3, 0.6, 0.2] };
 const texCache = new Map();
 function textura(ctx, color, tipo = 'giz') {
@@ -124,7 +124,7 @@ function textura(ctx, color, tipo = 'giz') {
     const rnd = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
     g.fillStyle = color;
     for (let i = 0; i < qt; i++) { g.globalAlpha = amin + rnd() * (1 - amin); const r = rmin + rnd() * rvar; g.fillRect(rnd() * 96, rnd() * 96, r, r * (0.6 + rnd() * 0.8)); }
-    if (tipo === 'giz') {   // P30: falhas em riscos finos, como o giz que pula nos poros da lousa (sem emenda na repetição)
+    if (tipo === 'giz') {   // falhas em riscos finos, como o giz que pula nos poros da lousa (sem emenda na repetição)
       g.globalCompositeOperation = 'destination-out';
       for (let i = 0; i < 70; i++) {
         const x = rnd() * 96, y = rnd() * 96, l = 4 + rnd() * 16, e = 0.6 + rnd() * 0.9;
@@ -161,7 +161,7 @@ export function drawStroke(ctx, s, cache = false) {
     if (!path) { path = outlinePath(s); if (cache) outlineCache.set(s, path); }
     const tex = typeof document !== 'undefined' && !!ctx.createPattern, a = ctx.globalAlpha;
     if (s.style === 'giz' && tex) {
-      ctx.globalAlpha = a * 0.08; ctx.lineWidth = Math.max(1, s.width * 0.55); ctx.stroke(path);   // P30: pó espalhado em volta
+      ctx.globalAlpha = a * 0.08; ctx.lineWidth = Math.max(1, s.width * 0.55); ctx.stroke(path);   // pó espalhado em volta
       ctx.globalAlpha = a * 0.36; ctx.fill(path, 'nonzero');   // pó de fundo, mais fraco
       ctx.globalAlpha = a; ctx.fillStyle = textura(ctx, color, 'giz'); ctx.fill(path, 'nonzero');   // grãos
     } else if (s.style === 'pencil' && tex) {
@@ -240,7 +240,7 @@ function drawShape(ctx, s) {
 
 // quebra o texto em linhas que cabem em `w`
 export const fontOf = it => it.font ? `"${it.font}", ${FONT}` : FONT;
-// negrito e itálico do item (texto e nota, 15/10/2026): prefixo da propriedade CSS font
+// negrito e itálico do item (texto e nota): prefixo da propriedade CSS font
 export const estiloDe = it => (it.i ? 'italic ' : '') + (it.b ? 'bold ' : '');
 export function wrapText(text, size, w, font = FONT, estilo = '') {
   measureCtx.font = `${estilo}${size}px ${font}`;
@@ -535,7 +535,7 @@ const angleAt = (a, b, c) => {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
-// opções do "tinta vira forma" (P15, 15/10/2026); sem opção, vale o comportamento de antes
+// opções do "tinta vira forma"; sem opção, vale o comportamento de antes
 export const FORMA_OPC = { linha: true, elipse: true, retangulo: true, poligono: true, angulos: false, circulo: false, quadrado: false };
 const ANG_PASSO = 45, ANG_TOL = 7;   // retas presas a 0°, 45°, 90°… quando o traço passa a menos de 7° disso
 function prendeAngulo(sx, sy, ex, ey) {

@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 1.4.2 (16/10/2026)
+Revisão de segurança, de textos e de acabamento do código.
+- **Segurança:** apresentações (.pptx/.odp) com conteúdo descompactado gigante são recusadas antes de abrir; quadros
+  `.lousa` com número de páginas fora do normal ou dados malformados são recusados na importação; fórmulas têm limite
+  de expansão; imagens e miniaturas só servem à própria página; formulários não enviam para fora; pastas internas não
+  são listadas; nomes reservados do Windows não viram nome de arquivo; `.odp` com scripts é recusado.
+- Uma imagem reaproveitada não é mais apagada pela limpeza automática logo depois de entrar no quadro.
+- Textos: o Giz Livre é descrito pelo que faz, sem comparação com outros produtos; a compatibilidade diz com o que
+  foi testado (Windows 11, Microsoft Edge, Wacom Intuos) e o que deve funcionar sem ter sido verificado.
+- O pacote traz também as licenças do PyInstaller e do Inno Setup; a tela "Sobre" cita Python, PyInstaller e os mapas
+  do Natural Earth.
+- Código: comentários sem códigos internos de pedido e datas; cabeçalho de autoria e licença em todos os arquivos.
+
 ## 1.4.1 (16/10/2026)
 Correções pedidas pelo professor depois de instalar a 1.4.0.
 - **Apresentação:** com o quadro ampliado (lupa ou Ctrl), o slide seguinte abre com a mesma ampliação e no mesmo ponto
@@ -10,7 +23,7 @@ Correções pedidas pelo professor depois de instalar a 1.4.0.
 
 ## 1.4.0 (15/10/2026)
 Recurso novo pedido pelo professor depois da publicação da 1.3.0.
-- **Captura** (experimental): botão **Captura** na barra da esquerda, como a captura de janela do OBS. O Edge pergunta
+- **Captura** (experimental): botão **Captura** na barra da esquerda. O navegador pergunta
   qual janela, aba ou tela mostrar, e ela aparece **ao vivo** numa moldura no quadro (faixa azul para mover, canto para
   o tamanho; acompanha o zoom). Tudo se risca por cima, e a captura fica por cima das páginas de PDF. **Congelar**
   guarda a imagem do momento no lugar da moldura; **Trocar** escolhe outra janela; **Encerrar** desliga. O vídeo ao
@@ -24,7 +37,7 @@ Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
   que deixa só um mostrador pequeno (tocar nele volta ao painel) e opção de reduzir sozinho ao iniciar.
 - **Relógio e calendário** (novo nome), também reduzível; o calendário do mês vai para o quadro com **Pôr no quadro**.
 - **Mover a lousa:** setas do teclado (Shift = passo maior) e a ferramenta **Mão** (tecla M), como o botão do meio do mouse.
-- Ícone das ferramentas do professor agora é uma **caixa de ferramentas** (P42; o "giz e apagador" não se reconhecia pequeno). A lupa do modo normal diz que é a mesma da apresentação.
+- Ícone das ferramentas do professor agora é uma **caixa de ferramentas** (o "giz e apagador" não se reconhecia pequeno). A lupa do modo normal diz que é a mesma da apresentação.
 - Menu da página diz **qual página** é a referência ("Duplicar a página 3", "a que está no centro da tela").
 - **Folha e fundo:** em volta das páginas (PDF, caderno, slides), cinza para contraste ou **mesma cor do fundo**.
 - **Ponteiro laser** com cor, tamanho, rastro (de nenhum a muito longo) e formato (ponto, anel, mira, seta).
@@ -65,25 +78,25 @@ Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
 - **Estilo Giz** para as canetas: traço granulado, com falhas, como giz na lousa; as canetas do estojo
   **Lousa verde (giz)** já vêm com ele (pedido do PDF: "estilos pré-setados simulando a época de giz").
 - Cabeçalho da galeria cabe em janela não maximizada (botões só com ícone quando falta espaço; o nome fica na dica).
-- **Mais estilos de caneta (P29):** **Lápis** (traço fino com grão de grafite), **Marcador** (ponta chata, largura
+- **Mais estilos de caneta:** **Lápis** (traço fino com grão de grafite), **Marcador** (ponta chata, largura
   sem pressão, pontas retas, ângulo da ponta ajustável) e **Aquarela** (larga e translúcida, com o pigmento
   acumulado na borda). Os 8 estilos aparecem em grade de 4 por linha no menu da caneta.
-- **Modo giz mais caprichado (P30):** o traço de giz ganhou pó em volta e falhas finas; o fundo pode ter a textura
-  **Lousa de giz** (manchas de apagador e pó, bem fracas), opcional no menu Folha e fundo (P39: não vem ligada).
-- **Mais 5 estojos (P31):** Ardósia (giz na lousa cinza), Projetor (traço grosso), Cores seguras (daltonismo),
+- **Modo giz mais caprichado:** o traço de giz ganhou pó em volta e falhas finas; o fundo pode ter a textura
+  **Lousa de giz** (manchas de apagador e pó, bem fracas), opcional no menu Folha e fundo (não vem ligada).
+- **Mais 5 estojos:** Ardósia (giz na lousa cinza), Projetor (traço grosso), Cores seguras (daltonismo),
   Desenho técnico (traço fino) e Caderno (lápis, marcador e aquarela).
-- **Estojo à vista (P32, P33):** botão **Estojo** na barra das canetas e menu em cartões, com prévia das canetas no
+- **Estojo à vista:** botão **Estojo** na barra das canetas e menu em cartões, com prévia das canetas no
   fundo do estojo, marca "Em uso", escolha de trocar ou não o fundo e salvar as canetas atuais com ou sem o fundo.
-- Relógio e cronômetro reduzidos: os botões ficam ao lado do mostrador, sem cobrir os dígitos (P34).
-- Lousa escura: os ícones da barra da seleção não somem mais (P35).
-- O estojo e o quadro **Quadro-negro** passam a se chamar **Lousa verde (giz)** (P36).
+- Relógio e cronômetro reduzidos: os botões ficam ao lado do mostrador, sem cobrir os dígitos.
+- Lousa escura: os ícones da barra da seleção não somem mais.
+- O estojo e o quadro **Quadro-negro** passam a se chamar **Lousa verde (giz)**.
 - Trocar de estojo: estojos sem fundo próprio devolvem o quadro branco ao sair de uma lousa, e as canetas da barra
-  mostram as cores certas logo após a troca (P37).
-- Barra do rascunho legível na lousa escura: o botão "Escrever" ligado não some mais (P38).
+  mostram as cores certas logo após a troca.
+- Barra do rascunho legível na lousa escura: o botão "Escrever" ligado não some mais.
 - Rascunho: o botão "Apagar" virou **Limpar rascunho**, sem o vermelho fixo, e pede confirmação antes de apagar tudo
-  (ele se confundia com a borracha) (P43).
+  (ele se confundia com a borracha).
 - Estojo **Caderno** com a folha Caderno; ao trocar para um estojo sem folha, o quadro volta a ficar liso, a não ser
-  que a folha tenha sido escolhida à mão (P40). Prévias dos estojos com a folha e traços mais finos.
+  que a folha tenha sido escolhida à mão. Prévias dos estojos com a folha e traços mais finos.
 - Testes automáticos: 69 (mostrador, tempo digitado, tinta vira forma e os estilos Giz, Lápis, Marcador e Aquarela).
 
 ## 1.2.2 (09/10/2026)
@@ -173,7 +186,7 @@ Pedidos do professor depois do primeiro uso real (09/10/2026).
   a aba "Operações unitárias" virou "Química e processos" (as formas antigas mantêm o id).
 - **Lixeira na galeria:** quadro excluído pode ser restaurado (e logo após excluir aparece "Desfazer"); botão
   **Nova pasta**; a pesquisa ignora acentos.
-- **Lupa de ampliação** (como a do PowerPoint), na apresentação e fora dela (botão na barra de zoom ou tecla Z):
+- **Lupa de ampliação**, na apresentação e fora dela (botão na barra de zoom ou tecla Z):
   escolha a área e ela enche a tela; Esc volta.
 - **Lupa de escrita móvel:** a caixa no quadro arrasta inteira ou vai para onde você tocar; o painel sobe e desce.
 - **Relógio com calendário do mês.**
@@ -246,7 +259,7 @@ Pedidos do professor depois do primeiro uso real (09/10/2026).
 
 ## 1.0.0 (08/10/2026): primeira versão pública
 - **Quadro:**
-  - quadro livre infinito no estilo do Microsoft Whiteboard;
+  - quadro livre infinito;
   - canetas com pressão, marca-texto, laser, borracha (de traço inteiro ou parcial), laço, régua e formas;
   - notas, texto, imagens, desfazer/refazer e salvamento automático.
 - **Mesa digitalizadora:**

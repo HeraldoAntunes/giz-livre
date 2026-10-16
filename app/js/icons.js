@@ -47,9 +47,7 @@ export const ICON = {
   arrowd: s('<path d="M5 19L19 5" stroke-dasharray="3 3"/><path d="M11 5h8v8"/>'),
   lock: s('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   unlock: s('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.8"/>'),
-  // ferramentas do professor: esquadro e lápis cruzados (substitui o livro)
-  // giz e apagador (pedido de 15/10/2026: "melhor que esquadro e serrote")
-  // P42 (15/10/2026): caixa de ferramentas, escolhida pelo professor (o "giz e apagador" não se reconhecia pequeno)
+  // ferramentas do professor: caixa de ferramentas (desenhos menores não se reconheciam no tamanho da barra)
   tools: s('<rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M9 9V6.5a1 1 0 011-1h4a1 1 0 011 1V9"/><path d="M3 13h18M10.5 13v2h3v-2"/>'),
   layers: s('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5" stroke-dasharray="2.5 2"/><path d="M3 16.5l9 5 9-5" opacity=".5"/>'),
   collapse: s('<path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/>'),
@@ -67,11 +65,11 @@ export const ICON = {
   keyboard: s('<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h0M7 14h10"/>'),
   hlPen: s('<path d="M9 15l-4 4h5l2-2"/><path d="M9 15l7.5-7.5a2.1 2.1 0 013 3L12 18z"/><path d="M4 21h16" stroke-width="3" opacity=".45"/>'),
   pause: s('<path d="M8 5v14M16 5v14"/>'),
-  // estojo (P33): estojo aberto com três lápis
+  // estojo: estojo aberto com três lápis
   estojo: s('<rect x="3" y="11" width="18" height="9" rx="2"/><path d="M3 14.5h18"/><path d="M7 11V5.5l1-1.8 1 1.8V11M11.5 11V4.5l1-1.8 1 1.8V11M16 11V6.5l1-1.8 1 1.8V11"/>'),
 };
 
-// substitui pelos ícones oficiais da Microsoft (mesmo estilo do Whiteboard)
+// ícones Fluent UI System Icons (Microsoft, licença MIT; ver THIRD-PARTY-NOTICES)
 const MAP = {
   back: 'arrow_left', undo: 'arrow_undo', redo: 'arrow_redo', more: 'more_horizontal', eraser: 'eraser',
   lasso: 'lasso', select: 'cursor', ruler: 'ruler', text: 'text_t', note: 'note', shapes: 'shapes', image: 'image',
@@ -86,10 +84,10 @@ const MAP = {
 for (const [k, f] of Object.entries(MAP)) if (FLUENT[f]) ICON[k] = FLUENT[f];
 // 1.2.2: ícones próprios onde o Fluent repetia ou não dizia o que é
 ICON.ocr = s('<path d="M2.5 15.5c1.2-3.4 2.6-4.2 3.3-2.4.6 1.6 1.5 2.7 2.6.4.8-1.6 1.5-1.9 2.1-.3"/><path d="M11.5 18.5h2.5m-1 -1.2 1 1.2-1 1.2"/><path d="M15 6.5h7M18.5 6.5v12"/>');   // escrita → texto
-ICON.cena = s('<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 16.5v4"/><path d="M6.5 12.5l3-3.5 2.5 2.5 2-2 3.5 3"/>');   // P44: monitor com a cena
+ICON.cena = s('<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 16.5v4"/><path d="M6.5 12.5l3-3.5 2.5 2.5 2-2 3.5 3"/>');   // monitor com a cena
 ICON.cortina = s('<path d="M3 4h18"/><path d="M5 4v10h14V4"/><path d="M5 7.5h14M5 11h14"/><path d="M12 14v4"/><circle cx="12" cy="19.6" r="1.4"/>');   // persiana
 
-// caneta desenhada com a cor da tinta (como a bandeja do Whiteboard)
+// caneta desenhada com a cor da tinta
 let penUid = 0;
 const isLight = c => { const h = c.replace('#', ''); return (0.299 * parseInt(h.slice(0, 2), 16) + 0.587 * parseInt(h.slice(2, 4), 16) + 0.114 * parseInt(h.slice(4, 6), 16)) > 200; };
 export function penIcon(color, kind = 'pen') {

@@ -68,7 +68,7 @@ export function openTabletSettings(cfg, save) {
       </div>
     </div>
     <details class="tb-help">
-      <summary>Wacom Intuos: configuração recomendada</summary>
+      <summary>Mesa sem tela (testado com Wacom Intuos): configuração recomendada</summary>
       <p>Abra <i>Propriedades da Mesa Wacom</i> (menu Iniciar → "Wacom"):</p>
       <ol>
         <li><b>Mapeamento</b> → marque <i>Usar Windows Ink</i> (sem isso não há pressão nem botões) → reabra o Giz Livre.</li>
@@ -82,7 +82,7 @@ export function openTabletSettings(cfg, save) {
       </ol>
       <p>Outros atalhos para as teclas: <kbd>Ctrl+Y</kbd> refazer · <kbd>1</kbd>–<kbd>4</kbd> trocar caneta · <kbd>L</kbd> laço ·
       <kbd>H</kbd> marca-texto · <kbd>K</kbd> laser · <kbd>R</kbd> régua · <kbd>[</kbd> <kbd>]</kbd> espessura · <kbd>Ctrl+0</kbd> ajustar à tela.
-      XP-Pen/Huion/Gaomon: ative <i>Windows Ink</i> no programa da mesa.</p>
+      Outras marcas: ative <i>Windows Ink</i> no programa da mesa.</p>
     </details>
     <div class="acts"><button class="btn primary" id="tbClose">Fechar</button></div>`;
   document.body.appendChild(d);

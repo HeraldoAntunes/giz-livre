@@ -44,7 +44,7 @@ function rgba(hex, a) {
   return `rgba(${parseInt(c.slice(0, 2), 16)},${parseInt(c.slice(2, 4), 16)},${parseInt(c.slice(4, 6), 16)},${Math.min(1, a)})`;
 }
 
-// P30 (15/10/2026): textura de lousa de giz, manchas de apagador e pó, presa ao quadro (anda com o zoom e o arrasto)
+// textura de lousa de giz, manchas de apagador e pó, presa ao quadro (anda com o zoom e o arrasto)
 const lousaCache = new Map();
 function lousaPadrao(ctx, dark) {
   let c = lousaCache.get(dark);
