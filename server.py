@@ -20,6 +20,8 @@ import sys
 import tempfile
 import threading
 import time
+import unicodedata
+import urllib.parse
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -59,7 +61,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.4.2"
+VERSAO = "1.5.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$)[A-Za-z0-9_-]{1,64}$", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -68,7 +70,7 @@ ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)$")
 TIPOS = {"png": "image/png", "jpg": "image/jpeg"}
 MB = 1024 * 1024
 LIMITES = {"boards": 200 * MB, "thumbs": 5 * MB, "assets": 40 * MB, "pptx": 300 * MB, "pdf": 300 * MB, "ocr": 2 * MB,
-           "outros": 64 * 1024}
+           "agente": 1 * MB, "outros": 64 * 1024}
 TOKEN = secrets.token_hex(16)        # token da sessão: só a página servida por ESTE servidor o conhece
 TRAVA_PPTX = threading.Semaphore(1)  # conversões pesadas: uma de cada vez
 TRAVA_OCR = threading.Semaphore(2)
@@ -128,6 +130,8 @@ def resumo_quadro(arq: Path) -> dict:
     pasta = nome_pasta(b.get("folder"))
     if pasta:
         r["folder"] = pasta
+    if b.get("criado_por") == "agente":   # a galeria pode mostrar que o quadro veio de um agente de IA
+        r["criado_por"] = "agente"
     with TRAVA_GERAL:
         RESUMOS[arq.stem] = (*chave, r)
     return r
@@ -153,6 +157,27 @@ def listar_lixeira() -> list:
             item["folder"] = pasta
         lista.append(item)
     lista.sort(key=lambda x: (x["deleted"], x["nome"]), reverse=True)
+    return lista
+
+
+def listar_quadros() -> list:
+    """Resumos dos quadros da galeria, o editado mais recente primeiro."""
+    lista = []
+    vistos = set()
+    for arq in DADOS.glob("*.json"):
+        if not ID_OK.match(arq.stem):
+            continue
+        try:
+            # a miniatura muda sem o quadro mudar (e um quadro feito por agente só ganha a dele ao ser aberto):
+            # confere a cada listagem, fora do resumo guardado, para a galeria não pedir imagem que não existe
+            lista.append({**resumo_quadro(arq), "thumb": (DADOS / f"{arq.stem}.png").is_file()})
+            vistos.add(arq.stem)
+        except Exception:
+            continue
+    with TRAVA_GERAL:   # esquece os quadros que saíram da pasta (lixeira)
+        for k in [k for k in RESUMOS if k not in vistos]:
+            RESUMOS.pop(k, None)
+    lista.sort(key=lambda x: x["updated"], reverse=True)
     return lista
 
 
@@ -217,6 +242,142 @@ class Handler(SimpleHTTPRequestHandler):
             return False
         return True
 
+    def _canal_ok(self, rota: str) -> bool:
+        # o token de agente não vale nas rotas da página: pedido com X-Agente fora de /api/agente/ é recusado
+        if "X-Agente" in self.headers and not rota.startswith("/api/agente/"):
+            self._json({"erro": "o token de agente só vale nas rotas /api/agente/"}, 403)
+            return False
+        return True
+
+    def _agente(self, metodo: str, rota: str):
+        """Rotas /api/agente/*: só com o interruptor ligado e o token de agente, nunca vindas de um navegador."""
+        if self.headers.get("Origin") or self.headers.get("Sec-Fetch-Site") or self.headers.get("Sec-Fetch-Mode"):
+            return self._json({"erro": "o canal dos agentes não aceita pedidos de páginas da web"}, 403)
+        if "X-Lousa" in self.headers:
+            return self._json({"erro": "o token da página não vale no canal dos agentes"}, 403)
+        cfg = agente_config()
+        if not cfg:
+            return self._json({"erro": "Agentes de IA desligados no Giz Livre. Para usar, o professor liga "
+                                       "\"Permitir agentes de IA\" no menu do Giz Livre."}, 403)
+        if not secrets.compare_digest(self.headers.get("X-Agente", ""), cfg["token"]):
+            return self._json({"erro": "token de agente inválido (o interruptor foi desligado e ligado de novo?)"}, 401)
+        partes = rota[len("/api/agente/"):].split("/")
+        consulta = urllib.parse.parse_qs(self.path.partition("?")[2])
+
+        def q(nome, padrao=""):
+            return (consulta.get(nome) or [padrao])[0]
+
+        def limite(padrao, maximo):
+            v = q("limite", str(padrao))
+            return int(num_agente({"limite": int(v) if v.isdigit() else -1}, "limite", 1, maximo))
+
+        def precisa(nivel):
+            if cfg["nivel"] < nivel:
+                raise RecusaAgente(f"O nível escolhido no Giz Livre ({cfg['nivel']}, {NIVEIS[cfg['nivel']]}) não "
+                                   f"permite isto; é preciso o nível {nivel} ({NIVEIS[nivel]}).", 403)
+
+        def id_ok(bid):
+            if not ID_OK.match(bid):
+                raise RecusaAgente("id de quadro inválido")
+            return bid
+
+        try:
+            if metodo == "GET":
+                precisa(1)
+                if partes == ["estado"]:
+                    registrar_agente("estado")
+                    return self._json({"versao": VERSAO, "nivel": cfg["nivel"], "nivel_nome": NIVEIS[cfg["nivel"]],
+                                       "niveis": NIVEIS, "quadros_abertos": sorted(quadros_abertos()),
+                                       "formatos": ["infinito", *FORMATOS], "controle_ao_vivo": False})
+                if partes == ["quadros"]:
+                    n = limite(50, 200)
+                    pasta, busca = nome_pasta(q("pasta")), q("busca").lower()
+                    abertos = quadros_abertos()
+                    lista = [{"quadro": b["id"], "titulo": b["title"], "pasta": b.get("folder", ""),
+                              "modo": b["mode"], "editado": b["updated"], "aberto": b["id"] in abertos,
+                              "criado_por": b.get("criado_por")}
+                             for b in listar_quadros()
+                             if (not pasta or b.get("folder") == pasta) and busca in b["title"].lower()]
+                    registrar_agente("listar_quadros")
+                    return self._json({"quadros": lista[:n], "total": len(lista)})
+                if len(partes) == 2 and partes[0] == "quadros":
+                    bid = id_ok(partes[1])
+                    detalhe = q("detalhe", "resumo")
+                    if detalhe not in ("resumo", "completo"):
+                        raise RecusaAgente("detalhe: resumo ou completo")
+                    r = quadro_para_agente(bid, ler_quadro_disco(bid), detalhe)
+                    registrar_agente("ler_quadro", bid)
+                    return self._json(r)
+                if partes == ["formas"]:
+                    n = limite(30, 100)
+                    registrar_agente("listar_formas")
+                    return self._json({"formas": buscar_formas(q("busca")[:100], q("grupo")[:60], n),
+                                       "grupos": sorted({f["grupo"] for f in indice()["formas"]})})
+                if partes == ["modelos"]:
+                    area = q("area")
+                    registrar_agente("listar_modelos")
+                    return self._json({"modelos": [m for m in indice()["modelos"] if not area or m["area"] == area],
+                                       "areas": sorted({m["area"] for m in indice()["modelos"]})})
+                raise RecusaAgente("rota", 404)
+            corpo = self._corpo("agente")
+            if corpo is None:
+                return
+            try:
+                spec = json.loads(corpo.decode("utf-8") or "{}",
+                                  parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))
+            except ValueError:
+                raise RecusaAgente("JSON inválido")
+            if not isinstance(spec, dict):
+                raise RecusaAgente("esperado um objeto JSON")
+            precisa(2)
+            if partes == ["quadros"]:
+                r = criar_quadro_agente(spec)
+                registrar_agente("criar_quadro", r["quadro"])
+                return self._json(r)
+            if len(partes) == 3 and partes[0] == "quadros" and partes[2] in ("itens", "paginas"):
+                bid = id_ok(partes[1])
+                if partes[2] == "paginas":
+                    r = alterar_quadro(bid, cfg, lambda b: adicionar_paginas(b, spec))
+                    registrar_agente("adicionar_pagina", bid)
+                else:
+                    pedidos = spec.get("itens")
+                    if not isinstance(pedidos, list) or not 1 <= len(pedidos) <= 50 or \
+                            not all(isinstance(p, dict) for p in pedidos):
+                        raise RecusaAgente("itens: lista com 1 a 50 pedidos")
+
+                    def acrescentar(board):
+                        criados, avisos = [], []
+                        for n, p in enumerate(pedidos, 1):   # um de cada vez: cada item entra abaixo do anterior
+                            try:
+                                it, aviso = item_do_agente(board, p)
+                            except RecusaAgente as e:   # tudo ou nada: nada foi gravado; diz qual item falhou
+                                if len(pedidos) == 1:
+                                    raise
+                                raise RecusaAgente(f"item {n} ({str(p.get('tipo'))[:12]}): {e}; nenhum item foi gravado",
+                                                   e.status)
+                            board["items"] = [*board["items"], it]
+                            criados.append(it["id"])
+                            if aviso and aviso not in avisos:
+                                avisos.append(aviso)
+                        r = {"itens_criados": criados}
+                        if avisos:
+                            r["aviso"] = "; ".join(avisos)
+                        if any(i.get("type") == "pendente" and i["id"] in criados for i in board["items"]
+                               if isinstance(i, dict)):
+                            r["observacao"] = ("fórmulas e gráficos aparecem quando o professor abrir o quadro "
+                                               "no Giz Livre, que os desenha")
+                        return r
+                    r = alterar_quadro(bid, cfg, acrescentar)
+                    registrar_agente("itens:" + ",".join(sorted({str(p.get("tipo"))[:12] for p in pedidos})), bid)
+                r["quadro"] = bid
+                return self._json(r)
+            raise RecusaAgente("rota", 404)
+        except RecusaAgente as e:
+            return self._json({"erro": str(e)}, e.status)
+        except (OSError, ValueError) as e:
+            registrar(e)
+            return self._json({"erro": "falha ao gravar o quadro; nada foi alterado"}, 500)
+
     def _corpo(self, rota: str = "outros") -> bytes | None:
         try:
             n = int(self.headers.get("Content-Length", "-1"))
@@ -244,22 +405,18 @@ class Handler(SimpleHTTPRequestHandler):
         if not self._host_ok():
             return
         rota = self._rota()
+        if not self._canal_ok(rota):
+            return
+        if rota.startswith("/api/agente/"):
+            return self._agente("GET", rota)
+        if rota == "/api/agentes":   # painel do interruptor na página (o token de agente nunca vai para a página)
+            if not self._escrita_ok():
+                return
+            cfg = agente_config()
+            return self._json({"ligado": bool(cfg), "nivel": cfg["nivel"] if cfg else NIVEL_PADRAO,
+                               "niveis": NIVEIS, "registro": ultimas_linhas_registro()})
         if rota == "/api/boards":
-            lista = []
-            vistos = set()
-            for arq in DADOS.glob("*.json"):
-                if not ID_OK.match(arq.stem):
-                    continue
-                try:
-                    lista.append(resumo_quadro(arq))
-                    vistos.add(arq.stem)
-                except Exception:
-                    continue
-            with TRAVA_GERAL:   # esquece os quadros que saíram da pasta (lixeira)
-                for k in [k for k in RESUMOS if k not in vistos]:
-                    RESUMOS.pop(k, None)
-            lista.sort(key=lambda x: x["updated"], reverse=True)
-            return self._json(lista)
+            return self._json(listar_quadros())
         if rota == "/api/info":
             return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
                                "pptx": "powerpoint" if tem_powerpoint() else ("libreoffice" if achar_libreoffice() else None),
@@ -316,9 +473,30 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_HEAD()
 
     def do_PUT(self):
-        if not self._host_ok() or not self._escrita_ok():
+        if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):
+            return
+        if self.path.startswith("/api/agente/"):
+            return self._json({"erro": "rota"}, 404)
+        if not self._escrita_ok():
             return
         rota = self._rota()
+        if rota == "/api/agentes":
+            corpo = self._corpo()
+            if corpo is None:
+                return
+            try:
+                pacote = json.loads(corpo.decode("utf-8"))
+                nivel = pacote.get("nivel", NIVEL_PADRAO) if isinstance(pacote, dict) else None
+                if not isinstance(pacote.get("ligado"), bool) or type(nivel) is not int or nivel not in NIVEIS:
+                    raise ValueError("pedido inválido")
+            except Exception as e:
+                return self._json({"erro": str(e)}, 400)
+            if pacote["ligado"]:
+                agente_ligar(nivel)
+            else:
+                agente_desligar()
+            cfg = agente_config()
+            return self._json({"ligado": bool(cfg), "nivel": cfg["nivel"] if cfg else nivel})
         if rota.startswith("/api/thumbs/"):
             bid = self._id("/api/thumbs/")
             if bid is None:
@@ -422,10 +600,24 @@ class Handler(SimpleHTTPRequestHandler):
         return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"]})
 
     def do_POST(self):
-        if not self._host_ok() or not self._escrita_ok():
+        if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):
+            return
+        if self.path.startswith("/api/agente/"):
+            return self._agente("POST", self._rota())
+        if not self._escrita_ok():
             return
         rota = self._rota()
         if rota == "/api/ping":
+            # {janela, quadro}: o quadro aberto em cada janela, para o agente não gravar num quadro que está na tela
+            corpo = self._corpo()
+            if corpo is None:
+                return
+            try:
+                pacote = json.loads(corpo.decode("utf-8")) if corpo.strip() else {}
+            except ValueError:
+                pacote = {}
+            if isinstance(pacote, dict) and isinstance(pacote.get("janela"), str) and JANELA_OK.match(pacote["janela"]):
+                marcar_aberto(pacote["janela"], pacote.get("quadro"))
             return self._json({"ok": True})
         if rota == "/api/sair":
             self._json({"ok": True})
@@ -489,7 +681,11 @@ class Handler(SimpleHTTPRequestHandler):
         return self._json({"erro": "rota"}, 404)
 
     def do_DELETE(self):
-        if not self._host_ok() or not self._escrita_ok():
+        if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):
+            return
+        if self.path.startswith("/api/agente/"):   # o agente não exclui quadro nem move para a lixeira
+            return self._json({"erro": "o agente não exclui quadros"}, 405)
+        if not self._escrita_ok():
             return
         self._rota()
         if not self.path.startswith("/api/boards/"):
@@ -540,6 +736,596 @@ class Handler(SimpleHTTPRequestHandler):
             if mini.is_file():
                 shutil.move(str(mini), str(DADOS / f"{novo}.png"))
         return self._json({"ok": True, "id": novo, "renomeado": novo != bid})
+
+
+# ---------------- agentes de IA (servidor MCP em mcp/giz_livre_mcp.py) ----------------
+# Canal separado do da página: rotas /api/agente/*, token próprio (X-Agente) guardado em <dados>/.agente/token, que
+# só existe com o interruptor ligado. Outra conta do Windows não lê a pasta de dados, então não usa este canal.
+# O agente só acrescenta conteúdo: nenhuma rota daqui exclui quadro nem move para a lixeira.
+# o nível 4 (controle ao vivo do quadro aberto) volta quando existir; um 4 gravado antes vale como o 3
+NIVEIS = {1: "Só ler", 2: "Criar quadros novos", 3: "Editar quadros fechados"}
+NIVEL_PADRAO = 2
+VALIDADE_ABERTO = 90                 # s: a página manda /api/ping a cada 30 s com o quadro aberto
+ABERTOS: dict[str, tuple] = {}       # janela -> (id do quadro aberto ou None, instante do último ping)
+JANELA_OK = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+COR_OK = re.compile(r"^#[0-9a-fA-F]{6}$")
+TRAVA_AGENTE = threading.Lock()
+FONTES = ["Segoe UI", "Arial", "Calibri", "Cambria", "Georgia", "Times New Roman", "Verdana", "Consolas", "Segoe Script",
+          "Segoe Print", "Ink Free", "Lucida Handwriting", "Comic Sans MS"]          # as do editor (menu Fonte)
+CORES_NOTA = ["#fff7a8", "#ffd3a6", "#ffc8dd", "#d9c9ff", "#c4e3ff", "#c9f2c7"]          # NOTE_COLORS do editor
+ALINHAMENTOS = {"esquerda": None, "centro": "center", "direita": "right", "justificado": "justify"}
+FORMATOS = {"a4": (794, 1123), "a4l": (1123, 794), "a3l": (1587, 1123), "s169": (1280, 720), "s43": (1024, 768)}
+GEOMETRIAS = ("line", "arrow", "rect", "ellipse", "triangle")
+MARGEM = 48                          # margem da página para o "fluxo de caderno"
+MAX_PAGINAS = 500                    # o mesmo limite da importação de .lousa
+# imagem de reserva da forma da biblioteca: o editor desenha pelo `lib` e troca esta reserva ao abrir o quadro
+SRC_RESERVA = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%2F%3E"
+_INDICE: dict = {}
+
+
+class RecusaAgente(Exception):
+    """Pedido do agente recusado com uma mensagem para ele (e o status HTTP)."""
+    def __init__(self, msg: str, status: int = 400):
+        super().__init__(msg)
+        self.status = status
+
+
+def indice() -> dict:
+    """app/shapes-index.json (formas, folhas, modelos de função), gerado por scripts/indice_formas.mjs."""
+    if not _INDICE:
+        with open(APP / "shapes-index.json", encoding="utf-8") as f:
+            dados = json.load(f)
+        dados["por_id"] = {x["id"]: x for x in dados["formas"]}
+        dados["modelo_por_id"] = {m["id"]: m for m in dados["modelos"]}
+        dados["folha_ids"] = {x["id"] for x in dados["folhas"]}
+        _INDICE.update(dados)
+    return _INDICE
+
+
+def pasta_agente() -> Path:
+    return DADOS / ".agente"
+
+
+def agente_config() -> dict | None:
+    """{'nivel', 'token'} com o interruptor ligado; None desligado. Lido do disco a cada pedido: desligar vale na hora."""
+    p = pasta_agente()
+    try:
+        nivel = int((p / "ligado").read_text(encoding="utf-8").strip())
+        token = (p / "token").read_text(encoding="utf-8").strip()
+    except (OSError, ValueError):
+        return None
+    nivel = 3 if nivel == 4 else nivel
+    if nivel not in NIVEIS or not re.fullmatch(r"[0-9a-f]{64}", token):
+        return None
+    return {"nivel": nivel, "token": token}
+
+
+def agente_ligar(nivel: int) -> None:
+    with TRAVA_AGENTE:
+        p = pasta_agente()
+        p.mkdir(exist_ok=True)
+        if not agente_config():   # token novo só ao ligar; mudar o nível mantém o token
+            gravar_atomico(p / "token", secrets.token_hex(32).encode("ascii"))
+        gravar_atomico(p / "ligado", str(nivel).encode("ascii"))
+    registrar_agente("interruptor", f"ligado, nível {nivel}")
+
+
+def agente_desligar() -> None:
+    with TRAVA_AGENTE:
+        for nome in ("token", "ligado"):   # o token sai primeiro: desligado, ele deixa de valer na hora
+            try:
+                (pasta_agente() / nome).unlink()
+            except FileNotFoundError:
+                pass
+    registrar_agente("interruptor", "desligado")
+
+
+def registrar_agente(acao: str, quadro: str = "") -> None:
+    """Uma linha por ação em <dados>/.agente/registro.log: data, ação e quadro (nunca o conteúdo)."""
+    try:
+        p = pasta_agente()
+        p.mkdir(exist_ok=True)
+        log = p / "registro.log"
+        if log.exists() and log.stat().st_size > 1024 * 1024:
+            os.replace(log, p / "registro.log.1")
+        with TRAVA_AGENTE, open(log, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\t{acao}\t{quadro}\n")
+    except OSError as e:
+        registrar(e)
+
+
+def ultimas_linhas_registro(n: int = 30) -> list:
+    try:
+        linhas = (pasta_agente() / "registro.log").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    return linhas[-n:][::-1]
+
+
+def marcar_aberto(janela: str, quadro) -> None:
+    agora = time.time()
+    with TRAVA_GERAL:
+        ABERTOS[janela] = (quadro if isinstance(quadro, str) and ID_OK.match(quadro) else None, agora)
+        for k in [k for k, (_, t) in ABERTOS.items() if agora - t > VALIDADE_ABERTO]:
+            ABERTOS.pop(k, None)
+
+
+def quadros_abertos() -> set:
+    agora = time.time()
+    with TRAVA_GERAL:
+        return {q for q, t in ABERTOS.values() if q and agora - t <= VALIDADE_ABERTO}
+
+
+def texto_limpo(valor, maximo: int, campo: str, linhas: bool = True) -> str:
+    """Texto do agente: sem caracteres de controle (salvo quebra de linha, se `linhas`), com limite de tamanho."""
+    if not isinstance(valor, str):
+        raise RecusaAgente(f"{campo}: esperado um texto")
+    if len(valor) > maximo:
+        raise RecusaAgente(f"{campo}: no máximo {maximo} caracteres (veio {len(valor)})")
+    valor = valor.replace("\r\n", "\n").replace("\t", "    ")
+    return "".join(c for c in valor if c.isprintable() or (linhas and c == "\n"))
+
+
+def num_agente(spec: dict, campo: str, minimo: float, maximo: float, padrao=None):
+    v = spec.get(campo)
+    if v is None:
+        if padrao is None:
+            raise RecusaAgente(f"{campo}: obrigatório")
+        return padrao
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+        raise RecusaAgente(f"{campo}: esperado um número")
+    if not minimo <= v <= maximo:
+        raise RecusaAgente(f"{campo}: entre {minimo:g} e {maximo:g} (veio {v:g})")
+    return float(v)
+
+
+def cor_agente(spec: dict, campo: str = "cor", padrao: str = "#000000") -> str:
+    v = spec.get(campo)
+    if v is None:
+        return padrao
+    if not isinstance(v, str) or not COR_OK.match(v):
+        raise RecusaAgente(f"{campo}: use o formato #rrggbb (ex.: #e81224)")
+    return v.lower()
+
+
+def clarear(cor: str) -> str:
+    """Preenchimento das formas geométricas: a mesma conta do editor (lighten)."""
+    return "#" + "".join(f"{round(int(cor[i:i + 2], 16) * 0.25 + 255 * 0.75):02x}" for i in (1, 3, 5))
+
+
+def altura_texto(texto: str, tamanho: float, largura: float) -> float:
+    """Estimativa sem medir a fonte (o editor mede de verdade ao desenhar): ~0,52 do tamanho por caractere."""
+    por_linha = max(1, int(largura / (tamanho * 0.52)))
+    linhas = sum(max(1, math.ceil(len(p) / por_linha)) for p in texto.split("\n"))
+    return linhas * tamanho * 1.3
+
+
+def caixa(it: dict) -> tuple:
+    """(x, y, w, h) aproximado de um item, para achar o fim do conteúdo da página e deslocar páginas."""
+    t = it.get("type")
+    if t == "stroke":
+        p = it.get("pts") or []
+        xs, ys = [numero(v) for v in p[0::3]], [numero(v) for v in p[1::3]]
+        if not xs:
+            return (0, 0, 0, 0)
+        return (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
+    if t == "shape":
+        if it.get("kind") == "polygon":
+            p = it.get("pts") or []
+            xs, ys = [numero(v) for v in p[0::2]] or [0], [numero(v) for v in p[1::2]] or [0]
+        else:
+            xs = [numero(it.get("x1")), numero(it.get("x2"))]
+            ys = [numero(it.get("y1")), numero(it.get("y2"))]
+        return (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
+    x, y, w = numero(it.get("x")), numero(it.get("y")), numero(it.get("w"))
+    if t == "text":
+        tam = numero(it.get("size")) or 28
+        return (x, y, w, altura_texto(str(it.get("text") or ""), tam, max(w, tam)))
+    return (x, y, w, numero(it.get("h")))
+
+
+def deslocar_y(it: dict, dy: float) -> dict:
+    """Cópia do item descida `dy` (os itens são imutáveis também aqui)."""
+    n = dict(it)
+    if it.get("type") == "stroke":
+        n["pts"] = [v + dy if i % 3 == 1 else v for i, v in enumerate(it.get("pts") or [])]
+    elif it.get("type") == "shape" and it.get("kind") == "polygon":
+        n["pts"] = [v + dy if i % 2 == 1 else v for i, v in enumerate(it.get("pts") or [])]
+    elif it.get("type") == "shape":
+        n["y1"], n["y2"] = numero(it.get("y1")) + dy, numero(it.get("y2")) + dy
+    else:
+        n["y"] = numero(it.get("y")) + dy
+    return n
+
+
+def tem_paginas(board: dict) -> bool:
+    return isinstance(board.get("layout"), dict) and board["layout"].get("mode") == "pages"
+
+
+def retangulo_pagina(L: dict, i: int) -> tuple:
+    return (0.0, i * (numero(L.get("h")) + numero(L.get("gap"))), numero(L.get("w")), numero(L.get("h")))
+
+
+def pagina_de(L: dict, it: dict) -> int:
+    x, y, w, h = caixa(it)
+    passo = numero(L.get("h")) + numero(L.get("gap"))
+    n = max(1, int(numero(L.get("count")) or 1))
+    return max(0, min(n - 1, math.floor((y + h / 2 + numero(L.get("gap")) / 2) / passo))) if passo > 0 else 0
+
+
+def posicionar(board: dict, spec: dict, w: float, h: float) -> tuple:
+    """Onde o item entra: (x, y, aviso). `pagina` (1, 2...) torna x e y relativos à página; sem x/y, o item entra
+    abaixo do último item da página (ou do quadro infinito), na margem esquerda."""
+    paginas = tem_paginas(board)
+    L = board.get("layout") or {}
+    n = max(1, int(numero(L.get("count")) or 1)) if paginas else 0
+    pg = spec.get("pagina")
+    if pg is not None:
+        if not paginas:
+            raise RecusaAgente("pagina: este quadro é infinito (não tem páginas); use só x e y")
+        if isinstance(pg, bool) or not isinstance(pg, int) or not 1 <= pg <= n:
+            raise RecusaAgente(f"pagina: página inexistente (o quadro tem {n})")
+    tem_x, tem_y = spec.get("x") is not None, spec.get("y") is not None
+    x = num_agente(spec, "x", -1e6, 1e6, 0.0)
+    y = num_agente(spec, "y", -1e6, 1e6, 0.0)
+    itens = [i for i in board.get("items", []) if isinstance(i, dict)]
+    if paginas:
+        if pg is None and not (tem_x and tem_y):   # fluxo: última página que tem conteúdo
+            com = [pagina_de(L, i) for i in itens]
+            pg = (max(com) if com else 0) + 1
+        if pg is not None:
+            rx, ry, rw, rh = retangulo_pagina(L, pg - 1)
+            if not (tem_x and tem_y):
+                nesta = [caixa(i) for i in itens if pagina_de(L, i) == pg - 1]
+                fim = max((c[1] + c[3] for c in nesta), default=ry + MARGEM - 16)
+                y = (y if tem_y else fim + 16 - ry)
+                x = x if tem_x else MARGEM
+            aviso = None
+            if y + h > rh - MARGEM and not tem_y and y > MARGEM and h <= rh - 2 * MARGEM:
+                # no fluxo de caderno, o item que não cabe vai para o alto da página seguinte (criada se faltar)
+                if pg >= n and n >= MAX_PAGINAS:
+                    return rx + x, ry + y, f"o item passou do fim da página e o quadro já tem {MAX_PAGINAS} páginas"
+                if pg >= n:
+                    board["layout"] = {**L, "count": n + 1}
+                aviso = f"não cabia na página {pg}; foi para o alto da página {pg + 1}" + \
+                        (" (criada agora)" if pg >= n else "")
+                rx, ry, rw, rh = retangulo_pagina(L, pg)
+                y = MARGEM
+            elif ry + y + h > ry + rh:
+                aviso = "o item passou do fim da página; use adicionar_pagina e a página seguinte"
+            return rx + x, ry + y, aviso
+        return x, y, None
+    if not (tem_x and tem_y):
+        caixas = [caixa(i) for i in itens]
+        fim = max((c[1] + c[3] for c in caixas), default=MARGEM - 16)
+        x = x if tem_x else min((c[0] for c in caixas), default=MARGEM)
+        y = y if tem_y else fim + 16
+    return x, y, None
+
+
+def largura_util(board: dict) -> float:
+    L = board.get("layout") or {}
+    return max(100.0, numero(L.get("w")) - 2 * MARGEM) if tem_paginas(board) else 800.0
+
+
+NOTA_LARG = (120.0, 600.0)          # px: faixa de largura da nota do agente
+NOTA_PROP = (0.75, 2.0)             # altura / largura: nota larga e baixa deixa a letra minúscula
+NOTA_LETRA_MIN = 16                 # px: menor letra aceitável na nota (o editor ajusta a letra ao tamanho da nota)
+
+
+def letra_nota(texto: str, w: float, h: float) -> int:
+    """Estimativa do tamanho de letra que o editor escolhe (noteFontSizeRaw em render.js), sem medir a fonte."""
+    pad, tam = w * 0.08, round(w / 7)
+    while tam > 8:
+        por_linha = max(1, int((w - 2 * pad) / (tam * 0.55)))
+        linhas = sum(max(1, math.ceil(len(p) / por_linha)) for p in texto.split("\n"))
+        if linhas * tam * 1.25 <= h - 2 * pad:
+            break
+        tam -= 1
+    return tam
+
+
+def medida_nota(texto: str, w: float, h: float) -> tuple:
+    """Largura e altura da nota dentro de uma proporção que dá letra legível; cresce se o texto não couber.
+    Devolve (w, h, aviso ou None)."""
+    w0, h0 = w, h
+    w = min(max(w, NOTA_LARG[0]), NOTA_LARG[1])
+    h = min(max(h, w * NOTA_PROP[0]), w * NOTA_PROP[1])
+    while letra_nota(texto, w, h) < NOTA_LETRA_MIN and (h < w * NOTA_PROP[1] or w < NOTA_LARG[1]):
+        if h < w * NOTA_PROP[1]:
+            h = min(h * 1.15, w * NOTA_PROP[1])
+        else:
+            w = min(w * 1.15, NOTA_LARG[1])
+    w, h = round(w), round(h)
+    if (w, h) == (round(w0), round(h0)):
+        return w, h, None
+    return w, h, (f"nota ajustada para {w}x{h} px (largura de {NOTA_LARG[0]:g} a {NOTA_LARG[1]:g}, altura de "
+                  f"{NOTA_PROP[0]:g} a {NOTA_PROP[1]:g} vezes a largura) para a letra ficar legível; texto longo cabe "
+                  f"melhor em escrever_texto")
+
+
+def novo_id_item() -> str:
+    return "ag" + secrets.token_hex(5)
+
+
+def item_do_agente(board: dict, spec: dict) -> tuple:
+    """Monta e valida um item a partir do pedido do agente. Devolve (item, aviso)."""
+    tipo = spec.get("tipo")
+    if tipo == "texto":
+        texto = texto_limpo(spec.get("texto"), 5000, "texto")
+        if not texto.strip():
+            raise RecusaAgente("texto: vazio")
+        tam = num_agente(spec, "tamanho", 8, 200, 28.0)
+        larg = num_agente(spec, "largura", 20, 20000, largura_util(board))
+        x, y, aviso = posicionar(board, spec, larg, altura_texto(texto, tam, larg))
+        it = {"id": novo_id_item(), "type": "text", "x": x, "y": y, "w": larg, "text": texto,
+              "color": cor_agente(spec), "size": tam}
+        fonte = spec.get("fonte")
+        if fonte is not None:
+            if fonte not in FONTES:
+                raise RecusaAgente("fonte: escolha uma destas: " + ", ".join(FONTES))
+            if fonte != "Segoe UI":
+                it["font"] = fonte
+        al = spec.get("alinhamento")
+        if al is not None:
+            if al not in ALINHAMENTOS:
+                raise RecusaAgente("alinhamento: esquerda, centro, direita ou justificado")
+            if ALINHAMENTOS[al]:
+                it["al"] = ALINHAMENTOS[al]
+        if spec.get("negrito") is True:
+            it["b"] = True
+        if spec.get("italico") is True:
+            it["i"] = True
+        return it, aviso
+    if tipo == "nota":
+        texto = texto_limpo(spec.get("texto"), 2000, "texto")
+        cor = cor_agente(spec, padrao=CORES_NOTA[0])
+        if cor not in CORES_NOTA:
+            raise RecusaAgente("cor: as notas usam " + ", ".join(CORES_NOTA))
+        w = num_agente(spec, "largura", 80, 1200, 220.0)
+        h = num_agente(spec, "altura", 80, 1200, w)
+        w, h, ajuste = medida_nota(texto, w, h)
+        x, y, aviso = posicionar(board, spec, w, h)
+        return {"id": novo_id_item(), "type": "note", "x": x, "y": y, "w": w, "h": h, "text": texto,
+                "color": cor}, aviso or ajuste
+    if tipo == "geometria":
+        kind = spec.get("forma")
+        if kind not in GEOMETRIAS:
+            raise RecusaAgente("tipo: " + ", ".join(GEOMETRIAS))
+        linha = kind in ("line", "arrow")
+        lim = 20000
+        w = num_agente(spec, "w", -lim if linha else 1, lim)
+        h = num_agente(spec, "h", -lim if linha else 1, lim)
+        if linha and w == 0 and h == 0:
+            raise RecusaAgente("w e h: a linha precisa de comprimento")
+        if spec.get("x") is None or spec.get("y") is None:
+            raise RecusaAgente("x e y: obrigatórios para formas geométricas")
+        x, y, aviso = posicionar(board, spec, abs(w), abs(h))
+        cor = cor_agente(spec)
+        it = {"id": novo_id_item(), "type": "shape", "kind": kind, "x1": x, "y1": y, "x2": x + w, "y2": y + h,
+              "color": cor, "width": num_agente(spec, "espessura", 0.5, 40, 3.0)}
+        preenche = spec.get("preenchimento")
+        if preenche not in (None, False) and not linha:
+            it["fill"] = clarear(cor) if preenche is True else cor_agente(spec, "preenchimento")
+        if spec.get("tracejado") is True:
+            it["dash"] = True
+        if kind == "arrow" and spec.get("seta_dupla") is True:
+            it["both"] = True
+        return it, aviso
+    if tipo == "forma":
+        forma = indice()["por_id"].get(spec.get("forma"))
+        if not forma:
+            raise RecusaAgente("forma: id inexistente; procure com listar_formas")
+        esc = num_agente(spec, "escala", 0.1, 10, 1.0)
+        w, h = forma["w"] * esc, forma["h"] * esc
+        x, y, aviso = posicionar(board, spec, w, h)
+        return {"id": novo_id_item(), "type": "image", "src": SRC_RESERVA, "x": x, "y": y, "w": w, "h": h,
+                "lib": forma["id"], "tint": cor_agente(spec)}, aviso
+    if tipo == "latex":
+        latex = texto_limpo(spec.get("latex"), 2000, "latex")
+        if not latex.strip():
+            raise RecusaAgente("latex: vazio")
+        tam = num_agente(spec, "tamanho", 8, 200, 40.0)
+        # estimativa (o editor mede a imagem real ao abrir e desce o que vem depois): fração e somatório são mais altos
+        alto = any(c in latex for c in (r"\frac", r"\dfrac", r"\sum", r"\int", r"\begin", r"\sqrt"))
+        w, h = min(len(latex) * tam * 0.45 + 20, 1200), tam * (2.8 if alto else 1.6)
+        x, y, aviso = posicionar(board, spec, w, h)
+        return {"id": novo_id_item(), "type": "pendente", "gera": "latex", "latex": latex, "x": x, "y": y,
+                "w": w, "h": h, "size": tam, "color": cor_agente(spec)}, aviso
+    if tipo == "grafico":
+        return grafico_do_agente(board, spec)
+    raise RecusaAgente("tipo de item desconhecido")
+
+
+def grafico_do_agente(board: dict, spec: dict) -> tuple:
+    """Gráfico pendente: o editor compila a função com o mesmo compilador seguro da janela Plotar ao abrir o quadro."""
+    funcao, modelo = spec.get("funcao"), spec.get("modelo")
+    if (funcao is None) == (modelo is None):
+        raise RecusaAgente("informe funcao (ex.: x^2 - 4) ou modelo (veja listar_modelos), não os dois")
+    it = {"id": novo_id_item(), "type": "pendente", "gera": "plot"}
+    faixa_padrao = (-5.0, 5.0)
+    if funcao is not None:
+        funcao = texto_limpo(funcao, 200, "funcao", linhas=False).strip()
+        if not funcao or not re.fullmatch(r"[0-9A-Za-zÀ-ÿπ .,+\-*/^()]+", funcao):
+            raise RecusaAgente("funcao: use x, números, + - * / ^, parênteses e sen, cos, tg, raiz, abs, ln, log, exp, pi, e")
+        it["funcao"] = funcao
+    else:
+        m = indice()["modelo_por_id"].get(modelo)
+        if not m:
+            raise RecusaAgente("modelo: id inexistente; veja listar_modelos")
+        it["modelo"] = m["id"]
+        faixa_padrao = (float(m["x"][0]), float(m["x"][1]))
+        params = spec.get("parametros") or {}
+        if not isinstance(params, dict):
+            raise RecusaAgente("parametros: esperado um objeto {nome: valor}")
+        decl = {p["n"]: p for p in m["params"]}
+        valores = {}
+        for nome, v in params.items():
+            if nome not in decl:
+                raise RecusaAgente(f"parametros: {nome} não existe no modelo (tem: {', '.join(decl)})")
+            p = decl[nome]
+            valores[nome] = num_agente(params, nome, min(p["min"], p["v"]), max(p["max"], p["v"]))
+        if valores:
+            it["parametros"] = valores
+    x0 = num_agente(spec, "x_min", -1e9, 1e9, faixa_padrao[0])
+    x1 = num_agente(spec, "x_max", -1e9, 1e9, faixa_padrao[1])
+    if not x1 > x0:
+        raise RecusaAgente("x_max precisa ser maior que x_min")
+    it["faixa"] = [x0, x1]
+    if spec.get("y_min") is not None or spec.get("y_max") is not None:
+        y0, y1 = num_agente(spec, "y_min", -1e9, 1e9), num_agente(spec, "y_max", -1e9, 1e9)
+        if not y1 > y0:
+            raise RecusaAgente("y_max precisa ser maior que y_min")
+        it["faixa_y"] = [y0, y1]
+    w = num_agente(spec, "w", 80, 5000, min(largura_util(board), 640.0))
+    h = num_agente(spec, "h", 60, 5000, round(w * 0.62))
+    x, y, aviso = posicionar(board, spec, w, h)
+    it.update({"x": x, "y": y, "w": w, "h": h, "color": cor_agente(spec, padrao="#0078d4"),
+               "eixos": spec.get("eixos") is not False, "rotulo": spec.get("rotulo") is not False and funcao is not None})
+    return it, aviso
+
+
+def resumo_item(it: dict, L: dict | None) -> dict:
+    """Item sem os campos pesados (pontos do traço, imagem embutida): o agente recebe o que importa."""
+    r = {k: v for k, v in it.items() if k not in ("pts", "src", "ink")}
+    if isinstance(it.get("pts"), list):
+        r["n_pontos"] = len(it["pts"]) // (3 if it.get("type") == "stroke" else 2)
+    src = it.get("src")
+    if isinstance(src, str):
+        r["imagem"] = "reserva" if src == SRC_RESERVA else "arquivo" if src.startswith("/assets/") else "embutida"
+    if L:
+        r["pagina"] = pagina_de(L, it) + 1
+    return r
+
+
+def quadro_para_agente(bid: str, board: dict, detalhe: str) -> dict:
+    L = board.get("layout") if tem_paginas(board) else None
+    itens = [i for i in board.get("items", []) if isinstance(i, dict)]
+    r = {"quadro": bid, "titulo": board.get("title") or "Sem título", "pasta": nome_pasta(board.get("folder")),
+         "formato": (L or {}).get("kind", "infinito") if L else "infinito",
+         "paginas": int(numero(L.get("count"))) if L else None,
+         "largura_pagina": numero(L.get("w")) if L else None, "altura_pagina": numero(L.get("h")) if L else None,
+         "fundo": {"cor": (board.get("background") or {}).get("color", "#ffffff"),
+                   "padrao": (board.get("background") or {}).get("pattern", "none")},
+         "revisao": board.get("_rev", 0), "criado_por": board.get("criado_por"),
+         "aberto": bid in quadros_abertos(), "n_itens": len(itens)}
+    if detalhe == "completo":
+        r["itens"] = itens
+    else:
+        r["itens"] = [resumo_item(i, L) for i in itens[:2000]]
+        if len(itens) > 2000:
+            r["itens_cortados"] = True
+    return r
+
+
+def ler_quadro_disco(bid: str) -> dict:
+    arq = DADOS / f"{bid}.json"
+    if not arq.exists():
+        raise RecusaAgente("quadro não encontrado", 404)
+    try:
+        board = json.loads(arq.read_text(encoding="utf-8"))
+        if not isinstance(board, dict) or not isinstance(board.get("items", []), list):
+            raise ValueError
+    except ValueError:
+        raise RecusaAgente("o arquivo deste quadro está danificado; abra-o no Giz Livre", 500)
+    board.setdefault("items", [])
+    return board
+
+
+def alterar_quadro(bid: str, cfg: dict, mudar) -> dict:
+    """Lê, confere permissão e quadro aberto, aplica `mudar(board)` e grava com a mesma revisão do PUT da página."""
+    if bid in quadros_abertos():
+        raise RecusaAgente("Este quadro está aberto no Giz Livre. Feche-o (volte à galeria) ou use o controle ao "
+                           "vivo, quando existir. Criar quadros novos e ler continuam liberados.", 409)
+    with trava(bid):
+        board = ler_quadro_disco(bid)
+        if cfg["nivel"] < 3 and board.get("criado_por") != "agente":
+            raise RecusaAgente("No nível 2 (Criar quadros novos) o agente só mexe nos quadros que ele criou. Para "
+                               "editar outros quadros fechados, o professor escolhe o nível 3 no Giz Livre.", 403)
+        resultado = mudar(board)
+        board["updated"] = int(time.time() * 1000)
+        board["_rev"] = board.get("_rev", 0) + 1
+        gravar_atomico(DADOS / f"{bid}.json", json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+    resultado["revisao"] = board["_rev"]
+    return resultado
+
+
+def criar_quadro_agente(spec: dict) -> dict:
+    titulo = re.sub(r"\s+", " ", texto_limpo(spec.get("titulo"), 200, "titulo", linhas=False)).strip()
+    if not titulo:
+        raise RecusaAgente("titulo: obrigatório")
+    formato = spec.get("formato")
+    if formato is None:
+        formato = "a4" if spec.get("paginas") is not None else "infinito"
+    board = {"version": 2, "title": titulo, "criado_por": "agente", "items": []}
+    if formato != "infinito":
+        if formato not in FORMATOS:
+            raise RecusaAgente("formato: infinito, " + ", ".join(FORMATOS))
+        w, h = FORMATOS[formato]
+        n = int(num_agente(spec, "paginas", 1, 200, 1))
+        board["layout"] = {"mode": "pages", "kind": formato, "w": w, "h": h, "gap": 48, "count": n}
+    elif spec.get("paginas") is not None:
+        raise RecusaAgente("paginas: só em quadro com páginas (formato a4, a4l, a3l, s169 ou s43)")
+    fundo = spec.get("fundo") or {}
+    if not isinstance(fundo, dict):
+        raise RecusaAgente("fundo: esperado {cor, padrao}")
+    padrao = fundo.get("padrao", "none")
+    if padrao not in indice()["folha_ids"]:
+        raise RecusaAgente("fundo.padrao: folha inexistente; algumas: none, grid, lines, notebook, cartesian, dots")
+    board["background"] = {"color": cor_agente(fundo, padrao="#ffffff"), "pattern": padrao}
+    pasta = nome_pasta(spec.get("pasta"))
+    if pasta:
+        board["folder"] = pasta
+    board["updated"] = int(time.time() * 1000)
+    board["_rev"] = 1
+    with TRAVA_GERAL:
+        while True:
+            bid = "ag" + format(int(time.time() * 1000), "x") + secrets.token_hex(3)
+            if not (DADOS / f"{bid}.json").exists():
+                break
+    with trava(bid):
+        gravar_atomico(DADOS / f"{bid}.json", json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+    return {"quadro": bid, "titulo": titulo, "paginas": board.get("layout", {}).get("count"), "revisao": 1,
+            "itens_criados": []}
+
+
+def adicionar_paginas(board: dict, spec: dict) -> dict:
+    if not tem_paginas(board):
+        raise RecusaAgente("adicionar_pagina: só em quadro com páginas")
+    L = dict(board["layout"])
+    n = max(1, int(numero(L.get("count")) or 1))
+    q = int(num_agente(spec, "quantidade", 1, 50, 1))
+    if n + q > MAX_PAGINAS:
+        raise RecusaAgente(f"quantidade: o quadro pode ter no máximo {MAX_PAGINAS} páginas")
+    depois = int(num_agente(spec, "depois_de", 0, n, n))   # 0 = antes da primeira
+    passo = numero(L.get("h")) + numero(L.get("gap"))
+    corte = depois * passo - numero(L.get("gap")) / 2   # mesma conta do editor (insertPageAfter)
+    itens = []
+    for it in board["items"]:
+        if isinstance(it, dict):
+            x, y, w, h = caixa(it)
+            it = deslocar_y(it, passo * q) if y + h / 2 > corte else it
+        itens.append(it)
+    L["count"] = n + q
+    board["items"], board["layout"] = itens, L
+    return {"quadro": None, "paginas": n + q, "paginas_novas": list(range(depois + 1, depois + q + 1)), "itens_criados": []}
+
+
+def buscar_formas(busca: str, grupo: str, limite: int) -> list:
+    def sem(s):   # sem acento e sem caixa ("agua" acha "Água"), como a busca do catálogo
+        return "".join(c for c in unicodedata.normalize("NFD", str(s).lower()) if unicodedata.category(c) != "Mn")
+
+    termos = sem(busca).split()
+    achadas = []
+    for f in indice()["formas"]:
+        if grupo and grupo not in (f["grupo"], f["grupo_nome"]):
+            continue
+        alvo = sem(f"{f['id']} {f['nome']} {f['secao']} {f['grupo_nome']}")
+        if all(t in alvo for t in termos):
+            achadas.append({k: f[k] for k in ("id", "nome", "grupo", "secao", "w", "h")})
+            if len(achadas) >= limite:
+                break
+    return achadas
 
 
 # ---------------- imagens guardadas à parte (slides, PDFs, fotos) ----------------

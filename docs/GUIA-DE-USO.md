@@ -63,7 +63,21 @@ faz parte da imagem SVG.
 - **Microsoft Whiteboard:** exporte cada quadro como imagem e use **Importar** na galeria.
 - **Outro computador com o Giz Livre:** menu `…` → *Exportar arquivo .lousa*; no outro computador, **Importar**.
 
-## 6. Problemas comuns
+## 6. Agentes de IA (experimental)
+Um assistente de IA compatível com MCP (por exemplo, o Claude Code ou o Claude Desktop) pode preparar quadros para você:
+textos, notas, formas da biblioteca, fórmulas e gráficos.
+1. Na galeria, clique em **Agentes de IA** e ligue. Escolha o nível: *só ler*, *criar quadros novos* (o padrão) ou
+   *editar quadros fechados*. Desligar corta o acesso na hora.
+2. Cadastre o servidor MCP no assistente, apontando para os quadros do Giz Livre instalado. No Claude Code:
+   `claude mcp add giz-livre -- python "<pasta do código-fonte>\mcp\giz_livre_mcp.py" --dados "<Documentos>\Giz Livre\quadros"`
+   (precisa do Python; o executável próprio vem numa próxima versão).
+3. Peça, por exemplo: "monte um quadro A4 sobre decantação com a lei de Stokes, um decantador e um gráfico".
+4. Abra o quadro na galeria (ele aparece com o selo *agente de IA*). As fórmulas e os gráficos são montados nessa hora.
+
+O agente não apaga nada e não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
+continuar. Tudo fica no seu computador.
+
+## 7. Problemas comuns
 | Sintoma | Solução |
 |---|---|
 | A caneta não tem pressão / "chegou como mouse" | ative o Windows Ink no driver da mesa e reabra o Giz Livre |

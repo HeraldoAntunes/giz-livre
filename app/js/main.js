@@ -1,7 +1,8 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
 import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost } from './api.js';
-import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg } from './editor.js';
+import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId } from './editor.js';
+import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
 import { renderToCanvas } from './render.js';
 import { boardThumb, makeLayout, SIZES } from './pages.js';
@@ -75,8 +76,8 @@ async function showGallery(folder = '') {
 
 const boardCard = (b, showFolder) => `
       <div class="card" data-id="${esc(b.id)}">
-        <div class="thumb" style="background-image:url('/thumbs/${esc(b.id)}.png?t=${+b.updated || 0}')"></div>
-        <div class="meta"><div class="t">${esc(b.title)}</div><div class="d">${showFolder && b.folder ? `<span class="g-inf">${esc(b.folder)}</span> · ` : ''}Editado: ${fmt(b.updated)}</div></div>
+        <div class="thumb"${b.thumb === false ? '' : ` style="background-image:url('/thumbs/${esc(b.id)}.png?t=${+b.updated || 0}')"`}></div>
+        <div class="meta"><div class="t">${esc(b.title)}</div><div class="d">${showFolder && b.folder ? `<span class="g-inf">${esc(b.folder)}</span> · ` : ''}Editado: ${fmt(b.updated)}${b.criado_por === 'agente' ? ' · <span class="g-inf" title="Criado por um agente de IA">agente de IA</span>' : ''}</div></div>
         <button class="dots" title="Mais opções" aria-label="Mais opções">${ICON.more}</button>
       </div>`;
 
@@ -480,6 +481,7 @@ async function route() {
   const ok = await closeBoard();
   if (seq !== routeSeq) return;   // outra navegação começou enquanto fechava
   if (!ok) toast('Atenção: as últimas mudanças ainda não foram salvas. Vou continuar tentando.', 6000);
+  if (!m) ping();   // o quadro foi fechado: o servidor já pode deixar um agente gravar nele
   if (!m && location.hash === '#/lixeira') return showTrash();
   if (!m && location.hash.startsWith('#/formas')) return showShapes(location.hash.split('/')[2] || '');
   if (!m) {
@@ -495,6 +497,7 @@ async function route() {
     $('board').hidden = false;
     document.title = (data.title || 'Sem título') + ' — Giz Livre';
     openBoard(m[1], data, () => { location.hash = folderHash(cleanFolder(data.folder)); });
+    ping();
   } catch (e) {
     toast(e.message);
     location.hash = '#/';
@@ -510,15 +513,21 @@ $('gImport').onclick = () => $('gImportFile').click();
 $('gNewFolder').onclick = newFolder;
 $('gTrash').onclick = () => { $('gSearch').value = ''; if (location.hash === '#/lixeira') showTrash(); else location.hash = '#/lixeira'; };
 $('gAbout').onclick = () => aboutBox(VERSION);
+$('gAgentes').onclick = () => painelAgentes(wfetch, toast);
 $('gVer').textContent = 'versão ' + VERSION;
 $('gSlideFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await createFromSlides(f); });
 $('gTablet').onclick = () => openTabletSettings(tabletCfg(), saveTabletCfg);
 $('gImportFile').addEventListener('change', async e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) await importFiles(f); });
 $('gallery').addEventListener('dragover', e => e.preventDefault());
 $('gallery').addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) importFiles([...e.dataTransfer.files]); });
-// mantém o servidor vivo enquanto houver janela aberta; se ele tiver sido fechado, avisa em vez de "salvar" no vazio
+// mantém o servidor vivo enquanto houver janela aberta; se ele tiver sido fechado, avisa em vez de "salvar" no vazio.
+// Também conta qual quadro está aberto nesta janela: um agente de IA não grava em quadro aberto.
+const JANELA = newId();
 async function ping() {
-  try { const r = await wfetch('/api/ping', { method: 'POST' }); if (!r.ok && r.status !== 409) throw 0; }
+  try {
+    const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ janela: JANELA, quadro: openBoardId() }) });
+    if (!r.ok && r.status !== 409) throw 0;
+  }
   catch { sessionLost('O programa Giz Livre foi fechado. Abra-o de novo pelo atalho e depois recarregue esta página; o que não foi salvo continua aqui.'); }
 }
 setInterval(ping, 30000);

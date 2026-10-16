@@ -13,7 +13,7 @@
 // por commit(items, layout?), que alimenta o desfazer. `action` guarda o gesto em andamento (draw, erase, lasso…).
 // window.__lousa expõe S/pending/action só para testes automatizados.
 import * as R from './render.js';
-import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo } from './api.js';
+import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo, wfetch } from './api.js';
 import { ICON, penIcon } from './icons.js';
 import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc } from './ui.js';
 import { VERSION } from './version.js';
@@ -32,6 +32,7 @@ import { ESPECIAIS } from './especiais.js';   // elementos didáticos coloridos 
 import { initBars, placeAll as placeBars, resetBars, resetBar, recolhivelDeNovo } from './bars.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
 import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas } from './disciplinas.js';
+import { temPendentes, hidratarPendentes, aplicarTrocas, painelAgentes } from './agente.js';
 
 const PALETTE = ['#000000', '#7a7574', '#ffffff', '#e81224', '#f7630c', '#ffb900', '#fff100', '#8cbd18',
   '#16c60c', '#0b6a0b', '#00b7c3', '#0078d4', '#1b3a8c', '#886ce4', '#e3008c', '#8e562e'];
@@ -258,6 +259,7 @@ export function openBoard(id, board, back) {
   montaRascBar();
   placeBars();
   requestRender();
+  if (temPendentes(items)) hidratarAoAbrir(S);
   if (board.novo) {
     delete board.novo;
     const ini = board.estojo && estojos().find(e => e.id === board.estojo);
@@ -320,6 +322,31 @@ function usarEstojo(e, comFundo = true) {
 window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; }, get sel() { return sel; } };
 
 export function isOpen() { return !!S && !$('board').hidden; }
+// quadro aberto nesta janela (o ping avisa o servidor, para um agente de IA não gravar nele)
+export function openBoardId() { return isOpen() ? S.id : null; }
+
+// conteúdo deixado por um agente de IA (fórmula, gráfico) chega ao abrir o quadro: troca os pendentes pelos itens
+// reais sem passo de Desfazer (é a chegada do conteúdo, não uma edição) e salva
+async function hidratarAoAbrir(alvo) {
+  const meas = document.createElement('canvas').getContext('2d');
+  const medir = (t, s, f = 'Segoe UI') => { meas.font = `${s}px "${f}"`; return meas.measureText(t).width; };
+  if (alvo.items.some(i => i.type === 'pendente')) toast('Montando as fórmulas e gráficos que o agente de IA deixou…', 8000);
+  let r;
+  try {
+    r = await hidratarPendentes(alvo.items, {
+      validar: validateLatex, newId, medir, escuro: R.isDark(alvo.board.background.color), layout: alvo.board.layout,
+      formula: async (latex, color, size) => { const { blob, w, h } = await formulaImage(latex, color, size); return { src: await uploadAsset(blob), w, h }; },
+      formaSrc: (lib, tint) => { const m = shapeSvg(lib, tint); return m ? svgDataUrl(m.svg) : null; },
+    });
+  } catch (e) { return toast('Não foi possível montar o conteúdo do agente: ' + e.message, 8000); }
+  if (S !== alvo || !r.trocas.size) return;
+  // o professor pode ter mexido enquanto as imagens eram geradas: troca por id no estado atual e no histórico
+  S.items = aplicarTrocas(S.items, r.trocas);
+  for (const h of [...undoStack, ...redoStack]) h.items = aplicarTrocas(h.items, r.trocas);
+  changedSemHistorico();
+  const qtos = r.chegaram === 1 ? '1 item do agente de IA chegou' : `${r.chegaram} itens do agente de IA chegaram`;
+  if (r.chegaram) toast(r.erros ? `${qtos}; ${r.erros} com erro (texto vermelho com o código)` : `${qtos} ao quadro`, 6000);
+}
 
 // ================= desenho =================
 function resize() {
@@ -1333,6 +1360,13 @@ const histEntry = () => ({ items: S.items, layout: S.board.layout, bg: S.board.b
 function restore(entry) {
   S.items = entry.items; S.board.layout = entry.layout;
   if (entry.bg && entry.bg !== S.board.background) { S.board.background = entry.bg; syncToolbar(); }
+}
+function changedSemHistorico() {
+  for (const id of [...sel]) if (!byId(id)) sel.delete(id);
+  updatePageBar();
+  refreshPanel();
+  requestRender();
+  scheduleSave();
 }
 function changed() {
   for (const id of [...sel]) if (!byId(id)) sel.delete(id);
@@ -2442,6 +2476,7 @@ function openMenu(anchor) {
       <button data-a="tablet">${ICON.pen} Caneta e escrita</button>
       <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
       <button data-a="disc">${ICON.shapes} Áreas das formas…</button>
+      <button data-a="agentes">${ICON.sparkle} Agentes de IA (experimental)…</button>
       <button data-a="keys">${ICON.keyboard} Atalhos de teclado</button>
       <button data-a="about">${ICON.ok} Sobre o Giz Livre</button>
       <hr>
@@ -2460,6 +2495,7 @@ function openMenu(anchor) {
     p.querySelector('[data-a="lousa"]').onclick = () => { hidePop(); exportLousa(); };
     p.querySelector('[data-a="keys"]').onclick = () => { hidePop(); showKeys(); };
     p.querySelector('[data-a="disc"]').onclick = () => { hidePop(); escolherDisciplinas(); };
+    p.querySelector('[data-a="agentes"]').onclick = () => { hidePop(); painelAgentes(wfetch, toast); };
     p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };

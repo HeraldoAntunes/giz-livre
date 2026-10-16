@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 1.5.0 (16/10/2026)
+Agentes de IA preparando quadros (experimental).
+- **Agentes de IA (experimental, desligado por padrão):** um assistente de IA compatível com MCP (Model Context
+  Protocol) pode criar e montar quadros do Giz Livre: textos, notas, linhas, setas e figuras geométricas, formas da
+  biblioteca, fórmulas em LaTeX e gráficos de funções ou dos modelos prontos, em quadro infinito ou com páginas. Fórmulas
+  e gráficos aparecem quando o quadro é aberto; uma fórmula com erro vira texto vermelho com o código, sem perder nada.
+- **Controle do professor:** botão "Agentes de IA" na galeria e no menu do quadro, com níveis (só ler; criar quadros
+  novos, o padrão; editar quadros fechados). Desligar corta o acesso na hora. O agente não apaga nada, não grava num
+  quadro aberto na tela e só conversa com o próprio computador; o registro anota o que ele fez, sem o conteúdo. Os
+  quadros feitos por um agente aparecem com o selo "agente de IA" na galeria.
+- No modo de páginas, o que o agente escreve em sequência e não cabe vai para o alto da página seguinte, criada se faltar.
+- O servidor MCP (`mcp/giz_livre_mcp.py`) roda com o Python, a partir do código-fonte; o executável próprio vem numa
+  próxima versão.
+- A galeria não pede mais a miniatura de um quadro que ainda não tem uma.
+
 ## 1.4.2 (16/10/2026)
 Revisão de segurança, de textos e de acabamento do código.
 - **Segurança:** apresentações (.pptx/.odp) com conteúdo descompactado gigante são recusadas antes de abrir; quadros

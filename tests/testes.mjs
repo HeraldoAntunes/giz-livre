@@ -377,12 +377,122 @@ console.log('Versão igual em todos os lugares (P47, 16/10/2026)');
   const [M, m, c] = VERSION.split('.');
   teste(`a versão ${VERSION} está em server.py, instalador, build, texto da licença do instalador e CHANGELOG`, () => {
     igual(lê('server.py').includes(`VERSAO = "${VERSION}"`), true, 'server.py (VERSAO)');
+    igual(lê('mcp/giz_livre_mcp.py').includes(`VERSAO = "${VERSION}"`), true, 'mcp/giz_livre_mcp.py (VERSAO)');
     igual(lê('installer/lousa.iss').includes(`#define AppVer "${VERSION}"`), true, 'installer/lousa.iss');
     igual(lê('installer/build.ps1').includes(`$versao = '${VERSION}'`), true, 'installer/build.ps1');
     const vt = lê('installer/versao.txt');
     igual(vt.includes(`(${M}, ${m}, ${c}, 0)`) && vt.includes(`'${VERSION}'`), true, 'installer/versao.txt');
     igual(lê('installer/licenca-instalador.txt').split(/\r?\n/)[0], `GIZ LIVRE ${VERSION}`, 'installer/licenca-instalador.txt (1ª linha)');
     igual(lê('CHANGELOG.md').includes(`\n## ${VERSION} (`), true, 'CHANGELOG.md');
+  });
+}
+
+// ------------------------------------------------------------------
+console.log('Índice para agentes de IA (app/shapes-index.json)');
+{
+  const { readFileSync } = await import('node:fs');
+  const { montarIndice, textoIndice } = await import(pathToFileURL(path.join(raiz, '..', '..', 'scripts', 'indice_formas.mjs')).href);
+  const indice = await montarIndice();
+  const gravado = readFileSync(path.join(raiz, '..', 'shapes-index.json'), 'utf8');
+  teste(`o índice bate com as formas, folhas e modelos (${indice.formas.length} formas); se falhar: node scripts/indice_formas.mjs`, () => {
+    igual(gravado === textoIndice(indice), true, 'app/shapes-index.json desatualizado');
+  });
+  const { ALL_SHAPES } = await mod('shapelib.js');
+  teste('toda forma da biblioteca está no índice, com tamanho', () => {
+    const ids = new Set(indice.formas.map(f => f.id));
+    for (const s of ALL_SHAPES) if (!ids.has(s[0])) throw new Error('falta ' + s[0]);
+    for (const f of indice.formas) if (!(f.w > 0 && f.h > 0)) throw new Error('tamanho inválido em ' + f.id);
+  });
+}
+
+// ------------------------------------------------------------------
+console.log('Conteúdo pendente do agente de IA (agente.js)');
+{
+  const { readFileSync } = await import('node:fs');
+  const A = await mod('agente.js');
+  let n = 0;
+  const newId = () => 'n' + (++n);
+  const deps = {
+    newId, escuro: false, medir: (t, s) => String(t).length * s * 0.5,
+    validar: async l => (l.includes('\\naoexiste') ? 'Undefined control sequence' : null),
+    formula: async () => ({ src: '/assets/' + 'a'.repeat(40) + '.png', w: 200, h: 60 }),
+    formaSrc: (lib, tint) => `data:image/svg+xml,forma-${lib}-${tint}`,
+  };
+  const pend = [
+    { id: 'p1', type: 'pendente', gera: 'latex', latex: 'K_c = \\frac{1}{2}', x: 10, y: 20, w: 100, h: 50, size: 80, color: '#000000' },
+    { id: 'p2', type: 'pendente', gera: 'latex', latex: '\\naoexiste{x}', x: 10, y: 90, w: 100, h: 50, size: 40, color: '#000000' },
+    { id: 'p3', type: 'pendente', gera: 'plot', funcao: 'x^2 - 4', faixa: [-3, 3], x: 0, y: 200, w: 600, h: 372, color: '#0078d4', eixos: true, rotulo: true },
+    { id: 'p4', type: 'pendente', gera: 'plot', modelo: 'nao-existe', faixa: [0, 1], x: 0, y: 700, w: 300, h: 200, color: '#0078d4' },
+    { id: 'f1', type: 'image', lib: 'lb-bequer-anotado', tint: '#e81224', src: A.SRC_RESERVA, x: 0, y: 0, w: 10, h: 10 },
+    { id: 'z1', type: 'futuro', x: 1, y: 2 },   // tipo que esta versão não conhece
+  ];
+  const { trocas, chegaram, erros } = await A.hidratarPendentes(pend, deps);
+  const final = A.aplicarTrocas(pend, trocas);
+  teste('reserva da forma: a mesma no servidor e na página', () => {
+    const srv = readFileSync(path.join(raiz, '..', '..', 'server.py'), 'utf8');
+    igual(srv.includes(`SRC_RESERVA = "${A.SRC_RESERVA}"`), true, 'SRC_RESERVA');
+  });
+  teste('fórmula válida vira imagem com o mesmo id, no tamanho pedido', () => {
+    const f = final.find(i => i.id === 'p1');
+    igual(f.type, 'image', 'tipo'); igual(f.latex, 'K_c = \\frac{1}{2}', 'latex'); igual(f.w, 400, 'largura (80/40 × 200)'); igual(f.ph, 60, 'ph');
+  });
+  teste('fórmula inválida vira texto vermelho com o código', () => {
+    const f = final.find(i => i.id === 'p2');
+    igual(f.type, 'text', 'tipo'); igual(f.color, '#e81224', 'cor'); igual(f.text, '\\naoexiste{x}', 'texto');
+  });
+  teste('gráfico vira traços e eixos agrupados, com o rótulo y = …', () => {
+    const g = final.filter(i => i.grp && i.grp === final.find(x => x.plot)?.grp);
+    igual(g.some(i => i.type === 'stroke' && i.plot === 'x^2 - 4'), true, 'curva');
+    igual(g.some(i => i.eixo && i.type === 'stroke'), true, 'eixos');
+    igual(g.some(i => i.type === 'text' && i.text.startsWith('y = x²')), true, 'rótulo');
+    igual(final.some(i => i.id === 'p3'), false, 'pendente saiu');
+  });
+  teste('gráfico com modelo inexistente vira texto marcado, sem perder o item', () => {
+    const f = final.find(i => i.id === 'p4');
+    igual(f.type, 'text', 'tipo'); igual(f.text.includes('nao-existe'), true, 'texto');
+  });
+  teste('forma do agente recebe o desenho; tipo desconhecido fica intacto', () => {
+    igual(final.find(i => i.id === 'f1').src, 'data:image/svg+xml,forma-lb-bequer-anotado-#e81224', 'src');
+    igual(final.find(i => i.id === 'z1'), pend[5], 'item desconhecido');
+    igual(chegaram, 4, 'chegaram'); igual(erros, 2, 'erros');
+  });
+  teste('nada a trocar devolve o mesmo array (histórico não muda)', () => {
+    const lista = [{ id: 'a', type: 'text' }];
+    igual(A.aplicarTrocas(lista, trocas), lista, 'mesmo array');
+    igual(A.temPendentes(lista), false, 'sem pendentes');
+    igual(A.temPendentes(pend), true, 'com pendentes');
+  });
+  console.log('  fórmula mais alta que a estimativa desce os itens do agente que vêm depois na página, nunca os do professor');
+  {
+    const L = { mode: 'pages', w: 794, h: 1123, gap: 48, count: 2 };
+    const lista = [
+      { id: 'agF', type: 'pendente', gera: 'latex', latex: 'x', x: 48, y: 100, w: 100, h: 50, size: 80, color: '#000000' },
+      { id: 'agT', type: 'text', x: 48, y: 166, w: 600, text: 'depois', color: '#000000', size: 28 },
+      { id: 'prof', type: 'text', x: 48, y: 400, w: 600, text: 'do professor', color: '#000000', size: 28 },
+      { id: 'agP2', type: 'text', x: 48, y: 1171 + 48, w: 600, text: 'página 2', color: '#000000', size: 28 },
+    ];
+    const r = await A.hidratarPendentes(lista, { ...deps, layout: L });
+    const f = A.aplicarTrocas(lista, r.trocas), y = id => f.find(i => i.id === id).y;
+    teste('  … a fórmula (h 120 em vez de 50) empurra o texto seguinte 70 px', () => igual(y('agT'), 236, 'texto do agente'));
+    teste('  … o item do professor e o da página seguinte ficam onde estavam', () => { igual(y('prof'), 400, 'professor'); igual(y('agP2'), 1219, 'página 2'); });
+  }
+  teste('nota do agente: a medida que o servidor escolhe dá letra legível no editor (1000x150 dava 8 px)', () => {
+    // medida de texto proporcional à letra (a do ambiente falso ignora o tamanho)
+    let tam = 10;
+    const antigo = Object.getOwnPropertyDescriptors(medir);
+    Object.defineProperty(medir, 'font', { set(v) { tam = parseFloat(v) || 10; }, configurable: true });
+    medir.measureText = t => ({ width: String(t).length * tam * 0.55 });
+    try {
+      const texto = 'Só entram gases e solutos (sólidos e líquidos puros ficam de fora)';
+      igual(R.noteFontSize({ type: 'note', text: texto, w: 1000, h: 150 }) <= 9, true, 'a nota larga e baixa do teste real');
+      // 600x450 é o que medida_nota (server.py) devolve para o pedido de 1000x150
+      igual(R.noteFontSize({ type: 'note', text: texto, w: 600, h: 450 }) >= 16, true, 'nota corrigida');
+    } finally { Object.defineProperties(medir, antigo); }
+  });
+  teste('o desenho ignora o pendente e a caixa dele existe (versão que não hidrata não quebra)', () => {
+    R.drawItem(ctxFalso(), pend[0]);
+    const b = R.bbox(pend[0]);
+    igual(b.w, 100, 'largura da caixa');
   });
 }
 
