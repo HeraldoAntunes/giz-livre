@@ -15,7 +15,8 @@ import lab from './shapes/laboratorio.js';
 import embarcados from './shapes/embarcados.js';
 import estat from './shapes/estatistica.js';
 import icones from './shapes/icones.js';
-import musica from './shapes/musica.js';
+import carimbos from './shapes/carimbos.js';
+import musica from './shapes/musica.js';
 import sh_nutricao from './shapes/nutricao.js';
 import sh_portugues from './shapes/portugues.js';
 import sh_edfisica from './shapes/edfisica.js';
@@ -32,7 +33,7 @@ import sh_computacao from './shapes/computacao.js';
 import sh_alimentos from './shapes/alimentos.js';
 
 // ordem das abas: gerais, engenharias e técnicos, exatas, ciências e agrárias, saúde, humanas e linguagens, gestão
-export const GROUPS = [fluxo, setas, icones, quimica, lab, hidra, saneamento, recursosHidricos, topografia, renov, eletrica, eletronica, embarcados, sh_mecanica, sh_computacao, sh_matematica, estat, sh_fisica, sh_biologia, sh_agronomia, sh_alimentos, sh_nutricao, sh_edfisica, sh_portugues, sh_historia, sh_geografia, sh_filosofia, musica, sh_empreendedorismo];
+export const GROUPS = [fluxo, setas, icones, carimbos, quimica, lab, hidra, saneamento, recursosHidricos, topografia, renov, eletrica, eletronica, embarcados, sh_mecanica, sh_computacao, sh_matematica, estat, sh_fisica, sh_biologia, sh_agronomia, sh_alimentos, sh_nutricao, sh_edfisica, sh_portugues, sh_historia, sh_geografia, sh_filosofia, musica, sh_empreendedorismo];
 export const ALL_SHAPES = GROUPS.flatMap(g => g.secoes.flatMap(([, list]) => list));
 const BY_ID = new Map(ALL_SHAPES.map(s => [s[0], s]));
 export const shapeById = id => BY_ID.get(id);

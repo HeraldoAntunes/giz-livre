@@ -2417,7 +2417,13 @@ function onKey(e) {
   else if (ctrl && k === '-') { e.preventDefault(); zoomAt(W / 2, H / 2, S.view.zoom / 1.25); }
   else if (ctrl && k === 's') { e.preventDefault(); doSave(); }
   else if (ctrl) return;
-  else if (e.key === 'Delete' || e.key === 'Backspace') { if (sel.size) { commit(S.items.filter(i => !sel.has(i.id))); sel = new Set(); } }
+  else if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (sel.size) { commit(S.items.filter(i => !sel.has(i.id))); sel = new Set(); }
+    else if (e.key === 'Backspace') {   // sem seleção: apaga o último item desenhado (o mais recente que dá para mexer)
+      const ult = S.items.findLast(i => !i.locked && !oculto(i));
+      if (ult) { commit(S.items.filter(i => i !== ult)); toast('Último item apagado (Ctrl+Z desfaz)', 1800); }
+    }
+  }
   else if (e.key === 'Escape') { if (zoomLens) { if (zoomLens.modo === 'ampliado') sairZoomLens(); else toggleZoomLens(); } else if (present) setPresent(false); else { clearSel(); hidePop(); } }
   else if (e.key === 'Tab') { e.preventDefault(); setClean(!document.getElementById('board').classList.contains('clean')); }
   else if (PG.isPages(S.board) && ['PageDown', 'ArrowRight', 'ArrowDown'].includes(e.key) && (present || e.key === 'PageDown') && !sel.size) { e.preventDefault(); goToPage(curPage() + 1, present); }
@@ -2631,7 +2637,7 @@ function showKeys() {
       ['[  /  ]', 'Caneta mais fina / mais grossa'], ['Botão lateral da caneta', 'Borracha (muda em Caneta e escrita)']]],
     ['Seleção e edição', [['Ctrl + Z / Ctrl + Y', 'Desfazer / refazer (Ctrl + Shift + Z também refaz)'],
       ['Ctrl + C / X / V / D', 'Copiar / recortar / colar / duplicar'], ['Ctrl + A', 'Selecionar tudo'],
-      ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'],
+      ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'], ['Backspace sem seleção', 'Apagar o último item desenhado'],
       ['Enter', 'Editar o texto ou a nota selecionada'], ['Esc', 'Tirar a seleção, fechar menus, sair da apresentação']]],
     ['Páginas e apresentação', [['PageDown / PageUp', 'Próxima / página anterior'], ['→ ← (na apresentação)', 'Passar as páginas'],
       ['B (na apresentação)', 'Página em branco depois desta'], ['Tab', 'Modo aula: esconde / mostra as barras']]],

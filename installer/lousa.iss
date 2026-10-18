@@ -1,6 +1,6 @@
 ﻿; Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 ; Instalador do Giz Livre (Inno Setup 6). Compilado por installer\build.ps1.
-#define AppVer "1.5.0"
+#define AppVer "1.6.0"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]

@@ -17,6 +17,8 @@ export async function wfetch(url, opts = {}) {
   return r;
 }
 export function tokenHeader() { return { 'X-Lousa': TOKEN }; }
+// a página já recebeu o token? (antes disso, um pedido de escrita volta 409 e pareceria "sessão perdida")
+export const temSessao = () => !!TOKEN;
 export function sessionLost(msg) {
   let b = document.getElementById('banner');
   if (!b) { b = document.createElement('div'); b.id = 'banner'; document.body.appendChild(b); }

@@ -1,6 +1,6 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
-import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost } from './api.js';
+import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao } from './api.js';
 import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId } from './editor.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
@@ -524,6 +524,7 @@ $('gallery').addEventListener('drop', e => { e.preventDefault(); if (e.dataTrans
 // Também conta qual quadro está aberto nesta janela: um agente de IA não grava em quadro aberto.
 const JANELA = newId();
 async function ping() {
+  if (!temSessao()) return;   // a página ainda está abrindo (ex.: a janela ficou visível antes do /api/info voltar)
   try {
     const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ janela: JANELA, quadro: openBoardId() }) });
     if (!r.ok && r.status !== 409) throw 0;

@@ -71,9 +71,9 @@ certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
   - **fórmulas LaTeX**;
   - **tabela periódica** colorida (em Formas → Química → Especiais) e vidrarias (em Formas → Laboratório de Química).
-- **Biblioteca de formas técnicas**, com **3.379 formas em 29 disciplinas**, desenhadas para o Giz Livre, com
+- **Biblioteca de formas técnicas**, com **3.527 formas em 29 disciplinas e carimbos de correção**, desenhadas para o Giz Livre, com
   "⚑ Mais usadas" em cada disciplina, "↺ Recentes" e busca:
-  - **gerais:** fluxograma, setas e conectores, ícones para aula;
+  - **gerais:** fluxograma, setas e conectores, ícones para aula, carimbos de correção (certo, errado, visto, nota 10...);
   - **engenharias e cursos técnicos:** química e processos (P&ID), laboratório, hidráulica, saneamento (ETA e ETE),
     recursos hídricos e topografia, energias renováveis, elétrica (comandos e esquemas didáticos), eletrônica, sistemas embarcados, mecânica e mecatrônica
     (pneumática ISO 1219, CLP/ladder, desenho técnico), ciência da computação (inclusive desenvolvimento web);

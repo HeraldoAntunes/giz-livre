@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.6.0 (18/10/2026)
+Carimbos de correção e atalhos.
+- **Carimbos de correção:** novo grupo "Carimbos" no menu Formas (área Gerais), com 126 formas: certo, errado, meio
+  certo, dúvida, atenção, estrela, coração, carinhas feliz e pensativa, mais, falta algo, boa ideia, confira, as
+  palavras OK, Visto, Revisar, Parabéns, Refazer e Nota 10, e marcas de destaque (seta, círculo e sublinhado duplo).
+  Cada um em três estilos precisos (traço, selo redondo, selo retangular) e três à mão (caneta, esboço, caneta com
+  pressão); as marcas de destaque não têm selo. Todos mudam de cor como as outras formas.
+- **Backspace:** com algo selecionado, apaga a seleção; sem seleção, apaga o último item desenhado (Ctrl+Z desfaz).
+- Ao abrir o Giz Livre, não aparece mais, sem motivo, a faixa "O Giz Livre foi reaberto por outra janela".
+
 ## 1.5.0 (16/10/2026)
 Agentes de IA preparando quadros (experimental).
 - **Agentes de IA (experimental, desligado por padrão):** um assistente de IA compatível com MCP (Model Context

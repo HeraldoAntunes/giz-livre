@@ -6,7 +6,7 @@ import { GROUPS } from './shapelib.js';
 const KEY = 'lousa.abas';
 // grupos de áreas da tela de escolha (ids de shapes/*.js; id que não estiver aqui cai em "Outras")
 const AREAS = [
-  ['Gerais', ['fluxo', 'setas', 'icones']],
+  ['Gerais', ['fluxo', 'setas', 'icones', 'carimbos']],
   ['Engenharias e cursos técnicos', ['quimica', 'hidra', 'saneamento', 'recursos-hidricos', 'topografia', 'lab', 'eletrica', 'eletronica', 'embarcados', 'mecanica', 'renov', 'computacao']],
   ['Ciências e matemática', ['matematica', 'estat', 'fisica', 'biologia']],
   ['Agrárias, alimentos e saúde', ['agronomia', 'alimentos', 'nutricao', 'edfisica']],
