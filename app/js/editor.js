@@ -2424,11 +2424,23 @@ function onKey(e) {
       if (ult) { commit(S.items.filter(i => i !== ult)); toast('Último item apagado (Ctrl+Z desfaz)', 1800); }
     }
   }
+  // passador de slides: o botão de iniciar manda F5 ou Shift+F5 (sem isto, o navegador recarregaria a página)
+  else if (e.key === 'F5') { e.preventDefault(); if (!present) setPresent(true); }
+  // botão de tela preta do passador (B ou ponto); a mesma tecla, Esc ou um toque voltam
+  else if (k === 'b' || e.key === '.') { e.preventDefault(); telaPreta(); }
+  else if (present && k === 'n') addBlankAfter();
   else if (e.key === 'Escape') { if (zoomLens) { if (zoomLens.modo === 'ampliado') sairZoomLens(); else toggleZoomLens(); } else if (present) setPresent(false); else { clearSel(); hidePop(); } }
   else if (e.key === 'Tab') { e.preventDefault(); setClean(!document.getElementById('board').classList.contains('clean')); }
   else if (PG.isPages(S.board) && ['PageDown', 'ArrowRight', 'ArrowDown'].includes(e.key) && (present || e.key === 'PageDown') && !sel.size) { e.preventDefault(); goToPage(curPage() + 1, present); }
   else if (PG.isPages(S.board) && ['PageUp', 'ArrowLeft', 'ArrowUp'].includes(e.key) && (present || e.key === 'PageUp') && !sel.size) { e.preventDefault(); goToPage(curPage() - 1, present); }
-  else if (present && k === 'b') addBlankAfter();
+  // quadro infinito: avançar e voltar do passador (PageDown/PageUp; setas na apresentação) descem e sobem uma tela
+  else if (!PG.isPages(S.board) && !sel.size && (['PageDown', 'PageUp'].includes(e.key) ||
+      (present && ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)))) {
+    e.preventDefault();
+    const desce = ['PageDown', 'ArrowRight', 'ArrowDown'].includes(e.key);
+    S.view.y += (desce ? -1 : 1) * 0.85 * H;
+    viewChanged();
+  }
   // setas sem seleção: deslocam a lousa (Shift = passo maior); no modo apresentação continuam passando a página
   else if (!present && !sel.size && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
     e.preventDefault();
@@ -2640,7 +2652,8 @@ function showKeys() {
       ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'], ['Backspace sem seleção', 'Apagar o último item desenhado'],
       ['Enter', 'Editar o texto ou a nota selecionada'], ['Esc', 'Tirar a seleção, fechar menus, sair da apresentação']]],
     ['Páginas e apresentação', [['PageDown / PageUp', 'Próxima / página anterior'], ['→ ← (na apresentação)', 'Passar as páginas'],
-      ['B (na apresentação)', 'Página em branco depois desta'], ['Tab', 'Modo aula: esconde / mostra as barras']]],
+      ['F5', 'Iniciar a apresentação (botão do passador de slides)'], ['B ou .', 'Tela preta (a mesma tecla, Esc ou um toque voltam)'],
+      ['N (na apresentação)', 'Página em branco depois desta'], ['PageDown / PageUp no quadro infinito', 'Descer / subir uma tela'], ['Tab', 'Modo aula: esconde / mostra as barras']]],
     ['Vista e arquivo', [['Espaço + arrastar', 'Mover o quadro'], ['Botão do meio ou direito do mouse', 'Mover o quadro'],
       ['Ctrl + roda', 'Zoom'], ['Ctrl + = / Ctrl + −', 'Aumentar / diminuir o zoom'], ['Ctrl + 0', 'Ajustar à tela'], ['Z', 'Lupa: escolher uma área e ampliar (Z ou Esc volta)'],
       ['Ctrl + S', 'Salvar agora'], ['F11', 'Tela cheia']]],
@@ -2897,6 +2910,21 @@ function pageMenu(anchor) {
 }
 
 // modo apresentação: tela cheia, só a mini-bandeja; setas/PageDown passam a página
+// tela preta (botão do passador de slides): cobre tudo; qualquer tecla ou toque volta, e a tecla que voltou não faz mais nada
+let telaPretaEl = null;
+function telaPreta(on = !telaPretaEl) {
+  if (!on) { telaPretaEl?.remove(); telaPretaEl = null; return; }
+  if (telaPretaEl) return;
+  telaPretaEl = document.createElement('div');
+  telaPretaEl.style.cssText = 'position:fixed;inset:0;background:#000;z-index:2147483000;cursor:none';
+  telaPretaEl.addEventListener('pointerdown', ev => { ev.preventDefault(); ev.stopPropagation(); telaPreta(false); });
+  document.body.appendChild(telaPretaEl);
+}
+addEventListener('keydown', e => {
+  if (!telaPretaEl || ['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+  e.preventDefault(); e.stopImmediatePropagation(); telaPreta(false);
+}, true);
+
 function setPresent(on) {
   present = !!on;
   zoomLens = null;

@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.7.0 (18/10/2026)
+Passador de slides.
+- **Passador de slides:** o botão de iniciar (F5) começa a apresentação em vez de recarregar a página; o botão de tela
+  preta (B ou ponto) escurece a tela, e qualquer tecla ou toque volta; no quadro infinito, avançar e voltar descem e sobem
+  uma tela. A página em branco na apresentação passou para a tecla N.
+
 ## 1.6.0 (18/10/2026)
 Carimbos de correção e atalhos.
 - **Carimbos de correção:** novo grupo "Carimbos" no menu Formas (área Gerais), com 126 formas: certo, errado, meio
