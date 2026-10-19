@@ -93,7 +93,9 @@ export function drawPages(ctx, board, view, w, h) {
 // renderiza a página i num canvas (escala = px de saída por px de mundo)
 export async function renderPage(board, i, scale = 2) {
   const L = board.layout, r = pageRect(L, i);
-  await R.imagesReady(board.items, R.isDark(board.background.color));
+  // só os itens desta página: num deck de 400 slides, esperar as imagens de todos baixaria o quadro inteiro
+  const daPagina = board.items.filter(it => R.boxesTouch(R.bbox(it), r));
+  await R.imagesReady(daPagina, R.isDark(board.background.color));
   const c = document.createElement('canvas');
   c.width = Math.round(r.w * scale); c.height = Math.round(r.h * scale);
   const ctx = c.getContext('2d');
@@ -101,7 +103,7 @@ export async function renderPage(board, i, scale = 2) {
   R.drawBackground(ctx, paperFor(board.background, r), view, c.width, c.height);
   R.withDarkBackground(R.isDark(board.background.color) && !slidePages(L, board.items).has(i), () => {
     ctx.setTransform(scale, 0, 0, scale, view.x, view.y);
-    for (const it of board.items) if (R.boxesTouch(R.bbox(it), r)) R.drawItem(ctx, it);
+    for (const it of daPagina) R.drawItem(ctx, it);
   });
   return c;
 }

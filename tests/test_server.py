@@ -563,6 +563,33 @@ class GuardTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.srv.checar_pptx(buf.getvalue())
 
+    def test_slides_ocultos_e_com_video(self):
+        import io, zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("[Content_Types].xml", b"<Types/>")
+            # ordem da apresentação diferente da numeração dos arquivos: vale a ordem do sldIdLst
+            z.writestr("ppt/presentation.xml", '<p:presentation><p:sldIdLst><p:sldId id="256" r:id="rId3"/>'
+                       '<p:sldId id="257" r:id="rId2"/><p:sldId id="258" r:id="rId4"/></p:sldIdLst></p:presentation>')
+            z.writestr("ppt/_rels/presentation.xml.rels", '<Relationships>'
+                       '<Relationship Id="rId2" Type="x/slide" Target="slides/slide1.xml"/>'
+                       '<Relationship Target="/ppt/slides/slide2.xml" Type="x/slide" Id="rId3"/>'
+                       '<Relationship Id="rId4" Type="x/slide" Target="slides/slide3.xml"/></Relationships>')
+            z.writestr("ppt/slides/slide1.xml", '<p:sld show="0"><p:cSld/></p:sld>')
+            z.writestr("ppt/slides/slide2.xml", '<p:sld><p:cSld/></p:sld>')
+            z.writestr("ppt/slides/slide3.xml", '<p:sld><p:cSld/></p:sld>')
+            z.writestr("ppt/slides/_rels/slide3.xml.rels", '<Relationships><Relationship Id="rId2" '
+                       'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/video" '
+                       'Target="../media/media1.mp4"/></Relationships>')
+        dados = buf.getvalue()
+        self.assertEqual(self.srv.info_slides(dados, ".pptx"), {"total": 3, "ocultos": [2], "videos": [3]})
+        self.assertEqual(self.srv.info_slides(dados, ".odp"), {})          # formato sem essa leitura
+        self.assertEqual(self.srv.info_slides(b"PK\x03\x04lixo", ".pptx"), {})   # arquivo estranho não quebra
+        # tempo da conversão proporcional ao deck, entre 3 e 30 minutos
+        self.assertEqual(self.srv.limite_conversao(b"", 0), 180)
+        self.assertEqual(self.srv.limite_conversao(b"x" * (100 * 1024 * 1024), 230), 180 + 690 + 200)
+        self.assertEqual(self.srv.limite_conversao(b"", 5000), 1800)
+
     def test_reserved_windows_names_are_not_ids(self):
         for nome in ["CON", "nul", "Com1", "LPT9", "aux"]:
             with self.subTest(nome=nome):

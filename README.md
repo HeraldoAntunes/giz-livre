@@ -104,6 +104,12 @@ certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
 Testado com Windows 11, Microsoft Edge e mesa Wacom Intuos. No Windows 10, em outros navegadores baseados em Chromium e
 com outras mesas digitalizadoras deve funcionar, mas não foi verificado.
 
+**Tamanho de apresentação testado:** até **200 slides** roda liso, inclusive num computador modesto; de 200 a 400
+slides roda bem num computador atual, mas num computador modesto o painel "Ver todas as páginas" e a vista afastada
+ficam lentos. Deck real de 230 slides (113 MB) importado pelo PowerPoint em cerca de 30 s. Sem o PowerPoint, decks
+grandes podem passar do tempo de conversão do LibreOffice: nesse caso, salve o deck como PDF e importe o PDF.
+Vídeos dentro dos slides entram como imagem parada.
+
 ### Linux e macOS (experimental)
 Precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.
 ```bash

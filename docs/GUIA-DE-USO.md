@@ -59,6 +59,10 @@ Na galeria, **Formas** abre o catálogo. Selecione uma forma na lousa para mover
 cor da seleção para recolorir. Modelos com campos vazios podem receber Texto ou escrita a caneta. A legenda interna
 faz parte da imagem SVG.
 
+**Apresentações grandes:** até 200 slides o Giz Livre roda liso em qualquer computador (testado). Acima disso, num
+computador modesto, o painel de páginas fica lento. Se o PowerPoint não estiver instalado e a conversão de um deck
+grande falhar, salve o deck como PDF e importe o PDF. Vídeos dos slides entram como imagem parada.
+
 ## 5. Trazer quadros de outros programas
 - **Microsoft Whiteboard:** exporte cada quadro como imagem e use **Importar** na galeria.
 - **Outro computador com o Giz Livre:** menu `…` → *Exportar arquivo .lousa*; no outro computador, **Importar**.

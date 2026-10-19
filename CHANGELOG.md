@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.8.0 (19/10/2026)
+Apresentações grandes, importação com andamento, slides ocultos e com vídeo.
+- **Apresentações grandes:** o painel "Ver todas as páginas" abre na hora e só desenha as miniaturas que aparecem;
+  depois de um traço, refaz só a página que mudou (num PC modesto, com 400 slides, abrir caiu de 14 s para 0,1 s).
+  A miniatura da galeria não baixa mais as imagens de todos os slides.
+- **Importação de PowerPoint:** mostra o andamento ("Convertendo os slides: 120 de 230") e tem botão Cancelar; o
+  tempo máximo acompanha o tamanho do deck, em vez de 3 minutos fixos.
+- **Slides ocultos** vêm desmarcados na grade de importação, com a marca "oculto" (um toque inclui).
+- **Slides com vídeo** aparecem marcados na grade e entram com uma nota avisando que o vídeo virou imagem parada.
+
 ## 1.7.0 (18/10/2026)
 Passador de slides.
 - **Passador de slides:** o botão de iniciar (F5) começa a apresentação em vez de recarregar a página; o botão de tela

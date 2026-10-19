@@ -61,7 +61,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.7.0"
+VERSAO = "1.8.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$)[A-Za-z0-9_-]{1,64}$", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -423,6 +423,14 @@ class Handler(SimpleHTTPRequestHandler):
                                "ocr": WINDOWS})
         if rota == "/api/ping":
             return self._json({"ok": True})
+        if rota == "/api/pptx/progresso":   # andamento da conversão (só números; nada do conteúdo)
+            c = dict(CONVERSAO)
+            if not c:
+                return self._json({"ativa": False})
+            pasta = c.get("feitos")
+            feitos = len(list(pasta.glob("s*.png"))) if isinstance(pasta, Path) and pasta.exists() else None
+            return self._json({"ativa": True, "por": c.get("por"), "total": c.get("total", 0), "feitos": feitos,
+                               "segundos": int(time.time() - c.get("inicio", time.time()))})
         if rota == "/api/lixeira":
             return self._json(listar_lixeira())
         if rota.startswith("/api/lixeira/"):   # miniatura de um quadro da lixeira
@@ -631,6 +639,10 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"url": guardar_asset(corpo)})
             except Exception as e:
                 return self._json({"erro": str(e)}, 400)
+        if rota == "/api/pptx/cancelar":
+            if CONVERSAO:
+                CONVERSAO["cancelada"] = True
+            return self._json({"ok": True})
         if rota == "/api/pptx":
             corpo = self._corpo("pptx")
             if corpo is None:
@@ -1449,6 +1461,74 @@ def checar_pptx(conteudo: bytes) -> str:
     return ".potx" if "template.main" in tipos else ".pptx"
 
 
+def info_slides(conteudo: bytes, ext: str) -> dict:
+    """Do .pptx (um zip): total de slides na ordem da apresentação e quais estão ocultos ou têm vídeo (números a partir
+    de 1). Formatos sem essa leitura (.ppt, .odp, .key) devolvem {}; um arquivo estranho também, sem quebrar a importação."""
+    import io
+    import posixpath
+    import zipfile
+    if ext not in (".pptx", ".ppsx", ".potx"):
+        return {}
+    try:
+        with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
+            def ler(nome: str) -> str:
+                if z.getinfo(nome).file_size > 8 * 1024 * 1024:
+                    raise ValueError
+                return z.read(nome).decode("utf-8", "replace")
+            rels = dict(re.findall(r'<Relationship[^>]*?Id="([^"]+)"[^>]*?Target="([^"]+)"', ler("ppt/_rels/presentation.xml.rels")))
+            rels.update({i: t for t, i in re.findall(r'<Relationship[^>]*?Target="([^"]+)"[^>]*?Id="([^"]+)"',
+                                                      ler("ppt/_rels/presentation.xml.rels"))})
+            lista = re.search(r"<p:sldIdLst>(.*?)</p:sldIdLst>", ler("ppt/presentation.xml"), re.S)
+            ids = re.findall(r'<p:sldId\b[^>]*?r:id="([^"]+)"', lista.group(1)) if lista else []
+            ocultos, videos = [], []
+            for n, rid in enumerate(ids, 1):
+                alvo = posixpath.normpath(posixpath.join("ppt", rels[rid].lstrip("/").removeprefix("ppt/")))
+                xml = ler(alvo)
+                if re.search(r'<p:sld\b[^>]*\bshow="(0|false)"', xml):
+                    ocultos.append(n)
+                pasta, arq = posixpath.split(alvo)
+                rel_slide = posixpath.join(pasta, "_rels", arq + ".rels")
+                srels = ler(rel_slide) if rel_slide in z.namelist() else ""
+                if "videoFile" in xml or re.search(r'relationships/video"|\.(mp4|m4v|mov|wmv|avi|mpe?g|webm)"', srels, re.I):
+                    videos.append(n)
+            return {"total": len(ids), "ocultos": ocultos, "videos": videos}
+    except Exception:
+        return {}
+
+
+# conversão em andamento (uma por vez, pela TRAVA_PPTX): a página consulta o andamento e pode cancelar
+CONVERSAO: dict = {}
+
+
+def limite_conversao(conteudo: bytes, total: int) -> int:
+    """Tempo máximo da conversão, proporcional ao deck (o LibreOffice leva minutos em decks grandes), entre 3 e 30 min."""
+    return int(min(1800, 180 + 3 * total + 2 * len(conteudo) / (1024 * 1024)))
+
+
+def rodar_conversao(cmd: list, limite: int, texto: bool = False):
+    """Roda o conversor podendo ser cancelado pela página. Devolve (código, saída, erro); TimeoutError se passar do
+    limite; InterruptedError se o professor cancelar."""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=texto,
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    CONVERSAO["proc"] = proc
+    fim = time.time() + limite
+    try:
+        while True:
+            try:
+                out, err = proc.communicate(timeout=1)
+                break
+            except subprocess.TimeoutExpired:
+                if CONVERSAO.get("cancelada") or time.time() > fim:
+                    proc.kill()
+                    proc.communicate()
+                    if CONVERSAO.get("cancelada"):
+                        raise InterruptedError("Importação cancelada.")
+                    raise TimeoutError
+    finally:
+        CONVERSAO["proc"] = None
+    return proc.returncode, out, err
+
+
 def registrar(e: Exception) -> None:
     if sys.stderr:
         print(f"[Lousa] {type(e).__name__}: {e}", file=sys.stderr)
@@ -1467,35 +1547,49 @@ def achar_libreoffice() -> str | None:
     return None
 
 
-def converter_pptx_libreoffice(conteudo: bytes, ext: str) -> bytes:
+def converter_pptx_libreoffice(conteudo: bytes, ext: str, total: int = 0) -> bytes:
     """PowerPoint -> PDF pelo LibreOffice (Linux, Mac ou Windows sem PowerPoint). A interface lê o PDF com o pdf.js."""
     soffice = achar_libreoffice()
+    CONVERSAO.update(por="libreoffice")
     with tempfile.TemporaryDirectory(prefix="giz-pptx-", ignore_cleanup_errors=True) as tmp:
         arq = Path(tmp) / ("apresentacao" + ext)
         arq.write_bytes(conteudo)
         perfil = (Path(tmp) / "perfil").as_uri()   # perfil próprio: não conflita com um LibreOffice aberto
         try:
-            r = subprocess.run([soffice, "--headless", "--norestore", "--nolockcheck", f"-env:UserInstallation={perfil}",
-                                "--convert-to", "pdf", "--outdir", tmp, str(arq)],
-                               capture_output=True, timeout=180, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        except subprocess.TimeoutExpired:
+            cod, out, err = rodar_conversao([soffice, "--headless", "--norestore", "--nolockcheck",
+                                             f"-env:UserInstallation={perfil}", "--convert-to", "pdf", "--outdir", tmp,
+                                             str(arq)], limite_conversao(conteudo, total))
+        except TimeoutError:
             raise ValueError("O LibreOffice demorou demais para converter. Salve como PDF e importe o PDF.")
         pdf = Path(tmp) / "apresentacao.pdf"
-        if r.returncode != 0 or not pdf.exists():
-            raise RuntimeError((r.stderr or r.stdout).decode("utf-8", "replace")[-300:])
+        if cod != 0 or not pdf.exists():
+            raise RuntimeError((err or out).decode("utf-8", "replace")[-300:])
         return pdf.read_bytes()
 
 
 def converter_pptx(conteudo: bytes, nome: str = "", largura: int = 1920) -> dict:
     ext = checar_pptx(conteudo)
+    info = info_slides(conteudo, ext)
+    CONVERSAO.clear()
+    CONVERSAO.update(inicio=time.time(), total=info.get("total", 0), feitos=None, por=None, cancelada=False)
+    try:
+        return converter_pptx_em(conteudo, ext, info, largura)
+    except InterruptedError as e:
+        raise ValueError(str(e))
+    finally:
+        CONVERSAO.clear()
+
+
+def converter_pptx_em(conteudo: bytes, ext: str, info: dict, largura: int) -> dict:
     if ext == ".key":
         if not achar_libreoffice():
             raise ValueError("Para abrir Keynote é preciso ter o LibreOffice (gratuito) instalado. "
                              "Outra saída: exporte do Keynote como PDF ou PowerPoint e importe esse arquivo.")
-        return {"pdf": base64.b64encode(converter_pptx_libreoffice(conteudo, ext)).decode("ascii")}
+        return {"pdf": base64.b64encode(converter_pptx_libreoffice(conteudo, ext)).decode("ascii"), "info": info}
     if not tem_powerpoint():
         if achar_libreoffice():
-            return {"pdf": base64.b64encode(converter_pptx_libreoffice(conteudo, ext)).decode("ascii")}
+            pdf = converter_pptx_libreoffice(conteudo, ext, info.get("total", 0))
+            return {"pdf": base64.b64encode(pdf).decode("ascii"), "info": info}
         raise ValueError("Para abrir PowerPoint é preciso ter o PowerPoint ou o LibreOffice (gratuito) instalado. "
                          "Outra saída: salve os slides como PDF e importe o PDF.")
     with tempfile.TemporaryDirectory(prefix="lousa-pptx-", ignore_cleanup_errors=True) as tmp:
@@ -1512,21 +1606,23 @@ def converter_pptx(conteudo: bytes, nome: str = "", largura: int = 1920) -> dict
         except OSError:
             pass
         antes = powerpoint_rodando()
+        CONVERSAO.update(por="powerpoint", feitos=saida)
         try:
-            r = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-                                str(arq), str(saida), str(largura)],
-                               capture_output=True, text=True, timeout=180,
-                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        except subprocess.TimeoutExpired:
+            cod, out, err = rodar_conversao(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+                                             str(script), str(arq), str(saida), str(largura)],
+                                            limite_conversao(conteudo, info.get("total", 0)), texto=True)
+        except (TimeoutError, InterruptedError) as e:
             if not antes:   # só encerra o PowerPoint se fomos nós que o abrimos
                 subprocess.run(["taskkill", "/IM", "POWERPNT.EXE", "/F"], capture_output=True,
                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            if isinstance(e, InterruptedError):
+                raise
             raise ValueError("O PowerPoint demorou demais (o arquivo pode pedir senha ou reparo). Salve como PDF e importe o PDF.")
-        if r.returncode != 0:
-            raise RuntimeError((r.stderr or r.stdout).strip()[-400:])
-        sw, sh, _ = r.stdout.strip().splitlines()[-1].split(";")
+        if cod != 0:
+            raise RuntimeError((err or out).strip()[-400:])
+        sw, sh, _ = out.strip().splitlines()[-1].split(";")
         slides = [guardar_asset(png.read_bytes()) for png in sorted(saida.glob("s*.png"))]
-        return {"width": float(sw.replace(",", ".")), "height": float(sh.replace(",", ".")), "slides": slides}
+        return {"width": float(sw.replace(",", ".")), "height": float(sh.replace(",", ".")), "slides": slides, "info": info}
 
 
 # ---------------- escrita à mão → texto (reconhecedor do Windows, offline) ----------------

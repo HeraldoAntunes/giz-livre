@@ -279,7 +279,7 @@ function createBoard() {
 async function createFromSlides(file) {
   try {
     toast('Importando ' + file.name + '…', 120000);
-    const board = await boardFromSlides(file, m => toast(m, 120000));
+    const board = await boardFromSlides(file, (m, a) => toast(m, 120000, a));
     if (curFolder) board.folder = curFolder;
     const id = newId();
     const c = await boardThumb(board);
@@ -453,7 +453,7 @@ async function importFiles(files) {
         if (L?.mode === 'pages') L.count = Math.round(L.count);
         if (!board.background || typeof board.background !== 'object') board.background = emptyBoard().background;
       } else if (isPptx(f) || isPdf(f)) {
-        board = await boardFromSlides(f, m => toast(m, 120000));
+        board = await boardFromSlides(f, (m, a) => toast(m, 120000, a));
       } else {
         const im = await readImageFile(f, 3200);
         board = emptyBoard(f.name.replace(/\.[^.]+$/, ''));

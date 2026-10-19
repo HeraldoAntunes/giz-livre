@@ -2804,11 +2804,11 @@ async function importSlidesIntoBoard(file) {
   try {
     toast('Importando ' + file.name + '…', 60000);
     const alvo = S;
-    const esc = await paginasEscolhidas(file, m => toast(m, 60000));
+    const esc = await paginasEscolhidas(file, (m, a) => toast(m, 60000, a));
     if (!esc) return toast('Importação cancelada.', 3000);
     if (S !== alvo) return toast('Importação cancelada: o quadro foi fechado durante a conversão.', 6000);
     toast('Inserindo…', 2000);
-    const { size, srcs, sizes } = esc;
+    const { size, srcs, sizes, videos } = esc;
     let L = S.board.layout, items = S.items, start;
     if (!PG.isPages(S.board)) {
       L = PG.makeLayout('custom', srcs.length, size);
@@ -2822,7 +2822,7 @@ async function importSlidesIntoBoard(file) {
       items = itemsShift(items, cut, srcs.length * (L.h + L.gap));
       L = { ...L, count: L.count + srcs.length };
     }
-    commit([...items, ...slideItems(L, srcs, start, sizes)], L);
+    commit([...items, ...slideItems(L, srcs, start, sizes, videos)], L);
     goToPage(start);
     toast(`${srcs.length} página(s) importada(s)`);
     refreshPanel();
@@ -2855,31 +2855,89 @@ function syncPanelSel() {
   const b = $('ppDel');
   if (b) { b.hidden = !panelSel.size; b.textContent = `Excluir ${panelSel.size} página${panelSel.size > 1 ? 's' : ''}`; }
 }
+// A lista tem um cartão por página, montado na hora; a miniatura só é desenhada quando o cartão aparece na lista
+// (ou está perto), fica guardada e só é refeita se o conteúdo daquela página mudou. Com 400 slides, abrir o painel e
+// escrever com ele aberto custam o mesmo que com 10.
+const thumbCache = new Map();   // página -> { sig, canvas }
+const panelVis = new Set();     // páginas cujo cartão está visível (ou quase) na lista
+let panelObs = null, panelOcupado = false, panelDeNovo = false;
+function assinaturaPagina(i) {
+  const L = S.board.layout, r = PG.pageRect(L, i), bg = S.board.background;
+  let s = `${L.w}x${L.h}|${bg.color}|${bg.pattern}|${bg.mesa || ''}`;
+  for (const it of S.items) {
+    const b = R.bbox(it);
+    if (R.boxesTouch(b, r)) s += `|${it.id}:${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)},${Math.round(b.h)}:${it.color || ''}:${(it.text || '').length}:${it.pts?.length || 0}:${it.src?.length || 0}:${it.camada || ''}`;
+  }
+  return s;
+}
+function montarListaPaginas(list, L) {
+  panelObs?.disconnect();
+  panelVis.clear();
+  panelObs = new IntersectionObserver(ents => {
+    for (const e of ents) { const i = +e.target.dataset.i; if (e.isIntersecting) panelVis.add(i); else panelVis.delete(i); }
+    desenharMiniaturas();
+  }, { rootMargin: '600px 0px' });
+  list.innerHTML = '';
+  list.dataset.quadro = S.id;
+  const ph = Math.round(150 * L.h / L.w);
+  for (let i = 0; i < L.count; i++) {
+    const b = document.createElement('div');
+    b.className = 'pthumb'; b.dataset.i = i; b.tabIndex = 0;
+    const c = thumbCache.get(i)?.canvas || Object.assign(document.createElement('canvas'), { width: 150, height: ph, className: 'pcanvas' });
+    const ck = Object.assign(document.createElement('input'), { type: 'checkbox', className: 'pp-ck', title: 'Marcar para excluir', checked: panelSel.has(i) });
+    ck.onclick = e => { e.stopPropagation(); ck.checked ? panelSel.add(i) : panelSel.delete(i); b.classList.toggle('marked', ck.checked); syncPanelSel(); };
+    const del = Object.assign(document.createElement('button'), { className: 'ib pp-del', title: 'Excluir esta página', innerHTML: ICON.trash });
+    del.onclick = e => { e.stopPropagation(); deletePages([i]); };
+    b.classList.toggle('marked', panelSel.has(i));
+    b.append(c, Object.assign(document.createElement('span'), { textContent: i + 1 }), ck, del);
+    b.onclick = () => goToPage(i);
+    b.onkeydown = e => { if (e.key === 'Enter') goToPage(i); if (e.key === 'Delete') deletePages([i]); };
+    list.appendChild(b);
+    panelObs.observe(b);
+  }
+}
+// desenha, uma por vez, as miniaturas visíveis que estão faltando ou desatualizadas
+async function desenharMiniaturas() {
+  if (panelOcupado) { panelDeNovo = true; return; }
+  panelOcupado = true;
+  try {
+    do {
+      panelDeNovo = false;
+      const list = $('ppList'), alvo = S;
+      if (!list || $('pagesPanel').hidden || !S || !PG.isPages(S.board)) break;
+      for (const i of [...panelVis].sort((a, b) => a - b)) {
+        if (S !== alvo || i >= S.board.layout.count) break;
+        const sig = assinaturaPagina(i), guardada = thumbCache.get(i);
+        let c = guardada?.sig === sig ? guardada.canvas : null;
+        if (!c) {
+          c = await PG.renderPage({ ...S.board, items: S.items }, i, 150 / S.board.layout.w);
+          c.className = 'pcanvas';
+          if (S !== alvo) break;
+          thumbCache.set(i, { sig, canvas: c });
+        }
+        const b = list.querySelector(`.pthumb[data-i="${i}"]`);
+        if (b && b.firstChild !== c) b.replaceChild(c, b.firstChild);
+      }
+    } while (panelDeNovo);
+  } finally { panelOcupado = false; }
+}
 function refreshPanel(now = false) {
   const p = $('pagesPanel');
   if (!p || p.hidden || !S || !PG.isPages(S.board)) return;
   clearTimeout(panelTimer);
-  panelTimer = setTimeout(async () => {
+  panelTimer = setTimeout(() => {
     const L = S.board.layout, list = $('ppList');
-    list.innerHTML = '';
+    if (list.dataset.quadro !== S.id) thumbCache.clear();
     for (const i of [...panelSel]) if (i >= L.count) panelSel.delete(i);
-    for (let i = 0; i < L.count; i++) {
-      const b = document.createElement('div');
-      b.className = 'pthumb'; b.dataset.i = i; b.tabIndex = 0;
-      const c = await PG.renderPage({ ...S.board, items: S.items }, i, 150 / L.w);
-      c.className = 'pcanvas';
-      const ck = Object.assign(document.createElement('input'), { type: 'checkbox', className: 'pp-ck', title: 'Marcar para excluir', checked: panelSel.has(i) });
-      ck.onclick = e => { e.stopPropagation(); ck.checked ? panelSel.add(i) : panelSel.delete(i); b.classList.toggle('marked', ck.checked); syncPanelSel(); };
-      const del = Object.assign(document.createElement('button'), { className: 'ib pp-del', title: 'Excluir esta página', innerHTML: ICON.trash });
-      del.onclick = e => { e.stopPropagation(); deletePages([i]); };
-      b.classList.toggle('marked', panelSel.has(i));
-      b.append(c, Object.assign(document.createElement('span'), { textContent: i + 1 }), ck, del);
-      b.onclick = () => goToPage(i);
-      b.onkeydown = e => { if (e.key === 'Enter') goToPage(i); if (e.key === 'Delete') deletePages([i]); };
-      list.appendChild(b);
-    }
+    if (list.dataset.quadro !== S.id || list.childElementCount !== L.count) montarListaPaginas(list, L);
+    else list.querySelectorAll('.pthumb').forEach(b => {
+      const i = +b.dataset.i, m = panelSel.has(i);
+      b.classList.toggle('marked', m);
+      const ck = b.querySelector('.pp-ck'); if (ck) ck.checked = m;
+    });
     syncPanelSel();
     markPanel();
+    desenharMiniaturas();
   }, now ? 0 : 600);
 }
 function markPanel() {
