@@ -496,5 +496,62 @@ console.log('Conteúdo pendente do agente de IA (agente.js)');
   });
 }
 
+// ------------------------------------------------------------------
+console.log('Enquadrar slide, lupa e aviso do desfazer (pages.js, editor.js)');
+{
+  const PG = await mod('pages.js');
+  const L = PG.makeLayout('s169', 5);   // 1280x720, 48 de intervalo
+  teste('enquadrar pega a página que mais aparece na tela', () => {
+    // tela mostrando o fim da página 2 (índice 1) e um pedaço maior da página 3 (índice 2)
+    const y2 = PG.pageRect(L, 2).y;
+    igual(PG.paginaMaisVisivel(L, { x: 0, y: y2 - 300, w: 1280, h: 720 }), 2, 'mais da página 3');
+    igual(PG.paginaMaisVisivel(L, { x: 0, y: y2 - 500, w: 1280, h: 720 }), 1, 'mais da página 2');
+    igual(PG.paginaMaisVisivel(L, { x: -9000, y: -9000, w: 100, h: 100 }), 0, 'fora de tudo: a primeira');
+  });
+  teste('enquadrar usa o maior tamanho que cabe e centraliza', () => {
+    const r = PG.pageRect(L, 3), v = PG.vistaEnquadrada(r, 1920, 1080, 6);
+    perto(v.zoom, Math.min((1920 - 12) / 1280, (1080 - 12) / 720), 1e-9, 'zoom');
+    perto(v.x + (r.x + r.w / 2) * v.zoom, 960, 1e-9, 'centro x');
+    perto(v.y + (r.y + r.h / 2) * v.zoom, 540, 1e-9, 'centro y');
+    const alta = PG.vistaEnquadrada(r, 800, 1200, 0);   // tela em pé: limita pela largura
+    perto(alta.zoom, 800 / 1280, 1e-9, 'tela em pé');
+  });
+  teste('enquadrar desconta as barras abertas e centraliza no espaço que sobra', () => {
+    // as barras do print do professor (janela 1903x1012): título, canetas, rascunho, colunas e barras de baixo
+    const barras = [
+      { left: 12, top: 28, right: 370, bottom: 73 }, { left: 416, top: 37, right: 1270, bottom: 95 },
+      { left: 416, top: 102, right: 990, bottom: 157 }, { left: 1597, top: 26, right: 1900, bottom: 68 },
+      { left: 16, top: 104, right: 84, bottom: 518 }, { left: 16, top: 530, right: 84, bottom: 1010 },
+      { left: 1798, top: 224, right: 1903, bottom: 815 },
+      { left: 762, top: 966, right: 1158, bottom: 1012 }, { left: 1640, top: 966, right: 1903, bottom: 1012 },
+    ];
+    const a = PG.areaLivre(1903, 1012, barras);
+    igual(a.x, 84, 'esquerda'); igual(a.y, 157, 'topo'); igual(a.x + a.w, 1798, 'direita'); igual(a.y + a.h, 966, 'baixo');
+    const r = PG.pageRect(L, 2), v = PG.vistaEnquadrada(r, 1903, 1012, 6, a);
+    const sx = v.x + r.x * v.zoom, sy = v.y + r.y * v.zoom, ex = sx + r.w * v.zoom, ey = sy + r.h * v.zoom;
+    igual(sx >= a.x && sy >= a.y && ex <= a.x + a.w && ey <= a.y + a.h, true, 'slide inteiro dentro da área livre');
+    perto((sx + ex) / 2, a.x + a.w / 2, 1e-6, 'centro x na área'); perto((sy + ey) / 2, a.y + a.h / 2, 1e-6, 'centro y na área');
+    perto(v.zoom, (a.h - 12) / 720, 1e-9, 'limitado pela altura livre');
+    const tudo = PG.areaLivre(1000, 800, [{ left: 0, top: 0, right: 800, bottom: 800 }]);   // barra enorme: tela inteira
+    igual(tudo.w, 1000, 'sem espaço livre, vale a tela');
+    const menor = PG.vistaEnquadrada(r, 1903, 1012, 6, a, 0.85);   // nível menor: 85%, no mesmo centro
+    perto(menor.zoom, v.zoom * 0.85, 1e-9, 'nível menor');
+    perto(menor.x + (r.x + r.w / 2) * menor.zoom, a.x + a.w / 2, 1e-6, 'nível menor centralizado');
+  });
+  const { readFileSync } = await import('node:fs');
+  const ed = readFileSync(path.join(raiz, 'editor.js'), 'utf8'), html = readFileSync(path.join(raiz, '..', 'index.html'), 'utf8');
+  teste('o Ctrl+Z não mostra aviso de fábrica (só nos níveis curto e normal)', () => {
+    const corpo = ed.slice(ed.indexOf('function undo()'), ed.indexOf('function redo()'));
+    igual(/^\s*toast\(/m.test(corpo), false, 'toast sem condição no undo');
+    const aviso = ed.slice(ed.indexOf('function avisoAcao('), ed.indexOf('function redo()'));
+    igual(aviso.includes("cfg.avisoDesfazer === 'curto'") && aviso.includes("cfg.avisoDesfazer === 'normal'"), true, 'os dois níveis');
+    igual(ed.includes("toast('Último item apagado"), false, 'Backspace sem seleção também sem aviso de fábrica');
+  });
+  teste('botões novos existem na página (espessura, formas, enquadrar, − e + da lupa)', () => {
+    for (const id of ['ppWidth', 'ppShape', 'pgFit']) igual(html.includes(`id="${id}"`), true, id);
+    igual((html.match(/class="lupactl"/g) || []).length, 2, 'controle da lupa no modo normal e na apresentação');
+  });
+}
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

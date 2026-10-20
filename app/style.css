@@ -590,3 +590,18 @@ button:focus:not(:focus-visible) { outline: none; }
 .shp-areas { flex-wrap: wrap; }
 .shp-areas button { font-weight: 600; }
 .shp-niveis .shp-tabs { margin: 0; }
+/* lupa: − 3x + ao lado do botão; espessura e formas na apresentação; aviso ao desfazer */
+.lupactl { display: inline-flex; align-items: center; gap: 2px; }
+.lupactl[hidden] { display: none; }
+.lupactl .ib { font-size: 20px; font-weight: 600; }
+.lupactl b { min-width: 34px; text-align: center; font-size: 14px; }
+.ib .ppw { display: block; border-radius: 50%; background: #333; }
+#ppWidth { position: relative; }   /* anel tracejado: não confundir com as bolinhas das canetas */
+#ppWidth::after { content: ''; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
+  border: 1.5px dashed #8a8886; border-radius: 50%; box-sizing: border-box; pointer-events: none; }
+.widths.wd-g { gap: 8px; }
+.widths.wd-g .wd { width: 48px; height: 48px; }
+.ppshapes { min-width: 210px; }
+.seg.seg-col { display: flex; flex-direction: column; }
+.seg.seg-col button + button { border-left: 0; border-top: 1px solid #d1d1d1; }
+.seg.seg-col button { text-align: left; font-size: 13px; }

@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1.9.0 (20/10/2026)
+Melhorias pedidas pelo professor (modo apresentador, lupa, desfazer e slides).
+- **Apresentação:** botão próprio de espessura da caneta (ao lado da cor) e botão de formas (linha, seta, seta dupla,
+  tracejadas, retângulo, elipse, triângulo), que fica ativo para desenhar várias seguidas.
+- **Lupa** (normal e apresentação): − e + na barra escolhem quanto amplia, de 1,5x a 8x (antes só a roda do mouse
+  mudava o tamanho); depois de ampliado, + amplia mais. O nível fica guardado. O zoom máximo passou de 8x para 16x.
+- **Ctrl+Z** e **Backspace sem seleção** sem os avisos "Desfeito" e "Último item apagado" de fábrica; menu → Avisos de
+  desfazer e apagar: desligados, curto (1 s) ou normal (com Refazer / Desfazer).
+- **Enquadrar slide** (botão na barra de páginas ou tecla F): a página que está na tela volta centralizada, no maior
+  tamanho que cabe entre as barras abertas; apertar de novo alterna para um nível um pouco menor (85%), com folga.
+
 ## 1.8.0 (19/10/2026)
 Apresentações grandes, importação com andamento, slides ocultos e com vídeo.
 - **Apresentações grandes:** o painel "Ver todas as páginas" abre na hora e só desenha as miniaturas que aparecem;

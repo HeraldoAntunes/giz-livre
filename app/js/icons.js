@@ -22,6 +22,7 @@ export const ICON = {
   zoomIn: s('<path d="M12 5v14M5 12h14"/>'),
   zoomOut: s('<path d="M5 12h14"/>'),
   fit: s('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  enquadrar: s('<rect x="6.5" y="8" width="11" height="8" rx="1"/><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/>'),
   copy: s('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>'),
   duplicate: s('<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M14 11v6M11 14h6"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>'),
   trash: s('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),

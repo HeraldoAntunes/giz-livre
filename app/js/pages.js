@@ -25,6 +25,39 @@ export const pageRect = (L, i) => ({ x: 0, y: i * (L.h + L.gap), w: L.w, h: L.h 
 export const pageIndexAt = (L, y) => Math.max(0, Math.min(L.count - 1, Math.floor((y + L.gap / 2) / (L.h + L.gap))));
 export const pageOf = (L, it) => { const b = R.bbox(it); return pageIndexAt(L, b.y + b.h / 2); };
 
+// página que mais aparece na tela (vis: retângulo visível, em coordenadas de mundo); com duas pela metade, vale a maior parte
+export function paginaMaisVisivel(L, vis) {
+  let melhor = pageIndexAt(L, vis.y + vis.h / 2), area = -1;
+  for (let i = pageIndexAt(L, vis.y); i <= pageIndexAt(L, vis.y + vis.h); i++) {
+    const r = pageRect(L, i);
+    const a = Math.max(0, Math.min(r.x + r.w, vis.x + vis.w) - Math.max(r.x, vis.x)) * Math.max(0, Math.min(r.y + r.h, vis.y + vis.h) - Math.max(r.y, vis.y));
+    if (a > area) { area = a; melhor = i; }
+  }
+  return melhor;
+}
+// vista em que o retângulo r fica com o maior tamanho que cabe na tela W×H, centralizado (margem em px de tela);
+// com area ({x, y, w, h} em px de tela), cabe e centraliza só nesse pedaço livre; escala < 1 deixa folga em volta
+export function vistaEnquadrada(r, W, H, margem = 6, area = { x: 0, y: 0, w: W, h: H }, escala = 1) {
+  const z = Math.max(0.1, Math.min(8, (area.w - margem * 2) / r.w, (area.h - margem * 2) / r.h) * escala);
+  return { zoom: z, x: area.x + area.w / 2 - (r.x + r.w / 2) * z, y: area.y + area.h / 2 - (r.y + r.h / 2) * z };
+}
+// área da tela que sobra entre as barras flutuantes (rects: {left, top, right, bottom} de cada barra visível).
+// Cada barra empurra a borda que menos encolhe a área (a de canetas empurra o topo; a coluna da esquerda, a esquerda).
+// Se as barras deixam menos de 30% da largura ou da altura, vale a tela inteira.
+export function areaLivre(W, H, rects) {
+  let x0 = 0, y0 = 0, x1 = W, y1 = H;
+  for (const r of rects) {
+    if (r.right <= 0 || r.bottom <= 0 || r.left >= W || r.top >= H || r.right <= r.left || r.bottom <= r.top) continue;
+    const corte = [['t', r.bottom], ['b', H - r.top], ['l', r.right], ['r', W - r.left]].sort((a, b) => a[1] - b[1])[0];
+    if (corte[0] === 't') y0 = Math.max(y0, r.bottom);
+    else if (corte[0] === 'b') y1 = Math.min(y1, r.top);
+    else if (corte[0] === 'l') x0 = Math.max(x0, r.right);
+    else x1 = Math.min(x1, r.left);
+  }
+  if (x1 - x0 < W * 0.3 || y1 - y0 < H * 0.3) return { x: 0, y: 0, w: W, h: H };
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
 // pontos PDF da página (A4 exato; outros: 0,75 pt por px)
 export function pagePoints(L) {
   const s = SIZES[L.kind];

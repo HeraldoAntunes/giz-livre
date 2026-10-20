@@ -40,6 +40,11 @@ const HL_PALETTE = ['#fff100', '#ffb900', '#8cbd18', '#16c60c', '#00b7c3', '#4cc
 const NOTE_COLORS = ['#fff7a8', '#ffd3a6', '#ffc8dd', '#d9c9ff', '#c4e3ff', '#c9f2c7'];
 const BG_COLORS = ['#ffffff', '#f5f5f5', '#fdf6e3', '#e9f3ec', '#20402f', '#2d2d30', '#14213d', '#000000'];
 const PEN_WIDTHS = [1.5, 3, 5, 8, 12];
+const ZOOM_MAX = 16;   // a lupa amplia até 8x por cima de um slide já ampliado
+// lupa: quanto a área escolhida amplia (o retângulo tem 1/x da tela); o último nível fica guardado
+const LUPA_NIVEIS = [1.5, 2, 3, 4, 6, 8];
+// aviso que aparece ao desfazer: desligado de fábrica, porque cobria o quadro no meio da aula
+const AVISO_DESFAZER = [['off', 'Desligado'], ['curto', 'Curto (1 s, só o texto)'], ['normal', 'Normal (3 s, com botão Refazer ou Desfazer)']];
 // nomes das cores (dica e leitor de tela)
 const COR_NOME = {
   '#000000': 'Preto', '#7a7574': 'Cinza', '#ffffff': 'Branco', '#e81224': 'Vermelho', '#f7630c': 'Laranja', '#ffb900': 'Âmbar',
@@ -237,7 +242,7 @@ export function openBoard(id, board, back) {
   if (pending) board = pending.board;
   board.background = { color: '#ffffff', pattern: 'none', ...(board.background || {}) };
   let view = board.view && isFinite(board.view.zoom) && board.view.zoom > 0 ? { ...board.view } : null;
-  if (view) view.zoom = Math.max(0.1, Math.min(8, view.zoom));
+  if (view) view.zoom = Math.max(0.1, Math.min(ZOOM_MAX, view.zoom));
   // limpeza: textos vazios deixados por versões antigas
   const items = (Array.isArray(board.items) ? board.items : []).filter(i => !(i.type === 'text' && !String(i.text || '').trim()));
   S = { id, board, items, view };
@@ -1382,7 +1387,12 @@ function undo() {
   redoStack.push(histEntry());
   restore(undoStack.pop());
   changed();
-  toast('Desfeito', 2600, { label: 'Refazer', fn: redo });
+  avisoAcao('Desfeito', { label: 'Refazer', fn: redo });
+}
+// avisos de ações repetidas (desfazer, apagar o último item): desligados de fábrica, porque cobriam o quadro na aula
+function avisoAcao(msg, act) {
+  if (cfg.avisoDesfazer === 'curto') toast(msg, 1000);
+  else if (cfg.avisoDesfazer === 'normal') toast(msg, 2600, act);
 }
 function redo() {
   if (!redoStack.length) return;
@@ -1531,7 +1541,7 @@ function emergencySave() {
 
 // ================= vista (zoom/pan) =================
 function zoomAt(sx, sy, z) {
-  z = Math.max(0.1, Math.min(8, z));
+  z = Math.max(0.1, Math.min(ZOOM_MAX, z));
   const w = toWorld(sx, sy);
   S.view.zoom = z;
   S.view.x = sx - w.x * z;
@@ -1561,7 +1571,7 @@ function fitView() {
 
 function onWheel(e) {
   e.preventDefault();
-  if (zoomLens?.modo === 'escolher') { zoomLens.w = Math.max(120, Math.min(W * 0.9, zoomLens.w * (e.deltaY > 0 ? 1.1 : 0.9))); requestRender(false); return; }
+  if (zoomLens?.modo === 'escolher') { if (!onWheel.t) mudarLupa(e.deltaY > 0 ? -1 : 1); clearTimeout(onWheel.t); onWheel.t = setTimeout(() => { onWheel.t = 0; }, 120); return; }
   if (action?.type === 'draw') return;
   const w = toWorld(e.clientX, e.clientY);
   if (protractor && onProtractor(w.x, w.y) && !e.ctrlKey) {
@@ -1782,7 +1792,7 @@ function onMove(e) {
       ruler.x = action.ruler.x + wm.x - w0.x; ruler.y = action.ruler.y + wm.y - w0.y;
       requestRender(false);
     } else {
-      const z = Math.max(0.1, Math.min(8, action.z0 * d / action.d0));
+      const z = Math.max(0.1, Math.min(ZOOM_MAX, action.z0 * d / action.d0));
       S.view.zoom = z;
       S.view.x = mid.x - action.wm.x * z;
       S.view.y = mid.y - action.wm.y * z;
@@ -1990,8 +2000,8 @@ function onUp(e) {
     case 'shape':
       if (a.item && Math.hypot(a.item.x2 - a.item.x1, a.item.y2 - a.item.y1) * S.view.zoom > 4) {
         commit([...S.items, a.item]);
-        sel = new Set([a.item.id]);
-        setTool('select');
+        // na apresentação não há barra de seleção: a forma continua ativa para a próxima seta
+        if (!present) { sel = new Set([a.item.id]); setTool('select'); }
       } else requestRender(false);
       break;
     case 'transform':
@@ -2421,7 +2431,7 @@ function onKey(e) {
     if (sel.size) { commit(S.items.filter(i => !sel.has(i.id))); sel = new Set(); }
     else if (e.key === 'Backspace') {   // sem seleção: apaga o último item desenhado (o mais recente que dá para mexer)
       const ult = S.items.findLast(i => !i.locked && !oculto(i));
-      if (ult) { commit(S.items.filter(i => i !== ult)); toast('Último item apagado (Ctrl+Z desfaz)', 1800); }
+      if (ult) { commit(S.items.filter(i => i !== ult)); avisoAcao('Último item apagado', { label: 'Desfazer', fn: undo }); }
     }
   }
   // passador de slides: o botão de iniciar manda F5 ou Shift+F5 (sem isto, o navegador recarregaria a página)
@@ -2462,6 +2472,8 @@ function onKey(e) {
   else if (k === 'k') setTool('laser');
   else if (k === 'm') setTool('hand');
   else if (k === 'z') toggleZoomLens();
+  else if (k === 'f') enquadrarSlide();
+  else if (zoomLens && ['+', '=', '-', '_'].includes(e.key)) mudarLupa(e.key === '-' || e.key === '_' ? -1 : 1);
   else if (e.key === '[' || e.key === ']') stepWidth(e.key === ']' ? 1 : -1);
 }
 
@@ -2492,6 +2504,7 @@ function openMenu(anchor) {
       <button data-a="lousa">${ICON.download} Exportar arquivo .lousa</button>
       <hr>
       <button data-a="tablet">${ICON.pen} Caneta e escrita</button>
+      <button data-a="avisoZ">${ICON.undo} Avisos de desfazer e apagar: ${AVISO_DESFAZER.find(([k]) => k === (cfg.avisoDesfazer || 'off'))[1].replace(/ \(.*/, '').toLowerCase()}…</button>
       <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
       <button data-a="disc">${ICON.shapes} Áreas das formas…</button>
       <button data-a="agentes">${ICON.sparkle} Agentes de IA (experimental)…</button>
@@ -2517,6 +2530,16 @@ function openMenu(anchor) {
     p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
+    p.querySelector('[data-a="avisoZ"]').onclick = () => { hidePop(); avisoDesfazerPop(anchor); };
+  });
+}
+
+// os textos "Desfeito" (Ctrl+Z) e "Último item apagado" (Backspace): três níveis, desligados de fábrica (vale também na apresentação)
+function avisoDesfazerPop(anchor) {
+  const atual = cfg.avisoDesfazer || 'off';
+  showPop(anchor, `<h4>Avisos de desfazer e apagar</h4><small class="tb-note">"Desfeito" (Ctrl+Z) e "Último item apagado" (Backspace)</small><div class="seg seg-col">${AVISO_DESFAZER.map(([k, n]) => `<button data-av="${k}" class="${k === atual ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <small class="tb-note">Desfazer e apagar funcionam do mesmo jeito; muda só o texto na tela.</small>`, p => {
+    p.querySelectorAll('[data-av]').forEach(x => x.onclick = () => { cfg.avisoDesfazer = x.dataset.av; saveCfg(); hidePop(); toast(x.dataset.av === 'off' ? 'Avisos de desfazer e apagar: desligados' : 'Avisos de desfazer e apagar: ligados', 1500); });
   });
 }
 
@@ -2655,7 +2678,8 @@ function showKeys() {
       ['F5', 'Iniciar a apresentação (botão do passador de slides)'], ['B ou .', 'Tela preta (a mesma tecla, Esc ou um toque voltam)'],
       ['N (na apresentação)', 'Página em branco depois desta'], ['PageDown / PageUp no quadro infinito', 'Descer / subir uma tela'], ['Tab', 'Modo aula: esconde / mostra as barras']]],
     ['Vista e arquivo', [['Espaço + arrastar', 'Mover o quadro'], ['Botão do meio ou direito do mouse', 'Mover o quadro'],
-      ['Ctrl + roda', 'Zoom'], ['Ctrl + = / Ctrl + −', 'Aumentar / diminuir o zoom'], ['Ctrl + 0', 'Ajustar à tela'], ['Z', 'Lupa: escolher uma área e ampliar (Z ou Esc volta)'],
+      ['Ctrl + roda', 'Zoom'], ['Ctrl + = / Ctrl + −', 'Aumentar / diminuir o zoom'], ['Ctrl + 0', 'Ajustar à tela'], ['F', 'Enquadrar slide: a página da tela no maior tamanho que cabe; F de novo alterna para um pouco menor, com folga'],
+      ['Z', 'Lupa: escolher uma área e ampliar (Z ou Esc volta)'], ['+ / − (com a lupa)', 'Ampliar mais / menos'],
       ['Ctrl + S', 'Salvar agora'], ['F11', 'Tela cheia']]],
   ];
   infoBox('Atalhos de teclado', grupos.map(([g, rows]) => `<h4 class="keys-g">${g}</h4><div class="keys">${rows.map(([a, b]) => `<kbd>${a}</kbd><span>${b}</span>`).join('')}</div>`).join(''));
@@ -2680,6 +2704,7 @@ function stepWidth(dir) {
   c.width = list[Math.max(0, Math.min(list.length - 1, i + dir))];
   saveCfg();
   toast('Espessura: ' + c.width);
+  syncPresentBar();
   requestRender(false);
 }
 
@@ -2721,6 +2746,31 @@ function goToPage(i, fill = false) {
     S.view = alvo;
   }
   viewChanged();
+}
+
+// enquadrar slide (F): a página que mais aparece na tela volta ao maior tamanho que cabe no espaço livre entre as
+// barras abertas naquele momento, centralizada; depois o professor move e amplia à vontade
+function barrasVisiveis() {
+  return [...document.querySelectorAll('#board .bar:not(.selbar):not(.presentbar)')]
+    .filter(b => !b.hidden && getComputedStyle(b).display !== 'none' && getComputedStyle(b).visibility !== 'hidden')
+    .map(b => b.getBoundingClientRect());
+}
+// dois níveis: o maior que cabe e um menor (85%), com folga em volta; apertar de novo com o slide enquadrado alterna,
+// e o nível usado fica guardado para a próxima vez
+const ENQ_MENOR = 0.85;
+let ultimoEnq = null;   // { quadro, alvo } da última vez, para saber se o slide continua enquadrado
+function enquadrarSlide() {
+  if (!S || !PG.isPages(S.board)) return toast('Enquadrar slide vale para quadros com páginas (PDF, apresentação ou caderno)');
+  const v = S.view, u = ultimoEnq?.quadro === S ? ultimoEnq.alvo : null;
+  const parado = u && [[v.zoom, u.zoom], [v.x, u.x], [v.y, u.y]].every(([p, q]) => Math.abs(p - q) <= Math.max(2, Math.abs(q) * 0.01));
+  if (parado) { cfg.enquadrar = cfg.enquadrar === 'menor' ? 'maior' : 'menor'; saveCfg(); toast(cfg.enquadrar === 'menor' ? 'Enquadrar: menor, com folga' : 'Enquadrar: maior que cabe', 1000); }
+  const a = toWorld(0, 0), b = toWorld(W, H), L = S.board.layout;
+  const i = PG.paginaMaisVisivel(L, { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y });
+  if (zoomLens) { zoomLens = null; setCursor(); syncPresentBar(); }
+  const area = present ? { x: 0, y: 0, w: W, h: H } : PG.areaLivre(W, H, barrasVisiveis());
+  const alvo = PG.vistaEnquadrada(PG.pageRect(L, i), W, H, present ? 0 : 6, area, cfg.enquadrar === 'menor' ? ENQ_MENOR : 1);
+  ultimoEnq = { quadro: S, alvo };
+  animarVista(alvo);
 }
 
 function updatePageBar() {
@@ -2998,16 +3048,18 @@ function setPresent(on) {
 }
 // lupa de apresentação (como no PowerPoint): um retângulo segue o ponteiro; o toque amplia aquela área
 let zoomLens = null;   // { modo: 'escolher' | 'ampliado', w: largura do retângulo em px de tela, antes: vista anterior }
+function lupaX() { return LUPA_NIVEIS.includes(cfg.lupaX) ? cfg.lupaX : 3; }
 function lensRect() {
-  const w = zoomLens.w, h = w * H / W, c = hover || { x: W / 2, y: H / 2 };
+  const w = W / lupaX(), h = w * H / W, c = hover || { x: W / 2, y: H / 2 };
   return { x: c.x - w / 2, y: c.y - h / 2, w, h };
 }
 function toggleZoomLens() {
   if (zoomLens?.modo === 'ampliado') return sairZoomLens();
   if (zoomLens) { zoomLens = null; setCursor(); syncPresentBar(); requestRender(false); return; }
-  zoomLens = { modo: 'escolher', w: Math.round(W / 3) };
+  zoomLens = { modo: 'escolher' };
   setCursor('none');
-  toast('Toque onde quer ampliar · roda do mouse muda o tamanho · Esc cancela', 3500);
+  // na apresentação o aviso cobriria o − e + da própria barra
+  if (!present) toast('Toque onde quer ampliar · − e + na barra mudam quanto amplia · Esc cancela', 2500);
   syncPresentBar(); requestRender(false);
 }
 // a animação para se outra começar, se a página mudar (goToPage) ou se o professor mexer na vista no meio dela
@@ -3027,11 +3079,22 @@ function animarVista(alvo, ms = 280) {
 }
 function ampliarAqui() {
   const r = lensRect(), f = W / r.w;   // a área escolhida passa a ocupar a tela inteira
-  const a = toWorld(r.x, r.y), z = Math.min(8, S.view.zoom * f);
+  const a = toWorld(r.x, r.y), z = Math.min(ZOOM_MAX, S.view.zoom * f);
   zoomLens = { modo: 'ampliado', antes: { ...S.view } };
   setCursor();
   animarVista({ zoom: z, x: -a.x * z, y: -a.y * z });
   syncPresentBar();
+}
+// − e + da lupa: escolhendo, muda o retângulo; já ampliado, amplia mais ou menos em torno do centro da tela
+function mudarLupa(dir) {
+  if (!zoomLens) return;
+  const i = LUPA_NIVEIS.indexOf(lupaX()), x = LUPA_NIVEIS[Math.max(0, Math.min(LUPA_NIVEIS.length - 1, i + dir))];
+  cfg.lupaX = x; saveCfg();
+  if (zoomLens.modo === 'ampliado' && zoomLens.antes) {
+    const c = toWorld(W / 2, H / 2), z = Math.min(ZOOM_MAX, zoomLens.antes.zoom * x);
+    animarVista({ zoom: z, x: W / 2 - c.x * z, y: H / 2 - c.y * z }, 200);
+  }
+  syncPresentBar(); requestRender(false);
 }
 function sairZoomLens() {
   const antes = zoomLens?.antes;
@@ -3050,13 +3113,27 @@ function drawZoomLens() {
   g.restore();
 }
 
-// cor e espessura da caneta atual sem sair da apresentação
+// cor da caneta atual sem sair da apresentação (as formas usam a cor da caneta)
 function presentColorPop(anchor) {
   const t = isPen(tool) ? tool : (cfg.lastPen || 'pen0'), c = cfg.tools[t];
-  showPop(anchor, `<div class="swatches">${PALETTE.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>
-    <div class="widths" style="margin-top:8px">${PEN_WIDTHS.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}"><i style="width:${w * 1.6 + 3}px;height:${w * 1.6 + 3}px;background:${c.color === '#ffffff' ? '#ccc' : c.color}"></i></button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => { c.color = x.dataset.c; saveCfg(); setTool(t); syncPresentBar(); hidePop(); });
-    p.querySelectorAll('[data-w]').forEach(x => x.onclick = () => { c.width = +x.dataset.w; saveCfg(); setTool(t); syncPresentBar(); p.querySelectorAll('[data-w]').forEach(y => y.classList.toggle('on', y === x)); });
+  showPop(anchor, `<div class="swatches">${PALETTE.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => { c.color = x.dataset.c; saveCfg(); if (tool !== 'shape') setTool(t); syncPresentBar(); hidePop(); });
+  }, 'above');
+}
+// espessura na apresentação: vale para a caneta (e as formas, que usam a caneta) ou para o marca-texto ativo
+function larguraAlvo() { return isPen(tool) || isHl(tool) ? tool : (cfg.lastPen || 'pen0'); }
+function presentWidthPop(anchor) {
+  const t = larguraAlvo(), c = cfg.tools[t], list = isHl(t) ? HL_WIDTHS : PEN_WIDTHS, cor = inkShown(c.color) === '#ffffff' ? '#ccc' : inkShown(c.color);
+  const bola = w => Math.round(Math.min(34, 4 + w * (isHl(t) ? 0.33 : 2.4)));
+  showPop(anchor, `<h4>Espessura${isHl(t) ? ' do marca-texto' : ''} <small>([ e ] também mudam)</small></h4>
+    <div class="widths wd-g">${list.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${String(w).replace('.', ',')} px"><i style="width:${bola(w)}px;height:${bola(w)}px;background:${cor}"></i></button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-w]').forEach(x => x.onclick = () => { c.width = +x.dataset.w; saveCfg(); syncPresentBar(); requestRender(false); hidePop(); });
+  }, 'above');
+}
+// formas na apresentação: as mesmas da barra Desenho; o botão mostra a última usada
+function presentShapePop(anchor) {
+  showPop(anchor, `<div class="menu ppshapes">${DRAW_KINDS.map(([k, n]) => `<button data-k="${k}" class="${tool === 'shape' && shapeKind === k ? 'on' : ''}">${ICON[k]} ${n}</button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; setTool('shape'); syncPresentBar(); hidePop(); });
   }, 'above');
 }
 
@@ -3073,6 +3150,18 @@ function syncPresentBar() {
   });
   const c = $('ppColor')?.querySelector('i');
   if (c) c.style.setProperty('--c', inkShown(currentInk().color));
+  const wt = cfg.tools[larguraAlvo()], wi = $('ppWidth')?.querySelector('i');
+  if (wi && wt) {
+    const d = Math.round(Math.min(20, 3 + wt.width * (isHl(larguraAlvo()) ? 0.18 : 1.4)));
+    wi.style.width = wi.style.height = d + 'px';
+    wi.style.background = inkShown(wt.color) === '#ffffff' ? '#8a8886' : inkShown(wt.color);
+  }
+  const fs = $('ppShape');
+  if (fs) {
+    if (fs.dataset.k !== shapeKind) { fs.dataset.k = shapeKind; fs.innerHTML = ICON[shapeKind] || ICON.arrow; }
+    fs.classList.toggle('active', tool === 'shape');
+  }
+  document.querySelectorAll('.lupactl').forEach(x => { x.hidden = !zoomLens; x.querySelector('b').textContent = String(lupaX()).replace('.', ',') + 'x'; });
   $('ppInkShape')?.classList.toggle('on', !!cfg.inkShape);
   $('ppStrip')?.classList.toggle('on', !!zoomLens);
   $('zLens')?.classList.toggle('on', !!zoomLens);
@@ -3097,6 +3186,10 @@ function initPagesUI() {
   $('ppExit').onclick = () => setPresent(false);
   $('ppUndo').onclick = undo;
   $('ppColor').onclick = () => presentColorPop($('ppColor'));
+  $('ppWidth').onclick = () => presentWidthPop($('ppWidth'));
+  $('ppShape').onclick = () => presentShapePop($('ppShape'));
+  $('pgFit').onclick = () => enquadrarSlide();
+  document.querySelectorAll('.lupactl [data-lupa]').forEach(x => x.onclick = () => mudarLupa(+x.dataset.lupa));
   $('ppInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta vira forma: ligado (traço quase reto vira reta)' : 'Tinta vira forma: desligado (desenho livre)'); };
   $('ppStrip').onclick = () => toggleZoomLens();
   document.querySelectorAll('#presentbar [data-pt]').forEach(x => x.onclick = () => { setTool(x.dataset.pt); syncPresentBar(); });

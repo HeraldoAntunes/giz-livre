@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.8.0"
+VERSAO = "1.9.0"
 PROTOCOLOS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 CONGELADO = getattr(sys, "frozen", False)
 RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).resolve().parent.parent

@@ -98,7 +98,8 @@
     <button class="zl" id="zLabel" title="Voltar a 100%">100%</button>
     <button class="ib" id="zIn" title="Aumentar zoom (Ctrl+=)"><span data-icon="zoomIn"></span></button>
     <button class="ib" id="zFit" title="Ajustar à tela (Ctrl+0)"><span data-icon="fit"></span></button>
-    <button class="ib toggle" id="zLens" title="Lupa (Z), a mesma da apresentação: toque onde quer ampliar (a roda do mouse muda o tamanho); toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
+    <button class="ib toggle" id="zLens" title="Lupa (Z), a mesma da apresentação: toque onde quer ampliar; − e + mudam quanto amplia; toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
+    <span class="lupactl" hidden><button class="ib" data-lupa="-1" title="Ampliar menos (−)">−</button><b title="Quanto a lupa amplia">3x</b><button class="ib" data-lupa="1" title="Ampliar mais (+)">+</button></span>
   </div>
 
   <div class="bar selbar" id="selbar" hidden>
@@ -125,6 +126,7 @@
     <button class="ib" id="pgPrev" title="Página anterior (PageUp)"><span data-icon="chevL"></span></button>
     <span id="pgLabel" class="pglabel">Página 1 de 1</span>
     <button class="ib" id="pgNext" title="Próxima página (PageDown)"><span data-icon="chevR"></span></button>
+    <button class="ib" id="pgFit" title="Enquadrar slide (F): a página que está na tela no maior tamanho que cabe; de novo alterna para um pouco menor, com folga"><span data-icon="enquadrar"></span></button>
     <button class="ib" id="pgAdd" title="Nova página no fim"><span data-icon="plus"></span></button>
     <button class="ib" id="pgMore" title="Mais opções da página"><span data-icon="more"></span></button>
   </div>
@@ -158,11 +160,14 @@
     <button class="ib dot" data-pt="pen1" title="Caneta 2"><i style="background:#e81224"></i></button>
     <button class="ib dot" data-pt="pen2" title="Caneta 3"><i style="background:#0078d4"></i></button>
     <button class="ib" id="ppColor" title="Cor da caneta"><i class="ppc"></i></button>
+    <button class="ib" id="ppWidth" title="Espessura da caneta ([ e ])"><i class="ppw"></i></button>
     <button class="ib" data-pt="highlighter" title="Marca-texto (H)"><span data-icon="hlPen"></span></button>
+    <button class="ib" id="ppShape" title="Formas: linha, seta, retângulo, elipse, triângulo (arraste no quadro)"><span data-icon="arrow"></span></button>
     <button class="ib" data-pt="laser" title="Laser"><span data-icon="laser"></span></button>
     <button class="ib" data-pt="eraser" title="Borracha"><span data-icon="eraser"></span></button>
     <button class="ib toggle" id="ppInkShape" title="Tinta vira forma (desligado = desenho livre)"><span data-icon="shapeInk"></span></button>
-    <button class="ib toggle" id="ppStrip" title="Lupa: toque onde quer ampliar (roda do mouse muda o tamanho); toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
+    <button class="ib toggle" id="ppStrip" title="Lupa (Z): toque onde quer ampliar; − e + mudam quanto amplia; toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
+    <span class="lupactl" hidden><button class="ib" data-lupa="-1" title="Ampliar menos (−)">−</button><b title="Quanto a lupa amplia">3x</b><button class="ib" data-lupa="1" title="Ampliar mais (+)">+</button></span>
     <button class="ib" id="ppUndo" title="Desfazer (Ctrl+Z)"><span data-icon="undo"></span></button>
     <span class="sep pg-only"></span>
     <button class="ib pg-only" id="ppBlank" title="Página em branco depois desta (B)"><span data-icon="slideAdd"></span></button>
