@@ -94,3 +94,16 @@ dialog.g-pick .acts .btn { min-height: 36px; }
 .cat-forma img { width: 100px; height: 64px; object-fit: contain; }
 .cat-forma small { display: block; font-size: 10px; color: #8a8886; }
 .cat-voltar { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin: 2px 0 8px; text-decoration: none; }
+
+/* vitrine da biblioteca de formas no topo da galeria */
+.g-vitrine { grid-column: 1 / -1; background: var(--surface); border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.gv-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
+.gv-cab b { font-size: 15px; }
+.gv-cab span { color: var(--muted); font-size: 13px; flex: 1; }
+.gv-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; }
+.gv-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border: 1px solid var(--line);
+  border-radius: 10px; text-decoration: none; color: var(--text); text-align: center; background: #fff; }
+.gv-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+.gv-item img { width: 72px; height: 56px; object-fit: contain; }
+.gv-item span { font-size: 12px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gv-item small { font-size: 11px; color: var(--muted); }

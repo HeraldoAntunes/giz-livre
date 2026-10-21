@@ -31,13 +31,16 @@ import { svgDataUrl } from './library.js';
 import { ESPECIAIS } from './especiais.js';   // elementos didáticos coloridos (menu Formas → Especiais)
 import { initBars, placeAll as placeBars, resetBars, resetBar, recolhivelDeNovo } from './bars.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
-import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas } from './disciplinas.js';
+import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas, disciplinasEmDestaque } from './disciplinas.js';
 import { temPendentes, hidratarPendentes, aplicarTrocas, painelAgentes } from './agente.js';
+import { abrirAjuda, fecharAjuda, ajudaAberta, iniciarTour, tourDaPrimeiraVez, tourEmAndamento, encerrarTour } from './ajuda.js';
 
 const PALETTE = ['#000000', '#7a7574', '#ffffff', '#e81224', '#f7630c', '#ffb900', '#fff100', '#8cbd18',
   '#16c60c', '#0b6a0b', '#00b7c3', '#0078d4', '#1b3a8c', '#886ce4', '#e3008c', '#8e562e'];
 const HL_PALETTE = ['#fff100', '#ffb900', '#8cbd18', '#16c60c', '#00b7c3', '#4cc2ff', '#ff8cd9', '#f7630c'];
 const NOTE_COLORS = ['#fff7a8', '#ffd3a6', '#ffc8dd', '#d9c9ff', '#c4e3ff', '#c9f2c7'];
+const NOTA_FS = 24;   // tamanho da letra de uma nota nova, em pixels da tela no zoom em que ela foi criada
+const TAMANHOS = [16, 24, 32, 48, 72, 96];   // tamanhos prontos de texto e de nota (A− e A+ andam 20% de cada vez)
 const BG_COLORS = ['#ffffff', '#f5f5f5', '#fdf6e3', '#e9f3ec', '#20402f', '#2d2d30', '#14213d', '#000000'];
 const PEN_WIDTHS = [1.5, 3, 5, 8, 12];
 const ZOOM_MAX = 16;   // a lupa amplia até 8x por cima de um slide já ampliado
@@ -134,8 +137,10 @@ function loadCfg() {
     if ((c.migr || 0) < 2) tablet.beautify = false;
     // 1.2.2: barra do professor aberta à direita, com o nome embaixo de cada ícone (uma vez; depois vale a escolha)
     if ((c.migr || 0) < 3) { c.teachBar = true; c.teachSide = 'dir'; c.teachNames = true; }
+    // 1.10.0: o catálogo de formas passa a abrir na vitrine das áreas (uma vez; depois vale a última aba escolhida)
+    if ((c.migr || 0) < 4) c.shapeTab = '__vitrine';
     return { ...c, tools: { ...structuredClone(DEFAULT_TOOLS), ...(c.tools || {}) }, tool: c.tool, inkShape: !!c.inkShape,
-      shapeFill: !!c.shapeFill, tablet, migr: 3 };
+      shapeFill: !!c.shapeFill, tablet, migr: 4 };
   } catch { return { tools: structuredClone(DEFAULT_TOOLS), inkShape: false, tablet: { ...DEFAULT_TABLET }, teachBar: true, teachSide: 'dir', teachNames: true, migr: 3 }; }
 }
 function saveCfg() {
@@ -192,6 +197,7 @@ export function initEditor() {
   $('bUndo').onclick = undo;
   $('bRedo').onclick = redo;
   $('bFull').onclick = toggleFullscreen;
+  $('bHelp').onclick = () => (ajudaAberta() ? fecharAjuda() : abreAjuda());
   $('bShowBars').onclick = () => setClean(false);
   $('bMenu').onclick = () => openMenu($('bMenu'));
   $('bTitle').addEventListener('change', () => { S.board.title = $('bTitle').value.trim() || 'Sem título'; $('bTitle').title = S.board.title; scheduleSave(); });
@@ -273,7 +279,10 @@ export function openBoard(id, board, back) {
     if (ini) usarEstojo(ini, false);
     else if (!mesmaCor(canetasAtuais(), ESTOJOS_FABRICA[0])) perguntaCanetas();
   }
+  tourDaPrimeiraVez();   // balões de orientação no primeiro quadro (uma vez só; dá para desligar na ajuda)
 }
+
+function abreAjuda(tema = null) { abrirAjuda({ tema, atalhos: showKeys, tour: iniciarTour }); }
 
 // quadro novo com canetas trocadas: pergunta discreta (some sozinha), sem travar o professor
 function perguntaCanetas() {
@@ -623,6 +632,7 @@ function drawSelection() {
   bar.querySelector('[data-sel="original"]').hidden = ![...sel].some(id => byId(id)?.orig || byId(id)?.ink);
   bar.querySelector('[data-sel="ocr"]').hidden = serverInfo().ocr === false || ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
   bar.querySelector('[data-sel="font"]').hidden = ![...sel].some(id => ['text', 'note'].includes(byId(id)?.type));
+  bar.querySelectorAll('[data-sel="menor"], [data-sel="maior"]').forEach(b => { b.hidden = bar.querySelector('[data-sel="font"]').hidden; });
   const grps = new Set([...sel].map(id => byId(id)?.grp || ''));
   bar.querySelector('[data-sel="group"]').hidden = sel.size < 2 || (grps.size === 1 && !grps.has(''));
   bar.querySelector('[data-sel="ungroup"]').hidden = ![...grps].some(Boolean);
@@ -1188,6 +1198,7 @@ const isLineKind = k => ['line', 'arrow'].includes(KIND_OF[k]?.kind || k);
 
 // disciplina de cada forma (para a busca mostrar de onde vem)
 const RECENTES = '__recentes';
+const VITRINE = '__vitrine';   // primeira tela do catálogo: destaques das disciplinas marcadas
 const SHAPE_GROUP_OF = new Map(SHAPE_GROUPS.flatMap(g => g.secoes.flatMap(([, list]) => list.map(f => [f[0], g.nome]))));
 
 function shapesPop(anchor) {
@@ -1236,7 +1247,8 @@ function shapesPop(anchor) {
       const areaDe = id => areas.find(([, gs]) => gs.some(g => g.id === id))?.[0];
       const recentes = () => (cfg.recentShapes || []).map(shapeById).filter(Boolean);
       const COR_AREA = ['#0f6cbd', '#c239b3', '#107c10', '#ca5010', '#8764b8', '#038387', '#986f0b', '#c50f1f', '#5c2e91', '#486860'];
-      tree.innerHTML = `<button class="shp-raiz shp-rec" data-tab="${RECENTES}" title="Formas usadas por último"><span class="shp-ico">↺</span>Recentes</button>`
+      tree.innerHTML = `<button class="shp-raiz shp-rec" data-tab="${VITRINE}" title="O melhor de cada disciplina que você marcou"><span class="shp-ico">▦</span>Vitrine</button>`
+        + `<button class="shp-raiz shp-rec" data-tab="${RECENTES}" title="Formas usadas por último"><span class="shp-ico">↺</span>Recentes</button>`
         + (usaAreas
           ? areas.map(([n, gs], i) => `<div class="shp-ramo" data-ramo="${esc(n)}" style="--c:${COR_AREA[i % COR_AREA.length]}">
               <button class="shp-raiz" data-area="${esc(n)}"><span class="shp-ico"></span><span class="shp-nome">${esc(n)}</span><span class="shp-chev">›</span></button>
@@ -1245,20 +1257,26 @@ function shapesPop(anchor) {
       const abreRamo = (area, so = true) => tree.querySelectorAll('.shp-ramo[data-ramo]').forEach(r => r.classList.toggle('aberto', r.dataset.ramo === area || (!so && r.classList.contains('aberto'))));
       const mostra = id => {   // id de disciplina ou RECENTES
         p.querySelector('#sFind').value = '';
-        if (id === RECENTES) {
+        if (id === VITRINE) {
+          grid.innerHTML = disciplinasEmDestaque().map(g => {
+            const mais = (g.destaques || []).slice(0, 6).map(shapeById).filter(Boolean);
+            return mais.length ? `<button class="shp-sec shp-sec-link" data-ir="${g.id}" title="Abrir ${esc(g.nome)}">${esc(g.nome)} ›</button>${mais.map(f => cell(f)).join('')}` : '';
+          }).join('');
+          grid.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => abreTab(b.dataset.ir));
+        } else if (id === RECENTES) {
           const r = recentes();
           grid.innerHTML = r.length ? `<div class="shp-sec">Usadas por último</div>` + r.map(f => cell(f, SHAPE_GROUP_OF.get(f[0]))).join('')
             : '<p class="muted">As formas que você inserir aparecem aqui, para achar de novo rápido.</p>';
         } else grid.innerHTML = groupHtml(id);
         grid.scrollTop = 0; bind();
         // a cor da área vale também para os títulos das seções das formas
-        const ramo = id === RECENTES ? null : usaAreas ? tree.querySelector(`.shp-ramo[data-ramo="${CSS.escape(areaDe(id) || '')}"]`) : tree.querySelector('.shp-ramo');
+        const ramo = id === RECENTES || id === VITRINE ? null : usaAreas ? tree.querySelector(`.shp-ramo[data-ramo="${CSS.escape(areaDe(id) || '')}"]`) : tree.querySelector('.shp-ramo');
         grid.style.setProperty('--c', ramo ? ramo.style.getPropertyValue('--c') : 'var(--accent)');
         tree.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === id));
-        tree.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('on', id !== RECENTES && b.dataset.area === areaDe(id)));
-        if (usaAreas && id !== RECENTES) abreRamo(areaDe(id));
+        tree.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('on', id !== RECENTES && id !== VITRINE && b.dataset.area === areaDe(id)));
+        if (usaAreas && id !== RECENTES && id !== VITRINE) abreRamo(areaDe(id));
       };
-      const abreTab = id => { cfg.shapeTab = id; if (id !== RECENTES && usaAreas) { cfg.shapeTabPorArea = { ...(cfg.shapeTabPorArea || {}), [areaDe(id)]: id }; } saveCfg(); mostra(id); };
+      const abreTab = id => { cfg.shapeTab = id; if (id !== RECENTES && id !== VITRINE && usaAreas) { cfg.shapeTabPorArea = { ...(cfg.shapeTabPorArea || {}), [areaDe(id)]: id }; } saveCfg(); mostra(id); };
       tree.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => abreTab(b.dataset.tab));
       tree.querySelectorAll('[data-area]').forEach(b => b.onclick = () => {
         const a = b.dataset.area, ramo = b.closest('.shp-ramo');
@@ -1266,14 +1284,14 @@ function shapesPop(anchor) {
         const lista = areas.find(([n]) => n === a)[1], lembrada = cfg.shapeTabPorArea?.[a];
         abreTab(lista.some(g => g.id === lembrada) ? lembrada : lista[0].id);
       });
-      const inicial = cfg.shapeTab === RECENTES ? RECENTES : tab;
+      const inicial = cfg.shapeTab === RECENTES ? RECENTES : !cfg.shapeTab || cfg.shapeTab === VITRINE ? VITRINE : tab;
       mostra(inicial);
       tree.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
       const plain = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const find = p.querySelector('#sFind');
       find.oninput = () => {
         const q = plain(find.value.trim());
-        if (!q) return mostra(cfg.shapeTab === RECENTES ? RECENTES : (grupos.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : tab));
+        if (!q) return mostra(cfg.shapeTab === RECENTES || cfg.shapeTab === VITRINE ? cfg.shapeTab : (grupos.some(g => g.id === cfg.shapeTab) ? cfg.shapeTab : tab));
         tree.querySelectorAll('.on').forEach(y => y.classList.remove('on'));
         const hits = ALL_SHAPES.filter(s => plain(s[1]).includes(q));
         const esp = ESPECIAIS.filter(e => plain(e.nome).includes(q)), n = hits.length + esp.length;
@@ -1285,6 +1303,53 @@ function shapesPop(anchor) {
       setTimeout(() => find.focus(), 50);
       bind();
     }, 'right');
+}
+
+// busca rápida de formas (tecla /): digita o nome e a forma entra no centro da tela, sem abrir menus
+const semAcento = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export function procurarFormas(texto, max = 12) {
+  const termos = semAcento(texto).split(/\s+/).filter(Boolean);
+  if (!termos.length) return [];
+  const todas = [...ESPECIAIS.map(e => ({ id: e.id, nome: e.nome, esp: true, grupo: SHAPE_GROUPS.find(g => g.id === e.grupo)?.nome })),
+    ...ALL_SHAPES.map(f => ({ id: f[0], nome: f[1], grupo: SHAPE_GROUP_OF.get(f[0]) }))];
+  return todas.map(f => ({ f, n: semAcento(f.nome) }))
+    .filter(({ n }) => termos.every(t => n.includes(t)))
+    .sort((a, b) => (b.n.startsWith(termos[0]) - a.n.startsWith(termos[0])) || a.n.length - b.n.length)
+    .slice(0, max).map(({ f }) => f);
+}
+function buscaRapida() {
+  if (document.querySelector('.br-caixa')) return;
+  const caixa = document.createElement('div');
+  caixa.className = 'br-caixa';
+  caixa.setAttribute('role', 'dialog');
+  caixa.setAttribute('aria-label', 'Procurar forma');
+  caixa.innerHTML = `<input class="br-campo" placeholder="Procurar forma (ex.: bomba, decantador, resistor, béquer)…" aria-label="Nome da forma">
+    <div class="br-lista" role="listbox"></div>
+    <small class="br-dica">Enter põe a forma escolhida · ↑ ↓ escolhem · Esc fecha · o catálogo completo fica em Formas</small>`;
+  document.body.appendChild(caixa);
+  const campo = caixa.querySelector('input'), lista = caixa.querySelector('.br-lista');
+  let achadas = [], atual = 0;
+  const fecha = () => caixa.remove();
+  const poe = f => { fecha(); if (f.esp) insertEspecial(f.id); else insertLibShape(f.id); };
+  const pinta = () => {
+    lista.innerHTML = achadas.length ? achadas.map((f, i) => `<button class="br-item${i === atual ? ' on' : ''}" data-i="${i}" role="option" title="${esc(f.nome)}">
+        <img src="${svgDataUrl(f.esp ? ESPECIAIS.find(e => e.id === f.id).make().svg : shapeSvg(f.id, '#323130').svg)}" alt="">
+        <span>${esc(f.nome)}</span><small>${esc(f.grupo || '')}</small></button>`).join('')
+      : campo.value.trim() ? '<p class="br-nada">Nenhuma forma com esse nome. Tente outra palavra.</p>' : '';
+    lista.querySelectorAll('[data-i]').forEach(b => b.onclick = () => poe(achadas[+b.dataset.i]));
+  };
+  campo.oninput = () => { achadas = procurarFormas(campo.value); atual = 0; pinta(); };
+  campo.onkeydown = e => {
+    e.stopPropagation();
+    if (e.key === 'Escape') fecha();
+    else if (e.key === 'Enter' && achadas[atual]) poe(achadas[atual]);
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (achadas.length) { atual = (atual + (e.key === 'ArrowDown' ? 1 : -1) + achadas.length) % achadas.length; pinta(); }
+    }
+  };
+  campo.onblur = () => setTimeout(() => { if (!caixa.contains(document.activeElement)) fecha(); }, 150);
+  setTimeout(() => campo.focus(), 0);
 }
 
 // forma da biblioteca: entra no centro da tela, no tamanho natural, na cor da caneta, já selecionada
@@ -2192,6 +2257,7 @@ function selAction(k, btn) {
   else if (k === 'edit') { const it = byId([...sel][0]); if (it?.latex) formulaDialog(it); else startEdit(it.id); }
   else if (k === 'ocr') inkToText([...ids]);
   else if (k === 'font') fontPop(btn);
+  else if (k === 'menor' || k === 'maior') mudaTamanho(k === 'maior');
   else if (k === 'beautify') { if (!applyBeauty(S.items.filter(i => ids.has(i.id)), true).size) toast('Nada para embelezar: selecione linhas escritas à mão'); }
   else if (k === 'original') commit(S.items.flatMap(i => !ids.has(i.id) ? [i] : i.ink ? i.ink : [restoreOriginal(i)]));
   else if (k === 'color') {
@@ -2271,7 +2337,8 @@ function addText(x, y) {
 function addNote(color) {
   const z = S.view.zoom, c = toWorld(W / 2, H / 2), sz = 220 / z;
   const off = (S.items.filter(i => i.type === 'note').length % 6) * 18 / z;
-  const it = { id: newId(), type: 'note', x: c.x - sz / 2 + off, y: c.y - sz / 2 + off, w: sz, h: sz, text: '', color };
+  // letra de tamanho fixo e legível (como a caixa de texto); o automático "o maior que cabe" fica como opção no menu Texto
+  const it = { id: newId(), type: 'note', x: c.x - sz / 2 + off, y: c.y - sz / 2 + off, w: sz, h: sz, text: '', color, fs: NOTA_FS / z };
   commit([...S.items, it]);
   sel = new Set([it.id]);
   startEdit(it.id);
@@ -2317,7 +2384,14 @@ function sizeTextEditor() {
   const it = editing && byId(editing.id);
   if (!it) return;
   const te = $('textEdit'), z = S.view.zoom;
-  if (it.type === 'note') { te.style.fontSize = R.noteFontSize({ ...it, text: te.value || 'x' }) * z + 'px'; return; }
+  if (it.type === 'note') {
+    te.style.fontSize = R.noteFontSize({ ...it, text: te.value || 'x' }) * z + 'px';
+    if (it.fs) {   // com tamanho escolhido, a caixa acompanha o texto para baixo enquanto se escreve
+      const pad = it.w * 0.08 * z;
+      te.style.height = R.noteHeightFor({ ...it, text: te.value }) * z - pad * 2 + 'px';
+    }
+    return;
+  }
   const meas = document.createElement('canvas').getContext('2d');
   meas.font = `${R.estiloDe(it)}${it.size * z}px ${R.fontOf(it)}`;
   const lines = te.value.split('\n');
@@ -2352,7 +2426,8 @@ function commitText() {
     else if (text !== before) commit(base.map(i => i.id === id ? n : i));
     else requestRender();
   } else {
-    if (text !== before) commit(S.items.map(i => i.id === id ? { ...it, text } : i));
+    const n = R.noteFitted({ ...it, text });
+    if (text !== before || n.h !== it.h) commit(S.items.map(i => i.id === id ? n : i));
     else requestRender();
   }
 }
@@ -2405,6 +2480,8 @@ async function onPaste(e) {
 // ================= teclado =================
 function onKey(e) {
   if (!isOpen()) return;
+  if (e.key === 'F1') { e.preventDefault(); if (ajudaAberta()) fecharAjuda(); else abreAjuda(); return; }
+  if (e.key === 'Escape' && (tourEmAndamento() || ajudaAberta())) { e.preventDefault(); encerrarTour(); fecharAjuda(); return; }
   const tag = e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
@@ -2415,6 +2492,7 @@ function onKey(e) {
     return;
   }
   if (e.code === 'Space') { if (!spaceDown) { spaceDown = true; setCursor(); } e.preventDefault(); return; }
+  if (e.key === '/' && !ctrl) { e.preventDefault(); buscaRapida(); return; }
   if (ctrl && k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (ctrl && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
   else if (ctrl && k === 'c') { if (sel.size) { copySel(); navigator.clipboard?.writeText?.('').catch(() => {}); } }
@@ -2508,6 +2586,7 @@ function openMenu(anchor) {
       <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
       <button data-a="disc">${ICON.shapes} Áreas das formas…</button>
       <button data-a="agentes">${ICON.sparkle} Agentes de IA (experimental)…</button>
+      <button data-a="ajuda">${ICON.help} Ajuda (F1)</button>
       <button data-a="keys">${ICON.keyboard} Atalhos de teclado</button>
       <button data-a="about">${ICON.ok} Sobre o Giz Livre</button>
       <hr>
@@ -2524,10 +2603,11 @@ function openMenu(anchor) {
     p.querySelector('[data-a="clear"]').onclick = () => { hidePop(); clearBoard(); };
     p.querySelector('[data-a="pngT"]').onclick = () => { hidePop(); exportPng(true); };
     p.querySelector('[data-a="lousa"]').onclick = () => { hidePop(); exportLousa(); };
+    p.querySelector('[data-a="ajuda"]').onclick = () => { hidePop(); abreAjuda(); };
     p.querySelector('[data-a="keys"]').onclick = () => { hidePop(); showKeys(); };
     p.querySelector('[data-a="disc"]').onclick = () => { hidePop(); escolherDisciplinas(); };
     p.querySelector('[data-a="agentes"]').onclick = () => { hidePop(); painelAgentes(wfetch, toast); };
-    p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION); };
+    p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION, flush); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
     p.querySelector('[data-a="avisoZ"]').onclick = () => { hidePop(); avisoDesfazerPop(anchor); };
@@ -2680,7 +2760,7 @@ function showKeys() {
     ['Vista e arquivo', [['Espaço + arrastar', 'Mover o quadro'], ['Botão do meio ou direito do mouse', 'Mover o quadro'],
       ['Ctrl + roda', 'Zoom'], ['Ctrl + = / Ctrl + −', 'Aumentar / diminuir o zoom'], ['Ctrl + 0', 'Ajustar à tela'], ['F', 'Enquadrar slide: a página da tela no maior tamanho que cabe; F de novo alterna para um pouco menor, com folga'],
       ['Z', 'Lupa: escolher uma área e ampliar (Z ou Esc volta)'], ['+ / − (com a lupa)', 'Ampliar mais / menos'],
-      ['Ctrl + S', 'Salvar agora'], ['F11', 'Tela cheia']]],
+      ['Ctrl + S', 'Salvar agora'], ['F11', 'Tela cheia'], ['F1', 'Ajuda: temas com figuras, atalhos e o tour'], ['/', 'Procurar uma forma pelo nome e pôr no quadro']]],
   ];
   infoBox('Atalhos de teclado', grupos.map(([g, rows]) => `<h4 class="keys-g">${g}</h4><div class="keys">${rows.map(([a, b]) => `<kbd>${a}</kbd><span>${b}</span>`).join('')}</div>`).join(''));
 }
@@ -3677,39 +3757,49 @@ async function inkToText(ids) {
 }
 
 
+// tamanho da letra de caixas de texto e notas: lido, trocado e com a caixa ajustada ao texto
+function tamanhoAtual(n) { return n.type === 'text' ? n.size : (n.fs || R.noteFontSize(n)); }
+function comTamanho(n, v) { v = Math.max(6, v); return n.type === 'text' ? { ...n, size: v } : { ...n, fs: v }; }
+function ajustaCaixa(n) {
+  if (n.type === 'text') {   // caixa de texto acompanha a linha mais longa
+    const meas = document.createElement('canvas').getContext('2d');
+    meas.font = `${R.estiloDe(n)}${n.size}px ${R.fontOf(n)}`;
+    n.w = Math.max(...n.text.split('\n').map(l => meas.measureText(l).width)) + 2;
+  } else if (n.type === 'note') return R.noteFitted(n);   // nota cresce para baixo em vez de cortar o texto
+  return n;
+}
+function aplicaNoTexto(fn) {
+  commit(S.items.map(i => sel.has(i.id) && (i.type === 'text' || i.type === 'note') ? ajustaCaixa(fn({ ...i })) : i));
+}
+// A− e A+ (barra da seleção e menu Texto): 20% de cada vez, em textos e notas
+function mudaTamanho(maior) {
+  aplicaNoTexto(n => comTamanho(n, tamanhoAtual(n) * (maior ? 1.2 : 1 / 1.2)));
+}
+
 // formatação do texto selecionado (caixas de texto e notas): fonte, tamanho, negrito, itálico e alinhamento
 function fontPop(anchor) {
   const fonts = ['Segoe UI', 'Arial', 'Calibri', 'Cambria', 'Georgia', 'Times New Roman', 'Verdana', 'Consolas', 'Segoe Script', 'Segoe Print', 'Ink Free', 'Lucida Handwriting', 'Comic Sans MS'];
   const alvo = S.items.filter(i => sel.has(i.id) && (i.type === 'text' || i.type === 'note'));
   if (!alvo.length) return;
-  const a0 = alvo[0], temTexto = alvo.some(i => i.type === 'text'), temNota = alvo.some(i => i.type === 'note');
+  const a0 = alvo[0], temNota = alvo.some(i => i.type === 'note');
   const ALS = [['left', 'Esquerda', '<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>'], ['center', 'Centro', '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>'],
     ['right', 'Direita', '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>'], ['justify', 'Justificar', '<path d="M4 6h16M4 10h16M4 14h16M4 18h10"/>']];
   const ic = d => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">${d}</svg>`;
-  const TAM_T = [16, 24, 32, 48, 72, 96], TAM_N = [['Auto', 0], ['16', 16], ['24', 24], ['32', 32], ['48', 48]];
+  const atual = Math.round(tamanhoAtual(a0)), auto = a0.type === 'note' && !a0.fs;
   showPop(anchor, `<h4>Texto</h4>
     <div class="seg"><button data-x="b" class="${a0.b ? 'on' : ''}" title="Negrito"><b>N</b></button><button data-x="i" class="${a0.i ? 'on' : ''}" title="Itálico"><i>I</i></button>
       ${ALS.map(([k, n, d]) => `<button data-al="${k}" class="${(a0.al || 'left') === k ? 'on' : ''}" title="${n}">${ic(d)}</button>`).join('')}</div>
-    ${temTexto ? `<h4>Tamanho</h4><div class="seg"><button data-z="-1" title="Diminuir">A−</button>${TAM_T.map(v => `<button data-ts="${v}">${v}</button>`).join('')}<button data-z="1" title="Aumentar">A+</button></div>` : ''}
-    ${temNota ? `<h4>Tamanho na nota</h4><div class="seg">${TAM_N.map(([n, v]) => `<button data-ns="${v}" class="${((alvo.find(i => i.type === 'note') || {}).fs || 0) === v ? 'on' : ''}">${n}</button>`).join('')}</div>` : ''}
+    <h4>Tamanho <small style="font-weight:400;color:#666">(agora ${atual}${auto ? ', ajustado à nota' : ''})</small></h4>
+    <div class="seg"><button data-z="-1" title="Diminuir 20%">A−</button>${TAMANHOS.map(v => `<button data-ts="${v}" class="${!auto && atual === v ? 'on' : ''}">${v}</button>`).join('')}<button data-z="1" title="Aumentar 20%">A+</button></div>
+    ${temNota ? `<div class="seg"><button data-ns="0" class="${auto ? 'on' : ''}" title="A letra fica do maior tamanho que cabe na nota e muda quando a nota muda de tamanho">Ajustar à nota</button></div>` : ''}
     <h4>Fonte <small style="font-weight:400;color:#666">(instaladas no computador; nada é embutido no Giz Livre)</small></h4><div class="menu fontes">${fonts.map(f => `<button data-f="${f}" class="${(a0.font || 'Segoe UI') === f ? 'on' : ''}" style="font-family:'${f}'">${f}</button>`).join('')}</div>`, p => {
-    const meas = document.createElement('canvas').getContext('2d');
-    const larg = n => { meas.font = `${R.estiloDe(n)}${n.size}px ${R.fontOf(n)}`; return Math.max(...n.text.split('\n').map(l => meas.measureText(l).width)) + 2; };
-    const aplica = fn => {
-      commit(S.items.map(i => {
-        if (!sel.has(i.id) || (i.type !== 'text' && i.type !== 'note')) return i;
-        const n = fn({ ...i });
-        if (n.type === 'text') n.w = larg(n);   // caixa de texto acompanha a linha mais longa
-        return n;
-      }));
-      hidePop(); fontPop(anchor);
-    };
+    const aplica = fn => { aplicaNoTexto(fn); hidePop(); fontPop(anchor); };
     p.querySelector('[data-x="b"]').onclick = () => { const v = !a0.b; aplica(n => ({ ...n, b: v || undefined })); };
     p.querySelector('[data-x="i"]').onclick = () => { const v = !a0.i; aplica(n => ({ ...n, i: v || undefined })); };
     p.querySelectorAll('[data-al]').forEach(x => x.onclick = () => aplica(n => ({ ...n, al: x.dataset.al === 'left' ? undefined : x.dataset.al })));
-    p.querySelectorAll('[data-ts]').forEach(x => x.onclick = () => aplica(n => n.type === 'text' ? { ...n, size: +x.dataset.ts } : n));
-    p.querySelectorAll('[data-z]').forEach(x => x.onclick = () => aplica(n => n.type === 'text' ? { ...n, size: Math.max(6, n.size * (+x.dataset.z > 0 ? 1.2 : 1 / 1.2)) } : n));
-    p.querySelectorAll('[data-ns]').forEach(x => x.onclick = () => aplica(n => n.type === 'note' ? { ...n, fs: +x.dataset.ns || undefined } : n));
+    p.querySelectorAll('[data-ts]').forEach(x => x.onclick = () => aplica(n => comTamanho(n, +x.dataset.ts)));
+    p.querySelectorAll('[data-z]').forEach(x => x.onclick = () => { mudaTamanho(+x.dataset.z > 0); hidePop(); fontPop(anchor); });
+    p.querySelectorAll('[data-ns]').forEach(x => x.onclick = () => aplica(n => n.type === 'note' ? { ...n, fs: undefined, h: n.hb || n.h, hb: undefined } : n));
     p.querySelectorAll('[data-f]').forEach(x => x.onclick = () => aplica(n => ({ ...n, font: x.dataset.f === 'Segoe UI' ? undefined : x.dataset.f })));
   }, 'above');
 }

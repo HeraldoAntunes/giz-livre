@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path $PSScriptRoot -Parent
 Set-Location $raiz
-$versao = '1.9.0'
+$versao = '1.10.0'
 
 # 1) ambiente de build dedicado, recriado do zero, com dependências fixadas por hash
 $py313 = Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'
@@ -14,9 +14,10 @@ uv pip install --python .venv-build\Scripts\python.exe --require-hashes -r insta
 $pyver = & .venv-build\Scripts\python.exe -c "import sys; print(sys.version.split()[0])"
 
 # 2) executável em pasta (onedir: menos alarmes falsos que onefile), sem UPX, sem console,
-#    sem módulos que o programa não usa (SSL, compressões e decimal: menos código embutido e menos licenças de terceiros)
+#    sem módulos que o programa não usa (compressões e decimal: menos código embutido e menos licenças de terceiros).
+#    O ssl (OpenSSL) entra desde a 1.10.0: a atualização pelo programa baixa a versão nova do GitHub por HTTPS.
 Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
-$excluir = 'ssl', '_ssl', '_hashlib', '_bz2', 'bz2', '_lzma', 'lzma', '_decimal', 'decimal', 'tkinter', 'unittest', 'pydoc'
+$excluir = '_bz2', 'bz2', '_lzma', 'lzma', '_decimal', 'decimal', 'tkinter', 'unittest', 'pydoc'
 $pyiArgs = @('--noconfirm', '--clean', '--onedir', '--windowed', '--noupx', '--name', 'GizLivre',
   '--icon', "$raiz\installer\lousa.ico", '--version-file', "$raiz\installer\versao.txt",
   '--add-data', "$raiz\app;app", '--distpath', 'build\dist', '--workpath', 'build\work', '--specpath', 'build')
@@ -24,12 +25,19 @@ foreach ($m in $excluir) { $pyiArgs += @('--exclude-module', $m) }
 & .venv-build\Scripts\pyinstaller.exe @pyiArgs server.py | Out-Host
 $dist = 'build\dist\GizLivre'
 if (-not (Test-Path "$dist\GizLivre.exe")) { throw 'PyInstaller não gerou o executável' }
+# a atualização pelo programa precisa de HTTPS: sem o módulo ssl no pacote, a procura de versão nova falha
+if (-not (Get-ChildItem "$dist\_internal" -Filter '_ssl*.pyd' -ErrorAction SilentlyContinue)) { throw 'o pacote ficou sem o módulo ssl (HTTPS)' }
 
 # licenças que acompanham o pacote
 New-Item -ItemType Directory -Force "$dist\licencas" | Out-Null
 Copy-Item LICENSE, THIRD-PARTY-NOTICES.md $dist
+Copy-Item docs\LICENCA-traducao-pt-BR.md $dist   # tradução informativa da licença (o LICENSE fica só com o texto MIT oficial)
 Copy-Item (Join-Path (Split-Path $py313) 'LICENSE.txt') "$dist\licencas\python-LICENSE.txt"
 Copy-Item app\vendor\pdfjs\LICENSE "$dist\licencas\pdfjs-LICENSE.txt"
+# OpenSSL 3 (libssl e libcrypto, junto com o módulo ssl do Python): Apache License 2.0, o mesmo texto do pdf.js
+Set-Content "$dist\licencas\openssl-LICENSE.txt" -Encoding UTF8 -Value (("OpenSSL 3 (libssl e libcrypto), usado pela atualização do Giz Livre (HTTPS).",
+  "Copyright (c) 1998-2025 The OpenSSL Project Authors. Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson.",
+  "Licenciado sob a Apache License 2.0, reproduzida abaixo. https://www.openssl.org/source/license.html", '') + (Get-Content app\vendor\pdfjs\LICENSE))
 Copy-Item app\vendor\pdfjs\OPENJPEG-LICENSE.txt "$dist\licencas\openjpeg-LICENSE.txt"
 Copy-Item app\vendor\katex\LICENSE "$dist\licencas\katex-LICENSE.txt"
 Copy-Item app\vendor\katex\fonts\OFL.txt "$dist\licencas\katex-fontes-OFL.txt"

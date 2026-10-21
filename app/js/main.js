@@ -1,6 +1,6 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
-import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao } from './api.js';
+import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
 import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId } from './editor.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
@@ -11,7 +11,7 @@ import { embedAssets } from './editor.js';
 import { ICON } from './icons.js';
 import { fillIcons, toast, askText, confirmBox, showPop, hidePop, aboutBox } from './ui.js';
 import { VERSION } from './version.js';
-import { jaEscolheu, escolherDisciplinas, agruparPorArea, abasOcultas } from './disciplinas.js';
+import { jaEscolheu, escolherDisciplinas, agruparPorArea, abasOcultas, amostraDaVitrine } from './disciplinas.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
 import { svgDataUrl } from './library.js';
 
@@ -96,6 +96,19 @@ function bindBack() {
   };
 }
 
+// vitrine da biblioteca de formas no topo da galeria: amostras das disciplinas marcadas, sorteadas a cada abertura;
+// cada amostra abre a disciplina no catálogo, e "Ver todas" abre o catálogo inteiro
+function vitrineFormas() {
+  const amostra = amostraDaVitrine(12).map(([g, id]) => [g, shapeById(id)]).filter(([, f]) => f);
+  if (!amostra.length) return '';
+  return `<section class="g-vitrine" aria-label="Biblioteca de formas">
+    <div class="gv-cab"><b>${ALL_SHAPES.length.toLocaleString('pt-BR')} formas técnicas para a sua aula</b>
+      <span>desenhadas para o Giz Livre, prontas para pôr no quadro</span><a class="btn" href="#/formas">Ver todas</a></div>
+    <div class="gv-lista">${amostra.map(([g, f]) => `<a class="gv-item" href="#/formas/${g.id}" title="${esc(f[1])} (${esc(g.nome)})">
+      <img src="${imgForma(f[0])}" alt=""><span>${esc(f[1])}</span><small>${esc(g.nome)}</small></a>`).join('')}</div>
+  </section>`;
+}
+
 function renderGrid() {
   const q = plain($('gSearch').value.trim());
   const order = $('gSort').value;
@@ -115,7 +128,7 @@ function renderGrid() {
   const empty = list.length ? '' : q ? (showFolders.length ? '' : '<div class="g-empty">Nenhum quadro com esse nome.</div>')
     : curFolder ? `<div class="g-empty">Pasta vazia. Mova quadros para cá pelo ⋯ do quadro (Mover para pasta…)${fora ? ' ou escolha agora:' : '.'}
         ${fora ? `<div><button class="btn primary" id="gPick">${ICON_FOLDER} Escolher quadros…</button></div>` : ''}</div>` : '';
-  $('gGrid').innerHTML = `${path}${fcards}
+  $('gGrid').innerHTML = `${q || curFolder ? '' : vitrineFormas()}${path}${fcards}
     ${fcards && !q ? '<div class="g-sec">Quadros sem pasta</div>' : ''}
     <div class="card new" id="gNew"><div class="plus">${ICON.plus}</div>${curFolder ? 'Criar quadro nesta pasta' : 'Criar novo quadro'}</div>
     ${list.map(b => boardCard(b, !!q)).join('')}
@@ -532,6 +545,12 @@ async function ping() {
   catch { sessionLost('O programa Giz Livre foi fechado. Abra-o de novo pelo atalho e depois recarregue esta página; o que não foi salvo continua aqui.'); }
 }
 setInterval(ping, 30000);
+// ao fechar a janela, avisa o programa: sem outra janela aberta, ele se encerra uns segundos depois (keepalive: o
+// pedido sai mesmo com a página fechando)
+addEventListener('pagehide', () => {
+  if (!temSessao()) return;
+  try { fetch('/api/janela-fechou', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', ...tokenHeader() }, body: JSON.stringify({ janela: JANELA }) }).catch(() => {}); } catch {}
+});
 document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
 addEventListener('hashchange', route);
 initSession().then(() => { loadExtraFolders(); route(); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });

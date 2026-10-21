@@ -607,6 +607,142 @@ class GuardTests(unittest.TestCase):
 
 # o exportador só existe no repositório de desenvolvimento; no público, o teste é pulado
 @unittest.skipUnless((ROOT / "scripts/exportar_publico.py").exists(), "sem scripts/exportar_publico.py")
+class AtualizacaoTests(unittest.TestCase):
+    """Atualização pelo próprio programa: sem rede nos testes (a resposta do GitHub é simulada)."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("servidor_atu", ROOT / "server.py")
+        cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def release(self, tag, com_anexos=True):
+        base = "https://github.com/HeraldoAntunes/giz-livre/releases/download/" + tag
+        anexos = [{"name": f"Instalar-GizLivre-{tag.lstrip('v')}.exe", "browser_download_url": f"{base}/Instalar-GizLivre-{tag.lstrip('v')}.exe"},
+                  {"name": "SHA256SUMS.txt", "browser_download_url": f"{base}/SHA256SUMS.txt"}] if com_anexos else []
+        return {"tag_name": tag, "body": "- novidade", "html_url": "https://github.com/HeraldoAntunes/giz-livre/releases/tag/" + tag,
+                "assets": anexos}
+
+    def test_compara_versoes_por_numero(self):
+        v = self.srv.versao_tupla
+        self.assertGreater(v("1.10.0"), v("1.9.0"))   # 10 > 9, não "1" < "9"
+        self.assertEqual(v("v2.0.1"), (2, 0, 1))
+        self.assertIsNone(v("1.9"))
+        self.assertIsNone(v("../1.0.0"))
+
+    def test_so_aceita_github_por_https(self):
+        ok = self.srv.endereco_permitido
+        self.assertTrue(ok("https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.0.0/x.exe"))
+        self.assertTrue(ok("https://objects.githubusercontent.com/abc"))
+        self.assertFalse(ok("http://github.com/x"))
+        self.assertFalse(ok("https://github.com.exemplo.com/x"))
+        self.assertFalse(ok("https://usuario@github.com/x"))
+        self.assertFalse(ok("https://github.com:8443/x"))
+        self.assertFalse(ok(None))
+        with self.assertRaises(ValueError):
+            self.srv.baixar_https("https://exemplo.com/instalador.exe", 10)
+
+    def test_versao_nova_mais_recente_e_mais_nova_aqui(self):
+        s = self.srv
+        with patch.object(s, "VERSAO", "1.10.0"), patch.object(s, "pode_instalar_sozinho", return_value=True):
+            nova = s.info_atualizacao(self.release("v1.11.0"))
+            self.assertTrue(nova["nova"]); self.assertTrue(nova["pode_instalar"]); self.assertEqual(nova["ultima"], "1.11.0")
+            igual = s.info_atualizacao(self.release("v1.10.0"))
+            self.assertFalse(igual["nova"]); self.assertFalse(igual["pode_instalar"]); self.assertFalse(igual["mais_nova_aqui"])
+            antiga = s.info_atualizacao(self.release("v1.9.0"))
+            self.assertFalse(antiga["nova"]); self.assertTrue(antiga["mais_nova_aqui"])
+            sem = s.info_atualizacao(self.release("v1.11.0", com_anexos=False))
+            self.assertTrue(sem["nova"]); self.assertFalse(sem["pode_instalar"])   # sem instalador e somas, só a página
+            publico = s.resposta_publica(nova)
+            self.assertFalse(any(k.startswith("_") for k in publico))
+        with patch.object(s, "VERSAO", "1.10.0"), patch.object(s, "pode_instalar_sozinho", return_value=False):
+            self.assertFalse(s.info_atualizacao(self.release("v1.11.0"))["pode_instalar"])   # portátil e código-fonte
+        with self.assertRaises(ValueError):
+            s.info_atualizacao({"tag_name": "ultima", "assets": []})
+
+    def test_soma_esperada_vem_do_sha256sums(self):
+        somas = "a" * 64 + "  GizLivre-1.11.0-portatil.zip\n" + "B" * 64 + "  Instalar-GizLivre-1.11.0.exe\n# comentário\n"
+        self.assertEqual(self.srv.soma_esperada(somas, "Instalar-GizLivre-1.11.0.exe"), "b" * 64)
+        with self.assertRaises(ValueError):
+            self.srv.soma_esperada(somas, "Instalar-GizLivre-9.9.9.exe")
+
+    def test_instalar_recusa_arquivo_que_nao_confere(self):
+        s = self.srv
+        rel = self.release("v1.11.0")
+
+        def falso(url, limite, timeout=30, aceita=""):
+            if url.endswith("SHA256SUMS.txt"):
+                return ("0" * 64 + "  Instalar-GizLivre-1.11.0.exe\n").encode()
+            return b"instalador adulterado"
+
+        real = s.info_atualizacao
+        with patch.object(s, "VERSAO", "1.10.0"), patch.object(s, "pode_instalar_sozinho", return_value=True), \
+                patch.object(s, "info_atualizacao", side_effect=lambda: real(rel)), \
+                patch.object(s, "baixar_https", side_effect=falso), patch.object(s.subprocess, "Popen") as roda:
+            with self.assertRaises(ValueError) as erro:
+                s.instalar_atualizacao()
+            self.assertIn("não confere", str(erro.exception))
+            roda.assert_not_called()
+
+
+class FecharJanelaTests(unittest.TestCase):
+    """Fechar a última janela encerra o programa; recarregar ou outra janela aberta não encerram."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("servidor_fechar", ROOT / "server.py")
+        cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def setUp(self):
+        self.srv.ABERTOS.clear()
+        self.parou = []
+        self.falso = type("Srv", (), {"shutdown": lambda _s: self.parou.append(True)})()
+
+    def test_ultima_janela_fechada_encerra(self):
+        marco = time.time()
+        self.srv.CONTATO_JANELA = marco - 5
+        self.assertTrue(self.srv.encerrar_se_ninguem_voltou(self.falso, marco))
+        time.sleep(0.2)
+        self.assertEqual(self.parou, [True])
+
+    def test_recarregar_a_pagina_nao_encerra(self):
+        marco = time.time() - 3
+        self.srv.marcar_contato()   # a página recarregada pediu /api/info depois do aviso de fechar
+        self.assertFalse(self.srv.encerrar_se_ninguem_voltou(self.falso, marco))
+
+    def _vigia(self, saltos, limite=60):
+        # relógio falso: cada volta avança `saltos[i]` segundos; para quando encerra ou quando os saltos acabam
+        s, tempos = self.srv, iter(saltos)
+        agora = [1000.0]
+        s.ULTIMA_ATIVIDADE = 1000.0
+
+        class Fim(Exception):
+            pass
+
+        def dormir(_):
+            try:
+                agora[0] += next(tempos)
+            except StopIteration:
+                raise Fim
+
+        try:
+            s.vigiar_inatividade(self.falso, limite, passo=15, dormir=dormir, relogio=lambda: agora[0])
+        except Fim:
+            pass
+        return bool(self.parou)
+
+    def test_sem_sinal_da_pagina_encerra(self):
+        self.assertTrue(self._vigia([15] * 6))   # 90 s sem sinal, limite de 60 s
+
+    def test_suspensao_do_computador_nao_encerra_na_hora(self):
+        self.assertFalse(self._vigia([15, 3600, 15, 15]))   # acordou depois de 1 h: a contagem recomeça
+
+    def test_outra_janela_aberta_nao_encerra(self):
+        marco = time.time()
+        self.srv.CONTATO_JANELA = marco - 5
+        self.srv.ABERTOS["outra"] = (None, time.time() - 20)
+        self.assertFalse(self.srv.encerrar_se_ninguem_voltou(self.falso, marco))
+
+
 class ExportTests(unittest.TestCase):
     def test_only_safe_destinations_accepted(self):
         spec = importlib.util.spec_from_file_location("exportar", ROOT / "scripts/exportar_publico.py")

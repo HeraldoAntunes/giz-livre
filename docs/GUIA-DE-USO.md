@@ -6,6 +6,10 @@
   programa, e dá para levar tudo num pendrive.
 - **Pelo código-fonte:** dois cliques em `Giz Livre.bat` (precisa de Python 3.10+).
 
+**Ajuda dentro do programa:** botão **?** no canto de cima do quadro, ou a tecla `F1`. Cada tema tem uma figura, os
+passos e o botão **Mostrar na tela**. No primeiro quadro, um tour de seis balões mostra as barras principais (dá para
+pular, rever pela ajuda ou desligar).
+
 O programa abre numa janela própria do Edge ou do Chrome e funciona sem internet. Na versão instalada, os quadros ficam em
 `Documentos\Giz Livre\quadros`. Para fazer backup, copie essa pasta.
 
@@ -44,8 +48,9 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | Ferramentas | botão **Ferramentas** (esquadro e lápis): lupa de escrita, transferidor (a caneta corre presa ao arco e à base), compasso, cortina, holofote, cronômetro (dá para digitar o tempo: 7, 7,5 ou 7:30), relógio, fórmula LaTeX e escrita→texto (a tabela periódica fica em Formas → Química → Especiais). Vêm numa **barra fixa à direita**, com o nome embaixo de cada ícone; no botão Ferramentas dá para pôr à esquerda ou deixar só no menu. O **holofote** abre um painel para ajustar tamanho, formato (círculo, quadrado, faixa) e quanto escurece o resto |
 | Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… ou escolha um **modelo por área** (Chick, DBO, Streeter-Phelps, senoide, RC, normal…) e ajuste os parâmetros. A curva sai com os eixos desenhados (dá para apagar ou mover). **Experimental:** escolha um parâmetro em "Variar"; a curva vem parada no valor do diálogo. Mude o valor (controle ou número), escolha a cor e toque em **Fixar esta curva** (ou **Enter**) para gravar; repita para comparar curvas. **Espaço** anima e pausa |
 | Texto, nota, forma, imagem | coluna à esquerda (ou cole uma imagem com `Ctrl+V`) |
+| Tamanho da letra | selecione o texto ou a nota e use **A−** e **A+** na barra que aparece em cima; a nota cresce para baixo quando o texto não cabe. Menu Texto → **Ajustar à nota** volta ao tamanho automático |
 | Mostrar outro programa ao vivo (experimental) | **Captura** na coluna à esquerda: o navegador pergunta qual janela, aba ou tela mostrar (um site, um documento, uma pasta…). Ela entra numa moldura no quadro e continua se mexendo; risque por cima. Faixa azul = mover, canto = tamanho. **Congelar** guarda a imagem no quadro; **Encerrar** desliga. A faixa "está compartilhando" do navegador some em **Ocultar**. Não minimize o programa capturado |
-| Formas técnicas | **Formas → área → disciplina**; use a busca, **⚑ Mais usadas** e **↺ Recentes**. Em Engenharias estão Hidráulica, Saneamento, Recursos Hídricos e Topografia, além de Elétrica, Eletrônica e Embarcados |
+| Formas técnicas | tecla **/** e o nome da forma (busca rápida), ou **Formas**: abre na **Vitrine** das suas áreas; depois **área → disciplina**; use a busca, **⚑ Mais usadas** e **↺ Recentes**. Em Engenharias estão Hidráulica, Saneamento, Recursos Hídricos e Topografia, além de Elétrica, Eletrônica e Embarcados |
 | Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas. Em "ver todas", marque várias miniaturas e toque em **Excluir** (ex.: tirar 2 páginas de um PDF). **Enquadrar slide** (botão ao lado das setas, ou `F`): depois de mover e ampliar, a página que está na tela volta centralizada, no maior tamanho que cabe entre as barras abertas; apertar de novo alterna para um nível um pouco menor (85%), com folga em volta, e o nível fica guardado |
 | Lupa | `Z` ou o botão de lupa (no modo normal e na apresentação): toque onde quer ampliar. Ao lado aparecem **− 3x +** para escolher quanto amplia (de 1,5x a 8x; também `+` e `−`, ou a roda do mouse); depois de ampliado, **+** amplia mais. O último nível fica guardado |
 | Avisos de desfazer e apagar | o `Ctrl+Z` e o `Backspace` sem seleção não mostram mais "Desfeito" nem "Último item apagado". Para ligar: menu `…` → **Avisos de desfazer e apagar**: desligado (padrão), curto (1 s) ou normal (3 s, com Refazer) |
@@ -82,6 +87,11 @@ textos, notas, formas da biblioteca, fórmulas e gráficos.
 
 O agente não apaga nada e não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
 continuar. Tudo fica no seu computador.
+
+## Atualizar o Giz Livre
+No **Sobre** (galeria ou menu `…` do quadro), **Procurar versão nova**. Se houver, **Baixar e instalar**: o programa baixa o
+instalador do GitHub, confere o SHA-256, instala por cima e abre de novo. Os quadros ficam como estão. Na versão
+portátil, baixe o zip novo e troque a pasta (os quadros ficam na pasta `quadros`).
 
 ## 7. Problemas comuns
 | Sintoma | Solução |

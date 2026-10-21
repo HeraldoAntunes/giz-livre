@@ -22,8 +22,10 @@ na pasta `licencas\`.
 `app/js/library.js` foram desenhados para o Giz Livre e estão sob a licença MIT do projeto (ver a seção "Autoria das
 formas e ícones" do README).
 
-O executável é gerado **sem** os módulos de SSL, bzip2, lzma e decimal do Python, porque o programa não os usa. Assim,
-OpenSSL, bzip2, xz e libmpdec não fazem parte do pacote.
+O executável é gerado **sem** os módulos de bzip2, lzma e decimal do Python, porque o programa não os usa. Assim,
+bzip2, xz e libmpdec não fazem parte do pacote. Desde a 1.10.0, o **OpenSSL 3** (libssl e libcrypto, junto com o
+Python) vai no pacote: a atualização pelo programa baixa a versão nova do GitHub por HTTPS. Licença Apache 2.0, em
+`licencas/openssl-LICENSE.txt`.
 
 **Recursos do Windows usados, sem redistribuição:** Microsoft PowerPoint (opcional, via automação COM, para converter
 `.pptx`), o reconhecedor de manuscrito do Windows (Windows Ink) e o navegador Microsoft Edge ou Google Chrome. Eles precisam

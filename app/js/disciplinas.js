@@ -24,6 +24,21 @@ export function agruparPorArea(vis = GROUPS) {
   return [...AREAS.map(([n, ids]) => [n, ids.map(id => porId.get(id)).filter(Boolean)]),
     ['Outras', vis.filter(g => !usados.has(g.id))]].filter(([, gs]) => gs.length);
 }
+// disciplinas técnicas visíveis (sem as gerais, como fluxograma e setas, a não ser que só elas estejam visíveis):
+// é o que a vitrine e o catálogo mostram primeiro, para a riqueza das áreas aparecer logo
+export function disciplinasEmDestaque() {
+  const gerais = new Set(AREAS[0][1]), vis = gruposVisiveis(), tecnicas = vis.filter(g => !gerais.has(g.id));
+  return tecnicas.length ? tecnicas : vis;
+}
+// amostra para a vitrine: uma forma de destaque de cada disciplina, em ordem sorteada (muda a cada abertura)
+export function amostraDaVitrine(n = 10, sorteio = Math.random) {
+  const pares = disciplinasEmDestaque().map(g => {
+    const lista = g.destaques?.length ? g.destaques.slice(0, 4) : g.secoes.flatMap(([, l]) => l.map(f => f[0])).slice(0, 4);   // os mais usados de cada disciplina
+    return [g, lista[Math.floor(sorteio() * lista.length)]];
+  }).filter(([, id]) => id);
+  for (let i = pares.length - 1; i > 0; i--) { const j = Math.floor(sorteio() * (i + 1)); [pares[i], pares[j]] = [pares[j], pares[i]]; }
+  return pares.slice(0, n);
+}
 function salvar(ocultas) { try { localStorage.setItem(KEY, JSON.stringify({ ocultas: [...ocultas], escolhido: true })); } catch {} }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

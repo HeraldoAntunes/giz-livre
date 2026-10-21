@@ -1,7 +1,10 @@
 # Segurança e privacidade
 
 ## Como o Giz Livre protege o computador e os dados
-- **Funciona offline.** Não tem telemetria, contas ou anúncios, e o programa não envia nada para a internet. Ao importar um
+- **Funciona offline.** Não tem telemetria, contas ou anúncios, e o programa não envia nada para a internet. A única
+  exceção é a procura de versão nova, feita só quando o usuário clica: consulta o GitHub por HTTPS (só endereços do
+  GitHub são aceitos, inclusive nos redirecionamentos) e, se ele pedir, baixa o instalador e confere o SHA-256 publicado
+  antes de instalar. Ao importar um
   arquivo `.lousa`, imagens apontando para endereços externos são descartadas, para que um arquivo recebido não "avise" um
   servidor de fora.
 - **Servidor só local.** O programa escuta apenas em `127.0.0.1`, inacessível pela rede, e:

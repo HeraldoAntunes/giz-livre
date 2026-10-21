@@ -1,6 +1,7 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Utilidades de interface: ícones, aviso, diálogos e popover
 import { ICON } from './icons.js';
+import { wfetch } from './api.js';
 
 export function fillIcons(root = document) {
   root.querySelectorAll('[data-icon]').forEach(el => {
@@ -71,22 +72,79 @@ export function choiceBox(title, msg, options) {
 }
 
 // "Sobre": cartão organizado só com o que é útil
-export function aboutBox(version) {
+const RELEASES = 'https://github.com/HeraldoAntunes/giz-livre/releases/latest';
+// antesDeAtualizar: grava o quadro aberto antes de o instalador fechar o programa
+export function aboutBox(version, antesDeAtualizar = null) {
   const lin = (rot, txt) => `<div class="sb-l"><dt>${rot}</dt><dd>${txt}</dd></div>`;
-  return infoBox('Sobre o Giz Livre', `<div class="sobre">
+  const promessa = infoBox('Sobre o Giz Livre', `<div class="sobre">
     <div class="sb-cab"><img src="icon.svg" alt="" width="56" height="56"><div><b>Giz Livre</b><span>versão ${esc(version)}</span>
       <small>Lousa digital livre e offline, para dar aula com mesa digitalizadora.</small></div></div>
     <dl>
       ${lin('Autor', '© 2026 Heraldo Antunes')}
       ${lin('Licença', 'Software livre, licença MIT: uso, cópia, modificação e distribuição gratuitos, mantendo o aviso de licença.')}
-      ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados.')}
+      ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados. A internet só é usada quando você clica em Procurar versão nova, e esse pedido ao GitHub não leva seus quadros nem dados pessoais.')}
       ${lin('Seus quadros', 'Ficam em <i>Documentos\\Giz Livre\\quadros</i>. Faça cópia de segurança dessa pasta de vez em quando.')}
       ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
-      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT); contornos de mapas do Natural Earth (domínio público); programa empacotado com Python (PSF) e PyInstaller (GPL com exceção e Apache 2.0). Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
+      ${lin('Atualizações', `Esta é a versão ${esc(version)}. <button class="btn" data-atu>Procurar versão nova</button>
+        <div class="sb-atu" aria-live="polite"></div><small class="sb-nota">Só consulta o GitHub quando você clica.</small>`)}
+      ${lin('Registro', 'Pedido de registro de programa de computador no INPI: BR 51 2026 009384-8.')}
+      ${lin('Como foi feito', 'Com apoio de assistentes de programação de inteligência artificial, usados como ferramenta: a concepção, as decisões, a revisão e os testes são do autor.')}
+      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT); contornos de mapas do Natural Earth (domínio público); programa empacotado com Python (PSF) e PyInstaller (GPL com exceção e Apache 2.0); OpenSSL (Apache 2.0) para a atualização. Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
       ${lin('Desinstalar', 'Menu Iniciar → "Desinstalar o Giz Livre". Os quadros são mantidos.')}
     </dl>
     <p class="sb-aviso">Fornecido "no estado em que se encontra", sem garantia de qualquer tipo. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.</p>
   </div>`);
+  const d = [...document.querySelectorAll('dialog[open]')].pop();
+  if (d) ligarAtualizacao(d, antesDeAtualizar);
+  return promessa;
+}
+
+// "Procurar versão nova": o próprio programa responde (mais recente, mais nova que a publicada ou versão disponível)
+// e, na versão instalada, baixa, confere e instala quando o professor pede
+function ligarAtualizacao(d, antes) {
+  const bt = d.querySelector('[data-atu]'), saida = d.querySelector('.sb-atu');
+  if (!bt || !saida) return;
+  const pagina = url => `<a href="${esc(url || RELEASES)}" target="_blank" rel="noopener noreferrer">Abrir a página de downloads</a>`;
+  const pede = async rota => {
+    const r = await wfetch(rota, { method: 'POST' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.erro || 'Não deu para concluir agora.');
+    return j;
+  };
+  bt.onclick = async () => {
+    bt.hidden = true;
+    saida.innerHTML = '<span class="sb-espera">Procurando no GitHub…</span>';
+    let j;
+    try { j = await pede('/api/atualizacao/verificar'); } catch (e) {
+      saida.innerHTML = `<span class="sb-erro">${esc(e.message)}</span> ${pagina()}`; bt.hidden = false; bt.textContent = 'Tentar de novo'; return;
+    }
+    if (!j.nova) {
+      saida.innerHTML = j.mais_nova_aqui
+        ? `<b class="sb-ok">Esta versão (${esc(j.atual)}) é mais nova que a publicada (${esc(j.ultima)}).</b>`
+        : `<b class="sb-ok">✓ Você está na versão mais recente (${esc(j.atual)}).</b>`;
+      return;
+    }
+    saida.innerHTML = `<b>Versão ${esc(j.ultima)} disponível</b> (você tem a ${esc(j.atual)}).
+      ${j.notas ? `<div class="sb-notas">${esc(j.notas)}</div>` : ''}
+      <div class="sb-acoes">${j.pode_instalar ? '<button class="btn primary" data-inst>Baixar e instalar</button>' : ''} ${pagina(j.pagina)}</div>
+      ${j.pode_instalar ? '' : '<small>Na versão portátil, baixe o zip novo e troque a pasta; os quadros ficam na pasta quadros.</small>'}`;
+    const bi = saida.querySelector('[data-inst]');
+    if (!bi) return;
+    bi.onclick = async () => {
+      bi.disabled = true;
+      saida.querySelector('.sb-acoes').insertAdjacentHTML('afterend', '<p class="sb-espera">Salvando o quadro, baixando e conferindo o arquivo… pode levar um minuto.</p>');
+      try {
+        await antes?.();
+        const r = await pede('/api/atualizacao/instalar');
+        saida.innerHTML = `<b class="sb-ok">Instalando a versão ${esc(r.versao)}.</b> O Giz Livre vai fechar e abrir de novo sozinho; os quadros ficam como estão.`;
+        setTimeout(() => window.close(), 2500);
+      } catch (e) {
+        saida.querySelector('.sb-espera')?.remove();
+        bi.disabled = false;
+        saida.insertAdjacentHTML('beforeend', `<p class="sb-erro">${esc(e.message)}</p>`);
+      }
+    };
+  };
 }
 
 export function infoBox(title, html) {

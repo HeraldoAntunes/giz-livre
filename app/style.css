@@ -66,6 +66,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .create { left: 12px; top: 50%; transform: translateY(-50%); flex-direction: column; padding: 6px 4px; }
 .zoom { right: 12px; bottom: 12px; }
 .selbar { padding: 3px; }
+.ib.tam { font-size: 14px; font-weight: 600; letter-spacing: -.5px; }
 .ib { width: 38px; height: 38px; border: 0; background: none; border-radius: 6px; display: grid; place-items: center; color: #424242; }
 .ib:hover { background: #f0f0f0; }
 .ib.on, .ib.active { background: var(--accent-soft); color: var(--accent); }
@@ -605,3 +606,63 @@ button:focus:not(:focus-visible) { outline: none; }
 .seg.seg-col { display: flex; flex-direction: column; }
 .seg.seg-col button + button { border-left: 0; border-top: 1px solid #d1d1d1; }
 .seg.seg-col button { text-align: left; font-size: 13px; }
+
+/* ajuda dentro do programa: painel de temas, figura feita dos botões do programa, anel que mostra o controle e tour */
+.aj-painel { position: fixed; right: 14px; top: 64px; width: min(380px, calc(100vw - 28px)); max-height: calc(100vh - 90px);
+  overflow: auto; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px 14px; z-index: 60; }
+.aj-cab { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.aj-cab b { flex: 1; font-size: 15px; }
+.aj-temas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.aj-temas button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 8px; border: 1px solid var(--line);
+  border-radius: 8px; background: none; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+.aj-temas button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.aj-temas svg { width: 20px; height: 20px; flex: none; }
+.aj-pe { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+.aj-fig { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; background: #f5f5f5; border-radius: 10px; justify-content: center; }
+.aj-bt { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; min-width: 40px; padding: 6px; border-radius: 8px;
+  background: #fff; color: #424242; border: 1px solid var(--line); }
+.aj-bt svg { width: 22px; height: 22px; }
+.aj-bt small { font-size: 11px; }
+.aj-bt.on { border: 2px solid var(--accent); background: var(--accent-soft); color: var(--accent); }
+.aj-pen { width: 14px; height: 26px; border-radius: 7px 7px 3px 3px; display: block; }
+.aj-passos { margin: 12px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+.aj-passos li + li { margin-top: 6px; }
+.aj-anel { position: fixed; border: 3px solid #f7630c; border-radius: 12px; pointer-events: none; z-index: 61;
+  animation: aj-pulso 1s ease-in-out 3; }
+.aj-anel.fixo { animation: none; box-shadow: 0 0 0 9999px rgba(0,0,0,.28); transition: all .25s; }
+@keyframes aj-pulso { 50% { transform: scale(1.06); opacity: .5; } }
+.aj-balao { position: fixed; z-index: 62; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px;
+  font-size: 14px; transition: left .25s, top .25s; }
+.aj-balao b { color: var(--accent); font-size: 13px; }
+.aj-balao p { margin: 6px 0 10px; line-height: 1.45; }
+.aj-bts { display: flex; justify-content: flex-end; gap: 6px; }
+.aj-bts [data-p] { margin-right: auto; }
+@media (prefers-reduced-motion: reduce) { .aj-anel, .aj-anel.fixo, .aj-balao { animation: none; transition: none; } }
+/* Sobre: procurar e instalar versão nova */
+.sb-atu { margin-top: 6px; }
+.sb-atu:empty { display: none; }
+.sb-nota { display: block; color: var(--muted); margin-top: 4px; }
+.sb-ok { color: #107c10; }
+.sb-erro { color: #c50f1f; }
+.sb-espera { color: var(--muted); }
+.sb-notas { white-space: pre-wrap; max-height: 160px; overflow: auto; margin: 6px 0; padding: 8px; background: #f5f5f5;
+  border-radius: 8px; font-size: 13px; }
+.sb-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+/* vitrine do catálogo de formas: o título de cada disciplina leva à disciplina inteira */
+.shp-pop .shp-grid .shp-sec-link { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 2px solid #e0e0e0;
+  font: inherit; font-weight: 600; cursor: pointer; padding: 6px 0 4px; color: var(--accent); grid-column: 1 / -1; }
+.shp-pop .shp-grid .shp-sec-link:hover { text-decoration: underline; }
+/* busca rápida de formas (tecla /) */
+.br-caixa { position: fixed; left: 50%; top: 76px; transform: translateX(-50%); width: min(620px, calc(100vw - 28px)); z-index: 60;
+  background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 12px; }
+.br-campo { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 2px solid var(--accent); border-radius: 8px; outline: 0; }
+.br-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; max-height: 52vh; overflow: auto; }
+.br-lista:empty { display: none; }
+.br-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border: 1px solid var(--line);
+  border-radius: 10px; background: #fff; font: inherit; cursor: pointer; color: var(--text); }
+.br-item.on, .br-item:hover { border: 2px solid var(--accent); background: var(--accent-soft); padding: 7px 5px; }
+.br-item img { width: 72px; height: 56px; object-fit: contain; }
+.br-item span { font-size: 12px; line-height: 1.25; text-align: center; }
+.br-item small { font-size: 11px; color: var(--muted); }
+.br-dica { display: block; margin-top: 8px; color: var(--muted); }
+.br-nada { grid-column: 1 / -1; color: var(--muted); margin: 6px 0; }

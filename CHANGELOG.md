@@ -1,5 +1,29 @@
 # Histórico de versões
 
+## 1.10.0 (21/10/2026)
+Ajuda dentro do programa, notas mais fáceis de usar, formas em destaque e atualização pelo próprio programa.
+- **Ajuda** (botão **?** no canto de cima, tecla `F1` ou menu `…` → Ajuda): temas como escrever, apagar, slides,
+  apresentação e ferramentas, cada um com uma figura feita dos próprios botões do programa, passos curtos e
+  **Mostrar na tela**, que destaca o controle de verdade. Funciona sem internet.
+- **Tour da primeira vez:** no primeiro quadro, seis balões mostram as barras principais. Dá para pular, rever pela
+  ajuda ou desligar.
+- **Notas:** a letra nasce num tamanho legível e fixo (antes era "o maior que cabe", que mudava enquanto se escrevia).
+  **A−** e **A+** na barra da seleção mudam o tamanho de notas e caixas de texto; a nota cresce para baixo quando o
+  texto não cabe e volta ao tamanho quando ele diminui. Ao redimensionar a nota, a letra acompanha. O jeito antigo
+  continua como opção: menu Texto → **Ajustar à nota**.
+- **Sobre:** o pedido de registro no INPI e como o programa foi feito.
+- **Atualização pelo próprio programa:** no Sobre, **Procurar versão nova** responde ali mesmo ("versão mais recente" ou
+  "versão X disponível", com as novidades). Na versão instalada, **Baixar e instalar** baixa o instalador da página de
+  downloads, confere o SHA-256 publicado, instala por cima e abre o Giz Livre de novo; os quadros não são tocados. Só
+  consulta a internet quando se clica.
+- **Formas em destaque:** a galeria mostra uma vitrine com amostras das suas áreas (Ver todas abre o catálogo); o
+  catálogo do quadro abre na **Vitrine**, com o melhor de cada disciplina, em vez do fluxograma; e a tecla **/** abre
+  a busca rápida: digite o nome ("bomba", "béquer") e a forma entra no quadro.
+- **Fechar a janela fecha o programa:** antes ele continuava rodando em segundo plano por até 20 minutos; agora se
+  encerra segundos depois (no máximo 3 minutos se o aviso da janela não chegar), sem contar o tempo de suspensão do PC.
+- O pacote passa a levar o OpenSSL (licença Apache 2.0), usado só pela procura de versão nova, por HTTPS.
+- A tradução da licença para o português vai junto no instalador e na versão portátil.
+
 ## 1.9.0 (20/10/2026)
 Modo apresentador mais completo, lupa ajustável, desfazer sem aviso e enquadramento de slides.
 - **Apresentação:** botão próprio de espessura da caneta (ao lado da cor) e botão de formas (linha, seta, seta dupla,

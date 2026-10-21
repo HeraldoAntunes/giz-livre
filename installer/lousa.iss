@@ -1,6 +1,6 @@
 ﻿; Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 ; Instalador do Giz Livre (Inno Setup 6). Compilado por installer\build.ps1.
-#define AppVer "1.9.0"
+#define AppVer "1.10.0"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]
@@ -41,6 +41,7 @@ Name: "desktopicon"; Description: "Criar atalho na Área de Trabalho"; GroupDesc
 Source: "{#Dist}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\docs\LICENCA-traducao-pt-BR.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\GUIA-DE-USO.md"; DestDir: "{app}"; Flags: ignoreversion
 
@@ -56,6 +57,8 @@ Name: "{userdocs}\Giz Livre\quadros"; Flags: uninsneveruninstall
 
 [Run]
 Filename: "{app}\GizLivre.exe"; Description: "Abrir o Giz Livre agora"; Flags: nowait postinstall skipifsilent
+; atualização feita pelo próprio programa (/reabrir=1): abre o Giz Livre de novo no fim, mesmo no modo silencioso
+Filename: "{app}\GizLivre.exe"; Flags: nowait; Check: ReabrirAoTerminar
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM GizLivre.exe /F"; Flags: runhidden; RunOnceId: "FecharLousa"
@@ -95,3 +98,9 @@ ptbr.FinishedRestartLabel=Para completar a instalação do [name], o instalador 
 ptbr.FinishedRestartMessage=Para completar a instalação do [name], o instalador deve reiniciar seu computador.%n%nVocê gostaria de reiniciar agora?
 ptbr.UninstalledAndNeedsRestart=Para completar a desinstalação do %1, seu computador deve ser reiniciado.%n%nVocê gostaria de reiniciar agora?
 ptbr.WelcomeLabel2=Este assistente vai instalar a [name/ver] no seu computador.%n%nÉ um programa livre e gratuito (licença MIT), que funciona sem internet. Seus quadros ficam em Documentos\Giz Livre\quadros e são mantidos se você desinstalar.
+
+[Code]
+function ReabrirAoTerminar: Boolean;
+begin
+  Result := ExpandConstant('{param:reabrir|0}') = '1';
+end;

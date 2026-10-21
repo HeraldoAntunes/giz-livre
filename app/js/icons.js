@@ -63,6 +63,7 @@ export const ICON = {
   inkText: s('<path d="M3 9c1.5-3 3-3 3.5-1s1 3 2.5 1 2-3 3-1"/><path d="M13 13l3 3-3 3" stroke-width="1.4"/><path d="M15 9h6M18 9v9"/>'),
   lupa: s('<circle cx="10" cy="9" r="5.5"/><path d="M14 13l4 4"/><path d="M3 21h18" stroke-dasharray="2 2"/>'),
   fx: s('<path d="M4 3v17h17"/><path d="M6 17c3-9 5-10 7-6s4 3 7-5"/>'),
+  help: s('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 014.9.7c0 1.7-2.5 2.1-2.5 3.7"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/>'),
   keyboard: s('<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h0M7 14h10"/>'),
   hlPen: s('<path d="M9 15l-4 4h5l2-2"/><path d="M9 15l7.5-7.5a2.1 2.1 0 013 3L12 18z"/><path d="M4 21h16" stroke-width="3" opacity=".45"/>'),
   pause: s('<path d="M8 5v14M16 5v14"/>'),

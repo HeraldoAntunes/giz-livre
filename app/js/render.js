@@ -299,6 +299,24 @@ export function noteFontSize(it) {
   noteSizeCache.set(it, v);
   return v;
 }
+// altura que a nota precisa para mostrar todo o texto no tamanho escolhido: cresce para baixo em vez de encolher a
+// letra e volta à altura de base (hb, a que a nota tinha antes de crescer) quando o texto diminui; sem tamanho escolhido
+// (automático), a altura não muda
+export function noteHeightFor(it) {
+  if (!it.fs) return it.h;
+  const pad = it.w * 0.08, base = it.hb || it.h;
+  const lines = wrapText(it.text || 'x', it.fs, it.w - pad * 2, fontOf(it), estiloDe(it));
+  return Math.max(base, lines.length * it.fs * 1.25 + pad * 2);
+}
+// nota com o texto todo à vista: guarda a altura de base na primeira vez que cresce
+export function noteFitted(it) {
+  if (it.type !== 'note' || !it.fs) return it;
+  const n = { ...it, hb: it.hb || it.h };
+  n.h = noteHeightFor(n);
+  if (n.h === n.hb) delete n.hb;
+  return n;
+}
+
 function noteFontSizeRaw(it) {
   if (it.fs) return it.fs;   // tamanho escolhido pelo professor; sem ele, o maior que cabe na nota
   let size = Math.round(it.w / 7);
@@ -510,6 +528,11 @@ export function transformItem(it, dx, dy, s = 1, ox = 0, oy = 0) {
       n.width = it.width * s; break;
     case 'text': n.x = fx(it.x); n.y = fy(it.y); n.w = it.w * s; n.size = it.size * s;
       if (it.ink) n.ink = it.ink.map(k => transformItem(k, dx, dy, s, ox, oy));
+      break;
+    case 'note':   // a letra escolhida acompanha a nota ao redimensionar, como na caixa de texto
+      n.x = fx(it.x); n.y = fy(it.y); n.w = it.w * s; n.h = it.h * s;
+      if (it.fs) n.fs = it.fs * s;
+      if (it.hb) n.hb = it.hb * s;
       break;
     default: n.x = fx(it.x); n.y = fy(it.y); n.w = it.w * s; n.h = it.h * s;
   }

@@ -384,6 +384,7 @@ console.log('Versão igual em todos os lugares (P47, 16/10/2026)');
     igual(vt.includes(`(${M}, ${m}, ${c}, 0)`) && vt.includes(`'${VERSION}'`), true, 'installer/versao.txt');
     igual(lê('installer/licenca-instalador.txt').split(/\r?\n/)[0], `GIZ LIVRE ${VERSION}`, 'installer/licenca-instalador.txt (1ª linha)');
     igual(lê('CHANGELOG.md').includes(`\n## ${VERSION} (`), true, 'CHANGELOG.md');
+    igual(/^version: "([^"]+)"/m.exec(lê('CITATION.cff'))?.[1], VERSION, 'CITATION.cff (version)');
   });
 }
 
@@ -550,6 +551,73 @@ console.log('Enquadrar slide, lupa e aviso do desfazer (pages.js, editor.js)');
   teste('botões novos existem na página (espessura, formas, enquadrar, − e + da lupa)', () => {
     for (const id of ['ppWidth', 'ppShape', 'pgFit']) igual(html.includes(`id="${id}"`), true, id);
     igual((html.match(/class="lupactl"/g) || []).length, 2, 'controle da lupa no modo normal e na apresentação');
+  });
+}
+
+console.log('Notas, ajuda dentro do programa e Sobre');
+{
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(path.join(raiz, '..', 'index.html'), 'utf8'), ui = readFileSync(path.join(raiz, 'ui.js'), 'utf8');
+  teste('nota com tamanho escolhido cresce para baixo e volta à altura de base quando o texto diminui', () => {
+    const base = { type: 'note', x: 0, y: 0, w: 220, h: 220, color: '#fff7a8', fs: 24 };
+    const longa = R.noteFitted({ ...base, text: 'palavra '.repeat(40) });
+    igual(longa.h > 220, true, 'cresceu');
+    igual(longa.hb, 220, 'guardou a altura de base');
+    const curta = R.noteFitted({ ...longa, text: 'oi' });
+    igual(curta.h, 220, 'voltou à base');
+    igual('hb' in curta, false, 'sem base quando não precisa');
+    const auto = R.noteFitted({ ...base, fs: undefined, text: 'palavra '.repeat(40) });
+    igual(auto.h, 220, 'no automático a altura não muda');
+  });
+  teste('redimensionar a nota leva junto a letra escolhida', () => {
+    const n = R.transformItem({ type: 'note', x: 10, y: 10, w: 200, h: 300, fs: 24, hb: 200, text: 'a' }, 0, 0, 1.5, 0, 0);
+    igual(n.fs, 36, 'letra'); igual(n.hb, 300, 'altura de base'); igual(n.w, 300, 'largura');
+  });
+  teste('nota nova nasce com letra fixa e a barra da seleção tem A− e A+', () => {
+    const ed = readFileSync(path.join(raiz, 'editor.js'), 'utf8');
+    igual(/type: 'note',[^}]*fs: NOTA_FS \/ z/.test(ed), true, 'fs na nota nova');
+    igual(html.includes('data-sel="menor"') && html.includes('data-sel="maior"'), true, 'botões A− e A+');
+  });
+  globalThis.document.addEventListener ??= () => {};   // ui.js registra um ouvinte ao carregar
+  const AJ = await mod('ajuda.js'), { ICON } = await mod('icons.js');
+  teste('ajuda: cada tema tem passos, figura com ícones que existem e alvo que existe na página', () => {
+    igual(AJ.TEMAS.length >= 10, true, 'temas');
+    const existe = sel => sel.split(',').some(s => {
+      const m = s.trim().match(/^([#.][\w-]+)/) || [];
+      const id = m[1] || '';
+      return id.startsWith('#') ? html.includes(`id="${id.slice(1)}"`) : html.includes(`class="${id.slice(1)}`) || html.includes(` ${id.slice(1)}"`) || html.includes(` ${id.slice(1)} `);
+    });
+    for (const t of AJ.TEMAS) {
+      igual(t.passos.length >= 2, true, `${t.id}: passos`);
+      igual(!!ICON[t.icone], true, `${t.id}: ícone ${t.icone}`);
+      for (const f of t.figura) if (Array.isArray(f)) igual(!!ICON[f[0]], true, `${t.id}: ícone da figura ${f[0]}`);
+      igual(existe(t.alvo), true, `${t.id}: alvo ${t.alvo}`);
+      igual(/—/.test(t.titulo + t.passos.join(' ')), false, `${t.id}: sem travessão`);
+    }
+    for (const [s, tit] of AJ.PASSOS_TOUR) igual(existe(s), true, `tour ${tit}: ${s}`);
+    igual(html.includes('id="bHelp"') && !!ICON.help, true, 'botão de ajuda');
+  });
+  const DI = await mod('disciplinas.js'), SL = await mod('shapelib.js');
+  teste('vitrine de formas: amostras das disciplinas técnicas, sem repetir disciplina, com formas que existem', () => {
+    let s = 0.123; const sorteio = () => (s = (s * 9301 + 49297) % 233280 / 233280);
+    const amostra = DI.amostraDaVitrine(12, sorteio);
+    igual(amostra.length, 12, 'doze amostras');
+    const gerais = new Set(['fluxo', 'setas', 'icones', 'carimbos']);
+    igual(amostra.every(([g]) => !gerais.has(g.id)), true, 'sem fluxograma, setas, ícones e carimbos');
+    igual(new Set(amostra.map(([g]) => g.id)).size, 12, 'uma por disciplina');
+    igual(amostra.every(([, id]) => !!SL.shapeById(id)), true, 'formas existentes');
+  });
+  teste('catálogo abre na vitrine e a tecla / abre a busca rápida de formas', () => {
+    const ed = readFileSync(path.join(raiz, 'editor.js'), 'utf8');
+    igual(ed.includes("const VITRINE = '__vitrine'") && ed.includes("if ((c.migr || 0) < 4) c.shapeTab = '__vitrine'"), true, 'vitrine como aba inicial');
+    igual(/e\.key === '\/' && !ctrl\) \{ e\.preventDefault\(\); buscaRapida\(\)/.test(ed), true, 'tecla /');
+    igual(readFileSync(path.join(raiz, 'main.js'), 'utf8').includes('vitrineFormas()'), true, 'vitrine na galeria');
+  });
+  teste('Sobre: link para ver versão nova (só ao clicar), pedido do INPI e uso de IA', () => {
+    igual(ui.includes("'https://github.com/HeraldoAntunes/giz-livre/releases/latest'"), true, 'endereço das versões');
+    igual(ui.includes('target="_blank" rel="noopener noreferrer"'), true, 'abre fora, sem referência');
+    igual(ui.includes('BR 51 2026 009384-8'), true, 'pedido no INPI');
+    igual(ui.includes('inteligência artificial'), true, 'uso de IA');
   });
 }
 

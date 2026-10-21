@@ -54,6 +54,7 @@ certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
   - 4 canetas com pressão, estilos tinteiro, caligrafia e pincel;
   - marca-texto, ponteiro laser, borracha (de traço inteiro ou só onde passar);
   - formas (linha, seta simples, dupla e tracejada, retângulo, elipse, triângulo), texto, notas adesivas e imagens;
+  - **A−** e **A+** mudam o tamanho da letra de textos e notas; a nota cresce junto com o texto;
   - **limpar a lousa** de uma vez (dá para desfazer).
 - **Mesa digitalizadora** (testado com Wacom Intuos; outras mesas e telas com caneta compatíveis com Windows Ink devem funcionar):
   - pressão, botão lateral e ponta-borracha;
@@ -89,12 +90,17 @@ certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
   - **humanas, linguagens e artes:** língua portuguesa, história, geografia, filosofia e sociologia, música,
     empreendedorismo e gestão.
 
-  Na primeira abertura o professor escolhe as disciplinas que aparecem no menu; o catálogo **Formas**, na galeria,
-  mostra todas.
+  Na primeira abertura o professor escolhe as disciplinas que aparecem no menu. A galeria mostra uma vitrine com
+  amostras das suas áreas, o catálogo do quadro abre na **Vitrine** com o melhor de cada disciplina, e a tecla `/`
+  procura uma forma pelo nome sem abrir menus.
   Cada forma entra na cor escolhida, pode ser recolorida, movida e redimensionada, e a borracha a apaga.
 - **Barras móveis:** cada barra arrasta pela alça ⠿; o cadeado trava tudo no lugar (barras e painéis).
 - **Organização:** galeria com miniaturas, busca, salvamento automático, desfazer/refazer, exportar PNG/PDF/`.lousa`
   e importar imagens do Microsoft Whiteboard.
+- **Ajuda dentro do programa:** botão **?** ou `F1`, com temas ilustrados pelos próprios botões, **Mostrar na tela** e um
+  tour da primeira vez.
+- **Atualização pelo próprio programa:** no Sobre, **Procurar versão nova** responde na hora; a versão instalada baixa,
+  confere e instala sozinha quando você pede.
 
 ## Sistemas
 | | Windows 11 | Linux (experimental) | macOS (experimental) |
@@ -141,6 +147,7 @@ Os quadros ficam na pasta `quadros`, dentro da pasta do programa. Encontrou algu
 | `F5` | iniciar a apresentação | `B` ou `.` | tela preta |
 | `F` | enquadrar slide | `Z` | lupa (`+` / `−` ajustam) |
 | `Backspace` sem seleção | apagar o último item | `N` (na apresentação) | página em branco |
+| `/` | procurar uma forma pelo nome | `F1` | ajuda |
 
 A lista completa fica no programa: menu **…** do quadro → **Atalhos de teclado**.
 
@@ -151,7 +158,11 @@ driver dela.
 **É de graça mesmo?** Sim. É software livre (licença MIT): pode usar, copiar, instalar em quantos computadores quiser e
 distribuir.
 
-**Precisa de internet?** Não. Tudo funciona offline, e o programa não envia nada para fora do computador.
+**Precisa de internet?** Não. Tudo funciona offline. O programa só acessa a internet quando você clica em **Procurar
+versão nova** no Sobre, e esse pedido ao GitHub não leva seus quadros nem dados pessoais.
+
+**Como atualizo?** No **Sobre**, **Procurar versão nova**. Na versão instalada, **Baixar e instalar** baixa a versão nova
+daqui, confere o SHA-256 publicado, instala por cima e abre o programa de novo; os quadros ficam como estão.
 
 **Onde ficam os meus quadros?** Na versão instalada, em `Documentos\Giz Livre\quadros`. Na portátil e no Linux/macOS,
 na pasta `quadros` ao lado do programa. Para fazer backup, copie essa pasta.

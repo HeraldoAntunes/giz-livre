@@ -15,6 +15,7 @@ import re
 import secrets
 import shutil
 import socket
+import ssl   # HTTPS da atualização; importado aqui para o PyInstaller levar o módulo junto
 import subprocess
 import sys
 import tempfile
@@ -61,7 +62,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.9.0"
+VERSAO = "1.10.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$)[A-Za-z0-9_-]{1,64}$", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -418,6 +419,7 @@ class Handler(SimpleHTTPRequestHandler):
         if rota == "/api/boards":
             return self._json(listar_quadros())
         if rota == "/api/info":
+            marcar_contato()
             return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
                                "pptx": "powerpoint" if tem_powerpoint() else ("libreoffice" if achar_libreoffice() else None),
                                "ocr": WINDOWS})
@@ -627,6 +629,35 @@ class Handler(SimpleHTTPRequestHandler):
             if isinstance(pacote, dict) and isinstance(pacote.get("janela"), str) and JANELA_OK.match(pacote["janela"]):
                 marcar_aberto(pacote["janela"], pacote.get("quadro"))
             return self._json({"ok": True})
+        if rota in ("/api/atualizacao/verificar", "/api/atualizacao/instalar"):
+            if not TRAVA_ATUALIZACAO.acquire(blocking=False):
+                return self._json({"erro": "já há uma verificação de atualização em andamento"}, 429)
+            try:
+                if rota.endswith("verificar"):
+                    return self._json(resposta_publica(info_atualizacao()))
+                r = instalar_atualizacao()
+                self._json(r)
+                threading.Timer(1.5, self.server.shutdown).start()   # o instalador fecha o programa e abre de novo
+                return
+            except ValueError as e:
+                return self._json({"erro": str(e)}, 400)
+            except OSError as e:   # sem internet, GitHub fora do ar ou demora
+                registrar(e)
+                return self._json({"erro": "Não deu para falar com o GitHub agora. Confira a internet e tente de novo."}, 502)
+            finally:
+                TRAVA_ATUALIZACAO.release()
+        if rota == "/api/janela-fechou":   # a página avisa ao fechar (pagehide); ver encerrar_se_ninguem_voltou
+            corpo = self._corpo() or b"{}"
+            try:
+                janela = json.loads(corpo.decode("utf-8")).get("janela")
+            except (ValueError, AttributeError):
+                janela = None
+            with TRAVA_GERAL:
+                if isinstance(janela, str):
+                    ABERTOS.pop(janela, None)
+            if AUTO_ENCERRAR:
+                threading.Timer(ESPERA_FECHAR, encerrar_se_ninguem_voltou, args=(self.server, time.time())).start()
+            return self._json({"ok": True})
         if rota == "/api/sair":
             self._json({"ok": True})
             threading.Thread(target=self.server.shutdown, daemon=True).start()
@@ -759,6 +790,21 @@ NIVEIS = {1: "Só ler", 2: "Criar quadros novos", 3: "Editar quadros fechados"}
 NIVEL_PADRAO = 2
 VALIDADE_ABERTO = 90                 # s: a página manda /api/ping a cada 30 s com o quadro aberto
 ABERTOS: dict[str, tuple] = {}       # janela -> (id do quadro aberto ou None, instante do último ping)
+CONTATO_JANELA = time.time()         # último /api/info ou /api/ping de alguma janela
+AUTO_ENCERRAR = False                # aberto com janela: fecha sozinho quando a última janela fecha
+ESPERA_FECHAR = 10                   # s: um recarregar da página não é confundido com fechar
+
+
+def encerrar_se_ninguem_voltou(srv, marco: float) -> bool:
+    # depois de uma janela avisar que fechou: se nenhuma janela falou com o servidor desde então e não há outra
+    # aberta, o programa se encerra (os salvamentos de emergência da página já chegaram nesses segundos)
+    agora = time.time()
+    with TRAVA_GERAL:
+        outras = any(agora - t <= VALIDADE_ABERTO for _, t in ABERTOS.values())
+    if CONTATO_JANELA > marco or outras:
+        return False
+    threading.Thread(target=srv.shutdown, daemon=True).start()
+    return True
 JANELA_OK = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
 COR_OK = re.compile(r"^#[0-9a-fA-F]{6}$")
 TRAVA_AGENTE = threading.Lock()
@@ -854,8 +900,14 @@ def ultimas_linhas_registro(n: int = 30) -> list:
     return linhas[-n:][::-1]
 
 
+def marcar_contato() -> None:
+    global CONTATO_JANELA
+    CONTATO_JANELA = time.time()
+
+
 def marcar_aberto(janela: str, quadro) -> None:
     agora = time.time()
+    marcar_contato()
     with TRAVA_GERAL:
         ABERTOS[janela] = (quadro if isinstance(quadro, str) and ID_OK.match(quadro) else None, agora)
         for k in [k for k, (_, t) in ABERTOS.items() if agora - t > VALIDADE_ABERTO]:
@@ -1775,6 +1827,100 @@ def confirmar(msg: str) -> bool:
         return False
 
 
+# ---------------- atualização pelo próprio programa ----------------
+# Só quando o professor clica: consulta a última versão publicada no GitHub, compara com a instalada e, se ele pedir,
+# baixa o instalador completo da página de releases, confere o SHA-256 com o SHA256SUMS.txt da mesma versão e roda o
+# instalador por cima (os quadros ficam em Documentos e não são tocados). Endereços fora do GitHub são recusados.
+RELEASES_API = "https://api.github.com/repos/HeraldoAntunes/giz-livre/releases/latest"
+HOSTS_ATUALIZACAO = {"api.github.com", "github.com", "objects.githubusercontent.com",
+                     "release-assets.githubusercontent.com"}
+TRAVA_ATUALIZACAO = threading.Lock()
+
+
+def versao_tupla(v: str):
+    m = re.fullmatch(r"v?(\d{1,4})\.(\d{1,4})\.(\d{1,4})", str(v or "").strip())
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def endereco_permitido(url: str) -> bool:
+    p = urllib.parse.urlsplit(str(url or ""))
+    return p.scheme == "https" and p.hostname in HOSTS_ATUALIZACAO and not p.username and p.port in (None, 443)
+
+
+def baixar_https(url: str, limite: int, timeout: int = 30, aceita: str = "application/octet-stream") -> bytes:
+    import urllib.request
+
+    class SoGitHub(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, novo):
+            if not endereco_permitido(novo):
+                raise ValueError("o download foi desviado para um endereço fora do GitHub; nada foi baixado")
+            return super().redirect_request(req, fp, code, msg, headers, novo)
+
+    if not endereco_permitido(url):
+        raise ValueError("endereço fora do GitHub recusado")
+    pedido = urllib.request.Request(url, headers={"User-Agent": f"GizLivre/{VERSAO}", "Accept": aceita})
+    with urllib.request.build_opener(SoGitHub).open(pedido, timeout=timeout) as r:
+        dados = r.read(limite + 1)
+    if len(dados) > limite:
+        raise ValueError("arquivo maior que o esperado; nada foi baixado")
+    return dados
+
+
+def pode_instalar_sozinho() -> bool:
+    # a versão instalada se atualiza sozinha; a portátil e a do código-fonte só mostram a página de downloads
+    return sys.platform == "win32" and CONGELADO and not (RAIZ / "portatil.txt").exists()
+
+
+def info_atualizacao(release: dict | None = None) -> dict:
+    if release is None:
+        release = json.loads(baixar_https(RELEASES_API, 2_000_000, 15, "application/vnd.github+json").decode("utf-8"))
+    ultima = str(release.get("tag_name") or "").lstrip("v")
+    va, vu = versao_tupla(VERSAO), versao_tupla(ultima)
+    if not vu:
+        raise ValueError("o GitHub respondeu sem um número de versão reconhecível")
+    nome = f"Instalar-GizLivre-{ultima}.exe"
+    anexos = {a.get("name"): a.get("browser_download_url") for a in release.get("assets") or [] if isinstance(a, dict)}
+    pagina = release.get("html_url") if str(release.get("html_url") or "").startswith("https://github.com/") \
+        else "https://github.com/HeraldoAntunes/giz-livre/releases/latest"
+    nova = vu > va
+    return {"atual": VERSAO, "ultima": ultima, "nova": nova, "mais_nova_aqui": va > vu,
+            "notas": str(release.get("body") or "")[:4000], "pagina": pagina,
+            "pode_instalar": bool(nova and pode_instalar_sozinho() and endereco_permitido(anexos.get(nome))
+                                  and endereco_permitido(anexos.get("SHA256SUMS.txt"))),
+            "_instalador": (nome, anexos.get(nome)), "_somas": anexos.get("SHA256SUMS.txt")}
+
+
+def soma_esperada(somas: str, nome: str) -> str:
+    for linha in somas.splitlines():
+        partes = linha.split()
+        if len(partes) == 2 and partes[1].lstrip("*") == nome and re.fullmatch(r"[0-9a-fA-F]{64}", partes[0]):
+            return partes[0].lower()
+    raise ValueError("o SHA256SUMS.txt da versão não traz o instalador; nada foi instalado")
+
+
+def instalar_atualizacao() -> dict:
+    info = info_atualizacao()
+    if not info["pode_instalar"]:
+        raise ValueError("esta cópia do Giz Livre não se atualiza sozinha; use a página de downloads")
+    nome, url = info["_instalador"]
+    esperado = soma_esperada(baixar_https(info["_somas"], 100_000).decode("utf-8", "replace"), nome)
+    dados = baixar_https(url, 200_000_000, 180)
+    if hashlib.sha256(dados).hexdigest() != esperado:
+        raise ValueError("o arquivo baixado não confere com o SHA-256 publicado; nada foi instalado")
+    pasta = Path(tempfile.mkdtemp(prefix="gizlivre-atualizacao-"))
+    exe = pasta / nome
+    exe.write_bytes(dados)
+    # /reabrir=1: o instalador abre o Giz Livre de novo no fim (seção [Code] do lousa.iss)
+    subprocess.Popen([str(exe), "/SILENT", "/CURRENTUSER", "/NORESTART", "/SUPPRESSMSGBOXES", "/reabrir=1"],
+                     creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+                     close_fds=True)
+    return {"ok": True, "versao": info["ultima"]}
+
+
+def resposta_publica(info: dict) -> dict:
+    return {k: v for k, v in info.items() if not k.startswith("_")}
+
+
 def abrir_janela(url: str) -> None:
     """Abre o programa numa janela própria (modo app) do Edge/Chrome/Chromium; senão, no navegador padrão."""
     if WINDOWS:
@@ -1978,11 +2124,20 @@ def marcar_janelas_na_barra(parar: threading.Event) -> None:
         parar.wait(0.5 if time.time() - inicio < 30 else 3)
 
 
-def vigiar_inatividade(srv, limite_s: int) -> None:
-    # a página manda /api/ping a cada 30 s; sem janela aberta por `limite_s`, o servidor se encerra sozinho
+def vigiar_inatividade(srv, limite_s: int, passo: float = 15, dormir=time.sleep, relogio=time.time) -> None:
+    # a página manda /api/ping a cada 30 s (até 60 s com a janela minimizada); sem sinal por `limite_s`, ninguém está
+    # com a janela aberta e o servidor se encerra. É a reserva do aviso de janela fechada, que pode não chegar quando a
+    # janela fechada é a última do Edge. Se o relógio pular muito entre duas voltas, o computador estava suspenso: a
+    # contagem recomeça, para dar tempo de a página acordar e mandar o sinal.
+    global ULTIMA_ATIVIDADE
+    antes = relogio()
     while True:
-        time.sleep(15)
-        if time.time() - ULTIMA_ATIVIDADE > limite_s:
+        dormir(passo)
+        agora = relogio()
+        if agora - antes > passo * 4:
+            ULTIMA_ATIVIDADE = agora
+        antes = agora
+        if agora - ULTIMA_ATIVIDADE > limite_s:
             srv.shutdown()
             return
 
@@ -2000,7 +2155,7 @@ def aviso(msg: str) -> None:
 
 
 def main():
-    global DADOS, LIXEIRA, PORTA
+    global DADOS, LIXEIRA, PORTA, AUTO_ENCERRAR
     ap = argparse.ArgumentParser()
     ap.add_argument("--porta", type=int, default=8765)
     ap.add_argument("--sem-janela", action="store_true")
@@ -2037,7 +2192,8 @@ def main():
         if WINDOWS:
             threading.Thread(target=marcar_janelas_na_barra, args=(threading.Event(),), daemon=True).start()
     if not args.sem_auto_encerrar and not args.sem_janela:
-        threading.Thread(target=vigiar_inatividade, args=(srv, 20 * 60), daemon=True).start()
+        AUTO_ENCERRAR = True
+        threading.Thread(target=vigiar_inatividade, args=(srv, 3 * 60), daemon=True).start()
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
