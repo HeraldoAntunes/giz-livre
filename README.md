@@ -185,7 +185,8 @@ Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de in
 ferramenta: a concepção, as decisões, a revisão e os testes são do autor, que responde pelo programa.
 
 ## Licença
-[MIT](LICENSE) © 2026 Heraldo Antunes.
+[MIT](LICENSE) © 2026 Heraldo Antunes. Há uma [tradução informativa para o português](docs/LICENCA-traducao-pt-BR.md);
+o texto que vale é o original em inglês.
 
 ### Autoria das formas e ícones
 Todas as formas da biblioteca (`app/js/shapes/`) e os desenhos de vidrarias e da tabela periódica (`app/js/library.js`)
