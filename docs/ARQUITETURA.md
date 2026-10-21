@@ -34,7 +34,7 @@ Guia para quem quer entender ou modificar o código. O programa tem duas partes:
 - envia CSP restritiva;
 - tem limites de tamanho por rota.
 
-Detalhes em [SECURITY.md](../SECURITY.md).
+Detalhes em [SECURITY.md](../.github/SECURITY.md).
 
 ## Interface (`app/js/`)
 | Módulo | Responsabilidade |

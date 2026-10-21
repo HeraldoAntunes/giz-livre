@@ -65,8 +65,12 @@ certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
   probabilidade normal, Gumbel, carta de Smith, osciloscópio, Bode, desenho técnico, ternário, eixos 3D, folha de
   código, quadro de Punnett, folha de redação, HQ, tablatura, linha do tempo, Canvas, Kanban e calendário.
 - **Caderno A4** (e A3, 16:9): páginas prontas para **imprimir e exportar PDF**.
-- **Slides:** abra um **PowerPoint** ou **PDF**; cada slide vira uma página para escrever por cima. O **modo
-  apresentação** passa os slides com as setas ou com o passador.
+- **Slides:** abra um **PowerPoint** ou **PDF**; cada slide vira uma página para escrever por cima, e **Enquadrar
+  slide** (tecla `F`) devolve a página ao melhor tamanho na tela. O **modo apresentação** (`F5`) passa os slides com as
+  setas ou com um passador de slides, tem tela preta (`B`), canetas com espessura, formas e lupa com nível ajustável.
+- **Captura de janela ao vivo** (experimental): mostra outro programa numa moldura dentro do quadro, para escrever por cima.
+- **Agentes de IA** (experimental, desligado de fábrica): um assistente compatível com MCP pode preparar quadros com
+  textos, fórmulas e gráficos; ele não apaga nada. Ver o [Guia de uso](docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental).
 - **Ferramentas de professor:**
   - **plotar função** (digite `x^2 - 4` e o gráfico aparece no plano cartesiano);
   - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
@@ -132,6 +136,11 @@ Os quadros ficam na pasta `quadros`, dentro da pasta do programa. Encontrou algu
 | `Ctrl+Z` / `Ctrl+Y` | desfazer / refazer | `Espaço` + arrastar | mover o quadro |
 | `Ctrl+0` | ajustar à tela | `Tab` | modo aula (esconde as barras) |
 | `PageUp`/`PageDown` | página anterior/próxima | `F11` | tela cheia |
+| `F5` | iniciar a apresentação | `B` ou `.` | tela preta |
+| `F` | enquadrar slide | `Z` | lupa (`+` / `−` ajustam) |
+| `Backspace` sem seleção | apagar o último item | `N` (na apresentação) | página em branco |
+
+A lista completa fica no programa: menu **…** do quadro → **Atalhos de teclado**.
 
 No macOS, use `Cmd` no lugar de `Ctrl`. Os atalhos podem ser associados às teclas da mesa digitalizadora (ExpressKeys) no
 driver dela.
@@ -153,7 +162,7 @@ galeria do Giz Livre: cada imagem vira um quadro em que dá para continuar escre
 
 **O antivírus reclamou. É seguro?** O executável passa pelo Microsoft Defender antes de cada publicação, e você pode
 conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há assinatura digital paga. Veja
-[SECURITY.md](SECURITY.md).
+[SECURITY.md](.github/SECURITY.md).
 
 **Posso usar na minha escola ou rede de ensino?** Pode, à vontade, mantendo o aviso de licença.
 
@@ -173,8 +182,8 @@ conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há a
 Para entender o código, veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 ## Contribuir
-Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](CONTRIBUTING.md) e a política de segurança em
-[SECURITY.md](SECURITY.md).
+Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](.github/CONTRIBUTING.md) e a política de segurança em
+[SECURITY.md](.github/SECURITY.md).
 
 ## Como citar
 Se usar o Giz Livre num trabalho, artigo ou material didático, cite a versão usada. Os dados estão em
