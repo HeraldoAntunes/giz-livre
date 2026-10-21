@@ -2,6 +2,8 @@
 
 # Giz Livre
 
+[![Testes](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg)](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml)
+
 **Lousa digital livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.**
 Feita por um professor para as próprias aulas e distribuída livremente: quadro infinito, caderno A4,
 slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, fórmulas e ferramentas de professor.
