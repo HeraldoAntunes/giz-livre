@@ -180,6 +180,10 @@ Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](CONTRIBUTING.md
 Se usar o Giz Livre num trabalho, artigo ou material didático, cite a versão usada. Os dados estão em
 [CITATION.cff](CITATION.cff); no GitHub, o botão **Cite this repository** gera a referência pronta (APA ou BibTeX).
 
+## Como foi feito
+Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de inteligência artificial, usados como
+ferramenta: a concepção, as decisões, a revisão e os testes são do autor, que responde pelo programa.
+
 ## Licença
 [MIT](LICENSE) © 2026 Heraldo Antunes.
 

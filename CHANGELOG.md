@@ -1,7 +1,7 @@
 # Histórico de versões
 
 ## 1.9.0 (20/10/2026)
-Melhorias pedidas pelo professor (modo apresentador, lupa, desfazer e slides).
+Modo apresentador mais completo, lupa ajustável, desfazer sem aviso e enquadramento de slides.
 - **Apresentação:** botão próprio de espessura da caneta (ao lado da cor) e botão de formas (linha, seta, seta dupla,
   tracejadas, retângulo, elipse, triângulo), que fica ativo para desenhar várias seguidas.
 - **Lupa** (normal e apresentação): − e + na barra escolhem quanto amplia, de 1,5x a 8x (antes só a roda do mouse
@@ -66,7 +66,7 @@ Revisão de segurança, de textos e de acabamento do código.
 - Código: comentários sem códigos internos de pedido e datas; cabeçalho de autoria e licença em todos os arquivos.
 
 ## 1.4.1 (16/10/2026)
-Correções pedidas pelo professor depois de instalar a 1.4.0.
+Correções na apresentação e nas barras.
 - **Apresentação:** com o quadro ampliado (lupa ou Ctrl), o slide seguinte abre com a mesma ampliação e no mesmo ponto
   da página; o Esc tira a ampliação e mostra o slide inteiro. Passar o slide no meio da animação da lupa não puxa mais
   a tela de volta para a página anterior. Ctrl+0 na apresentação enquadra o slide em tela cheia.
@@ -74,7 +74,7 @@ Correções pedidas pelo professor depois de instalar a 1.4.0.
 - O texto da licença no instalador mostra a versão certa (mostrava 1.2.2).
 
 ## 1.4.0 (15/10/2026)
-Recurso novo pedido pelo professor depois da publicação da 1.3.0.
+Captura de janela ao vivo no quadro.
 - **Captura** (experimental): botão **Captura** na barra da esquerda. O navegador pergunta
   qual janela, aba ou tela mostrar, e ela aparece **ao vivo** numa moldura no quadro (faixa azul para mover, canto para
   o tamanho; acompanha o zoom). Tudo se risca por cima, e a captura fica por cima das páginas de PDF. **Congelar**
@@ -84,7 +84,7 @@ Recurso novo pedido pelo professor depois da publicação da 1.3.0.
   menores, em vez de a barra de desenho ir para cima do quadro.
 
 ## 1.3.0 (15/10/2026)
-Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
+Melhorias depois do uso em sala de aula.
 - **Cronômetro:** modo **Livre (sem limite)**, mostrador com dígitos de relógio (sete segmentos), botão **Reduzir**
   que deixa só um mostrador pequeno (tocar nele volta ao painel) e opção de reduzir sozinho ao iniciar.
 - **Relógio e calendário** (novo nome), também reduzível; o calendário do mês vai para o quadro com **Pôr no quadro**.
@@ -113,7 +113,7 @@ Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
   as siglas), América do Sul, América do Norte e Central,
   África, Europa, Ásia, Oceania, Antártida (vista polar) e planisfério, feitos com dados do Natural Earth (domínio
   público). Os contornos simplificados continuam, com os mesmos ids.
-- Depois do primeiro teste do professor (15/10, tarde): o **rascunho** ganhou barra própria (Escrever, Ocultar/Mostrar,
+- O **rascunho** ganhou barra própria (Escrever, Ocultar/Mostrar,
   Passar p/ quadro, Apagar, com a contagem); a barra de **Desenho** começa logo abaixo da barra de criar; **P, M e G**
   das formas valem também com o menu ampliado; a **cor de cada área** vai para as subáreas e os títulos das seções;
   a disciplina passa a se chamar **Laboratório de Química**.
@@ -128,7 +128,7 @@ Melhorias pedidas pelo professor depois do uso em aula (15/10/2026).
 - **Menu Folha e fundo** repensado: áreas com cores à esquerda, prévias maiores (P, M, G), busca por nome e ajustes
   (malha, intensidade, cores, em volta das páginas) agrupados embaixo.
 - **Estilo Giz** para as canetas: traço granulado, com falhas, como giz na lousa; as canetas do estojo
-  **Lousa verde (giz)** já vêm com ele (pedido do PDF: "estilos pré-setados simulando a época de giz").
+  **Lousa verde (giz)** já vêm com ele.
 - Cabeçalho da galeria cabe em janela não maximizada (botões só com ícone quando falta espaço; o nome fica na dica).
 - **Mais estilos de caneta:** **Lápis** (traço fino com grão de grafite), **Marcador** (ponta chata, largura
   sem pressão, pontas retas, ângulo da ponta ajustável) e **Aquarela** (larga e translúcida, com o pigmento
@@ -207,7 +207,7 @@ Biblioteca para todas as áreas, a partir dos cursos do IFCE Limoeiro do Norte e
   croqui de área e outras.
 
 ## 1.1.0 (09/10/2026)
-Pedidos do professor depois do primeiro uso real (09/10/2026).
+Melhorias depois do primeiro uso em sala de aula.
 - **Borracha com tamanho:** P, M, G, GG ou controle deslizante (de 3 a 120 px), no menu da borracha.
 - **Ponteiro da caneta também no mouse** (ponta, mira, ponto ou bolinha) no lugar da cruz; dá para desligar no menu
   da caneta.
