@@ -606,7 +606,6 @@ class GuardTests(unittest.TestCase):
 
 
 # o exportador só existe no repositório de desenvolvimento; no público, o teste é pulado
-@unittest.skipUnless((ROOT / "scripts/exportar_publico.py").exists(), "sem scripts/exportar_publico.py")
 class AtualizacaoTests(unittest.TestCase):
     """Atualização pelo próprio programa: sem rede nos testes (a resposta do GitHub é simulada)."""
 
@@ -743,6 +742,7 @@ class FecharJanelaTests(unittest.TestCase):
         self.assertFalse(self.srv.encerrar_se_ninguem_voltou(self.falso, marco))
 
 
+@unittest.skipUnless((ROOT / "scripts/exportar_publico.py").exists(), "sem scripts/exportar_publico.py")
 class ExportTests(unittest.TestCase):
     def test_only_safe_destinations_accepted(self):
         spec = importlib.util.spec_from_file_location("exportar", ROOT / "scripts/exportar_publico.py")
