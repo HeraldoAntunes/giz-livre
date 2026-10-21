@@ -14,6 +14,7 @@ date-released: "2026-10-20"
 authors:
   - given-names: "Heraldo"
     family-names: "Antunes"
+    orcid: "https://orcid.org/0000-0002-5495-0381"
 license: MIT
 repository-code: "https://github.com/HeraldoAntunes/giz-livre"
 url: "https://github.com/HeraldoAntunes/giz-livre/releases/latest"
