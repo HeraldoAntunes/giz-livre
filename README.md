@@ -15,7 +15,8 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 
 - **Grátis e livre:** licença [MIT](LICENSE). Use, copie e distribua à vontade, inclusive em escolas e redes de ensino.
 - **Sem internet, sem conta, sem anúncios:** os quadros ficam só no seu computador.
-- **Versão do código:** 1.3.0 ([novidades](CHANGELOG.md)); os downloads publicados estão em Releases.
+- **Versão atual:** a da página de [Releases](https://github.com/HeraldoAntunes/giz-livre/releases/latest); o que mudou
+  em cada versão está nas [novidades](CHANGELOG.md).
 
 > **Aviso:** projeto independente e voluntário, fornecido "no estado em que se encontra", **sem garantia de qualquer
 > tipo**. Faça backup dos seus quadros. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.
@@ -34,9 +35,9 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 
 O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa não tem assinatura digital paga. Clique em
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
-`SHA256SUMS.txt` da mesma página:
+`SHA256SUMS.txt` da mesma página (troque `x.y.z` pela versão que baixou):
 ```bash
-certutil -hashfile Instalar-GizLivre-1.2.2.exe SHA256
+certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
 ```
 
 ## Como é
@@ -174,6 +175,10 @@ Para entender o código, veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 ## Contribuir
 Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](CONTRIBUTING.md) e a política de segurança em
 [SECURITY.md](SECURITY.md).
+
+## Como citar
+Se usar o Giz Livre num trabalho, artigo ou material didático, cite a versão usada. Os dados estão em
+[CITATION.cff](CITATION.cff); no GitHub, o botão **Cite this repository** gera a referência pronta (APA ou BibTeX).
 
 ## Licença
 [MIT](LICENSE) © 2026 Heraldo Antunes.

@@ -1,0 +1,29 @@
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Como citar o Giz Livre (Citation File Format 1.2.0). O GitHub mostra "Cite this repository" a partir deste arquivo.
+# A cada versão publicada, atualizar version e date-released.
+cff-version: 1.2.0
+message: "Se usar o Giz Livre num trabalho, cite a versão usada como abaixo."
+type: software
+title: "Giz Livre: lousa digital livre e offline para aulas"
+abstract: >-
+  Lousa digital livre e offline para aulas, com escrita por caneta, caderno A4, importação de PowerPoint e PDF,
+  apresentação, biblioteca de formas técnicas e carimbos de correção, ferramentas de professor e preparação de
+  quadros por agentes de IA (experimental).
+version: "1.9.0"
+date-released: "2026-10-20"
+authors:
+  - given-names: "Heraldo"
+    family-names: "Antunes"
+license: MIT
+repository-code: "https://github.com/HeraldoAntunes/giz-livre"
+url: "https://github.com/HeraldoAntunes/giz-livre/releases/latest"
+keywords:
+  - "lousa digital"
+  - "quadro branco"
+  - "ensino"
+  - "software livre"
+  - "offline"
+identifiers:
+  - type: other
+    value: "BR 51 2026 009384-8"
+    description: "Pedido de registro de programa de computador no INPI (versão 1.9.0)"
