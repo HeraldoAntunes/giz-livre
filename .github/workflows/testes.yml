@@ -1,0 +1,45 @@
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Testes automáticos a cada envio ao GitHub: os da página (Node), os do servidor (Python) e o de ponta a ponta
+# (servidor, MCP e Microsoft Edge sem janela). Roda no Windows, o sistema em que o programa é testado.
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Sintaxe dos arquivos JavaScript
+        shell: pwsh
+        run: Get-ChildItem app/js -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName; if ($LASTEXITCODE) { exit 1 } }
+
+      - name: Testes da página
+        run: node tests/testes.mjs
+
+      - name: Testes do servidor
+        run: python -m unittest tests/test_server.py -v
+
+      - name: Teste de ponta a ponta (servidor, MCP e Edge sem janela)
+        run: node tests/e2e_agente.mjs
