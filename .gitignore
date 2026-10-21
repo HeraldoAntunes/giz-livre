@@ -7,10 +7,26 @@ __pycache__/
 .venv-build/
 build/
 dist/
+dist-guardado/
 *.spec.bak
 *.tmp
-# configurações locais de ferramentas de desenvolvimento
+*.log
+# configurações locais de ferramentas de desenvolvimento e de agentes
 .claude/
+.codex/
+.vscode/
+.idea/
+# segredos e certificados: nunca entram no Git
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+# arquivos do sistema
+Thumbs.db
+desktop.ini
+.DS_Store
 
 scripts/vitrine/saida/
 # pasta de trabalho interna: só relatórios e dados de teste entram
