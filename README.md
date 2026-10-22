@@ -20,6 +20,18 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
   &nbsp;·&nbsp; <a href="#perguntas-frequentes">Perguntas frequentes</a>
 </p>
 
+### ⬇ Qual arquivo baixar? (versão 1.11.0)
+
+| Para quê | Baixar |
+|---|---|
+| **Instalar no Windows** (o normal) | [**Instalar-GizLivre-1.11.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/Instalar-GizLivre-1.11.0.exe) |
+| Usar sem instalar (pendrive, PC da escola) | [GizLivre-1.11.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/GizLivre-1.11.0-portatil.zip) |
+| Ver todas as formas em PDF | [Catalogo-de-formas-GizLivre-1.11.0.pdf](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/Catalogo-de-formas-GizLivre-1.11.0.pdf) |
+
+Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
+programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
+[página de versões](https://github.com/HeraldoAntunes/giz-livre/releases).
+
 - **Grátis e livre:** licença [MIT](LICENSE). Use, copie e distribua à vontade, inclusive em escolas e redes de ensino.
 - **Sem internet, sem conta, sem anúncios:** os quadros ficam só no seu computador.
 - **Versão atual:** a da página de [Releases](https://github.com/HeraldoAntunes/giz-livre/releases/latest); o que mudou
