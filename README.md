@@ -187,7 +187,8 @@ conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há a
 
 ## Tecnologias
 - **Interface:** HTML, CSS e JavaScript puro (módulos ES), desenhada em `<canvas>`, sem build e sem frameworks.
-- **Servidor local:** Python, só biblioteca padrão, em `127.0.0.1`, com proteção contra pedidos de outros sites.
+- **Servidor local:** Python, só biblioteca padrão. Atende apenas o próprio computador (`127.0.0.1`), não fica
+  acessível pela rede e recusa pedidos vindos de outros sites.
 - **Bibliotecas embutidas:** pdf.js (Mozilla, Apache 2.0, com OpenJPEG), KaTeX (MIT, fontes sob SIL OFL 1.1),
   Fluent UI System Icons (Microsoft, MIT). Ver
   [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
