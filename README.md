@@ -5,6 +5,7 @@
 [![Testes](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg)](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge)](https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre)
 [![Versão](https://img.shields.io/github/v/release/HeraldoAntunes/giz-livre?label=vers%C3%A3o)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg)](https://doi.org/10.5281/zenodo.23552115)
 [![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
 [![Testado no Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D6)](#sistemas)
 
@@ -206,6 +207,8 @@ Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](.github/CONTRIB
 ## Como citar
 Se usar o Giz Livre num trabalho, artigo ou material didático, cite a versão usada. Os dados estão em
 [CITATION.cff](CITATION.cff); no GitHub, o botão **Cite this repository** gera a referência pronta (APA ou BibTeX).
+Cada versão fica arquivada no Zenodo com DOI. O DOI geral, que leva sempre à versão mais recente, é
+[10.5281/zenodo.23552115](https://doi.org/10.5281/zenodo.23552115).
 
 ## Como foi feito
 Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de inteligência artificial, usados como
