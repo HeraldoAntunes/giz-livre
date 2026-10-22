@@ -109,7 +109,7 @@ certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
 ## Sistemas
 | | Windows 11 | Linux (experimental) | macOS (experimental) |
 |---|---|---|---|
-| Instalador e atalhos | ✅ | — (rodar pelo código) | — (rodar pelo código) |
+| Instalador e atalhos | ✅ | não (rodar pelo código) | não (rodar pelo código) |
 | Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | ✅ testado no Ubuntu | ⚠️ não testado |
 | Pressão da caneta | ✅ (Windows Ink) | ✅ geralmente, no Chrome/Chromium | ⚠️ depende do driver |
 | Abrir PowerPoint (`.pptx`) | ✅ PowerPoint ou LibreOffice | ✅ com LibreOffice | ⚠️ com LibreOffice |

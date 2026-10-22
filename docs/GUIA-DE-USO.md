@@ -88,12 +88,12 @@ textos, notas, formas da biblioteca, fórmulas e gráficos.
 O agente não apaga nada e não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
 continuar. Tudo fica no seu computador.
 
-## Atualizar o Giz Livre
+## 7. Atualizar o Giz Livre
 No **Sobre** (galeria ou menu `…` do quadro), **Procurar versão nova**. Se houver, **Baixar e instalar**: o programa baixa o
 instalador do GitHub, confere o SHA-256, instala por cima e abre de novo. Os quadros ficam como estão. Na versão
 portátil, baixe o zip novo e troque a pasta (os quadros ficam na pasta `quadros`).
 
-## 7. Problemas comuns
+## 8. Problemas comuns
 | Sintoma | Solução |
 |---|---|
 | A caneta não tem pressão / "chegou como mouse" | ative o Windows Ink no driver da mesa e reabra o Giz Livre |

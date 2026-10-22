@@ -14,7 +14,8 @@ Obrigado pelo interesse! O Giz Livre é software livre (MIT), feito para profess
      entender o código, leia `docs/ARQUITETURA.md`.
   5. Textos da interface em português do Brasil, com acentuação correta.
 
-Ao contribuir, você concorda em licenciar a sua contribuição sob a licença MIT do projeto.
+Ao contribuir, você concorda em licenciar a sua contribuição sob a licença MIT do projeto e em seguir o
+[Código de Conduta](CODE_OF_CONDUCT.md).
 
 ## Uso de IA generativa
 
