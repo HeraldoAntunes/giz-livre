@@ -40,6 +40,19 @@ Programas gerados com PyInstaller e sem assinatura digital paga podem receber al
 SmartScreen ("editor desconhecido"). Antes de instalar, compare o SHA-256 do arquivo baixado com o publicado. Se preferir,
 rode o Giz Livre direto do código-fonte (`python server.py`), sem executável nenhum.
 
+## Versões com suporte
+Só a versão mais recente recebe correções de segurança. A versão instalada pode ser conferida em **Sobre**, e a nova é
+oferecida em **Sobre → Procurar versão nova**.
+
 ## Como relatar uma vulnerabilidade
-Abra um aviso privado em **Security → Report a vulnerability** no repositório do GitHub, ou uma *issue* sem detalhes que
-permitam explorar a falha. Informe a versão, o passo a passo e o impacto. Correções de segurança têm prioridade.
+Não abra uma *issue* pública com os detalhes da falha. Use o aviso privado do GitHub:
+<https://github.com/HeraldoAntunes/giz-livre/security/advisories/new>
+(no repositório, **Security → Report a vulnerability**). Informe a versão, o passo a passo para reproduzir e o impacto.
+
+O que esperar:
+- confirmação de recebimento em até 7 dias;
+- avaliação e plano de correção em até 30 dias;
+- a correção sai numa versão nova, com a falha descrita no CHANGELOG e no aviso de segurança publicado depois da
+  correção (divulgação coordenada). Quem relatou recebe crédito, se quiser.
+
+Correções de segurança têm prioridade sobre qualquer outro trabalho no projeto.
