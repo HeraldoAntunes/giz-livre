@@ -32,6 +32,10 @@
   desconhecido na mesma porta **nunca** é encerrado: aparece um aviso.
 - **Executável conferível.**
   - Cada versão vem com `SHA256SUMS.txt`.
+  - Cada anexo da release vem com uma assinatura do Sigstore (`<arquivo>.sigstore.json`), feita pelo workflow
+    `assinar-release.yml` deste repositório. Ela confirma que o arquivo é o mesmo publicado na release. Para conferir
+    (com o [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)):
+    `cosign verify-blob --bundle Instalar-GizLivre-<versão>.exe.sigstore.json --certificate-identity-regexp "^https://github.com/HeraldoAntunes/giz-livre/.github/workflows/assinar-release.yml@" --certificate-oidc-issuer https://token.actions.githubusercontent.com Instalar-GizLivre-<versão>.exe`
   - O executável é gerado sem compactadores (UPX), a partir de dependências de build fixadas por hash, e é verificado no
     Microsoft Defender antes da publicação.
 
