@@ -1,5 +1,6 @@
 # Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 """Regressões HTTP e proteção do exportador, somente com stdlib e dados temporários."""
+import http.client
 import importlib.util
 import json
 import socket
@@ -119,11 +120,67 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.request("/api/boards/..%2Fserver")[0], 400)
         self.assertEqual(self.request("/api/boards/nan", "PUT", {"board": {"items": [], "value": float("nan")}})[0], 400)
 
+    def test_ids_nunca_saem_da_pasta_de_dados(self):
+        # ataques de caminho em todas as rotas que montam nome de arquivo com o que vem do pedido
+        dados = Path(self.temp.name)
+        antes = {p.name for p in dados.iterdir()}
+        maus = ["..%2Fserver", "../server", "..%5Cserver", "..\\server", "C:server", "C:%5Cfora", "%2E%2E", "..",
+                "nul", "CON", "a/b", "%00x", "x%0A", "a.json"]
+        for bid in maus:
+            with self.subTest(rota="boards", bid=bid):
+                self.assertEqual(self.request("/api/boards/" + bid)[0], 400)
+                self.assertEqual(self.request("/api/boards/" + bid, "PUT", {"board": {"items": []}})[0], 400)
+                self.assertEqual(self.request("/api/boards/" + bid, "DELETE")[0], 400)
+                self.assertEqual(self.request("/api/thumbs/" + bid, "PUT", {"thumb": "data:image/png;base64,AA=="})[0], 400)
+                self.assertEqual(self.request("/api/folder/" + bid, "PUT", {"folder": "x"})[0], 400)
+        for rota in ["/thumbs/..%2Fserver.png", "/thumbs/nul.png", "/assets/../server.py", "/assets/..%2Fserver.py",
+                     "/api/lixeira/..%2Fx_20260101-000000.png", "/../server.py", "/%2E%2E/server.py"]:
+            with self.subTest(rota=rota):
+                self.assertEqual(self.request(rota)[0], 404)
+        # arquivos da página: a biblioteca padrão descarta o pedaço com ".." ou "\" e cai na própria pasta app/
+        porta = int(self.base.rsplit(":", 1)[1])
+        for rota in ["/..%5Cserver.py", "/js%5C..%5C..%5Cserver.py", "/C:%5Cwindows%5Cwin.ini", "/C:/windows/win.ini"]:
+            with self.subTest(rota=rota):
+                c = http.client.HTTPConnection("127.0.0.1", porta, timeout=10)
+                c.request("GET", rota)
+                r = c.getresponse()
+                corpo = r.read()
+                c.close()
+                self.assertIn(r.status, (301, 404))   # 301 = "pasta app/, acrescente a barra"
+                self.assertNotIn(b"SimpleHTTPRequestHandler", corpo)
+        for nome in ["../x_20260101-000000", "..\\x_20260101-000000", "C:x_20260101-000000", "x_20260101-000000\n",
+                     "x_20260101-000000/../../y", 7, None]:
+            with self.subTest(restaurar=nome):
+                self.assertEqual(self.request("/api/lixeira/restaurar", "POST", {"nome": nome})[0], 400)
+        self.assertEqual({p.name for p in dados.iterdir()}, antes)   # nada gravado nem movido
+        for fora in ["server.json", "server.png", "fora.json", "y.json"]:   # nem ao lado da pasta de dados
+            self.assertFalse((dados.parent / fora).exists(), fora)
+
     def test_corrupt_existing_file_is_not_overwritten(self):
         path = Path(self.temp.name) / "corrupt.json"
         path.write_text("{incompleto", encoding="utf-8")
         self.assertEqual(self.request("/api/boards/corrupt", "PUT", {"board": {"items": []}})[0], 500)
         self.assertEqual(path.read_text(encoding="utf-8"), "{incompleto")
+
+    def test_many_simultaneous_requests_are_all_answered(self):
+        # a galeria carrega um arquivo por disciplina ao mesmo tempo: nenhum pedido pode ser recusado
+        spec = importlib.util.spec_from_file_location("servidor_fila", ROOT / "server.py")
+        srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(srv)
+        self.assertGreaterEqual(srv.Servidor.request_queue_size, 64)
+        nomes = sorted(p.name for p in (ROOT / "app/js/especiais").glob("*.js"))
+        self.assertGreaterEqual(len(nomes), 20)
+        socks = []
+        try:
+            host, port = self.base.rsplit("/", 1)[1].split(":")
+            for nome in nomes * 2:
+                s = socket.create_connection((host, int(port)), timeout=10)
+                s.sendall(f"GET /js/especiais/{nome} HTTP/1.1\r\nHost: {host}:{port}\r\nConnection: close\r\n\r\n".encode())
+                socks.append(s)
+            for s in socks:
+                linha = s.makefile("rb").readline()
+                self.assertIn(b" 200 ", linha)
+        finally:
+            for s in socks: s.close()
 
 
 # canal dos agentes de IA (rotas /api/agente/*) e o servidor MCP por stdio, num servidor temporário próprio
@@ -597,6 +654,15 @@ class GuardTests(unittest.TestCase):
         for nome in ["console", "com10x", "quadro-1", "a_b"]:
             with self.subTest(nome=nome):
                 self.assertIsNotNone(self.srv.ID_OK.match(nome))
+
+    def test_nomes_de_arquivo_nao_aceitam_quebra_de_linha_no_fim(self):
+        # o "$" do Python aceita um "\n" no fim; o nome do quadro, da lixeira e da imagem vira nome de arquivo
+        self.assertIsNone(self.srv.ID_OK.match("quadro\n"))
+        self.assertIsNone(self.srv.ID_OK.match("nul\n"))
+        self.assertIsNone(self.srv.LIXO_OK.match("x_20260101-000000\n"))
+        self.assertIsNone(self.srv.ASSET_OK.match("0" * 40 + ".png\n"))
+        self.assertIsNotNone(self.srv.LIXO_OK.match("x_20260101-000000-2"))
+        self.assertIsNotNone(self.srv.ASSET_OK.match("0" * 40 + ".jpg"))
 
     def test_updated_must_be_a_number(self):
         self.assertEqual(self.srv.numero("1') onmouseover=x"), 0)

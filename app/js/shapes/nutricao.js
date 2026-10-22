@@ -246,7 +246,7 @@ export default {
         lider(202, 160, 230, 160) + TL(234, 160, 'int. delgado') + lider(182, 228, 230, 228) + TL(234, 228, 'reto') +
         lider(112, 70, 84, 70) + TE(80, 70, 'fígado') + lider(118, 160, 84, 160) + TE(80, 160, 'int. grosso')],
       ['nut-digestorio-branco', 'Sistema digestório (para rotular)', 150, 242, DIGEST],
-      ['nut-absorcao', 'Absorção no intestino (vilosidades)', 220, 130, TL(6, 12, 'lúmen') + '<path d="M6,84 H19 ' + [30, 70, 110, 150, 190].map((c, i) => `${i ? `H${c - 11} ` : ''}V44 Q${c - 11},32 ${c},32 Q${c + 11},32 ${c + 11},44 V84 `).join('').replace(/^V/, 'V') + 'H214"/>' +
+      ['nut-absorcao', 'Absorção no intestino (vilosidades)', 220, 130, TL(6, 12, 'lúmen') + '<path d="M6,84 H19 ' + [30, 70, 110, 150, 190].map((c, i) => `${i ? `H${c - 11} ` : ''}V44 Q${c - 11},32 ${c},32 Q${c + 11},32 ${c + 11},44 V84 `).join('') + 'H214"/>' +
         [50, 90, 130, 170].map(x => `<circle cx="${x}" cy="30" r="3" fill="#C"/><path stroke-width="1.8" d="M${x},36 V62"/>` + head(x, 70, 90, 8)).join('') +
         [30, 70, 110, 150, 190].map(x => trac(`M${x},44 V96`, 1.4)).join('') + '<path d="M6,104 H206"/>' + head(214, 104, 0, 10) + T(110, 120, 'sangue / linfa', 14)],
       balanca(0, 'nut-balanco-equilibrio', 'Balanço energético (equilíbrio)'),

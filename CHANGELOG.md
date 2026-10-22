@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.10.1 (22/10/2026)
+Correções.
+- **Galeria completa em computador lento:** a galeria pede dezenas de arquivos ao mesmo tempo, e o programa só deixava
+  5 esperando; num PC lento, os que sobravam eram recusados e algumas formas especiais podiam faltar até recarregar a
+  página. Agora a fila aceita 64.
+- **Nomes de quadros e imagens conferidos com mais rigor:** o programa já recusava nomes com `..` ou barras; agora
+  recusa também nomes terminados em quebra de linha. Veio da revisão automática de segurança (CodeQL) do GitHub, que
+  não achou falha explorável.
+
 ## 1.10.0 (21/10/2026)
 Ajuda dentro do programa, notas mais fáceis de usar, formas em destaque e atualização pelo próprio programa.
 - **Ajuda** (botão **?** no canto de cima, tecla `F1` ou menu `…` → Ajuda): temas como escrever, apagar, slides,

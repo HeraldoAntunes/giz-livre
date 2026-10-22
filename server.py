@@ -62,12 +62,12 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.10.0"
-# nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo
-ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$)[A-Za-z0-9_-]{1,64}$", re.IGNORECASE)
+VERSAO = "1.10.1"
+# nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
+ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
-LIXO_OK = re.compile(r"^([A-Za-z0-9_-]{1,64})_(\d{8}-\d{6})(?:-\d{1,4})?$")
-ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)$")
+LIXO_OK = re.compile(r"^([A-Za-z0-9_-]{1,64})_(\d{8}-\d{6})(?:-\d{1,4})?\Z")
+ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)\Z")
 TIPOS = {"png": "image/png", "jpg": "image/jpeg"}
 MB = 1024 * 1024
 LIMITES = {"boards": 200 * MB, "thumbs": 5 * MB, "assets": 40 * MB, "pptx": 300 * MB, "pdf": 300 * MB, "ocr": 2 * MB,
@@ -180,6 +180,11 @@ def listar_quadros() -> list:
             RESUMOS.pop(k, None)
     lista.sort(key=lambda x: x["updated"], reverse=True)
     return lista
+
+
+class Servidor(ThreadingHTTPServer):
+    # A galeria pede dezenas de arquivos de uma vez; com a fila padrão (5), num PC lento os excedentes eram recusados.
+    request_queue_size = 64
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -2183,7 +2188,7 @@ def main():
             aviso(f"A porta {PORTA} está ocupada por outro programa. Feche-o e abra o Giz Livre de novo.")
             return 1
 
-    srv = ThreadingHTTPServer(("127.0.0.1", PORTA), Handler)
+    srv = Servidor(("127.0.0.1", PORTA), Handler)
     threading.Thread(target=coletar_assets_orfaos, daemon=True).start()
     if sys.stdout:
         print(f"Giz Livre {VERSAO} em {url}  (quadros em {DADOS})")
