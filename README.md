@@ -24,9 +24,8 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no Windows** (o normal) | [**Instalar-GizLivre-1.11.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/Instalar-GizLivre-1.11.0.exe) |
-| Usar sem instalar (pendrive, PC da escola) | [GizLivre-1.11.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/GizLivre-1.11.0-portatil.zip) |
-| Ver todas as formas em PDF | [Catalogo-de-formas-GizLivre-1.11.0.pdf](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/Catalogo-de-formas-GizLivre-1.11.0.pdf) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.11.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/Instalar-GizLivre-1.11.0.exe) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.11.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/GizLivre-1.11.0-portatil.zip) |
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
