@@ -638,25 +638,25 @@ const roleta = (() => {
 // Ampliação 09/10/2026: desenhos autorais; espaços livres para anotar com Texto.
 const AMPLIACAO_20261009 = [
   [
-    "Cálculo e interpretação — modelos",
+    "Cálculo e interpretação: modelos",
     [
       [
         "es-quartis-etapas",
-        "Quartis — sequência de análise",
+        "Quartis: sequência de análise",
         520,
         158,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Quartis — sequência de análise</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ordenar dados</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x₍₁₎ ≤ … ≤ x₍ₙ₎</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Definir método</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">métodos diferem</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Calcular Q₁–Q₃</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">registrar convenção</text>"
       ],
       [
         "es-rol-preencher",
-        "Rol — posições e valores",
+        "Rol: posições e valores",
         480,
         262,
         "<text x=\"240\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Rol — posições e valores</text><rect x=\"10\" y=\"42\" width=\"460\" height=\"216\" rx=\"3\"/><text x=\"86.66666666666667\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Posição i</text><text x=\"240\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x₍ᵢ₎</text><path d=\"M163.33333333333334 42 V258\"/><text x=\"393.33333333333337\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Observação</text><path d=\"M316.6666666666667 42 V258\"/><path d=\"M10 68 H470\"/><path d=\"M10 106 H470\"/><path d=\"M10 144 H470\"/><path d=\"M10 182 H470\"/><path d=\"M10 220 H470\"/>"
       ],
       [
         "es-quartis-exemplo",
-        "Quartis — mediana das metades",
+        "Quartis: mediana das metades",
         550,
         214,
         "<rect x=\"8\" y=\"8\" width=\"534\" height=\"198\" rx=\"3\"/><text x=\"275\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Quartis — mediana das metades</text><path d=\"M8 48 H542\"/><text x=\"275\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Rol: 2, 4, 6, 8, 10, 12, 14, 16</text><text x=\"275\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q₂ = (8 + 10)/2 = 9</text><text x=\"275\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Q₁ = (4 + 6)/2 = 5; Q₃ = (12 + 14)/2 = 13</text><text x=\"275\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Convenção: medianas das duas metades.</text>"
@@ -670,84 +670,84 @@ const AMPLIACAO_20261009 = [
       ],
       [
         "es-frequencia-vazia",
-        "Frequências — tabela a completar",
+        "Frequências: tabela a completar",
         500,
         262,
         "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Frequências — tabela a completar</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"216\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Classe</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">fᵢ</text><path d=\"M130 42 V258\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fᵢ</text><path d=\"M250 42 V258\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">fᵢ/n</text><path d=\"M370 42 V258\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/><path d=\"M10 220 H490\"/>"
       ],
       [
         "es-frequencia-exemplo",
-        "Frequências — exemplo n = 10",
+        "Frequências: exemplo n = 10",
         500,
         214,
         "<rect x=\"8\" y=\"8\" width=\"484\" height=\"198\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Frequências — exemplo n = 10</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor 1: f = 2; F = 2; fr = 0,20</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor 2: f = 5; F = 7; fr = 0,50</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor 3: f = 3; F = 10; fr = 0,30</text><text x=\"250\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Σf = 10; Σfr = 1</text>"
       ],
       [
         "es-classes-convencao",
-        "Classes — explicitar limites",
+        "Classes: explicitar limites",
         500,
         174,
         "<rect x=\"8\" y=\"8\" width=\"484\" height=\"158\" rx=\"3\"/><text x=\"250\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Classes — explicitar limites</text><path d=\"M8 48 H492\"/><text x=\"250\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">[a, b): inclui a e exclui b.</text><text x=\"250\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Largura: h = b − a; unidade: ______</text><text x=\"250\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Classes sem sobreposição: __________</text>"
       ],
       [
         "es-histograma-densidade",
-        "Histograma — largura importa",
+        "Histograma: largura importa",
         400,
         260,
         "<text x=\"200\" y=\"18\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Histograma — largura importa</text><path d=\"M56 44 V214 H374\"/><text x=\"24\" y=\"130\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\" transform=\"rotate(-90 24 130)\">Densidade</text><text x=\"374\" y=\"240\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"end\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Variável (unidade)</text><path d=\"M73 214 V164 H143 V214 M143 214 V114 H283 V214 M283 214 V94 H353 V214\"/><text x=\"220\" y=\"69\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Área ∝ frequência</text>"
       ],
       [
         "es-ic-etapas",
-        "IC da média — sequência",
+        "IC da média: sequência",
         520,
         158,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">IC da média — sequência</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estimar x̄</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">amostra: n = ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Calcular EP</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">s/√n</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Aplicar crítico</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x̄ ± t·EP</text>"
       ],
       [
         "es-ic-t-modelo",
-        "IC da média — σ desconhecido",
+        "IC da média: σ desconhecido",
         540,
         214,
         "<rect x=\"8\" y=\"8\" width=\"524\" height=\"198\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">IC da média — σ desconhecido</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x̄ ± t₍₁₋α/₂; n₋₁₎ · s/√n</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n: ____ x̄: ____ s: ____ α: ____</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amostra independente; normalidade ou</text><text x=\"270\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">aproximação justificada para a média.</text>"
       ],
       [
         "es-ic-interpretacao",
-        "IC — interpretação frequentista",
+        "IC: interpretação frequentista",
         540,
         214,
         "<rect x=\"8\" y=\"8\" width=\"524\" height=\"198\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">IC — interpretação frequentista</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Em repetições do procedimento,</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">a proporção nominal de intervalos</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">contém o parâmetro fixo.</text><text x=\"270\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não é a chance de cada dado estar no IC.</text>"
       ],
       [
         "es-ic-comparar",
-        "IC — precisão e tamanho amostral",
+        "IC: precisão e tamanho amostral",
         450,
         210,
         "<text x=\"225\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Mesmo nível e variabilidade</text><path d=\"M80 76 H370 M80 66 V86 M370 66 V86 M160 143 H290 M160 133 V153 M290 133 V153\"/><circle cx=\"225\" cy=\"76\" r=\"5\"/><circle cx=\"225\" cy=\"143\" r=\"5\"/><text x=\"225\" y=\"53\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n menor</text><text x=\"225\" y=\"180\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">n maior → menor erro padrão</text>"
       ],
       [
         "es-tamanho-amostra",
-        "Planejamento amostral — precisão",
+        "Planejamento amostral: precisão",
         520,
         174,
         "<rect x=\"8\" y=\"8\" width=\"504\" height=\"158\" rx=\"3\"/><text x=\"260\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Planejamento amostral — precisão</text><path d=\"M8 48 H512\"/><text x=\"260\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Média, σ conhecido: n ≥ (z·σ/E)²</text><text x=\"260\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">E: erro máximo na unidade da variável</text><text x=\"260\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Arredondar para cima; conferir hipóteses.</text>"
       ],
       [
         "es-amostragem-plano",
-        "Amostragem — definir o desenho",
+        "Amostragem: definir o desenho",
         520,
         158,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amostragem — definir o desenho</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">População-alvo</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">quem/onde: ___</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Cadastro</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">cobertura: ___</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Sorteio</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">método: ______</text>"
       ],
       [
         "es-estratos-alocacao",
-        "Estratos — alocação proporcional",
+        "Estratos: alocação proporcional",
         500,
         224,
         "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estratos — alocação proporcional</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estrato</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Nₕ</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Nₕ/N</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">nₕ</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
       ],
       [
         "es-sistematica-plano",
-        "Amostragem sistemática — plano",
+        "Amostragem sistemática: plano",
         520,
         174,
         "<rect x=\"8\" y=\"8\" width=\"504\" height=\"158\" rx=\"3\"/><text x=\"260\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Amostragem sistemática — plano</text><path d=\"M8 48 H512\"/><text x=\"260\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Intervalo k: ______ início aleatório: ______</text><text x=\"260\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Selecionar r, r+k, r+2k, …</text><text x=\"260\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Investigar periodicidade do cadastro.</text>"
@@ -768,14 +768,14 @@ const AMPLIACAO_20261009 = [
       ],
       [
         "es-residuos-registro",
-        "Resíduos — registro e diagnóstico",
+        "Resíduos: registro e diagnóstico",
         500,
         224,
         "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resíduos — registro e diagnóstico</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"70\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">x</text><text x=\"190\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">y</text><path d=\"M130 42 V220\"/><text x=\"310\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ŷ</text><path d=\"M250 42 V220\"/><text x=\"430\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">e = y − ŷ</text><path d=\"M370 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"
       ],
       [
         "es-teste-hipoteses",
-        "Teste de hipóteses — decisão",
+        "Teste de hipóteses: decisão",
         540,
         214,
         "<rect x=\"8\" y=\"8\" width=\"524\" height=\"198\" rx=\"3\"/><text x=\"270\" y=\"29\" font-size=\"17\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Teste de hipóteses — decisão</text><path d=\"M8 48 H532\"/><text x=\"270\" y=\"70\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">H₀: ______ H₁: ______ α: ______</text><text x=\"270\" y=\"110\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estatística: ______ p-valor: ______</text><text x=\"270\" y=\"150\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">p ≤ α: rejeitar H₀; p > α: não rejeitar.</text><text x=\"270\" y=\"190\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Não rejeitar não demonstra igualdade.</text>"
@@ -816,7 +816,7 @@ export default {
       ['es-poisson', 'Poisson (barras)', 220, 130, poisson],
       ['es-assim-pos', 'Assimetria positiva', 220, 146, "<g transform=\"translate(0.00 0.00)\">" + (assimetria(false)) + "</g>"],
       ['es-assim-neg', 'Assimetria negativa', 220, 146, "<g transform=\"translate(0.00 0.00)\">" + (assimetria(true)) + "</g>"],
-      ['es-curtose', 'Curtose — caudas e variância igual', 540, 280, curtose],
+      ['es-curtose', 'Curtose: caudas e variância igual', 540, 280, curtose],
       ['es-bimodal', 'Bimodal', 220, 110, bimodal],
     ]],
     ['Gráficos', [

@@ -316,10 +316,10 @@ export default {
     'el-rele', 'el-lampada', 'el-motor3', 'el-trafo',
   ],
   secoes: [
-    ["Recalque — potência e comando (didático)", AMPLIACAO_B[0]],
-    ["Proteção e aterramento — esquemas didáticos", AMPLIACAO_B[1]],
+    ["Recalque: potência e comando (didático)", AMPLIACAO_B[0]],
+    ["Proteção e aterramento: esquemas didáticos", AMPLIACAO_B[1]],
     ["Medição, energia e modelos preenchíveis", AMPLIACAO_B[2]],
-    ["ETA — acionamento e dosagem (funcional)", AMPLIACAO_B[3]],
+    ["ETA: acionamento e dosagem (funcional)", AMPLIACAO_B[3]],
     ['Componentes passivos', [
       ['el-resistor', 'Resistor', 140, 40, '<path d="M4 20 H36 M104 20 H136"/><rect x="36" y="8" width="68" height="24"/>'],
       ['el-resistorA', 'Resistor (zigue-zague)', 140, 40, '<path d="M4 20 H34 L40 6 L52 34 L64 6 L76 34 L88 6 L100 34 L106 20 H136"/>'],

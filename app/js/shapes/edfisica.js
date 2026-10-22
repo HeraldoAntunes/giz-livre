@@ -491,17 +491,17 @@ const AMPLIACAO_20261009 = [
     [
       [
         "ef-avaliacao-registro",
-        "Avaliação — registro didático",
+        "Avaliação: registro didático",
         540,
         224,
         "<text x=\"270\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Avaliação — registro didático</text><rect x=\"10\" y=\"42\" width=\"520\" height=\"178\" rx=\"3\"/><text x=\"75\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Teste</text><text x=\"205\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Unidade</text><path d=\"M140 42 V220\"/><text x=\"335\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Resultado</text><path d=\"M270 42 V220\"/><text x=\"465\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Condição</text><path d=\"M400 42 V220\"/><path d=\"M10 68 H530\"/><path d=\"M10 106 H530\"/><path d=\"M10 144 H530\"/><path d=\"M10 182 H530\"/>"
       ],
       [
         "ef-tatica-vazia",
-        "Quadra — plano tático preenchível",
+        "Quadra: plano tático preenchível",
         400,
         250,
-        "<rect x=\"20\" y=\"20\" width=\"360\" height=\"210\" rx=\"3\"/><path d=\"M200 20 V230\"/><circle cx=\"200\" cy=\"125\" r=\"37\"/><path d=\"M20 75 H65 V175 H20 M380 75 H335 V175 H380\"/><text x=\"200\" y=\"125\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">A</text>"
+        "<rect x=\"20\" y=\"20\" width=\"360\" height=\"210\" rx=\"3\"/><path d=\"M200 20 V230\"/><circle cx=\"200\" cy=\"125\" r=\"37\"/><path d=\"M20 75 H65 V175 H20 M380 75 H335 V175 H380\"/>"
       ]
     ]
   ]

@@ -435,9 +435,10 @@ const USINAGEM = [
     + '<rect x="56" y="70" width="16" height="26"/><path d="M54 96 H74 L70 110 H58 Z"/><path d="M62 110 V144 L65 150 L68 144 V110"/>' + fino('M62 118 L68 124 M62 128 L68 134 M62 138 L68 144', 1.2)
     + '<rect x="30" y="156" width="74" height="10"/><rect x="44" y="148" width="40" height="8"/><path d="M130 46 L150 32 M130 46 L152 52" stroke-width="2"/><circle cx="150" cy="32" r="3" fill="#C"/><circle cx="152" cy="52" r="3" fill="#C"/>'],
   ['mec-ferramenta-corte', 'Ferramenta de corte (ângulos α, β, γ)', 220, 130, '<path d="M4 80 H110 L124 64 H216 M4 104 H216"/>' + hach(4, 84, 216, 104, 9)
-    + '<path d="M110 80 L30 69 V20 H98 Z"/>' + hachClip('mecfc', 'M110 80 L30 69 V20 H98 Z', 30, 20, 110, 80, 9, true)
+    // a hachura da ferramenta é interrompida numa janela em volta do β (como no desenho técnico), em vez de pintar fundo
+    + '<path d="M110 80 L30 69 V20 H98 Z"/>' + hachClip('mecfc', 'M110 80 L30 69 V20 H98 Z M71 53 V71 H85 V53 Z', 30, 20, 110, 80, 9, true).replace('<path d=', '<path clip-rule="evenodd" d=')
     + '<path d="M101 50 Q108 20 130 22 Q146 26 140 42 M124 64 Q128 46 140 42" stroke-width="2"/>'
-    + oculta('M110 80 V22') + T(112, 10, 'γ', 15) + T(78, 62, 'β', 15) + T(60, 92, 'α', 15) + fino('M70 80 A40 40 0 0 1 70.4 74.5', 1.4)
+    + oculta('M110 80 V22') + T(112, 10, 'γ', 15) + T(78, 62, 'β', 15) + T(18, 70, 'α', 15) /* α na abertura do ângulo, acima da peça (em y 92 ficava sobre a hachura) */ + fino('M70 80 A40 40 0 0 1 70.4 74.5', 1.4)
     + seta(196, 118, 156, 118, 8, 1.6) + T(208, 118, 'vc', 14)],
   ['mec-broca', 'Broca helicoidal', 220, 70, '<rect x="10" y="24" width="80" height="22"/><path d="M90 24 H190 L196.6 35 L190 46 H90"/>'
     + fino('M96 24 L110 46 M114 24 L128 46 M132 24 L146 46 M150 24 L164 46 M168 24 L182 46', 1.6) + centro('M4 35 H214') + T(196, 12, '118°', 14)],
@@ -548,14 +549,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "mc-valvula-portas",
-        "Válvula direcional — modelo de portas",
+        "Válvula direcional: modelo de portas",
         400,
         250,
         "<rect x=\"95\" y=\"75\" width=\"210\" height=\"105\" rx=\"3\"/><path d=\"M200 75 V180 M125 75 V47 M175 75 V47 M125 180 V208 M175 180 V208\"/><text x=\"125\" y=\"25\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">A</text><text x=\"175\" y=\"25\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">B</text><text x=\"125\" y=\"231\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">P</text><text x=\"175\" y=\"231\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">T</text><text x=\"146\" y=\"125\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estado 1</text><text x=\"251\" y=\"125\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estado 2</text>"
       ],
       [
         "mc-sequencia-estados",
-        "Atuador — sequência e conexões",
+        "Atuador: sequência e conexões",
         560,
         224,
         "<text x=\"280\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Atuador — sequência e conexões</text><rect x=\"10\" y=\"42\" width=\"540\" height=\"178\" rx=\"3\"/><text x=\"77.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Estado</text><text x=\"212.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Comando</text><path d=\"M145 42 V220\"/><text x=\"347.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Portas</text><path d=\"M280 42 V220\"/><text x=\"482.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Movimento</text><path d=\"M415 42 V220\"/><path d=\"M10 68 H550\"/><path d=\"M10 106 H550\"/><path d=\"M10 144 H550\"/><path d=\"M10 182 H550\"/>"

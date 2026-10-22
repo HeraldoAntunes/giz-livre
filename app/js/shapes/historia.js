@@ -415,14 +415,16 @@ const navegacoesPrecisas = (() => {
   const at = (lo, la, s) => { const [x, y] = P([lo, la]); return TP(x, y, s); };
   return `<defs><clipPath id="janNav"><rect x="1" y="1" width="${W - 2}" height="${H - 2}"/></clipPath></defs><g clip-path="url(#janNav)"><path d="${polis(MUNDO_NE, P)}" fill="#C" fill-opacity=".12" stroke-width="1.1" stroke-linejoin="round"/></g>` + cabral + colombo + gama
     + `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" stroke-width="1.2"/>`
-    + at(-62, 33, 'Colombo 1492') + at(-26, -24, 'Cabral 1500') + at(62, -37.5, 'Vasco da Gama 1498');
+    + at(-62, 33, 'Colombo 1492') + at(-26, -24, 'Cabral 1500') + at(60.5, -29.5, 'Vasco da Gama', 10) + at(60.5, -36.5, '1498', 10);
 })();
 const tordesilhasPreciso = (() => {
   const W = 240, H = 178, P = janela(-92, 25, -42, 46, W, H), [xl] = P([-46.62, 0]);
   return `<defs><clipPath id="janTor"><rect x="1" y="1" width="${W - 2}" height="${H - 2}"/></clipPath></defs><g clip-path="url(#janTor)"><path d="${polis(MUNDO_NE, P)}" fill="#C" fill-opacity=".12" stroke-width="1.1" stroke-linejoin="round"/></g>`
     + `<path d="M${q1(xl)},4 V${H - 4}" stroke-dasharray="8 5" stroke-width="2.4"/>`
     + `<rect x="1" y="1" width="${W - 2}" height="${H - 2}" stroke-width="1.2"/>`
-    + TP(xl - 34, 16, 'Espanha', 13) + TP(xl + 36, 16, 'Portugal', 13) + TP(xl + 26, H - 12, '1494', 12) + TP(xl - 32, H - 12, '46°37′ O', 10);
+    // Espanha desce para o mar entre a Flórida e a linha (em y 16 ficava sobre o litoral); a longitude passa para o lado
+    // do Atlântico, junto da linha, e 1494 sobe um pouco (à esquerda, embaixo, ficava sobre a América do Sul)
+    + TP(xl - 35, 37, 'Espanha', 13) + TP(xl + 36, 16, 'Portugal', 13) + TP(xl + 26, H - 30, '1494', 12) + TP(xl + 26, H - 12, '46°37′ O', 10);
 })();
 const molduraBR = (W, H) => janela(-74.3, -34.5, -34, 5.6, W, H, 4);
 const capitaniasPrecisas = (() => {
@@ -523,14 +525,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "his-linha-processos",
-        "Linha do tempo — processos e relações",
+        "Linha do tempo: processos e relações",
         520,
         210,
         "<path d=\"M20 103 H500\"/><circle cx=\"70\" cy=\"103\" r=\"5\"/><text x=\"70\" y=\"69\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Data: ____</text><text x=\"70\" y=\"145\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Processo: ____</text><circle cx=\"260\" cy=\"103\" r=\"5\"/><text x=\"260\" y=\"69\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Data: ____</text><text x=\"260\" y=\"145\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Processo: ____</text><circle cx=\"450\" cy=\"103\" r=\"5\"/><text x=\"450\" y=\"69\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Data: ____</text><text x=\"450\" y=\"145\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Processo: ____</text><text x=\"260\" y=\"188\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Contexto: __________________________</text>"
       ],
       [
         "his-fontes-comparar",
-        "Fontes históricas — comparar",
+        "Fontes históricas: comparar",
         580,
         224,
         "<text x=\"290\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fontes históricas — comparar</text><rect x=\"10\" y=\"42\" width=\"560\" height=\"178\" rx=\"3\"/><text x=\"80\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fonte</text><text x=\"220\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Autoria/época</text><path d=\"M150 42 V220\"/><text x=\"360\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Perspectiva</text><path d=\"M290 42 V220\"/><text x=\"500\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Limite</text><path d=\"M430 42 V220\"/><path d=\"M10 68 H570\"/><path d=\"M10 106 H570\"/><path d=\"M10 144 H570\"/><path d=\"M10 182 H570\"/>"

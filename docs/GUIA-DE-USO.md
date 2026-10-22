@@ -24,6 +24,14 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 3. No Giz Livre, abra **Caneta e escrita** e escreva na área de teste. Deve aparecer "✓ Caneta reconhecida com pressão".
 4. Ajuste o **Filtro de posição** (Leve, Médio ou Forte) até o traço ficar firme.
 
+**Sem Windows Ink.** O Giz Livre funciona: a mesa chega como mouse e desenha com espessura fixa. Continuam iguais as
+ferramentas, o estabilizador, o embelezar escrita, a escrita→texto, a régua, o transferidor e as formas. Perdem-se a
+pressão, o afinamento do início e do fim do traço, a ponta-borracha e o botão lateral como ação própria (vira clique
+direito e move o quadro); em tela com caneta e toque, o dedo continua desenhando. Contornos: o estilo **Tinteiro** varia a
+espessura pela velocidade, e "Dedo: Sempre move o quadro" no painel Caneta evita traço da palma. O painel **Caneta e
+escrita** mostra se o último traço no quadro trouxe pressão e, se a caneta vier sem pressão, lembra de ligar *Usar
+Windows Ink* no driver.
+
 ## 3. Criar um quadro
 **Criar novo quadro** oferece:
 - **Quadro livre:** tela infinita, sem bordas.
@@ -44,7 +52,7 @@ O programa abre numa janela própria do Edge ou do Chrome e funciona sem interne
 | Trocar a folha | botão **Folha** na bandeja: quadriculada, milimetrada, pautada, caderno, caligrafia, isométrica, hexagonal, plano cartesiano, polar, pauta musical, Cornell… |
 | Lousa verde | botão Folha → cor "Lousa verde" (a tinta preta aparece branca; sobre página de PDF continua preta). Trocar a folha também se desfaz com `Ctrl+Z` |
 | Letra mais bonita | botão ✦: Suave / Moderado / Forte; ajusta cada palavra assim que você passa para a próxima |
-| Escrita → texto | laço na escrita → botão "Converter escrita em texto"; escolha uma fonte cursiva |
+| Escrita → texto | laço na escrita → botão "Converter escrita em texto"; escolha uma fonte cursiva. Precisa do reconhecimento de escrita do Windows: para português, *Configurações → Hora e idioma → Idioma e região → Português (Brasil) → Opções de idioma → Manuscrito*. Sem nenhum reconhecedor o botão não aparece; com outro idioma, o texto sai nesse idioma (o painel Caneta e escrita avisa) |
 | Ferramentas | botão **Ferramentas** (esquadro e lápis): lupa de escrita, transferidor (a caneta corre presa ao arco e à base), compasso, cortina, holofote, cronômetro (dá para digitar o tempo: 7, 7,5 ou 7:30), relógio, fórmula LaTeX e escrita→texto (a tabela periódica fica em Formas → Química → Especiais). Vêm numa **barra fixa à direita**, com o nome embaixo de cada ícone; no botão Ferramentas dá para pôr à esquerda ou deixar só no menu. O **holofote** abre um painel para ajustar tamanho, formato (círculo, quadrado, faixa) e quanto escurece o resto |
 | Gráfico de função | **Ferramentas → Plotar função**: digite `x^2 - 4`, `2sen(x)`, `1/x`… ou escolha um **modelo por área** (Chick, DBO, Streeter-Phelps, senoide, RC, normal…) e ajuste os parâmetros. A curva sai com os eixos desenhados (dá para apagar ou mover). **Experimental:** escolha um parâmetro em "Variar"; a curva vem parada no valor do diálogo. Mude o valor (controle ou número), escolha a cor e toque em **Fixar esta curva** (ou **Enter**) para gravar; repita para comparar curvas. **Espaço** anima e pausa |
 | Texto, nota, forma, imagem | coluna à esquerda (ou cole uma imagem com `Ctrl+V`) |

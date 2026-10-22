@@ -190,14 +190,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "pt-paragrafo-plano",
-        "Parágrafo — planejamento preenchível",
+        "Parágrafo: planejamento preenchível",
         520,
         158,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Parágrafo — planejamento preenchível</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Tópico frasal</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">ideia: ______</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Desenvolvimento</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">evidência: _____</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fechamento</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">vínculo: _____</text>"
       ],
       [
         "pt-sintaxe-modelo",
-        "Análise sintática — preencher",
+        "Análise sintática: preencher",
         540,
         224,
         "<text x=\"270\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Análise sintática — preencher</text><rect x=\"10\" y=\"42\" width=\"520\" height=\"178\" rx=\"3\"/><text x=\"75\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Trecho</text><text x=\"205\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Função</text><path d=\"M140 42 V220\"/><text x=\"335\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Núcleo</text><path d=\"M270 42 V220\"/><text x=\"465\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Relação</text><path d=\"M400 42 V220\"/><path d=\"M10 68 H530\"/><path d=\"M10 106 H530\"/><path d=\"M10 144 H530\"/><path d=\"M10 182 H530\"/>"
@@ -284,7 +284,7 @@ export default {
       ['por-acento-agudo', 'Acento agudo (´)', 100, 128, "<g transform=\"translate(0.00 1.00)\">" + (T(50, 64, 'e', 76) + L('M44 28 L58 4 L69 8 L50 31 Z', ' fill="#C" stroke-width="1.5"') + N(50, 112, 'agudo')) + "</g>"],
       ['por-acento-circunflexo', 'Acento circunflexo (^)', 100, 127, "<g transform=\"translate(0.00 0.00)\">" + (T(50, 64, 'e', 76) + L('M34 28 L50 8 L66 28', ' stroke-width="6"') + N(50, 112, 'circunflexo')) + "</g>"],
       ['por-til', 'Til (~)', 100, 127, "<g transform=\"translate(0.00 0.00)\">" + (T(50, 64, 'a', 76) + L('M32 24 Q40 10 50 18 T68 14', ' stroke-width="6"') + N(50, 112, 'til')) + "</g>"],
-      ['por-acento-grave', 'Acento grave (`) — crase', 100, 128, "<g transform=\"translate(0.00 1.00)\">" + (T(50, 64, 'a', 76) + L('M56 28 L42 4 L31 8 L50 31 Z', ' fill="#C" stroke-width="1.5"') + N(50, 112, 'grave (crase)')) + "</g>"],
+      ['por-acento-grave', 'Acento grave (`) e crase', 100, 128, "<g transform=\"translate(0.00 1.00)\">" + (T(50, 64, 'a', 76) + L('M56 28 L42 4 L31 8 L50 31 Z', ' fill="#C" stroke-width="1.5"') + N(50, 112, 'grave (crase)')) + "</g>"],
       ['por-cedilha', 'Cedilha (ç)', 100, 129, "<g transform=\"translate(0.00 0.00)\">" + (T(50, 56, 'c', 76) + L('M52 82 V88 Q63 88 61 95 Q59 100 46 98', ' stroke-width="5"') + N(50, 114, 'cedilha')) + "</g>"],
       ['por-crase', 'Crase: a + a = à', 260, 110, B(28, 10, 44, 44, 'a', 26) + T(90, 32, '+', 22) + B(108, 10, 44, 44, 'a', 26) + T(170, 32, '=', 22) +
         B(188, 10, 44, 44, 'à', 26, ' stroke-width="4.5"') + N(50, 72, 'preposição') + N(130, 72, 'artigo') + N(210, 72, 'crase') + I(130, 98, 'vou a + a praia → vou à praia')],

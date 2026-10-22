@@ -174,7 +174,7 @@ const globoCoord = () => {
   return `<circle cx="${cx}" cy="${cy}" r="${r}"/>` + fino(`M${cx - r},${cy} H${cx + r}`, 2) + fino(`M${cx},${cy - r} V${cy + r}`, 1.6) +
     fino(`M${cx},${cy - r} A40,${r} 0 0,1 ${cx},${cy + r}`, 1.6) + trac(`M${cx},${cy} L${px},${py} M${cx},${cy} H${cx + 40}`, 1.4, '4 3') +
     fino(`M${cx + 22},${cy} A22,22 0 0,0 ${f(cx + 22 * Math.cos(ang))},${f(cy + 22 * Math.sin(ang))}`, 1.6) +
-    ponto(px, py, 4) + ponto(cx, cy, 2.5) + T(px + 10, py - 12, 'P', 16) + T(cx + 32, cy - 13, 'φ', 16) +
+    ponto(px, py, 4) + ponto(cx, cy, 2.5) + T(px + 15, py + 11, 'P', 16) /* entre o meridiano e a borda: acima do ponto ficava sobre o contorno */ + T(cx + 32, cy - 13, 'φ', 16) +
     seta(cx + 2, cy + 12, cx + 40, cy + 12, 1.6, 8) + T(cx + 21, cy + 25, 'λ', 16) + t14(cx, 12, 'N') + t14(cx, 174, 'S');
 };
 const paralelos = () => {
@@ -446,10 +446,22 @@ const SECOES = [
         + BR_REG_ROT.map(([s, lo, la]) => { const [x, y] = P([lo, la]); return T(f(x), f(y), s, 15); }).join('');
     })()],
     ['geo-brasil-estados-preciso', 'Brasil: estados (preciso)', 240, 240, (() => {
-      const P = encaixe(BRASIL_UF, 240, 240, 0.98);
+      // a caixa vai até 30° O para sobrar mar a leste: os estados pequenos têm a sigla fora, ligada por linha de chamada
+      const P = encaixe([...BRASIL_UF, [[-30, -15]]], 240, 240, 0.98);
+      const FORA = { RN: [-31.6, -4.2], PB: [-31.6, -6.6], PE: [-31.6, -9], AL: [-31.6, -11.4], SE: [-31.6, -13.8],
+        ES: [-36.6, -20.2], RJ: [-40.2, -25], DF: [-49.9, -14.3] };
+      const DENTRO = { GO: [-51.1, -16.8] };
+      const chamada = (a, b) => { // da âncora no estado até a beira da caixa do rótulo (meia largura 5, meia altura 4)
+        const dx = b[0] - a[0], dy = b[1] - a[1], t = 1 - Math.min(5 / Math.abs(dx || 1e-9), 4 / Math.abs(dy || 1e-9), 1);
+        return `<path stroke-width="0.8" d="M${f(a[0])},${f(a[1])} L${f(a[0] + dx * t)},${f(a[1] + dy * t)}"/>`;
+      };
       return `<path stroke-width="1.8" stroke-linejoin="round" d="${linhaReta(BRASIL_UF, P)}"/>`
         + BR_UF_DIV.map(l => `<path stroke-width="0.9" d="M${l.map(P).map(q => q.map(f).join(',')).join(' L')}"/>`).join('')
-        + BR_UF_ROT.map(([s, lo, la]) => { const [x, y] = P([lo, la]); return T(f(x), f(y), s, ['DF', 'SE', 'AL', 'PB', 'RN', 'ES', 'RJ'].includes(s) ? 6.5 : 8.5); }).join('');
+        + BR_UF_ROT.map(([s, lo, la]) => {
+          if (!FORA[s]) { const [x, y] = P(DENTRO[s] || [lo, la]); return T(f(x), f(y), s, 8.5); }
+          const a = P([lo, la]), [x, y] = P(FORA[s]);
+          return chamada(a, [x, y]) + T(f(x), f(y), s, 6.5);
+        }).join('');
     })()],
     ['geo-america-sul-precisa', 'América do Sul (precisa)', 150, 200, preciso(AM_SUL_NE, 150, 200, 0.94)],
     ['geo-america-norte-precisa', 'América do Norte e Central (precisa)', 210, 200, preciso(AM_NORTE_NE, 210, 200, 0.55)],
@@ -505,14 +517,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "geo-escala-preencher",
-        "Escala gráfica — preencher distâncias",
+        "Escala gráfica: preencher distâncias",
         440,
         150,
         "<text x=\"220\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Escala gráfica — unidade: ______</text><path d=\"M30 72 H410 M30 64 V80 M125 64 V80 M220 64 V80 M315 64 V80 M410 64 V80\"/><text x=\"30\" y=\"105\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___</text><text x=\"125\" y=\"105\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___</text><text x=\"220\" y=\"105\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___</text><text x=\"315\" y=\"105\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___</text><text x=\"410\" y=\"105\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___</text>"
       ],
       [
         "geo-legenda-vazia",
-        "Legenda cartográfica — preencher",
+        "Legenda cartográfica: preencher",
         500,
         224,
         "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Legenda cartográfica — preencher</text><rect x=\"10\" y=\"42\" width=\"480\" height=\"178\" rx=\"3\"/><text x=\"90\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Símbolo</text><text x=\"250\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Significado</text><path d=\"M170 42 V220\"/><text x=\"410\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Fonte</text><path d=\"M330 42 V220\"/><path d=\"M10 68 H490\"/><path d=\"M10 106 H490\"/><path d=\"M10 144 H490\"/><path d=\"M10 182 H490\"/>"

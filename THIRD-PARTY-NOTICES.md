@@ -15,7 +15,7 @@ na pasta `licencas\`.
 | **Python** (Python Software Foundation) | 3.13 | servidor local; vai embutido no executável | PSF License Agreement | `licencas/python-LICENSE.txt` |
 | **libffi** | junto com o Python 3.13 | `ctypes` (janelas de aviso do Windows) | MIT | incluída em `licencas/python-LICENSE.txt` |
 | **Microsoft Visual C++ Runtime** (`VCRUNTIME140.dll`) | junto com o Python 3.13 | requisito do Python no Windows | redistribuível da Microsoft | termos da Microsoft para redistribuíveis do Visual Studio |
-| **PyInstaller** (bootloader e *runtime hooks*) | 6.11.1 | gera o `GizLivre.exe` | bootloader: GPL 2.0 com exceção, que permite distribuir o executável gerado sob qualquer licença; *runtime hooks* embutidos: Apache License 2.0 | https://github.com/pyinstaller/pyinstaller (arquivo COPYING.txt) |
+| **PyInstaller** (bootloader e *runtime hooks*) | 6.22.3 | gera o `GizLivre.exe` | bootloader: GPL 2.0 com exceção, que permite distribuir o executável gerado sob qualquer licença; *runtime hooks* embutidos: Apache License 2.0 | https://github.com/pyinstaller/pyinstaller (arquivo COPYING.txt) |
 | **Inno Setup** (Jordan Russell e Martijn Laan) | 6.7.3 | gera o instalador | Licença do Inno Setup (uso gratuito, inclusive comercial) | https://jrsoftware.org/files/is/license.txt |
 
 **Formas e ícones da biblioteca:** não são de terceiros. As 3.379 formas de `app/js/shapes/` e os desenhos de

@@ -237,7 +237,9 @@ const TERMOLOGIA = [
     + head(104, 36, 0, 11) + head(150, 71, 90, 11) + head(96, 98, 180, 11) + head(50, 63, -90, 11) + ti(100, 67, 'W', 17)) + "</g>"],
   ['fis-isotermas', 'Isotermas (p × V)', 182, 163, "<g transform=\"translate(0.00 5.00)\">" + (eixos(24, 130, 174, 6, 'V', 'p')
     + `<path d="${isoterma(1300)}" stroke-width="2"/><path d="${isoterma(2400)}" stroke-width="2"/><path d="${isoterma(3800)}" stroke-width="2"/>`
-    + ti(162, 112, sub('T', '1'), 14) + ti(162, 86, sub('T', '2'), 14) + ti(162, 62, sub('T', '3'), 14)) + "</g>"],
+    // as três curvas chegam à direita com só 8 a 10 px entre si: não cabe rótulo entre elas, então os rótulos ficam
+    // empilhados acima da curva mais alta, na mesma ordem das curvas (o T1 em y 112 ficava sobre a curva T2)
+    + ti(162, 84, sub('T', '1'), 14) + ti(162, 66, sub('T', '2'), 14) + ti(162, 48, sub('T', '3'), 14)) + "</g>"],
   ['fis-maquina-termica', 'Máquina térmica', 160, 190, '<rect x="16" y="8" width="128" height="32" rx="4"/>' + tx(80, 24, 'Fonte quente', 14)
     + '<circle cx="80" cy="95" r="22"/>' + tx(80, 95, 'M', 18) + '<rect x="16" y="150" width="128" height="32" rx="4"/>' + tx(80, 166, 'Fonte fria', 14)
     + seta(80, 40, 80, 72) + seta(80, 117, 80, 150) + seta(102, 95, 152, 95) + ti(98, 56, sub('Q', '1'), 16) + ti(98, 134, sub('Q', '2'), 16) + ti(132, 80, 'W')],
@@ -263,7 +265,7 @@ const longX = passo(0, 36, 1).map((i) => { const u = 12 + i * 6; return u - 8 * 
 const arcosLim = (sx, sy, rs, H, amax = 90) => rs.map((r) => arco(sx, sy, r, -Math.min(amax, Math.asin(Math.min(1, (H - 6 - sy) / r)) * 180 / Math.PI), Math.min(amax, Math.asin(Math.min(1, (sy - 6) / r)) * 180 / Math.PI), 1.4)).join('');
 const ONDAS = [
   ['fis-onda-transversal', 'Onda transversal (λ e A)', 240, 106, trac('M8 60 H232', 1.2) + `<path d="${ondaT(12, 228, 60, 34, 96)}"/>`
-    + trac('M36 26 V14 M132 26 V14', 1.1) + cota(36, 14, 132, 14, 'λ', 10) + seta(180, 60, 180, 92, 1.5, 8) + ti(194, 72, 'A', 15)],
+    + trac('M36 26 V14 M132 26 V14', 1.1) + cota(36, 14, 132, 14, 'λ', 10) + seta(180, 60, 180, 92, 1.5, 8) + ti(202, 92, 'A', 15)], // A ao lado do vale: em (194, 72) ficava sobre a onda
   ['fis-onda-longitudinal', 'Onda longitudinal (compressão)', 240, 98, fina(longX.map((x) => `M${r1(x)} 18 V60`).join(' '), 2)
     + cota(84, 84, 156, 84, 'λ', 10)],
   ['fis-onda-estacionaria', 'Onda estacionária (nós e ventres)', 240, 112, '<path d="M12 22 V88 M228 22 V88" stroke-width="3"/>'
@@ -305,14 +307,14 @@ const OPTICA = [
     + seta(10, 40, 60, 40, 1.8, 10) + '<path d="M60 40 H82.6" stroke-width="1.8"/>' + seta(82.6, 40, 24, 14.5, 1.8, 10) + trac('M82.6 40 L140 65', 1.3)],
   ['fis-lente-convergente', 'Lente convergente', 200, 120, trac('M8 60 H192', 1.2) + '<path d="M100 10 Q124 60 100 110 Q76 60 100 10 Z"/>'
     + '<path d="M10 36 H100 L190 79.2 M10 84 H100 L190 40.8" stroke-width="1.6"/>' + head(56, 36, 0, 9) + head(56, 84, 0, 9) + head(176, 72.5, 25.6, 9) + head(176, 47.5, -25.6, 9)
-    + ponto(50, 60) + ponto(150, 60) + tx(50, 50, 'F', 15) + tx(160, 42, "F'", 15)],
+    + ponto(50, 60) + ponto(150, 60) + tx(50, 50, 'F', 15) + tx(160, 42, 'F', 15)],
   ['fis-lente-divergente', 'Lente divergente', 200, 120, trac('M8 60 H192', 1.2) + '<path d="M88 10 H112 Q98 60 112 110 H88 Q102 60 88 10 Z"/>'
     + '<path d="M10 44 H100 L190 15.2 M10 76 H100 L190 104.8" stroke-width="1.6"/>' + head(56, 44, 0, 9) + head(56, 76, 0, 9) + head(176, 19.7, -17.7, 9) + head(176, 100.3, 17.7, 9)
-    + trac('M100 44 L50 60 L100 76', 1.2) + ponto(50, 60) + ponto(150, 60) + tx(50, 76, 'F', 15) + tx(150, 76, "F'", 15)],
+    + trac('M100 44 L50 60 L100 76', 1.2) + ponto(50, 60) + ponto(150, 60) + tx(50, 90, 'F', 15) + tx(150, 76, 'F', 15)],
   ['fis-imagem-lente', 'Formação de imagem (lente convergente)', 240, 140, trac('M8 70 H232', 1.2) + lenteSeta(120, 12, 128, true)
     + seta(40, 70, 40, 34, 2.4, 11) + seta(200, 70, 200, 106, 2.4, 11)
     + '<path d="M40 34 H120 L200 106 M40 34 L200 106 M40 34 L120 106 H200" stroke-width="1.4"/>'
-    + ponto(80, 70, 3) + ponto(160, 70, 3) + tx(80, 84, 'F', 14) + tx(160, 56, "F'", 14)],
+    + ponto(80, 70, 3) + ponto(160, 70, 3) + tx(80, 84, 'F', 14) + tx(160, 56, 'F', 14)],
   ['fis-refracao', 'Refração (lei de Snell)', 170, 170, '<rect x="8" y="85" width="154" height="77" fill="#C" fill-opacity=".1" stroke="none"/><path d="M8 85 H162" stroke-width="2"/>' + trac('M85 8 V162', 1.2)
     + '<path d="M40 31.4 L85 85 L116.7 153" stroke-width="2.2"/>' + head(63, 58.6, 50, 11) + head(101.5, 120.4, 65, 11)
     + arco(85, 85, 30, 90, 130) + arco(85, 85, 34, 270, 295) + ti(72, 46, sub('θ', '1'), 15) + ti(98, 132, sub('θ', '2'), 15) + ti(26, 70, sub('n', '1'), 15) + ti(26, 102, sub('n', '2'), 15)],
@@ -396,7 +398,7 @@ const nucleos = [[0, 0], ...passo(0, 300, 60).map((a) => [20 * Math.cos(rad(a)),
 const MODERNA = [
   ['fis-bohr', 'Átomo de Bohr (órbitas)', 180, 170, '<circle cx="80" cy="85" r="8" fill="#C" stroke="none"/>' + [22, 44, 66].map((r) => `<circle cx="80" cy="85" r="${r}" stroke-width="1.6"/>`).join('')
     + '<circle cx="126.7" cy="38.3" r="5" fill="#C" stroke="none"/>' + seta(124, 42, 113, 53, 1.6, 7) + onda(118, 58, 172, 90, 5, 3, 1.8, 10) + ti(160, 64, 'hf', 15)
-    + tx(96, 104, '1', 14) + tx(106, 128, '2', 14) + tx(118, 150, '3', 14)],
+    + tx(101, 110, '1', 14) + tx(106, 128, '2', 14) + tx(118, 150, '3', 14)], // '1' entre as órbitas 1 e 2 (em (96, 104) ficava sobre a órbita 1)
   ['fis-niveis-energia', 'Níveis de energia (transições)', 180, 156, seta(20, 150, 20, 8, 2, 10) + ti(34, 12, 'E') + fina('M40 140 H140 M40 84 H140 M40 54 H140 M40 38 H140', 2)
     + tx(160, 140, 'n=1', 14) + tx(160, 84, 'n=2', 14) + tx(160, 54, 'n=3', 14) + tx(160, 36, 'n=4', 14)
     + seta(64, 54, 64, 84, 1.8, 9) + seta(92, 84, 92, 140, 1.8, 9) + seta(118, 38, 118, 84, 1.8, 9)],
@@ -412,7 +414,8 @@ const MODERNA = [
   ['fis-rutherford', 'Experimento de Rutherford', 210, 130, '<rect x="8" y="54" width="30" height="22"/>' + tx(23, 65, 'α', 15) + '<path d="M118 14 V116" stroke-width="3"/>' + tx(134, 14, 'Au', 14)
     + '<path d="M38 65 H118" stroke-width="1.8"/>' + seta(118, 65, 200, 65, 1.8, 9) + seta(118, 65, 190, 26, 1.6, 9) + seta(118, 65, 186, 108, 1.6, 9) + seta(118, 65, 70, 22, 1.6, 9)
    ],
-  ['fis-decaimento', 'Decaimento radioativo (meia-vida)', 200, 144, eixos(44, 118, 196, 6, 't', 'N') + `<path d="${curva((x) => [x, 118 - 98 * 2 ** (-(x - 44) / 36)], 44, 190, 80)}" stroke-width="2.4"/>`
+  // o rótulo N do eixo sai de (58, 11) para (66, 12), longe da ponta da seta e do N₀ (ficavam colados no canto de cima)
+  ['fis-decaimento', 'Decaimento radioativo (meia-vida)', 200, 144, eixos(44, 118, 196, 6, 't', 'N').replace('x="58" y="11"', 'x="66" y="12"') +`<path d="${curva((x) => [x, 118 - 98 * 2 ** (-(x - 44) / 36)], 44, 190, 80)}" stroke-width="2.4"/>`
     + trac('M44 69 H80 V118 M44 93.5 H116 V118', 1.2) + tx(22, 20, sub('N', '0'), 14) + tx(24, 69, 'N₀/2', 14) + tx(24, 93.5, 'N₀/4', 14)
     + tx(80, 132, 'T½', 14) + tx(116, 132, '2T½', 14)],
   ['fis-nucleo', 'Núcleo atômico (prótons e nêutrons)', 110, 110, nucleos.map(([x, y], i) => `<circle cx="${r1(55 + x)}" cy="${r1(55 + y)}" r="9.5"${i % 2 ? ' fill="#C"' : ''} stroke-width="1.8"/>`).join('')],
@@ -449,14 +452,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "fis-dcl-preencher",
-        "Corpo livre — forças a identificar",
+        "Corpo livre: forças a identificar",
         360,
         270,
         "<rect x=\"145\" y=\"100\" width=\"70\" height=\"70\" rx=\"3\"/><path d=\"M215 135 L321 135\"/><path d=\"M314 131 L321 135 L314 139\"/><path d=\"M180 100 V36 M176 43 L180 36 L184 43 M180 170 V232 M176 225 L180 232 L184 225 M145 135 H39 M46 131 L39 135 L46 139\"/><text x=\"180\" y=\"20\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">F₁ = ____ N</text><text x=\"285\" y=\"112\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">F₂ = ___ N</text><text x=\"180\" y=\"252\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">F₃ = ____ N</text><text x=\"74\" y=\"112\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">F₄ = ___ N</text>"
       ],
       [
         "fis-balanco-unidades",
-        "Balanço físico — dados e unidades",
+        "Balanço físico: dados e unidades",
         540,
         224,
         "<text x=\"270\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Balanço físico — dados e unidades</text><rect x=\"10\" y=\"42\" width=\"520\" height=\"178\" rx=\"3\"/><text x=\"75\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Grandeza</text><text x=\"205\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Símbolo</text><path d=\"M140 42 V220\"/><text x=\"335\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Valor</text><path d=\"M270 42 V220\"/><text x=\"465\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Unidade</text><path d=\"M400 42 V220\"/><path d=\"M10 68 H530\"/><path d=\"M10 106 H530\"/><path d=\"M10 144 H530\"/><path d=\"M10 182 H530\"/>"

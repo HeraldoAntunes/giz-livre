@@ -17,7 +17,7 @@ import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHe
 import { ICON, penIcon } from './icons.js';
 import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc } from './ui.js';
 import { VERSION } from './version.js';
-import { DEFAULT_TABLET, openTabletSettings } from './tablet.js';
+import { DEFAULT_TABLET, openTabletSettings, pressureKind, pressureState, PRESSAO_INICIAL, ocrAviso } from './tablet.js';
 import { createStabilizer, smoothPts, resampleN } from './stabilizer.js';
 import { beautify, canBeautify, restoreOriginal, box as ptsBox } from './beautify.js';
 import * as PAPER from './paper.js';
@@ -30,7 +30,7 @@ import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaI
 import { svgDataUrl } from './library.js';
 import { ESPECIAIS } from './especiais.js';   // elementos didáticos coloridos (menu Formas → Especiais)
 import { initBars, placeAll as placeBars, resetBars, resetBar, recolhivelDeNovo } from './bars.js';
-import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
+import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById, temTexto } from './shapelib.js';
 import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas, disciplinasEmDestaque } from './disciplinas.js';
 import { temPendentes, hidratarPendentes, aplicarTrocas, painelAgentes } from './agente.js';
 import { abrirAjuda, fecharAjuda, ajudaAberta, iniciarTour, tourDaPrimeiraVez, tourEmAndamento, encerrarTour } from './ajuda.js';
@@ -119,6 +119,7 @@ let editing = null;      // {id, isNew}
 let clipboard = null;
 let shapeKind = 'rect';
 let penSeen = false, spaceDown = false;
+let penPress = PRESSAO_INICIAL, ocrAvisado = false;   // pressão dos traços (painel Caneta) e aviso do idioma da escrita→texto
 const pointers = new Map();
 let cv, ctx, ov, octx, W = 0, H = 0, dpr = 1;
 let raf = 0, needStatic = false, needOverlay = false;
@@ -628,6 +629,11 @@ function drawSelection() {
   const single = sel.size === 1 ? byId([...sel][0]) : null;
   bar.querySelector('[data-sel="edit"]').hidden = !(single && (single.type === 'text' || single.type === 'note'));
   bar.querySelector('[data-sel="color"]').hidden = [...sel].every(id => { const it = byId(id); return it?.type === 'image' && !it.lib; });
+  const leg = bar.querySelector('[data-sel="legendas"]'), comTexto = [...sel].map(byId).filter(libComTexto);
+  leg.hidden = !comTexto.length;
+  const ligadas = comTexto.every(i => !i.semLegendas);
+  leg.classList.toggle('on', ligadas); leg.setAttribute('aria-pressed', String(ligadas));
+  leg.title = ligadas ? 'Legendas ligadas: toque para esconder os textos da forma' : 'Legendas escondidas: toque para mostrar os textos da forma';
   bar.querySelector('[data-sel="beautify"]').hidden = ![...sel].some(id => { const it = byId(id); return it && canBeautify(it); });
   bar.querySelector('[data-sel="original"]').hidden = ![...sel].some(id => byId(id)?.orig || byId(id)?.ink);
   bar.querySelector('[data-sel="ocr"]').hidden = serverInfo().ocr === false || ![...sel].some(id => byId(id)?.type === 'stroke' && byId(id)?.tool === 'pen');
@@ -1354,8 +1360,25 @@ function buscaRapida() {
 
 // forma da biblioteca: entra no centro da tela, no tamanho natural, na cor da caneta, já selecionada
 function recolorLib(it, color) {
-  const m = shapeSvg(it.lib, color);
+  const m = shapeSvg(it.lib, color, { semTexto: !!it.semLegendas });
   return m ? { ...it, tint: color, src: svgDataUrl(m.svg) } : it;
+}
+// Legendas: esconde ou mostra os textos do desenho (exercício de "complete o desenho"); item novo, entra no histórico
+const libComTexto = it => it?.type === 'image' && !!it.lib && temTexto(it.lib);
+function alternaLegendas(ids) {
+  const alvos = S.items.filter(i => ids.has(i.id) && libComTexto(i));
+  if (!alvos.length) return;
+  const esconder = alvos.some(i => !i.semLegendas);   // misturado: esconde em todas
+  commit(S.items.map(i => {
+    if (!ids.has(i.id) || !libComTexto(i)) return i;
+    const { semLegendas, ...resto } = i;
+    const n = esconder ? { ...resto, semLegendas: true } : resto;
+    // quadro antigo sem `tint`: a cor sai do próprio src gravado
+    const cor = i.tint || decodeURIComponent(i.src || '').match(/stroke="(#[0-9a-fA-F]{3,8})"/)?.[1] || '#1b1b1b';
+    const m = shapeSvg(i.lib, cor, { semTexto: esconder });
+    return m ? { ...n, tint: cor, src: svgDataUrl(m.svg) } : n;
+  }));
+  toast(esconder ? 'Legendas escondidas. Ctrl+Z desfaz.' : 'Legendas de volta.');
 }
 
 // apaga tudo de uma vez: só o que foi escrito (PDF/slides ficam) ou tudo mesmo; dá para desfazer
@@ -1776,7 +1799,7 @@ function onDown(e) {
     const stab = createStabilizer(cfg.tablet);
     const f0 = stab.push(e.clientX, e.clientY, P.p, e.timeStamp);
     if (f0) { const w0 = toWorld(f0.x, f0.y); stroke.pts = [w0.x, w0.y, f0.p]; }
-    action = { type: 'draw', id: e.pointerId, stroke, snap: null, stab };
+    action = { type: 'draw', id: e.pointerId, stroke, snap: null, stab, raw: { type: e.pointerType, p: [e.pressure] } };
     if (ruler) {
       const { len, th } = rulerDims(), l = rulerLocal(P.x, P.y);
       const near = 48 / S.view.zoom;
@@ -1886,6 +1909,7 @@ function onMove(e) {
     case 'draw': {
       const s = action.stroke, minD = 0.6 / S.view.zoom;
       for (const ce of list) {
+        if (action.raw.p.length < 64) action.raw.p.push(ce.pressure);
         const P = pt(ce);
         const f = action.stab.push(P.sx, P.sy, P.p, ce.timeStamp);
         if (!f) continue;
@@ -2008,6 +2032,7 @@ function onUp(e) {
     case 'compassR': case 'compassArc': case 'protractor': case 'curtain': case 'stripbox': instrumentUp(a); break;
     case 'draw': {
       let s = a.stroke;
+      penPress = pressureState(penPress, pressureKind(a.raw.type, a.raw.p));
       if (a.snap == null) {
         const fin = a.stab.end();
         if (fin) {
@@ -2163,7 +2188,8 @@ function beautifyIfMovedOn(wx, wy) {
 // para não levar junto a forma de fundo quando se apaga um traço escrito por cima. Foto e slide ficam protegidos.
 const libMasks = new Map(); // lib → {w, h, a: alfa por pixel no tamanho natural}
 function libMask(it) {
-  if (libMasks.has(it.lib)) return libMasks.get(it.lib);
+  const chave = it.lib + (it.semLegendas ? '/sem' : '');   // sem legendas: a borracha não "vê" os textos que sumiram
+  if (libMasks.has(chave)) return libMasks.get(chave);
   const img = R.loadedImage(it);
   if (!img) return null;
   const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
@@ -2171,7 +2197,7 @@ function libMask(it) {
   const d = g.getImageData(0, 0, c.width, c.height).data, a = new Uint8Array(c.width * c.height);
   for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3];
   const m = { w: c.width, h: c.height, a };
-  libMasks.set(it.lib, m);
+  libMasks.set(chave, m);
   return m;
 }
 function hitLib(it, x, y, tol) {
@@ -2256,6 +2282,7 @@ function selAction(k, btn) {
   else if (k === 'back') commit([...S.items.filter(i => ids.has(i.id)), ...S.items.filter(i => !ids.has(i.id))]);
   else if (k === 'edit') { const it = byId([...sel][0]); if (it?.latex) formulaDialog(it); else startEdit(it.id); }
   else if (k === 'ocr') inkToText([...ids]);
+  else if (k === 'legendas') alternaLegendas(ids);
   else if (k === 'font') fontPop(btn);
   else if (k === 'menor' || k === 'maior') mudaTamanho(k === 'maior');
   else if (k === 'beautify') { if (!applyBeauty(S.items.filter(i => ids.has(i.id)), true).size) toast('Nada para embelezar: selecione linhas escritas à mão'); }
@@ -2608,7 +2635,7 @@ function openMenu(anchor) {
     p.querySelector('[data-a="disc"]').onclick = () => { hidePop(); escolherDisciplinas(); };
     p.querySelector('[data-a="agentes"]').onclick = () => { hidePop(); painelAgentes(wfetch, toast); };
     p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION, flush); };
-    p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg); };
+    p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg, () => penPress); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
     p.querySelector('[data-a="avisoZ"]').onclick = () => { hidePop(); avisoDesfazerPop(anchor); };
   });
@@ -3710,7 +3737,7 @@ async function formulaDialog(edit = null) {
 // ---------- escrita → texto ----------
 async function inkToText(ids) {
   const target = S;
-  if (serverInfo().ocr === false) return toast('A conversão de escrita em texto usa o reconhecedor do Windows e não está disponível neste sistema.', 6000);
+  if (serverInfo().ocr === false) return toast(ocrAviso(serverInfo()) || 'A conversão de escrita em texto usa o reconhecedor do Windows e não está disponível neste sistema.', 9000);
   const strokes = S.items.filter(i => ids.includes(i.id) && i.type === 'stroke' && i.tool === 'pen');
   if (!strokes.length) return toast('Selecione a escrita (traços de caneta) com o laço');
   const z = S.view.zoom;
@@ -3724,8 +3751,10 @@ async function inkToText(ids) {
   const hs = strokes.map(s => R.bbox(s).h).sort((a, b) => a - b);
   const size = Math.max(10 / z, hs[Math.floor(hs.length / 2)] * 1.1);
   const font = cfg.ocrFont || 'Segoe Script';
+  const aviso = ocrAvisado ? '' : ocrAviso(serverInfo());   // reconhecedor de outro idioma: avisa uma vez por sessão
+  if (aviso) ocrAvisado = true;
   const d = document.createElement('dialog');
-  d.innerHTML = `<div class="dlg-head"><h3>Texto reconhecido</h3></div>
+  d.innerHTML = `<div class="dlg-head"><h3>Texto reconhecido</h3></div>${aviso ? `<small class="tb-nota">${esc(aviso)}</small>` : ''}
     <input type="text" id="ocrIn" value="${esc(palavras.map(c => c[0]).join(' '))}" style="font: 22px '${font}', 'Segoe UI'">
     <div class="ocr-words">${palavras.map((c, i) => `<div>${c.slice(0, 5).map(w => `<button class="btn" data-i="${i}" data-w="${esc(w)}">${esc(w)}</button>`).join('')}</div>`).join('')}</div>
     <div class="row"><span>Fonte</span><select id="ocrFont">${['Segoe Script', 'Segoe Print', 'Ink Free', 'Lucida Handwriting', 'Segoe UI', 'Times New Roman'].map(f => `<option ${f === font ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>

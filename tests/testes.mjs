@@ -237,6 +237,47 @@ teste('ids únicos e todos os grupos com formas', () => {
   for (const g of SL.GROUPS) for (const [sec, list] of g.secoes) if (!list.length) throw new Error(`seção ${g.id}/${sec} vazia`);
 });
 
+// Travessão como separador é um traço com espaço de um dos lados ("Assunto — detalhe"); o professor prefere
+// "Assunto: detalhe". Meia-risca colada (faixa "4–20 mA", ligação "–OH", "Hazen–Williams") e o nome do próprio sinal
+// ("Travessão (—)") continuam valendo.
+const comTravessao = t => /[—–](?=\s)|(?<=\s)[—–]/.test(t);
+teste('nomes de formas, seções e áreas sem travessão', () => {
+  const ruins = [];
+  for (const g of SL.GROUPS) {
+    if (comTravessao(g.nome)) ruins.push('área ' + g.nome);
+    for (const [sec, list] of g.secoes) {
+      if (comTravessao(sec)) ruins.push('seção ' + sec);
+      for (const s of list) if (comTravessao(s[1])) ruins.push(s[0] + ' ' + s[1]);
+    }
+  }
+  if (ruins.length) throw new Error(`${ruins.length} com travessão: ${ruins.slice(0, 8).join('; ')}`);
+});
+teste('nomes únicos dentro de cada área', () => {
+  for (const g of SL.GROUPS) {
+    const vistos = new Map();
+    for (const [, list] of g.secoes) for (const [id, nome] of list) {
+      const k = nome.trim().toLowerCase();
+      if (vistos.has(k)) throw new Error(`${g.id}: "${nome}" em ${vistos.get(k)} e ${id}`);
+      vistos.set(k, id);
+    }
+  }
+});
+// A letra que se lê na lousa é o font-size do desenho vezes a escala com que a forma entra no quadro. Abaixo de 9 px
+// some para quem está no fundo da sala; a escalaNatural amplia as formas miúdas, e este teste confere que nenhuma
+// escapa dela (por exemplo com o tamanho num style="font-size:…", que a escala não enxerga).
+teste('letra mínima efetiva de 9 px nas formas com texto', () => {
+  const ruins = [];
+  for (const s of SL.ALL_SHAPES) {
+    if (!/<text\b/.test(s[4])) continue;
+    if (/font-size\s*:|\bfont\s*:/.test(s[4])) { ruins.push(s[0] + ' (tamanho em style)'); continue; }
+    const tams = [...s[4].matchAll(/font-size="([\d.]+)"/g)].map(m => +m[1]);
+    if (!tams.length) { ruins.push(s[0] + ' (texto sem font-size)'); continue; }
+    const efetiva = Math.min(...tams) * SL.escalaNatural(s);
+    if (efetiva < 9) ruins.push(`${s[0]} (${efetiva.toFixed(1)} px)`);
+  }
+  if (ruins.length) throw new Error(`${ruins.length} formas: ${ruins.slice(0, 8).join('; ')}`);
+});
+
 teste('grupos únicos e destaques pertencem à própria disciplina', () => {
   igual(new Set(SL.GROUPS.map(g => g.id)).size, SL.GROUPS.length, 'grupos repetidos');
   for (const g of SL.GROUPS) {
@@ -265,17 +306,47 @@ teste('cada forma vira SVG bem formado na cor pedida', () => {
     if (/<(?![a-zA-Z\/!?])/.test(m.svg) || /&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/i.test(m.svg)) throw new Error(`${id}: < ou & sem escape no texto (o navegador não abre)`);
   }
 });
+teste('Legendas: shapeSvg com semTexto tira só os textos e mantém o resto e o tamanho', () => {
+  let com = 0;
+  for (const [id] of SL.ALL_SHAPES) {
+    const a = SL.shapeSvg(id, '#0063b1'), b = SL.shapeSvg(id, '#0063b1', { semTexto: true });
+    igual(SL.temTexto(id), a.svg.includes('<text'), `${id}: temTexto`);
+    if (SL.temTexto(id)) com++;
+    igual(b.svg.includes('<text') || b.svg.includes('</text>') || b.svg.includes('<tspan'), false, `${id}: sobrou texto`);
+    igual(`${b.w}x${b.h}`, `${a.w}x${a.h}`, `${id}: tamanho`);
+    igual(b.svg, a.svg.replace(/<text\b[^>]*\/>|<text\b[^>]*>[\s\S]*?<\/text>/g, ''), `${id}: só os textos saem`);
+    if (!SL.temTexto(id)) igual(b.svg, a.svg, `${id}: sem texto fica igual`);
+    igual((b.svg.match(/<(g|svg)\b/g) || []).length, (b.svg.match(/<\/(g|svg)>/g) || []).length, `${id}: tags desbalanceadas`);
+  }
+  igual(com > 50, true, 'formas com texto');
+  igual(SL.temTexto('fis-lente-convergente'), true, 'lente convergente tem texto');
+  igual(SL.temTexto('nao-existe'), false, 'forma inexistente');
+});
+const { ICON: ICONES } = await mod('icons.js'), { readFileSync: lerArq } = await import('node:fs');
+teste('Legendas: botão na barra da seleção com ícone existente, e todo refazer do src respeita semLegendas', () => {
+  const ed = lerArq(path.join(raiz, 'editor.js'), 'utf8'), rd = lerArq(path.join(raiz, 'render.js'), 'utf8');
+  const html = lerArq(path.join(raiz, '..', 'index.html'), 'utf8');
+  const bt = html.match(/<button[^>]*data-sel="legendas"[^>]*>([\s\S]*?)<\/button>/);
+  igual(!!bt && bt[1].includes('Legendas'), true, 'botão com o rótulo Legendas');
+  const ic = bt[1].match(/data-icon="(\w+)"/)?.[1];
+  igual(!!ic && !!ICONES[ic], true, `ícone ${ic} existe`);
+  igual(/function recolorLib[\s\S]{0,80}semTexto: !!it\.semLegendas/.test(ed), true, 'recolorLib respeita semLegendas');
+  igual(/libSrc\([^)]*!!it\.semLegendas\)/.test(rd), true, 'render (tela, PNG, PDF) respeita semLegendas');
+  igual(/else if \(k === 'legendas'\) alternaLegendas\(ids\)/.test(ed), true, 'ação da barra');
+  igual(/alternaLegendas[\s\S]{0,400}commit\(S\.items\.map/.test(ed), true, 'troca entra no histórico com itens novos');
+});
 
 // ------------------------------------------------------------------
 console.log('Elementos didáticos especiais (especiais.js)');
 const ES = await mod('especiais.js');
-teste('especiais: ids únicos com prefixo esp-, área existente e SVG local bem formado', () => {
+teste('especiais: ids únicos com prefixo esp-, área existente, nome sem travessão e SVG local bem formado', () => {
   const ids = ES.ESPECIAIS.map(e => e.id), grupos = new Set(SL.GROUPS.map(g => g.id)), formas = new Set(SL.ALL_SHAPES.map(s => s[0]));
   igual(new Set(ids).size, ids.length, 'ids repetidos');
   for (const e of ES.ESPECIAIS) {
     if (!/^esp-[a-z0-9-]+$/.test(e.id) || formas.has(e.id)) throw new Error(`${e.id}: id inválido ou igual ao de uma forma`);
     if (!grupos.has(e.grupo)) throw new Error(`${e.id}: área ${e.grupo} não existe`);
     if (!String(e.nome || '').trim()) throw new Error(`${e.id}: sem nome`);
+    if (comTravessao(e.nome)) throw new Error(`${e.id}: nome com travessão (${e.nome})`);
     const m = e.make();
     if (!(m.w > 0 && m.h > 0 && m.w <= 2400 && m.h <= 2400)) throw new Error(`${e.id}: tamanho ${m.w}x${m.h} fora de 1–2400 px`);
     if (!/^<svg\b[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(m.svg)) throw new Error(`${e.id}: não começa com <svg xmlns>`);
@@ -618,6 +689,40 @@ console.log('Notas, ajuda dentro do programa e Sobre');
     igual(ui.includes('target="_blank" rel="noopener noreferrer"'), true, 'abre fora, sem referência');
     igual(ui.includes('BR 51 2026 009384-8'), true, 'pedido no INPI');
     igual(ui.includes('inteligência artificial'), true, 'uso de IA');
+  });
+}
+
+console.log('Pressão da caneta e escrita→texto (tablet.js)');
+{
+  const TB = await mod('tablet.js');
+  const fixo = Array(12).fill(0.5), real = [0.31, 0.35, 0.42, 0.47, 0.5, 0.52, 0.5, 0.48, 0.44, 0.4];
+  teste('tipo do traço: caneta sem pressão só com o valor fixo do navegador (0 ou 0,5)', () => {
+    igual(TB.pressureKind('pen', fixo), 'pen-flat', '0,5 fixo');
+    igual(TB.pressureKind('pen', Array(10).fill(0)), 'pen-flat', '0 fixo');
+    igual(TB.pressureKind('pen', real), 'pen-ok', 'pressão variando');
+    igual(TB.pressureKind('pen', Array(10).fill(0.62)), 'pen-ok', 'firme e constante, mas não é o valor fixo');
+    igual(TB.pressureKind('pen', [0.5, 0.5, 0.5]), null, 'curto demais');
+    igual(TB.pressureKind('mouse', fixo), 'mouse', 'mouse'); igual(TB.pressureKind('touch', [0]), 'touch', 'dedo');
+  });
+  teste('aviso da mesa: só depois de 3 traços de caneta sem pressão, nunca com mouse ou dedo', () => {
+    const passa = kinds => kinds.reduce(TB.pressureState, TB.PRESSAO_INICIAL);
+    igual(TB.pressureLines(TB.PRESSAO_INICIAL).status, '', 'sem traço, sem linha');
+    igual(TB.pressureLines(passa(Array(20).fill('mouse'))).warn, '', 'mouse comum não avisa');
+    igual(TB.pressureLines(passa(Array(20).fill('touch'))).warn, '', 'dedo não avisa');
+    igual(TB.pressureLines(passa(['mouse'])).status, 'Último traço no quadro: mouse. Pressão: não recebida neste traço.', 'estado do mouse');
+    igual(TB.pressureLines(passa(['pen-flat', 'pen-flat'])).warn, '', 'dois traços ainda não avisam');
+    igual(TB.pressureLines(passa(['pen-flat', 'pen-flat', null, 'pen-flat'])).warn, TB.AVISO_PRESSAO, 'três traços avisam');
+    igual(TB.pressureLines(passa(['pen-ok', 'pen-flat', 'pen-flat', 'pen-flat'])).warn, '', 'já mandou pressão: não avisa');
+    igual(TB.pressureLines(passa(['pen-ok'])).status, 'Último traço no quadro: caneta. Pressão: recebida.', 'com pressão');
+    igual(/[—–]/.test(TB.AVISO_PRESSAO + TB.INSTALAR_ESCRITA), false, 'sem travessão');
+  });
+  teste('escrita→texto: diz o que instalar e avisa quando o idioma não é o português', () => {
+    igual(TB.ocrAviso({ sistema: 'linux', ocr: false }), '', 'fora do Windows não há o que instalar');
+    igual(TB.ocrAviso({ sistema: 'win32', ocr: true, ocr_idioma: 'pt-BR' }), '', 'pt-BR instalado');
+    igual(TB.ocrAviso({ sistema: 'win32', ocr: true, ocr_idioma: null }), '', 'ainda conferindo');
+    const outro = TB.ocrAviso({ sistema: 'win32', ocr: true, ocr_idioma: 'English (US)' });
+    igual(outro.includes('English (US); o texto sairá nesse idioma') && outro.includes('Opções de idioma → Manuscrito'), true, 'outro idioma');
+    igual(TB.ocrAviso({ sistema: 'win32', ocr: false }).includes('nenhum reconhecedor'), true, 'nenhum reconhecedor');
   });
 }
 

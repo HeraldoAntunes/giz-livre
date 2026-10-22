@@ -331,7 +331,7 @@ const cicloTrig = (() => {
   return '<path d="M8,100 H188 M100,192 V12"/>' + head(194, 100, 0, 9) + head(100, 6, -90, 9) + '<circle cx="100" cy="100" r="76"/>' +
     seg(O, P) + seg(P, [P[0], 100], trac) + seg(P, [100, P[1]], trac) + `<path d="M100,100 H${r1(P[0])}"${grosso}/><path d="M100,100 V${r1(P[1])}"${grosso}/>` +
     arco(O, 20, 0, 50) + vi(...pol(O, 33, 25), 'θ', 15) + dot(P) + t(160, 31, 'P') + t(124, 114, 'cos', 14) + t(80, 70, 'sen', 14) +
-    t(184, 113, '1', 14) + t(90, 21, '1', 14);
+    t(184, 113, '1', 14) + t(90, 13, '1', 14); // '1' de cima acima do círculo: em y 21 ficava sobre o arco
 })();
 const cicloNotaveis = (() => {
   const O = [126, 110];
@@ -345,7 +345,7 @@ const cicloTg = (() => {
   const O = [100, 100], P = pol(O, 76, 40), Tt = [176, 100 - 76 * Math.tan(40 * D)];
   return '<path d="M8,100 H196 M100,192 V12"/>' + head(202, 100, 0, 9) + head(100, 6, -90, 9) + '<circle cx="100" cy="100" r="76"/>' +
     seg([176, 8], [176, 192], fino) + seg(O, P) + seg(P, Tt, trac) + `<path d="M176,100 V${r1(Tt[1])}"${grosso}/>` +
-    arco(O, 20, 0, 40) + vi(...pol(O, 33, 20), 'θ', 15) + dot(P) + dot(Tt) + t(150, 40, 'P') + t(193, 68, 'tg', 15);
+    arco(O, 20, 0, 40) + vi(...pol(O, 33, 20), 'θ', 15) + dot(P) + dot(Tt) + t(141, 49, 'P') + t(193, 68, 'tg', 15); // P por dentro do círculo: em (150, 40) ficava sobre o arco
 })();
 const trigTriangulo = (() => {
   const A = [20, 120], C = [150, 120], B = [150, 30], ang = Math.atan2(90, 130) / D;
@@ -625,14 +625,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "mat-triangulo-medidas",
-        "Triângulo — medidas a preencher",
+        "Triângulo: medidas a preencher",
         380,
         270,
         "<path d=\"M55 218 L175 42 L325 218 Z\"/><text x=\"175\" y=\"23\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">A</text><text x=\"37\" y=\"231\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">B</text><text x=\"342\" y=\"231\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">C</text><text x=\"86\" y=\"118\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">c = ___</text><text x=\"275\" y=\"118\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">b = ___</text><text x=\"190\" y=\"245\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">a = ___</text>"
       ],
       [
         "mat-construcao-etapas",
-        "Construção geométrica — etapas",
+        "Construção geométrica: etapas",
         520,
         158,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Construção geométrica — etapas</text><rect x=\"10\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"85\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Dados</text><path d=\"M162 73 L176 73\"/><path d=\"M169 69 L176 73 L169 77\"/><text x=\"85\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___________</text><rect x=\"180\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"255\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Construção</text><path d=\"M332 73 L346 73\"/><path d=\"M339 69 L346 73 L339 77\"/><text x=\"255\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___________</text><rect x=\"350\" y=\"45\" width=\"150\" height=\"56\" rx=\"3\"/><text x=\"425\" y=\"73\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Justificativa</text><text x=\"425\" y=\"124\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___________</text>"

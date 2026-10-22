@@ -155,7 +155,7 @@ const novosArmaz = [
   ['rn-bms', 'Banco de baterias com BMS', 220, 120, bloco(40, 8, 140, 32, 'BMS', 16)
     + [14, 66, 118, 170].map(x => `<rect x="${x}" y="64" width="40" height="44" rx="3"/><rect x="${x + 26}" y="58" width="10" height="6" rx="1"/>`).join('')
     + '<path d="M4,86 H14 M54,86 H66 M106,86 H118 M158,86 H170 M210,86 H216 M60,40 V86 M112,40 V86 M164,40 V86" stroke-width="2"/>'
-    + ponto(60, 86) + ponto(112, 86) + ponto(164, 86) + R(8, 70, '−', 16) + R(212, 70, '+', 16)],
+    + ponto(60, 86) + ponto(112, 86) + ponto(164, 86) + R(7, 52, '−', 16) + R(213, 52, '+', 16)],
   ['rn-inv-hibrido', 'Inversor híbrido', 196, 140, '<rect x="44" y="16" width="100" height="108" rx="6"/><path d="M44,124 L144,16" stroke-width="1.6"/>'
     + '<path d="M58,38 H80 M58,46 H80" stroke-width="2"/><path d="M104,100 q6,-9 12,0 t12,0" stroke-width="2"/>'
     + '<path d="M4,50 H44 M4,100 H44 M144,50 H192 M144,100 H192"/>' + R(22, 36, 'FV') + R(22, 86, 'Bat.') + R(170, 36, 'Rede') + R(170, 86, 'Carga')],
@@ -380,9 +380,9 @@ export default {
     'rn-biodigestor', 'rn-medidor', 'rn-rede',
   ],
   secoes: [
-    ["Biometano — tratamento e unidades conectáveis", AMPLIACAO_B[0]],
+    ["Biometano: tratamento e unidades conectáveis", AMPLIACAO_B[0]],
     ["Balanços de massa, energia e perdas", AMPLIACAO_B[1]],
-    ["Eólica — yaw, pitch e trem de potência", AMPLIACAO_B[2]],
+    ["Eólica: yaw, pitch e trem de potência", AMPLIACAO_B[2]],
     ["Solar, armazenamento e gestão de energia", AMPLIACAO_B[3]],
     ['Solar', [
       ['rn-fv', 'Painel fotovoltaico', 140, 110, '<path d="M20 14 H124 L112 76 H8 Z"/><path d="M46 14 L38 76 M72 14 L66 76 M98 14 L94 76 M14 45 H118" stroke-width="1.6"/><path d="M60 76 V104 M40 104 H80"/>'],

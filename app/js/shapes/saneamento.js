@@ -520,9 +520,9 @@ const aAjustesLegados = {
   "sn-uv": {
     "k": 1,
     "x": 2,
-    "y": 4.5,
+    "y": 2.5,
     "w": 184,
-    "h": 97
+    "h": 121
   },
   "sn-uv-canal": {
     "k": 1,

@@ -2,7 +2,44 @@
 // Painel "Caneta e escrita": mesa digitalizadora, estabilizador em camadas, embelezar escrita
 // e área de teste que diagnostica o driver (Windows Ink) e grava amostras brutas.
 import { createStabilizer } from './stabilizer.js';
-import { download } from './api.js';
+import { download, serverInfo } from './api.js';
+
+// ---- pressão nos traços do quadro (o painel mostra o estado; nada de pop-up) ----
+// Tipo do traço pela entrada crua: 'pen-ok' | 'pen-flat' | 'mouse' | 'touch' | null (curto demais para julgar).
+// 'pen-flat' só quando TODAS as amostras vêm com o valor fixo que o navegador usa sem pressão (0 ou 0,5):
+// uma caneta de verdade, mesmo apertando por igual, oscila nos milésimos.
+export function pressureKind(type, pressures) {
+  if (type === 'mouse' || type === 'touch') return type;
+  if (type !== 'pen' || pressures.length < 8) return null;
+  const p0 = pressures[0];
+  const fixo = (Math.abs(p0 - 0.5) < 1e-3 || p0 === 0) && pressures.every(p => Math.abs(p - p0) < 1e-3);
+  return fixo ? 'pen-flat' : 'pen-ok';
+}
+// Acumula os traços da sessão. O aviso da mesa só vem depois de 3 traços de caneta seguidos sem pressão
+// e nenhum com pressão: mouse e dedo nunca disparam o aviso (não dá para separar mesa-como-mouse de mouse comum).
+export const PRESSAO_INICIAL = { last: null, flat: 0, ok: false };
+export function pressureState(st, kind) {
+  if (!kind) return st;
+  return { last: kind, ok: st.ok || kind === 'pen-ok', flat: kind === 'pen-flat' ? st.flat + 1 : kind === 'pen-ok' ? 0 : st.flat };
+}
+export const AVISO_PRESSAO = "Sua mesa não está enviando pressão. No driver da Wacom, ligue 'Usar Windows Ink'.";
+export function pressureLines(st) {
+  const nome = { 'pen-ok': 'caneta', 'pen-flat': 'caneta', mouse: 'mouse', touch: 'dedo' }[st?.last];
+  if (!nome) return { status: '', warn: '' };
+  const status = `Último traço no quadro: ${nome}. ` + (st.last === 'pen-ok' ? 'Pressão: recebida.' : 'Pressão: não recebida neste traço.');
+  return { status, warn: !st.ok && st.flat >= 3 ? AVISO_PRESSAO : '' };
+}
+
+// ---- escrita→texto: o que o reconhecedor do Windows instalado permite ----
+export const INSTALAR_ESCRITA = 'Para reconhecer escrita em português, instale o reconhecimento de escrita do idioma Português (Brasil): ' +
+  'Configurações do Windows → Hora e idioma → Idioma e região → Português (Brasil) → Opções de idioma → Manuscrito.';
+// info: o /api/info. Devolve '' quando não há nada a avisar (fora do Windows o botão já some e não há o que instalar).
+export function ocrAviso(info) {
+  if (!info || info.sistema !== 'win32') return '';
+  if (info.ocr === false) return 'Escrita→texto: nenhum reconhecedor de escrita instalado neste computador. ' + INSTALAR_ESCRITA;
+  if (info.ocr_idioma && info.ocr_idioma !== 'pt-BR') return `Escrita→texto: o reconhecedor instalado é de ${info.ocr_idioma}; o texto sairá nesse idioma. ` + INSTALAR_ESCRITA;
+  return '';
+}
 
 export const DEFAULT_TABLET = {
   pressure: true,     // pressão muda a espessura
@@ -27,7 +64,9 @@ const TOUCH = [['auto', 'Automático (depois da caneta, o dedo só move)'], ['dr
 const chk = (id, on, label) => `<label class="tb-line"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}> ${label}</label>`;
 const opts = (list, v) => list.map(([k, n]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${n}</option>`).join('');
 
-export function openTabletSettings(cfg, save) {
+// pressao(): estado dos traços do quadro (pressureState), para a linha "Último traço no quadro"
+export function openTabletSettings(cfg, save, pressao = () => PRESSAO_INICIAL) {
+  const linhas = pressureLines(pressao()), avisoOcr = ocrAviso(serverInfo());
   const d = document.createElement('dialog');
   d.className = 'tablet';
   d.innerHTML = `
@@ -46,6 +85,7 @@ export function openTabletSettings(cfg, save) {
         <div class="tb-group"><b>Escrita</b>
           ${chk('tbBeauty', cfg.beautify, 'Embelezar ao escrever (endireita a linha após uma pausa)')}
           <div class="tb-line"><span>Intensidade</span><select id="tbBLevel">${opts([['suave', 'Suave (só endireita um pouco)'], ['moderado', 'Moderado'], ['forte', 'Forte (endireita e suaviza bastante)']], cfg.beautifyLevel)}</select></div>
+          ${avisoOcr ? `<small class="tb-nota" id="tbOcr">${avisoOcr}</small>` : ''}
         </div>
         <div class="tb-group"><b>Caneta</b>
           ${chk('tbPress', cfg.pressure, 'A pressão muda a espessura')}
@@ -65,6 +105,7 @@ export function openTabletSettings(cfg, save) {
         </div>
         <div class="tb-info" id="tbInfo">Aguardando a caneta…</div>
         <div class="tb-verdict" id="tbVerdict"></div>
+        <div class="tb-verdict" id="tbQuadro">${linhas.status ? `<small class="tb-nota">${linhas.status}</small>` : ''}${linhas.warn ? `<span class="warn">${linhas.warn}</span>` : ''}</div>
       </div>
     </div>
     <details class="tb-help">

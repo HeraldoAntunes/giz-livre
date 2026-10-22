@@ -1,5 +1,28 @@
 # Histórico de versões
 
+## 1.11.0 (22/10/2026)
+Formas revisadas, botão para esconder as legendas das formas e avisos para quem usa mesa sem Windows Ink.
+- **Botão Legendas:** com uma forma da biblioteca selecionada, um toque esconde os textos do desenho (rótulos e
+  nomes das peças) e outro toque mostra de novo. Serve para exercícios de "complete o desenho". Funciona com várias
+  formas selecionadas, com a troca de cor, com o Desfazer e ao exportar.
+- **Peças de tubulação que se ligam:** válvulas, registros, medidores, bombas e conexões de Hidráulica, Química e
+  Saneamento têm agora a entrada e a saída na altura do meio da peça. Postas lado a lado, ligam-se com um tubo reto.
+  Nas bombas, a sucção fica no meio e o recalque continua no alto.
+- **Letra maior nas formas miúdas:** placas e módulos de Sistemas embarcados e algumas vidrarias entram no quadro
+  ampliados, para a menor letra ficar legível na sala.
+- **Formas corrigidas:** a válvula esfera (Química) tinha o desenho da válvula globo; o rótulo de Vasco da Gama
+  saía cortado no mapa das navegações; 14 formas tinham rótulos em cima de traços (ciclo trigonométrico, átomo de
+  Bohr, isotermas, roteiro de projeto e outras); no mapa do Brasil, as siglas dos estados pequenos ficam fora deles,
+  com uma linha até o estado; as lentes usam só "F" dos dois lados; a quadra tática para preencher veio sem a letra
+  solta no meio.
+- **Nomes das formas** sem travessão.
+- **Escrita→texto:** o botão só aparece quando o Windows tem o reconhecimento de escrita instalado; se faltar o
+  português, o programa diz o que instalar; se o reconhecedor for de outro idioma, avisa.
+- **Painel Caneta:** mostra se o último traço veio de caneta, mouse ou dedo e se a pressão chegou. Depois de alguns
+  traços de caneta sem pressão, sugere ligar "Usar Windows Ink" no driver da mesa. Sem Windows Ink o programa
+  funciona, mas a mesa desenha como mouse, sem pressão.
+- O instalador passa a ser gerado com o PyInstaller 6.22.3.
+
 ## 1.10.1 (22/10/2026)
 Correções.
 - **Galeria completa em computador lento:** a galeria pede dezenas de arquivos ao mesmo tempo, e o programa só deixava

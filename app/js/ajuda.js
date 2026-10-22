@@ -29,7 +29,7 @@ export const TEMAS = [
   { id: 'criar', titulo: 'Texto, notas e formas', icone: 'shapes', alvo: '#createbar',
     figura: [['text', 'Texto'], ['note', 'Nota'], ['shapes', 'Formas'], ['image', 'Imagem']], destaque: 1,
     passos: ['Use a coluna da esquerda. Texto (T): toque no quadro e digite.', 'Nota: a letra nasce em tamanho legível; A− e A+, na barra da seleção, mudam o tamanho e a nota cresce junto.',
-      'Formas: o catálogo abre na Vitrine das suas áreas; escolha a disciplina ou use a busca. Mais rápido: aperte / e digite o nome da forma.', 'Imagem: pelo botão ou colando com Ctrl+V.'] },
+      'Formas: o catálogo abre na Vitrine das suas áreas; escolha a disciplina ou use a busca. Mais rápido: aperte / e digite o nome da forma.', 'Legendas: com uma forma que tem rótulos selecionada, o botão Legendas da barra da seleção esconde os textos do desenho, para o exercício de completar; toque de novo para mostrar.', 'Imagem: pelo botão ou colando com Ctrl+V.'] },
   { id: 'slides', titulo: 'Slides de PowerPoint e PDF', icone: 'library', alvo: '#createbar [data-create="pdf"]',
     figura: [['library', 'PDF/Slides'], ['enquadrar', 'Enquadrar']], destaque: 0,
     passos: ['Botão PDF/Slides na coluna da esquerda, ou arraste o arquivo para o quadro.', 'Escolha as páginas; cada slide vira uma página para escrever por cima.',
@@ -57,6 +57,7 @@ export const TEMAS = [
   { id: 'caneta', titulo: 'Mesa digitalizadora', icone: 'pen', alvo: '#bMenu',
     figura: [['pen', 'Caneta e escrita']], destaque: 0,
     passos: ['Ligue o Windows Ink no programa da mesa (no driver da Wacom, por exemplo).', 'Menu … → Caneta e escrita: teste da pressão, botão lateral e estabilizador contra tremido.',
+      'Sem o Windows Ink a mesa desenha como mouse, sem pressão; o painel Caneta e escrita mostra se o último traço trouxe pressão.',
       'Os atalhos podem ir para as teclas da mesa (ExpressKeys), no driver dela.'] },
 ];
 

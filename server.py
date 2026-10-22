@@ -62,7 +62,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.10.1"
+VERSAO = "1.11.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -427,7 +427,7 @@ class Handler(SimpleHTTPRequestHandler):
             marcar_contato()
             return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
                                "pptx": "powerpoint" if tem_powerpoint() else ("libreoffice" if achar_libreoffice() else None),
-                               "ocr": WINDOWS})
+                               **info_ocr()})
         if rota == "/api/ping":
             return self._json({"ok": True})
         if rota == "/api/pptx/progresso":   # andamento da conversão (só números; nada do conteúdo)
@@ -710,7 +710,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"erro": str(e)}, 400)
             except Exception as e:
                 registrar(e)
-                return self._json({"erro": "Reconhecimento de escrita indisponível neste computador."}, 500)
+                return self._json({"erro": "Reconhecimento de escrita indisponível neste computador. " + INSTALAR_ESCRITA}, 500)
             finally:
                 TRAVA_OCR.release()
         if rota == "/api/lixeira/restaurar":
@@ -1703,7 +1703,9 @@ foreach ($tr in $dados.strokes) {
   if ($pts.Count -gt 0) { $cont.AddStroke($builder.CreateStrokeFromInkPoints($pts, [System.Numerics.Matrix3x2]::Identity)) }
 }
 $rc = New-Object Windows.UI.Input.Inking.InkRecognizerContainer
-$pt = $rc.GetRecognizers() | Where-Object { $_.Name -match 'Portugu' } | Select-Object -First 1
+$todos = @($rc.GetRecognizers())
+$pt = $todos | Where-Object { $_.Name -match 'Portugu' -and $_.Name -match 'Bra[sz]il' } | Select-Object -First 1
+if (-not $pt) { $pt = $todos | Where-Object { $_.Name -match 'Portugu' } | Select-Object -First 1 }
 if ($pt) { $rc.SetDefaultRecognizer($pt) }
 $res = Await ($rc.RecognizeAsync($cont, [Windows.UI.Input.Inking.InkRecognitionTarget]::All)) ([System.Collections.Generic.IReadOnlyList[Windows.UI.Input.Inking.InkRecognitionResult]])
 $saida = @()
@@ -1729,6 +1731,76 @@ def reconhecer_escrita(strokes: list) -> list:
         palavras = json.loads(saida.splitlines()[-1]).get("palavras") or []
         # o ConvertTo-Json do PowerShell 5 achata listas de um item: normaliza para [[...], ...]
         return [p if isinstance(p, list) else [p] for p in palavras]
+
+
+# Há reconhecedor instalado? De qual idioma? Confere uma vez por execução, em segundo plano (o PowerShell leva ~1 s),
+# para o botão Escrita→texto sumir quando não vai funcionar e a página avisar o que instalar.
+INSTALAR_ESCRITA = ("Para reconhecer escrita em português, instale o reconhecimento de escrita do idioma Português (Brasil): "
+                    "Configurações do Windows → Hora e idioma → Idioma e região → Português (Brasil) → Opções de idioma → Manuscrito.")
+SCRIPT_RECONHECEDORES = r"""
+$ErrorActionPreference = 'Stop'
+[void][Windows.UI.Input.Inking.InkRecognizerContainer, Windows.UI.Input.Inking, ContentType=WindowsRuntime]
+$rc = New-Object Windows.UI.Input.Inking.InkRecognizerContainer
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+ConvertTo-Json -Compress @{ nomes = @($rc.GetRecognizers() | ForEach-Object { $_.Name }) }
+"""
+OCR_ESTADO: dict = {"conferido": not WINDOWS, "nomes": None}
+TRAVA_DETECCAO = threading.Lock()
+
+
+def listar_reconhecedores() -> list:
+    """Nomes dos reconhecedores de escrita do Windows (vazio se não houver nenhum)."""
+    with tempfile.TemporaryDirectory(prefix="lousa-ocr-") as tmp:
+        script = Path(tmp) / "reconhecedores.ps1"
+        script.write_text(SCRIPT_RECONHECEDORES, encoding="utf-8-sig")
+        r = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+                           capture_output=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    saida = r.stdout.decode("utf-8", "replace").strip()
+    if r.returncode != 0 or not saida:
+        return []   # sem WinRT de escrita ou sem PowerShell: para o programa, dá no mesmo que não ter reconhecedor
+    nomes = json.loads(saida.splitlines()[-1]).get("nomes") or []
+    return [str(n) for n in (nomes if isinstance(nomes, list) else [nomes])]
+
+
+def idioma_reconhecedor(nomes: list):
+    """'pt-BR' se houver o de Português (Brasil); senão o idioma (como o Windows escreve) do que será usado; None se nenhum."""
+    if not nomes:
+        return None
+    if any(re.search(r"portugu", n, re.I) and re.search(r"bra[sz]il", n, re.I) for n in nomes):
+        return "pt-BR"
+    nome = next((n for n in nomes if re.search(r"portugu", n, re.I)), nomes[0])
+    m = re.search(r"\bpara (?:o |a )?(.+)$", nome) or re.search(r"Microsoft (.+?) Handwriting", nome, re.I)
+    return (m.group(1) if m else nome).strip()
+
+
+def detectar_reconhecedor() -> None:
+    if not WINDOWS or not TRAVA_DETECCAO.acquire(blocking=False):
+        return
+    try:
+        if OCR_ESTADO["conferido"]:
+            return
+        try:
+            OCR_ESTADO["nomes"] = listar_reconhecedores()
+        except subprocess.TimeoutExpired:
+            OCR_ESTADO["nomes"] = None   # não deu para saber: o botão continua (como antes) e o erro, se vier, explica
+        except Exception as e:
+            registrar(e)
+            OCR_ESTADO["nomes"] = None
+        OCR_ESTADO["conferido"] = True
+    finally:
+        TRAVA_DETECCAO.release()
+
+
+def info_ocr() -> dict:
+    """Campos da escrita→texto em /api/info. Enquanto confere, mantém o botão (ocr: True no Windows) e avisa com ocr_conferido."""
+    if not OCR_ESTADO["conferido"] and not TRAVA_DETECCAO.locked():
+        threading.Thread(target=detectar_reconhecedor, daemon=True).start()
+    nomes = OCR_ESTADO["nomes"]
+    if not WINDOWS:
+        return {"ocr": False, "ocr_idioma": None, "ocr_conferido": True}
+    if not OCR_ESTADO["conferido"] or nomes is None:
+        return {"ocr": True, "ocr_idioma": None, "ocr_conferido": OCR_ESTADO["conferido"]}
+    return {"ocr": bool(nomes), "ocr_idioma": idioma_reconhecedor(nomes), "ocr_conferido": True}
 
 
 # ---------------- PDF a partir de imagens JPEG (uma por página) ----------------
@@ -2190,6 +2262,7 @@ def main():
 
     srv = Servidor(("127.0.0.1", PORTA), Handler)
     threading.Thread(target=coletar_assets_orfaos, daemon=True).start()
+    threading.Thread(target=detectar_reconhecedor, daemon=True).start()
     if sys.stdout:
         print(f"Giz Livre {VERSAO} em {url}  (quadros em {DADOS})")
     if not args.sem_janela:

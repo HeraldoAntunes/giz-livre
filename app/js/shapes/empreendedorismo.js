@@ -164,8 +164,25 @@ const matrizRisco = (() => {
   }
   return s + R(44, 4, 190, 190, 0) + T(139, 210, 'Impacto', 14) + TV(16, 99, 'Probabilidade', 14) + T(34, 23, '5', 14) + T(34, 175, '1', 14);
 })();
-const roadmap = P('M10 120 C80 120 60 64 140 64 S206 24 250 24', ' stroke-width="3"') +
-  [[44, 112, 1], [116, 70, 2], [190, 40, 3]].map(([x, y, k]) => C(x, y, 12) + T(x, y + 0.5, String(k), 14)).join('') +
+// A estrada passava por dentro dos marcos e riscava os números. Pintar fundo não serve (a lousa pode ser verde ou escura
+// e a tinta da forma muda), então a curva é amostrada e interrompida na borda de cada círculo. São as mesmas Béziers do
+// traçado original, com o S escrito como C explícito.
+const MARCOS = [[44, 112, 1], [116, 70, 2], [190, 40, 3]];
+const estradaRoadmap = (() => {
+  const bz = [[[10, 120], [80, 120], [60, 64], [140, 64]], [[140, 64], [220, 64], [206, 24], [250, 24]]], pts = [];
+  bz.forEach(([a, b, c, d]) => {
+    for (let i = 0; i <= 200; i++) {
+      const t = i / 200, u = 1 - t;
+      pts.push([0, 1].map(j => u * u * u * a[j] + 3 * u * u * t * b[j] + 3 * u * t * t * c[j] + t * t * t * d[j]));
+    }
+  });
+  const dentro = ([x, y]) => MARCOS.some(([cx, cy]) => Math.hypot(x - cx, y - cy) < 12);
+  let d = '', solto = true;
+  pts.forEach(p => { if (dentro(p)) { solto = true; return; } d += (solto ? 'M' : 'L') + n1(p[0]) + ' ' + n1(p[1]) + ' '; solto = false; });
+  return d.trim();
+})();
+const roadmap = P(estradaRoadmap, ' stroke-width="3" stroke-linejoin="round"') +
+  MARCOS.map(([x, y, k]) => C(x, y, 12) + T(x, y + 0.5, String(k), 14)).join('') +
   P('M262 30 V4') + P('M262 4 L244 9 L262 14', CH) + T(150, 112, 'marcos do projeto', 14);
 const bsc = `<ellipse cx="165" cy="115" rx="50" ry="26" stroke-width="3"/>` + T(165, 115, 'Estratégia', 14) +
   R(105, 4, 120, 40, 6) + T(165, 24, 'Financeira', 14) + R(105, 186, 120, 40, 6) + T(165, 206, 'Aprendizado', 14) +
@@ -188,7 +205,8 @@ const mapaEmpatia = (() => {
 })();
 const jornada = (() => {
   const xs = [40, 102, 164, 226, 288], nm = ['Descoberta', 'Consideração', 'Compra', 'Uso', 'Fidelização'];
-  let s = P('M10 86 H312') + head(324, 86, 0, 12) + P('M40 50 C70 30 80 28 102 30 S140 70 164 66 S205 38 226 40 S270 24 288 22', ' stroke-width="2" stroke-dasharray="7 5"') +
+  // eixo interrompido na borda de cada etapa (r 13): o número não fica riscado e não é preciso pintar fundo
+  let s = P('M10 86 ' + xs.map(x => `H${x - 13} M${x + 13} 86`).join(' ') + ' H312') + head(324, 86, 0, 12) + P('M40 50 C70 30 80 28 102 30 S140 70 164 66 S205 38 226 40 S270 24 288 22', ' stroke-width="2" stroke-dasharray="7 5"') +
     T(14, 22, '+', 18) + T(14, 62, '−', 18);
   xs.forEach((x, k) => { s += C(x, 86, 13) + T(x, 86.5, String(k + 1), 14) + T(x, k % 2 ? 140 : 118, nm[k], 14); });
   return s;
@@ -453,14 +471,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "emp-hipoteses-modelo",
-        "Hipóteses — plano de validação",
+        "Hipóteses: plano de validação",
         580,
         224,
         "<text x=\"290\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Hipóteses — plano de validação</text><rect x=\"10\" y=\"42\" width=\"560\" height=\"178\" rx=\"3\"/><text x=\"80\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Hipótese</text><text x=\"220\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Experimento</text><path d=\"M150 42 V220\"/><text x=\"360\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Métrica</text><path d=\"M290 42 V220\"/><text x=\"500\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Critério</text><path d=\"M430 42 V220\"/><path d=\"M10 68 H570\"/><path d=\"M10 106 H570\"/><path d=\"M10 144 H570\"/><path d=\"M10 182 H570\"/>"
       ],
       [
         "emp-acao-responsaveis",
-        "Plano de ação — preencher",
+        "Plano de ação: preencher",
         560,
         224,
         "<text x=\"280\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Plano de ação — preencher</text><rect x=\"10\" y=\"42\" width=\"540\" height=\"178\" rx=\"3\"/><text x=\"77.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ação</text><text x=\"212.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Responsável</text><path d=\"M145 42 V220\"/><text x=\"347.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Prazo</text><path d=\"M280 42 V220\"/><text x=\"482.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Indicador</text><path d=\"M415 42 V220\"/><path d=\"M10 68 H550\"/><path d=\"M10 106 H550\"/><path d=\"M10 144 H550\"/><path d=\"M10 182 H550\"/>"

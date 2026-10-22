@@ -7,9 +7,20 @@ export async function initSession() {
   const j = await r.json();
   TOKEN = j.token || '';
   INFO = j;
+  if (j.ocr_conferido === false) conferirOcr(5);
   return j;
 }
-// recursos que dependem do sistema: { pptx: 'powerpoint' | 'libreoffice' | null, ocr: bool, sistema }
+// o servidor confere o reconhecedor de escrita em segundo plano logo ao abrir; a página pergunta de novo até saber
+function conferirOcr(n) {
+  setTimeout(async () => {
+    try {
+      const j = await (await fetch('/api/info')).json();
+      Object.assign(INFO, { ocr: j.ocr, ocr_idioma: j.ocr_idioma, ocr_conferido: j.ocr_conferido });
+      if (j.ocr_conferido === false && n > 1) conferirOcr(n - 1);
+    } catch {}
+  }, 1500);
+}
+// recursos que dependem do sistema: { pptx: 'powerpoint' | 'libreoffice' | null, ocr: bool, ocr_idioma: 'pt-BR' | outro | null, sistema }
 export const serverInfo = () => INFO;
 export async function wfetch(url, opts = {}) {
   const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Lousa': TOKEN } });

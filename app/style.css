@@ -67,6 +67,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .zoom { right: 12px; bottom: 12px; }
 .selbar { padding: 3px; }
 .ib.tam { font-size: 14px; font-weight: 600; letter-spacing: -.5px; }
+.ib.leg { width: auto; padding: 0 8px; display: flex; align-items: center; gap: 4px; }
+.ib.leg .leg-rot { font-size: 12.5px; font-weight: 600; }
+.ib.leg:not(.on) .leg-rot { text-decoration: line-through; }
 .ib { width: 38px; height: 38px; border: 0; background: none; border-radius: 6px; display: grid; place-items: center; color: #424242; }
 .ib:hover { background: #f0f0f0; }
 .ib.on, .ib.active { background: var(--accent-soft); color: var(--accent); }
@@ -306,6 +309,7 @@ dialog.tablet { width: min(900px, 96vw); }
 .tb-info { font-size: 12px; color: var(--muted); min-height: 18px; }
 .tb-verdict { font-size: 13px; min-height: 20px; line-height: 1.5; }
 .tb-verdict .ok { color: #0e7a0d; } .tb-verdict .warn { color: #a4262c; }
+.tb-nota { display: block; font-size: 12px; color: var(--muted); line-height: 1.4; margin-top: 4px; }
 .tb-help { margin-top: 16px; font-size: 13px; background: #f7f7f7; border-radius: 8px; padding: 10px 14px; }
 .tb-help summary { cursor: pointer; font-weight: 600; }
 .tb-help ul, .tb-help ol { margin: 6px 0; padding-left: 20px; } .tb-help li { margin: 3px 0; }

@@ -386,7 +386,7 @@ export default {
     'em-lcd16x2', 'em-buzzer',
   ],
   secoes: [
-    ["Programação — estados, interrupções e concorrência", AMPLIACAO_B[0]],
+    ["Programação: estados, interrupções e concorrência", AMPLIACAO_B[0]],
     ["Temporização, watchdog e inicialização", AMPLIACAO_B[1]],
     ["ADC, PWM e aquisição", AMPLIACAO_B[2]],
     ["Protocolos, comunicação e energia", AMPLIACAO_B[3]],
@@ -628,7 +628,7 @@ export default {
       ['em-bomba', "Mini bomba d'água", 170, 110, '<rect x="60" y="30" width="96" height="60" rx="8"/>' + T(108, 60, 'M', 20)
         + '<rect x="24" y="22" width="36" height="76" rx="6"/>'
         + '<rect x="32" y="4" width="12" height="18" rx="1"/><rect x="4" y="54" width="20" height="12" rx="1"/>'
-        + t(54, 12, 'saída', 6.5) + t(17, 78, 'entrada', 6)
+        + t(59, 12, 'saída', 6.5) + t(12, 76, 'entrada', 6) /* afastados do corpo da bomba (encostavam) */
         + '<path d="M156,48 H166 M156,72 H166" stroke-width="2"/>' + t(161, 39, '+', 9) + t(161, 82, '−', 9)],
     ]],
     ['Comunicação', [

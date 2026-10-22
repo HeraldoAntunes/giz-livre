@@ -749,6 +749,67 @@ class AtualizacaoTests(unittest.TestCase):
             roda.assert_not_called()
 
 
+class ReconhecedorEscritaTests(unittest.TestCase):
+    """/api/info diz se a escrita→texto vai funcionar e em que idioma (detecção simulada, sem depender do Windows real)."""
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("servidor_ocr", ROOT / "server.py")
+        cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def _info(self, windows, nomes=None, falha=None):
+        s = self.srv
+        lista = patch.object(s, "listar_reconhecedores", side_effect=falha) if falha else \
+            patch.object(s, "listar_reconhecedores", return_value=nomes)
+        with patch.object(s, "WINDOWS", windows), patch.dict(s.OCR_ESTADO, {"conferido": not windows, "nomes": None}), \
+                lista as chamada, patch.object(s, "registrar"):
+            s.detectar_reconhecedor()
+            s.detectar_reconhecedor()   # uma vez por execução: a segunda não chama o PowerShell de novo
+            if windows:
+                self.assertEqual(chamada.call_count, 1)
+            return s.info_ocr()
+
+    def test_pt_br_instalado(self):
+        self.assertEqual(self._info(True, ["Outro para Inglês (Estados Unidos)", "Reconhecedor de Manuscrito da Microsoft para Português (Brasil)"]),
+                         {"ocr": True, "ocr_idioma": "pt-BR", "ocr_conferido": True})
+
+    def test_so_outro_idioma(self):
+        self.assertEqual(self._info(True, ["Microsoft English (US) Handwriting Recognizer"]),
+                         {"ocr": True, "ocr_idioma": "English (US)", "ocr_conferido": True})
+        self.assertEqual(self._info(True, ["Reconhecedor de Manuscrito da Microsoft para Português (Portugal)"])["ocr_idioma"],
+                         "Português (Portugal)")
+
+    def test_nenhum_reconhecedor_esconde_o_botao(self):
+        self.assertEqual(self._info(True, []), {"ocr": False, "ocr_idioma": None, "ocr_conferido": True})
+
+    def test_demora_demais_mantem_o_botao(self):
+        info = self._info(True, falha=subprocess.TimeoutExpired("powershell", 30))
+        self.assertEqual(info, {"ocr": True, "ocr_idioma": None, "ocr_conferido": True})
+
+    def test_fora_do_windows(self):
+        self.assertEqual(self._info(False), {"ocr": False, "ocr_idioma": None, "ocr_conferido": True})
+
+    def test_enquanto_confere_nao_atrasa_e_mantem_o_botao(self):
+        s = self.srv
+        with patch.object(s, "WINDOWS", True), patch.dict(s.OCR_ESTADO, {"conferido": False, "nomes": None}), \
+                patch.object(s.threading, "Thread") as fio:
+            self.assertEqual(s.info_ocr(), {"ocr": True, "ocr_idioma": None, "ocr_conferido": False})
+            fio.assert_called_once()   # a conferência vai para segundo plano
+
+    def test_api_info_traz_os_campos(self):
+        s = self.srv
+        srv = s.Servidor(("127.0.0.1", 0), s.Handler)
+        porta = srv.server_address[1]
+        fio = __import__("threading").Thread(target=srv.serve_forever, daemon=True); fio.start()
+        try:
+            with patch.object(s, "PORTA", porta), patch.object(s, "WINDOWS", True), \
+                    patch.dict(s.OCR_ESTADO, {"conferido": True, "nomes": ["Microsoft English (US) Handwriting Recognizer"]}):
+                info = json.load(urllib.request.urlopen(f"http://127.0.0.1:{porta}/api/info", timeout=5))
+            self.assertEqual((info["ocr"], info["ocr_idioma"], info["ocr_conferido"]), (True, "English (US)", True))
+        finally:
+            srv.shutdown(); srv.server_close()
+
+
 class FecharJanelaTests(unittest.TestCase):
     """Fechar a última janela encerra o programa; recarregar ou outra janela aberta não encerram."""
 

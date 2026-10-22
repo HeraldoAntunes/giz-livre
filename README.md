@@ -115,7 +115,7 @@ certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
 | Pressão da caneta | ✅ (Windows Ink) | ✅ geralmente, no Chrome/Chromium | ⚠️ depende do driver |
 | Abrir PowerPoint (`.pptx`) | ✅ PowerPoint ou LibreOffice | ✅ com LibreOffice | ⚠️ com LibreOffice |
 | Abrir PDF | ✅ | ✅ | ✅ |
-| Escrita à mão → texto | ✅ | ❌ (usa o reconhecedor do Windows) | ❌ |
+| Escrita à mão → texto | ✅ (com o reconhecimento de escrita do idioma instalado no Windows) | ❌ (usa o reconhecedor do Windows) | ❌ |
 
 É preciso ter o **Microsoft Edge** ou o **Google Chrome/Chromium** instalado; o programa abre numa janela própria deles.
 
@@ -173,7 +173,7 @@ daqui, confere o SHA-256 publicado, instala por cima e abre o programa de novo; 
 na pasta `quadros` ao lado do programa. Para fazer backup, copie essa pasta.
 
 **Funciona com a minha mesa digitalizadora?** Se ela funciona no Windows com o **Windows Ink** ligado no driver, funciona
-no Giz Livre. Veja o passo a passo no [Guia de uso](docs/GUIA-DE-USO.md#2-primeira-vez-com-mesa-digitalizadora-5-minutos).
+no Giz Livre; sem o Windows Ink ela desenha como mouse, sem pressão. Veja o passo a passo no [Guia de uso](docs/GUIA-DE-USO.md#2-primeira-vez-com-mesa-digitalizadora-5-minutos).
 
 **Consigo usar os quadros do Microsoft Whiteboard?** Exporte cada quadro como imagem no Whiteboard e use **Importar** na
 galeria do Giz Livre: cada imagem vira um quadro em que dá para continuar escrevendo.

@@ -460,14 +460,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "fil-argumento-preencher",
-        "Argumento — mapa preenchível",
+        "Argumento: mapa preenchível",
         520,
         220,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Premissas sustentam uma conclusão</text><rect x=\"15\" y=\"45\" width=\"185\" height=\"58\" rx=\"3\"/><rect x=\"15\" y=\"135\" width=\"185\" height=\"58\" rx=\"3\"/><rect x=\"315\" y=\"90\" width=\"190\" height=\"58\" rx=\"3\"/><text x=\"107\" y=\"67\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Premissa 1</text><text x=\"107\" y=\"89\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___________</text><text x=\"107\" y=\"157\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Premissa 2</text><text x=\"107\" y=\"179\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___________</text><path d=\"M202 74 H255 V119 M202 164 H255 V119\"/><path d=\"M255 119 L308 119 M301 115 L308 119 L301 123\"/><text x=\"410\" y=\"111\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Conclusão</text><text x=\"410\" y=\"133\" font-size=\"14\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">___________</text>"
       ],
       [
         "fil-conceitos-distinguir",
-        "Conceitos — comparação crítica",
+        "Conceitos: comparação crítica",
         560,
         224,
         "<text x=\"280\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Conceitos — comparação crítica</text><rect x=\"10\" y=\"42\" width=\"540\" height=\"178\" rx=\"3\"/><text x=\"77.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Conceito</text><text x=\"212.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Definição</text><path d=\"M145 42 V220\"/><text x=\"347.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Exemplo</text><path d=\"M280 42 V220\"/><text x=\"482.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Limite</text><path d=\"M415 42 V220\"/><path d=\"M10 68 H550\"/><path d=\"M10 106 H550\"/><path d=\"M10 144 H550\"/><path d=\"M10 182 H550\"/>"
@@ -487,7 +487,7 @@ export default {
     ['Lógica', [
       ['fil-silogismo', 'Silogismo (para preencher)', 240, 124, silogismo],
       ['fil-silogismo-ex', 'Silogismo: exemplo (Todo M é P)', 230, 108, silogismoEx],
-      ['fil-quadrado-logico', 'Quadrado tradicional — sujeito não vazio', 300, 260, '<g transform="translate(30 0)">' + quadrado + '</g>' + T(150, 246, 'Pressuposto: classe-sujeito não vazia.', 14)],
+      ['fil-quadrado-logico', 'Quadrado tradicional: sujeito não vazio', 300, 260, '<g transform="translate(30 0)">' + quadrado + '</g>' + T(150, 246, 'Pressuposto: classe-sujeito não vazia.', 14)],
       ['fil-quadrado-vazio', 'Quadrado lógico (para preencher)', 260, 200, quadradoVazio],
       ['fil-tv2', 'Tabela-verdade (2 variáveis)', 220, 152, tv2],
       ['fil-tv3', 'Tabela-verdade (3 variáveis)', 242, 200, tv3],

@@ -10,11 +10,12 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mod = nome => import(pathToFileURL(path.join(raiz, 'app', 'js', nome)).href);
 
 export async function montarIndice() {
-  const { GROUPS } = await mod('shapelib.js');
+  const { GROUPS, escalaNatural } = await mod('shapelib.js');
   const { PAPERS } = await mod('paper.js');
   const { MODELOS } = await mod('fnmodels.js');
   const vistos = new Set(), formas = [];
-  for (const g of GROUPS) for (const [secao, lista] of g.secoes) for (const [id, nome, w, h] of lista) {
+  for (const g of GROUPS) for (const [secao, lista] of g.secoes) for (const f of lista) {
+    const [id, nome] = f, k = escalaNatural(f), w = +(f[2] * k).toFixed(1), h = +(f[3] * k).toFixed(1);   // tamanho de inserção
     if (vistos.has(id)) continue;   // a mesma forma pode aparecer em mais de uma seção: vale a primeira
     vistos.add(id);
     formas.push({ id, nome, grupo: g.id, grupo_nome: g.nome, secao, w, h });

@@ -12,3 +12,8 @@ export const head = (x, y, ang, L = 12) => { // ponta de seta cheia em (x,y) apo
 export const bow = (cx, cy, r = 16) => `<path d="M${cx - 2 * r},${cy - r} L${cx + 2 * r},${cy + r} V${cy - r} L${cx - 2 * r},${cy + r} Z"/>`; // válvula (gravata)
 export const pipe = (cx, cy, r = 16) => `<path d="M${cx - 2 * r - 14},${cy} H${cx - 2 * r} M${cx + 2 * r},${cy} H${cx + 2 * r + 14}"/>`;
 
+// Bocas das peças de linha (válvulas, registros, medidores, bombas, conexões): a boca horizontal fica na altura do meio
+// da caixa (y = h/2) e encosta nas bordas (x 0..4 e w-4..w), para duas peças alinhadas pelo centro no quadro se ligarem
+// por um tubo reto. Peça com volante, atuador ou mostrador por cima ganha altura ou tem o desenho deslocado (`desloca`),
+// sem deformar o símbolo. Bomba centrífuga: a sucção (lateral) fica em h/2; o recalque segue no alto, como na norma.
+export const desloca = (dy, corpo) => `<g transform="translate(0 ${dy})">${corpo}</g>`;

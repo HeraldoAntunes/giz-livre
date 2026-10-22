@@ -362,10 +362,11 @@ function getImage(it, src = it.src) {
 
 // forma da biblioteca ({lib, tint}): desenhada a partir da própria biblioteca na cor `tint`;
 // tinta preta em fundo escuro aparece branca (como o traço preto). Sem a forma na biblioteca, usa o `src` gravado.
+// `semLegendas: true` no item: desenhada sem os textos (botão Legendas da barra da seleção).
 const libSrcCache = new Map();
-export function libSrc(id, color) {
-  const k = id + color;
-  if (!libSrcCache.has(k)) { const m = shapeSvg(id, color); libSrcCache.set(k, m ? svgDataUrl(m.svg) : null); }
+export function libSrc(id, color, semTexto = false) {
+  const k = id + color + (semTexto ? '/sem' : '');
+  if (!libSrcCache.has(k)) { const m = shapeSvg(id, color, { semTexto }); libSrcCache.set(k, m ? svgDataUrl(m.svg) : null); }
   return libSrcCache.get(k);
 }
 // imagem que de fato é desenhada (o PNG/PDF e a miniatura esperam por esta, não pelo src gravado)
@@ -373,7 +374,7 @@ function srcOf(it) {
   if (!it.lib) return it.src;
   const t = it.tint ?? (it.src?.includes('%23000000') ? '#000000' : null);
   if (!t) return it.src;
-  return libSrc(it.lib, darkBg && t === '#000000' ? '#ffffff' : t) || it.src;
+  return libSrc(it.lib, darkBg && t === '#000000' ? '#ffffff' : t, !!it.semLegendas) || it.src;
 }
 // imagem já carregada do item (ou null) — a borracha usa para tocar só no desenho da forma
 export function loadedImage(it) { const img = getImage(it, srcOf(it)); return img.complete && img.naturalWidth ? img : null; }

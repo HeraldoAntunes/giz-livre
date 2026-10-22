@@ -129,14 +129,14 @@ const AMPLIACAO_20261009 = [
     [
       [
         "mus-pauta-analise",
-        "Pauta ampliada — análise preenchível",
+        "Pauta ampliada: análise preenchível",
         500,
         220,
         "<text x=\"250\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pauta ampliada — anotar alturas e ritmo</text><path d=\"M20 70 H480\" stroke-width=\"1.5\"/><path d=\"M20 90 H480\" stroke-width=\"1.5\"/><path d=\"M20 110 H480\" stroke-width=\"1.5\"/><path d=\"M20 130 H480\" stroke-width=\"1.5\"/><path d=\"M20 150 H480\" stroke-width=\"1.5\"/><path d=\"M20 70 V150 M250 70 V150 M480 70 V150\"/><text x=\"250\" y=\"192\" font-size=\"16\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Compasso: ____  Clave: ____</text>"
       ],
       [
         "mus-ritmo-contagem",
-        "Ritmo — contagem por pulsos",
+        "Ritmo: contagem por pulsos",
         520,
         224,
         "<text x=\"260\" y=\"20\" font-size=\"18\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Ritmo — contagem por pulsos</text><rect x=\"10\" y=\"42\" width=\"500\" height=\"178\" rx=\"3\"/><text x=\"72.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Pulso</text><text x=\"197.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Figura</text><path d=\"M135 42 V220\"/><text x=\"322.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Duração</text><path d=\"M260 42 V220\"/><text x=\"447.5\" y=\"55\" font-size=\"15\" font-family=\"Segoe UI, Arial, sans-serif\" font-weight=\"600\" text-anchor=\"middle\" dominant-baseline=\"central\" fill=\"#C\" stroke=\"none\">Sílaba</text><path d=\"M385 42 V220\"/><path d=\"M10 68 H510\"/><path d=\"M10 106 H510\"/><path d=\"M10 144 H510\"/><path d=\"M10 182 H510\"/>"

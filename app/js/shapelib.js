@@ -39,10 +39,27 @@ const BY_ID = new Map(ALL_SHAPES.map(s => [s[0], s]));
 export const shapeById = id => BY_ID.get(id);
 
 // SVG pronto na cor `color` (traço 2,5 px na escala natural)
-export function shapeSvg(id, color = '#1b1b1b') {
+// { semTexto }: sem os textos do desenho (rótulos, legendas), para exercícios de "complete o desenho"; o tamanho
+// continua o da forma completa, para a troca não mexer na posição nem na escala do item.
+const TEXTO = /<text\b[^>]*\/>|<text\b[^>]*>[\s\S]*?<\/text>/g;
+export const temTexto = id => { const s = BY_ID.get(id); return !!s && /<text\b/.test(s[4]); };
+export function shapeSvg(id, color = '#1b1b1b', { semTexto = false } = {}) {
   const s = BY_ID.get(id);
   if (!s) return null;
-  const [, , w, h, body] = s;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" stroke="#C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">${body}</svg>`;
+  const [, , w0, h0, corpo] = s, k = escalaNatural(s), w = w0 * k, h = h0 * k;
+  const body = semTexto ? corpo.replace(TEXTO, '') : corpo;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w0} ${h0}" fill="none" stroke="#C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">${body}</svg>`;
   return { svg: svg.replaceAll('#C', color), w, h };
+}
+
+// Formas com letra miúda (pinos de placas, escalas de vidraria) entram ampliadas, para a menor letra ter 10 px no
+// quadro: aumentar só a letra encavalaria os rótulos, que ficam colados uns nos outros no desenho.
+const ESCALA = new Map();
+export function escalaNatural(s) {
+  if (!ESCALA.has(s[0])) {
+    const tams = [...s[4].matchAll(/font-size="([\d.]+)"/g)].map(m => +m[1]);
+    const menor = tams.length ? Math.min(...tams) : Infinity;
+    ESCALA.set(s[0], menor < 9 ? Math.round(10 / menor * 100) / 100 : 1);
+  }
+  return ESCALA.get(s[0]);
 }
