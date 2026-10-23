@@ -1,0 +1,67 @@
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Monta o programa e o instalador a partir do código público, nos computadores do GitHub (não no PC do mantenedor),
+# para o instalador poder ser assinado pela SignPath Foundation (software livre). Só roda pelo botão
+# "Run workflow", informando a tag ou o branch. Não publica nada: os arquivos ficam como artefato do workflow por
+# 14 dias, para conferir. A assinatura (SignPath) e a criação da release entram aqui depois da aprovação do pedido.
+name: Montar release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag ou branch a montar (ex.: v1.12.0 ou main)"
+        required: true
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: montar-${{ inputs.ref }}
+
+jobs:
+  montar:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Inno Setup 6.7.3 (a mesma versão do build local)
+        shell: pwsh
+        run: |
+          choco install innosetup --version=6.7.3 --yes --no-progress
+          if ($LASTEXITCODE) { exit 1 }
+
+      - name: Montar o programa, o instalador e o zip portátil
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File installer\build.ps1 -CI
+
+      - name: Conferir que o programa montado abre e responde
+        shell: pwsh
+        run: |
+          $dados = Join-Path $env:RUNNER_TEMP 'dados-teste'
+          $p = Start-Process build\dist\GizLivre\GizLivre.exe -ArgumentList '--sem-janela', '--porta', '8790', '--dados', $dados -PassThru
+          $info = $null
+          foreach ($i in 1..60) {
+            try { $info = Invoke-RestMethod http://127.0.0.1:8790/api/info -TimeoutSec 2; break } catch { Start-Sleep 1 }
+          }
+          if (-not $info) { Stop-Process $p -Force; throw 'o programa montado não respondeu' }
+          "Programa respondeu: versão $($info.versao)"
+          $esperada = (Select-String -Path installer\versao.txt -Pattern "FileVersion', '([0-9.]+)'").Matches[0].Groups[1].Value
+          Invoke-RestMethod http://127.0.0.1:8790/api/sair -Method Post -Headers @{ 'X-Lousa' = $info.token } -ContentType 'application/json' -Body '{}' | Out-Null
+          if (-not $esperada.StartsWith($info.versao)) { throw "versão $($info.versao) diferente da do versao.txt ($esperada)" }
+
+      - name: Guardar os arquivos montados
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: giz-livre-${{ github.run_number }}
+          path: dist/*
+          retention-days: 14
+          if-no-files-found: error

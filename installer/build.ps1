@@ -1,16 +1,26 @@
 ﻿# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 # Gera o executável (PyInstaller) e o instalador (Inno Setup) do Giz Livre, verifica no Microsoft Defender
 # e escreve dist\SHA256SUMS.txt.  Uso:  powershell -ExecutionPolicy Bypass -File installer\build.ps1
+# No GitHub Actions (workflow montar-release.yml): build.ps1 -CI usa o Python do setup-python e o pip em vez do uv,
+# e pula o Defender (fica para a conferência do instalador baixado da release, no PC do professor).
+param([switch]$CI)
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path $PSScriptRoot -Parent
 Set-Location $raiz
 $versao = '1.11.0'
 
 # 1) ambiente de build dedicado, recriado do zero, com dependências fixadas por hash
-$py313 = Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'
+$py313 = if ($CI) { (Get-Command python).Source } else { Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe' }
 Remove-Item -Recurse -Force .venv-build -ErrorAction SilentlyContinue
-uv venv .venv-build --python $py313 | Out-Host
-uv pip install --python .venv-build\Scripts\python.exe --require-hashes -r installer\requirements-build.txt | Out-Host
+if ($CI) {
+  & $py313 -m venv .venv-build | Out-Host
+  & .venv-build\Scripts\python.exe -m pip install --disable-pip-version-check --no-deps --require-hashes -r installer\requirements-build.txt | Out-Host
+  if ($LASTEXITCODE) { throw 'pip não instalou as ferramentas de build' }
+} else {
+  uv venv .venv-build --python $py313 | Out-Host
+  uv pip install --python .venv-build\Scripts\python.exe --require-hashes -r installer\requirements-build.txt | Out-Host
+}
+if ((& .venv-build\Scripts\python.exe -c "import sys; print(sys.version_info[:2] == (3, 13))") -ne 'True') { throw 'o build precisa do Python 3.13' }
 $pyver = & .venv-build\Scripts\python.exe -c "import sys; print(sys.version.split()[0])"
 
 # 2) executável em pasta (onedir: menos alarmes falsos que onefile), sem UPX, sem console,
@@ -60,9 +70,10 @@ $zip = "dist\GizLivre-$versao-portatil.zip"
 Compress-Archive -Path "$dist\*" -DestinationPath $zip
 Remove-Item "$dist\portatil.txt"
 
-# 5) verificação no Microsoft Defender (0 = nada encontrado; 2 = ameaça)
+# 5) verificação no Microsoft Defender (0 = nada encontrado; 2 = ameaça); no CI o Defender dos servidores do GitHub não
+#    é confiável, então ela fica para quando o professor baixa e confere o instalador da release
 $mp = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
-foreach ($alvo in @((Resolve-Path $inst).Path, (Resolve-Path $zip).Path, (Resolve-Path $dist).Path)) {
+foreach ($alvo in $(if ($CI) { @() } else { @((Resolve-Path $inst).Path, (Resolve-Path $zip).Path, (Resolve-Path $dist).Path) })) {
   $r = & $mp -Scan -ScanType 3 -File $alvo -DisableRemediation 2>&1 | Out-String
   if ($LASTEXITCODE -ne 0) { throw "Defender acusou algo (código $LASTEXITCODE) em $alvo`n$r" }
   "Defender OK: $alvo"
@@ -72,6 +83,7 @@ foreach ($alvo in @((Resolve-Path $inst).Path, (Resolve-Path $zip).Path, (Resolv
 $linhas = Get-ChildItem dist -File | Where-Object Name -ne 'SHA256SUMS.txt' | ForEach-Object {
   "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
 }
-$linhas += "# Giz Livre $versao - Python $pyver - PyInstaller 6.22.3 - Inno Setup 6.7.3 - gerado em $(Get-Date -Format 'yyyy-MM-dd')"
+$onde = if ($CI) { "GitHub Actions, commit $env:GITHUB_SHA" } else { 'PC do mantenedor' }
+$linhas += "# Giz Livre $versao - Python $pyver - PyInstaller 6.22.3 - Inno Setup 6.7.3 - gerado em $(Get-Date -Format 'yyyy-MM-dd') ($onde)"
 $linhas | Set-Content dist\SHA256SUMS.txt -Encoding ASCII
 Get-Content dist\SHA256SUMS.txt
