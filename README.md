@@ -51,8 +51,8 @@ programa é gratuito e não tem assinatura paga). Versões anteriores e a confer
 
 3. Abra pelo atalho **Giz Livre** na Área de Trabalho ou no Menu Iniciar.
 
-O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa não tem assinatura digital paga. Clique em
-*Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
+O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa ainda não tem assinatura digital (veja a
+[Code signing policy](#code-signing-policy)). Clique em *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página (troque `x.y.z` pela versão que baixou):
 ```bash
 certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
@@ -210,6 +210,30 @@ conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há a
 - **Empacotamento:** PyInstaller e Inno Setup.
 
 Para entender o código, veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
+
+## Code signing policy
+
+Política de assinatura de código do Giz Livre.
+
+- **Situação:** o pedido de assinatura gratuita para software livre foi feito à [SignPath Foundation](https://signpath.org).
+  Quando for aprovado, os instaladores passam a sair com a frase: Free code signing provided by
+  [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+- **O que é assinado:** só o `GizLivre.exe` e o instalador montados pelo workflow
+  [Montar release](.github/workflows/montar-release.yml), nos computadores do GitHub, a partir do código publicado neste
+  repositório. Bibliotecas de terceiros vão como os autores delas publicam. Cada pedido de assinatura é aprovado à mão.
+- **Equipe:**
+  - Autores e revisores (committers and reviewers): [Heraldo Antunes](https://github.com/HeraldoAntunes)
+  - Aprovadores (approvers): [Heraldo Antunes](https://github.com/HeraldoAntunes)
+- Mudanças de outras pessoas (pull requests) só entram depois da revisão do mantenedor.
+
+## Privacidade
+
+Este programa não transfere nenhuma informação para outros sistemas em rede, a não ser quando pedido expressamente
+pelo usuário ou por quem o instala ou opera. O único acesso à internet é o botão "Procurar versão nova", no Sobre, que
+consulta a página de versões do GitHub quando o usuário clica. Os quadros ficam só no computador.
+
+*This program will not transfer any information to other networked systems unless specifically requested by the user or
+the person installing or operating it.*
 
 ## Contribuir
 Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](.github/CONTRIBUTING.md) e a política de segurança em
