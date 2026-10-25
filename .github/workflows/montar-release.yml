@@ -1,8 +1,8 @@
 # Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
-# Monta o programa e o instalador a partir do código público, nos computadores do GitHub (não no PC do mantenedor),
-# para o instalador poder ser assinado pela SignPath Foundation (software livre). Só roda pelo botão
-# "Run workflow", informando a tag ou o branch. Não publica nada: os arquivos ficam como artefato do workflow por
-# 14 dias, para conferir. A assinatura (SignPath) e a criação da release entram aqui depois da aprovação do pedido.
+# Monta o programa e o instalador a partir do código público, nos computadores do GitHub (não no PC do mantenedor):
+# qualquer pessoa pode conferir de onde saiu cada arquivo, e é o caminho pedido por quem assina instaladores. Só roda
+# pelo botão "Run workflow", informando a tag ou o branch. Não publica nada: os arquivos ficam como artefato do
+# workflow por 14 dias, para conferir.
 name: Montar release
 
 on:
