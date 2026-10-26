@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 1.12.0 (26/10/2026)
+Levar os quadros para outro computador, atualização acompanhada e ícone novo.
+- **Levar quadros** (botão na galeria): guarda todos os quadros num único arquivo .zip, com miniaturas, pastas e
+  imagens, para levar num pen drive ou guardar como cópia de segurança. No outro computador, o mesmo botão traz os
+  quadros sem apagar nem sobrescrever nada: quadro igual é pulado, quadro que mudou entra como cópia "(trazido em
+  dd/mm)" e trazer o mesmo arquivo de novo não repete nada. O botão também abre a pasta dos quadros e avisa quando
+  ela está dentro do OneDrive, que pode trocar um quadro aberto por fora.
+- **Atualização pelo programa acompanhada:** a página mostra o andamento da instalação e, se a versão nova não
+  responder em 3 minutos, avisa e mostra o link para baixar pela página. Antes podia ficar em "Instalando" sem fim. O
+  instalador anota o que fez em `Documentos\Giz Livre\atualizacao.log`.
+- **Ícone novo:** lousa verde com moldura de madeira e giz branco. Outras opções de ícone vêm na pasta `icones` do
+  programa, para quem quiser trocar o do atalho.
+- **Sobre:** a cópia de segurança dos quadros agora aponta para o botão Levar quadros.
+
 ## 1.11.0 (22/10/2026)
 Formas revisadas, botão para esconder as legendas das formas e avisos para quem usa mesa sem Windows Ink.
 - **Botão Legendas:** com uma forma da biblioteca selecionada, um toque esconde os textos do desenho (rótulos e

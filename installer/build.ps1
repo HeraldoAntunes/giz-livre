@@ -7,7 +7,7 @@ param([switch]$CI)
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path $PSScriptRoot -Parent
 Set-Location $raiz
-$versao = '1.11.0'
+$versao = '1.12.0'
 
 # 1) ambiente de build dedicado, recriado do zero, com dependências fixadas por hash
 $py313 = if ($CI) { (Get-Command python).Source } else { Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe' }
@@ -53,6 +53,11 @@ Copy-Item app\vendor\katex\LICENSE "$dist\licencas\katex-LICENSE.txt"
 Copy-Item app\vendor\katex\fonts\OFL.txt "$dist\licencas\katex-fontes-OFL.txt"
 Copy-Item app\vendor\fluent\LICENSE "$dist\licencas\fluent-icons-LICENSE.txt"
 Copy-Item (Get-ChildItem .venv-build\Lib\site-packages\pyinstaller-*.dist-info -Recurse -Filter COPYING.txt | Select-Object -First 1).FullName "$dist\licencas\pyinstaller-COPYING.txt"
+
+# outros ícones, para quem quiser trocar o do atalho (Propriedades → Alterar ícone); os desenhos-fonte ficam em
+# installer\icones\svg e não vão no pacote
+New-Item -ItemType Directory -Force "$dist\icones" | Out-Null
+Copy-Item installer\icones\*.ico, installer\icones\LEIA-ME.txt "$dist\icones"
 
 # 3) instalador
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1

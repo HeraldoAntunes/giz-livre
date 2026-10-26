@@ -11,7 +11,8 @@ passos e o botão **Mostrar na tela**. No primeiro quadro, um tour de seis balõ
 pular, rever pela ajuda ou desligar).
 
 O programa abre numa janela própria do Edge ou do Chrome e funciona sem internet. Na versão instalada, os quadros ficam em
-`Documentos\Giz Livre\quadros`. Para fazer backup, copie essa pasta.
+`Documentos\Giz Livre\quadros`. Para fazer backup ou levar para outro computador, use **Levar quadros** na galeria
+(veja a seção 5).
 
 ## 2. Primeira vez com mesa digitalizadora (5 minutos)
 1. Conecte a mesa digitalizadora ou a tela com caneta (testado com Wacom Intuos).
@@ -80,7 +81,11 @@ grande falhar, salve o deck como PDF e importe o PDF. Vídeos dos slides entram 
 
 ## 5. Trazer quadros de outros programas
 - **Microsoft Whiteboard:** exporte cada quadro como imagem e use **Importar** na galeria.
-- **Outro computador com o Giz Livre:** menu `…` → *Exportar arquivo .lousa*; no outro computador, **Importar**.
+- **Outro computador com o Giz Livre (todos os quadros):** na galeria, **Levar quadros** → *Guardar todos num arquivo*
+  e salve o `.zip` no pen drive. No outro computador, **Levar quadros** → *Trazer quadros de um arquivo*. Nada que já
+  existe lá é apagado ou substituído: quadro igual é pulado e quadro que mudou entra como cópia "(trazido em dd/mm)".
+  Imagens coladas e pastas vão junto; a lixeira e as preferências (estojo, barras) não vão.
+- **Um quadro só:** menu `…` → *Exportar arquivo .lousa*; no outro computador, **Importar**.
 
 ## 6. Agentes de IA (experimental)
 Um assistente de IA compatível com MCP (por exemplo, o Claude Code ou o Claude Desktop) pode preparar quadros para você:

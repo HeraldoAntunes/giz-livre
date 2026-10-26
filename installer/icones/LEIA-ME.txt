@@ -1,0 +1,13 @@
+Outros ícones do Giz Livre
+
+Esta pasta traz outras opções de ícone. O programa usa a "Lousa verde com giz branco (padrão)".
+Para trocar o ícone do atalho da Área de Trabalho:
+
+1. Clique com o botão direito no atalho "Giz Livre" e escolha "Propriedades".
+2. Na aba "Atalho", clique em "Alterar ícone...".
+3. Clique em "Procurar...", abra esta pasta (icones, dentro da pasta onde o Giz Livre está instalado)
+   e escolha o ícone que preferir.
+4. Clique em "OK" e depois em "Aplicar".
+
+Para voltar ao ícone original, repita os passos e escolha "Lousa verde com giz branco (padrão)".
+Os ícones são desenhos próprios do Giz Livre, sob a mesma licença MIT do programa.

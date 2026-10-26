@@ -9,7 +9,7 @@ import { boardThumb, makeLayout, SIZES } from './pages.js';
 import { boardFromSlides, uploadAsset, isPptx, isPdf } from './importer.js';
 import { embedAssets } from './editor.js';
 import { ICON } from './icons.js';
-import { fillIcons, toast, askText, confirmBox, showPop, hidePop, aboutBox } from './ui.js';
+import { fillIcons, toast, askText, confirmBox, showPop, hidePop, aboutBox, dialog } from './ui.js';
 import { VERSION } from './version.js';
 import { jaEscolheu, escolherDisciplinas, agruparPorArea, abasOcultas, amostraDaVitrine } from './disciplinas.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
@@ -527,6 +527,70 @@ $('gNewFolder').onclick = newFolder;
 $('gTrash').onclick = () => { $('gSearch').value = ''; if (location.hash === '#/lixeira') showTrash(); else location.hash = '#/lixeira'; };
 $('gAbout').onclick = () => aboutBox(VERSION);
 $('gAgentes').onclick = () => painelAgentes(wfetch, toast);
+$('gLevar').onclick = levarQuadros;
+
+// Levar os quadros para outro computador: um .zip com tudo (o servidor monta e, na volta, junta sem apagar nem
+// sobrescrever nada). Ver docs/P27-PLANO-LEVAR-QUADROS.md.
+async function levarQuadros() {
+  const info = serverInfo() || {};
+  await dialog(`<h3>Levar quadros para outro computador</h3>
+    ${info.onedrive ? '<p class="lv-aviso">Seus quadros estão dentro do OneDrive. Evite abrir o mesmo quadro em dois computadores ao mesmo tempo.</p>' : ''}
+    <div class="choices">
+      <button class="btn" data-a="guardar"><b>Guardar todos num arquivo</b><small>Junta todos os quadros num arquivo .zip. Salve no pen drive e leve para o outro computador.</small></button>
+      <button class="btn" data-a="trazer"><b>Trazer quadros de um arquivo</b><small>Escolha o .zip feito no outro computador. Nada que já está aqui é apagado ou substituído.</small></button>
+      <button class="btn" data-a="pasta"><b>Abrir a pasta dos quadros</b><small>Para quem prefere copiar e colar.</small></button>
+    </div>
+    <p class="lv-saida" role="status"></p>
+    <div class="acts"><button class="btn primary" data-a="fechar">Fechar</button></div>`, (d, close) => {
+    const saida = d.querySelector('.lv-saida'), botoes = [...d.querySelectorAll('.choices .btn')];
+    const ocupado = (sim, msg = '') => { botoes.forEach(b => { b.disabled = sim; }); saida.className = 'lv-saida'; saida.textContent = msg; };
+    const mostra = (html, erro = false) => { ocupado(false); saida.className = 'lv-saida' + (erro ? ' lv-erro' : ''); saida.innerHTML = html; };
+    const rodar = fn => async () => { try { await fn(); } catch (e) { mostra(esc(e.message || 'Algo deu errado.'), true); } };
+    d.querySelector('[data-a="fechar"]').onclick = () => close(true);
+    d.querySelector('[data-a="guardar"]').onclick = rodar(async () => {
+      const nome = `Giz Livre - quadros - ${new Date().toLocaleDateString('sv')}.zip`;
+      let alvo = null;
+      if (window.showSaveFilePicker) {
+        try {
+          alvo = await window.showSaveFilePicker({ suggestedName: nome, types: [{ description: 'Pacote de quadros do Giz Livre', accept: { 'application/zip': ['.zip'] } }] });
+        } catch (e) { if (e.name === 'AbortError') return; alvo = null; }
+      }
+      ocupado(true, 'Preparando o arquivo… com muitos quadros pode levar um minuto.');
+      const r = await wfetch('/api/pacote');
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || 'Não consegui montar o arquivo.');
+      const resumo = JSON.parse(r.headers.get('X-Pacote-Resumo') || '{}');
+      if (alvo) await r.body.pipeTo(await alvo.createWritable());   // grava direto no arquivo, sem passar pela memória
+      else download(await r.blob(), nome);
+      const falhas = resumo.falhas?.length ? `<br>${resumo.falhas.length} item(ns) não puderam ser lidos (se a pasta estiver no OneDrive, confira a internet).` : '';
+      mostra(`<b>Pronto:</b> ${resumo.quadros} quadro(s) e ${resumo.imagens} imagem(ns) guardados em <b>${esc(alvo ? alvo.name : nome)}</b>${alvo ? '' : ' (pasta Downloads)'}.${falhas}`);
+    });
+    d.querySelector('[data-a="trazer"]').onclick = () => {
+      const inp = $('gPacoteFile');
+      inp.value = '';
+      inp.onchange = rodar(async () => {
+        const f = inp.files[0];
+        if (!f) return;
+        ocupado(true, 'Trazendo os quadros…');
+        const r = await wfetch('/api/pacote', { method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: f });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.erro || 'Não consegui trazer os quadros.');
+        const partes = [j.trazidos ? `<b>${j.trazidos}</b> quadro(s) trazido(s)` : 'Nenhum quadro novo'];
+        if (j.iguais) partes.push(`${j.iguais} já estavam aqui iguais`);
+        if (j.copias) partes.push(`${j.copias} vieram como cópia porque tinham mudado`);
+        if (j.falhas?.length) partes.push(`${j.falhas.length} não puderam ser lidos`);
+        mostra(partes.join(', ') + '.');
+        refresh();
+      });
+      inp.click();
+    };
+    d.querySelector('[data-a="pasta"]').onclick = rodar(async () => {
+      const r = await wfetch('/api/abrir-pasta', { method: 'POST' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.erro || 'Não consegui abrir a pasta.');
+      mostra(`Pasta aberta: <b>${esc(j.pasta)}</b>`);
+    });
+  });
+}
 $('gVer').textContent = 'versão ' + VERSION;
 $('gSlideFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await createFromSlides(f); });
 $('gTablet').onclick = () => openTabletSettings(tabletCfg(), saveTabletCfg);

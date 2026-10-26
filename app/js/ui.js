@@ -24,7 +24,7 @@ export function toast(msg, ms = 2600, act = null) {
   toastTimer = setTimeout(() => (t.hidden = true), ms);
 }
 
-function dialog(html, onOpen) {
+export function dialog(html, onOpen) {
   return new Promise(resolve => {
     const d = document.createElement('dialog');
     d.innerHTML = html;
@@ -83,7 +83,7 @@ export function aboutBox(version, antesDeAtualizar = null) {
       ${lin('Autor', '© 2026 Heraldo Antunes')}
       ${lin('Licença', 'Software livre, licença MIT: uso, cópia, modificação e distribuição gratuitos, mantendo o aviso de licença.')}
       ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados. A internet só é usada quando você clica em Procurar versão nova, e esse pedido ao GitHub não leva seus quadros nem dados pessoais.')}
-      ${lin('Seus quadros', 'Ficam em <i>Documentos\\Giz Livre\\quadros</i>. Faça cópia de segurança dessa pasta de vez em quando.')}
+      ${lin('Seus quadros', 'Ficam em <i>Documentos\\Giz Livre\\quadros</i>. Para cópia de segurança ou para levar a outro computador, use <b>Levar quadros</b>, na galeria.')}
       ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
       ${lin('Atualizações', `Esta é a versão ${esc(version)}. <button class="btn" data-atu>Procurar versão nova</button>
         <div class="sb-atu" aria-live="polite"></div><small class="sb-nota">Só consulta o GitHub quando você clica.</small>`)}
@@ -110,6 +110,23 @@ function ligarAtualizacao(d, antes) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.erro || 'Não deu para concluir agora.');
     return j;
+  };
+  // depois de mandar instalar: o Edge nem sempre deixa a página fechar a janela, então ela fica esperando a versão nova
+  // responder; se não vier em 3 minutos, diz que não terminou e como seguir (antes ficava em "Instalando" para sempre)
+  const acompanhar = async (versao, log) => {
+    const fim = Date.now() + 180000;
+    while (Date.now() < fim) {
+      await new Promise(ok => setTimeout(ok, 4000));
+      try {
+        const i = await (await fetch('/api/info', { cache: 'no-store' })).json();
+        if (i.versao === versao) {
+          saida.innerHTML = `<b class="sb-ok">✓ Versão ${esc(versao)} instalada.</b> O Giz Livre abriu numa janela nova; pode fechar esta.`;
+          return;
+        }
+      } catch { /* programa fechado durante a instalação: espera */ }
+    }
+    saida.innerHTML = `<span class="sb-erro">A instalação não terminou em 3 minutos.</span> Feche esta janela, baixe o instalador
+      pela página e rode à mão; os quadros ficam como estão. ${pagina()}${log ? `<br><small>O registro da tentativa ficou em ${esc(log)}.</small>` : ''}`;
   };
   bt.onclick = async () => {
     bt.hidden = true;
@@ -138,6 +155,7 @@ function ligarAtualizacao(d, antes) {
         const r = await pede('/api/atualizacao/instalar');
         saida.innerHTML = `<b class="sb-ok">Instalando a versão ${esc(r.versao)}.</b> O Giz Livre vai fechar e abrir de novo sozinho; os quadros ficam como estão.`;
         setTimeout(() => window.close(), 2500);
+        acompanhar(r.versao, r.log);
       } catch (e) {
         saida.querySelector('.sb-espera')?.remove();
         bi.disabled = false;

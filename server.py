@@ -24,6 +24,7 @@ import time
 import unicodedata
 import urllib.parse
 import webbrowser
+import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -62,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.11.0"
+VERSAO = "1.12.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -75,6 +76,7 @@ LIMITES = {"boards": 200 * MB, "thumbs": 5 * MB, "assets": 40 * MB, "pptx": 300 
 TOKEN = secrets.token_hex(16)        # token da sessão: só a página servida por ESTE servidor o conhece
 TRAVA_PPTX = threading.Semaphore(1)  # conversões pesadas: uma de cada vez
 TRAVA_OCR = threading.Semaphore(2)
+TRAVA_PACOTE = threading.Lock()     # um pacote trazido de cada vez
 PORTA = 8765
 ULTIMA_ATIVIDADE = time.time()
 TRAVAS: dict[str, threading.Lock] = {}
@@ -394,6 +396,54 @@ class Handler(SimpleHTTPRequestHandler):
             return None
         return self.rfile.read(n)
 
+    def _enviar_pacote(self):
+        tmp = tempfile.gettempdir()
+        if tamanho_estimado_pacote() + 50 * MB > shutil.disk_usage(tmp).free:
+            return self._json({"erro": "Não há espaço livre no disco do computador para montar o arquivo."}, 507)
+        with tempfile.TemporaryFile(prefix="gizlivre-pacote-") as f:
+            try:
+                resumo = montar_pacote(f)
+            except OSError as e:
+                registrar(e)
+                return self._json({"erro": "Não consegui montar o arquivo com os quadros."}, 500)
+            tamanho = f.tell()
+            f.seek(0)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Length", str(tamanho))
+            self.send_header("Content-Disposition", 'attachment; filename="quadros-giz-livre.zip"')
+            self.send_header("X-Pacote-Resumo", json.dumps(resumo, ensure_ascii=True))
+            self.end_headers()
+            shutil.copyfileobj(f, self.wfile, 1024 * 1024)
+
+    def _receber_pacote(self):
+        try:
+            n = int(self.headers.get("Content-Length", "-1"))
+        except ValueError:
+            n = -1
+        if n <= 0 or n > LIMITE_PACOTE:
+            return self._json({"erro": "O arquivo é grande demais ou está vazio."}, 413)
+        if n * 2 + 50 * MB > shutil.disk_usage(tempfile.gettempdir()).free:
+            return self._json({"erro": "Não há espaço suficiente no disco para trazer este pacote."}, 507)
+        with tempfile.TemporaryFile(prefix="gizlivre-pacote-") as f:
+            falta = n
+            while falta:   # em pedaços: o pacote nunca fica inteiro na memória
+                pedaco = self.rfile.read(min(falta, 1024 * 1024))
+                if not pedaco:
+                    return self._json({"erro": "O envio do arquivo foi interrompido; nada foi trazido."}, 400)
+                f.write(pedaco)
+                falta -= len(pedaco)
+            f.seek(0)
+            try:
+                with TRAVA_PACOTE:
+                    resumo = trazer_pacote(f)
+            except ValueError as e:
+                return self._json({"erro": str(e)}, 400)
+            except OSError as e:
+                registrar(e)
+                return self._json({"erro": "Não consegui ler o pacote."}, 500)
+        return self._json(resumo)
+
     def _id(self, prefixo):
         bid = self.path[len(prefixo):].split("?")[0]
         if not ID_OK.match(bid):
@@ -426,10 +476,15 @@ class Handler(SimpleHTTPRequestHandler):
         if rota == "/api/info":
             marcar_contato()
             return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
+                               "onedrive": em_onedrive(DADOS),
                                "pptx": "powerpoint" if tem_powerpoint() else ("libreoffice" if achar_libreoffice() else None),
                                **info_ocr()})
         if rota == "/api/ping":
             return self._json({"ok": True})
+        if rota == "/api/pacote":   # todos os quadros num zip: entrega tudo, então exige o token como uma escrita
+            if not self._escrita_ok():
+                return
+            return self._enviar_pacote()
         if rota == "/api/pptx/progresso":   # andamento da conversão (só números; nada do conteúdo)
             c = dict(CONVERSAO)
             if not c:
@@ -651,6 +706,16 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"erro": "Não deu para falar com o GitHub agora. Confira a internet e tente de novo."}, 502)
             finally:
                 TRAVA_ATUALIZACAO.release()
+        if rota == "/api/pacote":
+            return self._receber_pacote()
+        if rota == "/api/abrir-pasta":
+            try:
+                DADOS.mkdir(parents=True, exist_ok=True)
+                abrir_pasta(DADOS)
+            except OSError as e:
+                registrar(e)
+                return self._json({"erro": "Não consegui abrir a pasta: " + str(DADOS)}, 500)
+            return self._json({"ok": True, "pasta": str(DADOS)})
         if rota == "/api/janela-fechou":   # a página avisa ao fechar (pagehide); ver encerrar_se_ninguem_voltou
             corpo = self._corpo() or b"{}"
             try:
@@ -1439,6 +1504,292 @@ def coletar_assets_orfaos(dias: int = 7) -> None:
         registrar(e)
 
 
+# ---------------- levar os quadros para outro computador (pacote .zip; ver docs/P27-PLANO-LEVAR-QUADROS.md) ----------
+# O pacote é um zip comum: manifesto.json, quadros/<id>.json, quadros/<id>.png (miniatura) e assets/<sha1>.png|jpg.
+# Trazer nunca apaga nem sobrescreve: quadro novo entra com o mesmo id (uma segunda importação o reconhece), quadro
+# igual é pulado e quadro que mudou entra como cópia, com id novo.
+FORMATO_PACOTE = 1
+LIMITE_PACOTE = 4096 * MB             # tamanho do arquivo enviado
+LIMITE_DESCOMPRIMIDO = 8192 * MB      # soma do que o zip declara por dentro (zip bomba)
+MAX_ARQUIVOS_PACOTE = 30000
+QUADRO_NO_PACOTE = re.compile(r"quadros/([A-Za-z0-9_-]{1,64})\.json\Z")
+ASSET_NO_PACOTE = re.compile(r"assets/([0-9a-f]{40}\.(?:png|jpg))\Z")
+SRC_OK = re.compile(r"^(?:data:image/(?:png|jpeg|gif|webp|svg\+xml)[;,]|/assets/[0-9a-f]{40}\.(?:png|jpg)\Z)")
+
+
+def em_onedrive(pasta: Path) -> bool:
+    """A pasta dos quadros está dentro do OneDrive? (a sincronização pode trocar um quadro aberto por fora)"""
+    try:
+        alvo = pasta.resolve()
+    except OSError:
+        alvo = pasta
+    for var in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer"):
+        raiz = os.environ.get(var)
+        if raiz:
+            try:
+                alvo.relative_to(Path(raiz).resolve())
+                return True
+            except (ValueError, OSError):
+                pass
+    return any(p.lower().startswith("onedrive") for p in alvo.parts)
+
+
+def impressao_quadro(board: dict) -> str:
+    """Resumo do conteúdo para comparar dois quadros, sem o que muda sem o quadro mudar (revisão, data, posição da tela)."""
+    b = {k: v for k, v in board.items() if k not in ("_rev", "updated", "view")}
+    return hashlib.sha256(json.dumps(b, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def novo_id_quadro() -> str:
+    """Id no mesmo formato do newId() da página (data em base 36 e 5 caracteres sorteados), que ainda não exista."""
+    while True:
+        n, b36 = int(time.time() * 1000), ""
+        while n:
+            n, r = divmod(n, 36)
+            b36 = "0123456789abcdefghijklmnopqrstuvwxyz"[r] + b36
+        bid = b36 + "".join(secrets.choice("0123456789abcdefghijklmnopqrstuvwxyz") for _ in range(5))
+        if not (DADOS / f"{bid}.json").exists():
+            return bid
+
+
+def quadro_do_pacote(dados: bytes, bid: str = "") -> dict:
+    """Valida um quadro vindo de um pacote (que pode ser de outra pessoa) como o PUT valida, e tira imagens de fora."""
+    board = json.loads(dados.decode("utf-8"), parse_constant=lambda c: (_ for _ in ()).throw(ValueError("número inválido")))
+    if not isinstance(board, dict) or not isinstance(board.get("items"), list):
+        raise ValueError("quadro inválido")
+    itens = []
+    for n, it in enumerate(board["items"]):
+        if not isinstance(it, dict) or not isinstance(it.get("type"), str):
+            continue
+        if "src" in it and not (isinstance(it["src"], str) and SRC_OK.match(it["src"])):
+            continue   # privacidade: nada de imagem com endereço externo (a importação de .lousa faz o mesmo)
+        if it.get("type") == "image" and "src" not in it:
+            continue
+        if not isinstance(it.get("id"), str) or not it["id"]:
+            # id fixo (quadro + posição), não sorteado: trazer o mesmo quadro de novo dá o mesmo resultado
+            it["id"] = "ag" + hashlib.sha1(f"{bid}:{n}".encode("utf-8")).hexdigest()[:10]
+        itens.append(it)
+    board["items"] = itens
+    L = board.get("layout")
+    if L is not None:
+        def fin(v, a, b):
+            return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and a <= v <= b
+        if not isinstance(L, dict) or (L.get("mode") == "pages" and not (
+                fin(L.get("w"), 1, 1e5) and fin(L.get("h"), 1, 1e5) and fin(L.get("gap", 0), 0, 1e4) and fin(L.get("count"), 1, 500))):
+            raise ValueError("páginas inválidas")
+        if L.get("mode") == "pages":
+            L["count"] = round(L["count"])
+    if not isinstance(board.get("background"), dict):
+        board["background"] = {"color": "#ffffff", "pattern": "none"}
+    board["title"] = str(board.get("title") or "Sem título")[:200]
+    pasta = nome_pasta(board.get("folder"))
+    if pasta:
+        board["folder"] = pasta
+    else:
+        board.pop("folder", None)
+    board.pop("_rev", None)
+    json.dumps(board, ensure_ascii=False, allow_nan=False)
+    return board
+
+
+def limpo_igual(atual: dict, bid: str, board: dict) -> bool:
+    """O quadro daqui, limpo como o que chega, fica igual? (quadro antigo sem fundo ou sem id de item que já foi e
+    voltou entre dois PCs: só a limpeza o diferencia)"""
+    try:
+        return impressao_quadro(quadro_do_pacote(json.dumps(atual, ensure_ascii=False).encode("utf-8"), bid)) == \
+            impressao_quadro(board)
+    except (ValueError, TypeError):
+        return False
+
+
+def tamanho_estimado_pacote() -> int:
+    total = 0
+    for arq in list(DADOS.glob("*.json")) + list(DADOS.glob("*.png")) + list((DADOS / "assets").glob("*")):
+        try:
+            total += arq.stat().st_size
+        except OSError:
+            pass
+    return total
+
+
+def montar_pacote(destino) -> dict:
+    """Grava em `destino` (arquivo aberto) o zip com todos os quadros, miniaturas e as imagens que eles usam."""
+    lista, falhas, usados = [], [], set()
+    with zipfile.ZipFile(destino, "w") as z:
+        for arq in sorted(DADOS.glob("*.json")):
+            bid = arq.stem
+            if not ID_OK.match(bid):
+                continue
+            try:
+                with trava(bid):
+                    dados = arq.read_bytes()
+                    mini = DADOS / f"{bid}.png"
+                    png = mini.read_bytes() if mini.is_file() else None
+                board = json.loads(dados.decode("utf-8"))
+                if not isinstance(board, dict):
+                    raise ValueError("quadro inválido")
+            except (OSError, ValueError) as e:
+                # no OneDrive, um quadro "só na nuvem" não abre sem internet: conta no resumo e segue
+                falhas.append({"id": bid, "motivo": "não consegui ler o arquivo" if isinstance(e, OSError) else "arquivo danificado"})
+                continue
+            z.writestr(f"quadros/{bid}.json", dados, zipfile.ZIP_DEFLATED)
+            if png:
+                z.writestr(f"quadros/{bid}.png", png, zipfile.ZIP_STORED)
+            usados.update(re.findall(r"[0-9a-f]{40}\.(?:png|jpg)", dados.decode("utf-8", "ignore")))
+            lista.append({"id": bid, "title": str(board.get("title") or "Sem título")[:200],
+                          "folder": nome_pasta(board.get("folder")), "impressao": impressao_quadro(board)})
+        imagens = 0
+        for nome in sorted(usados):
+            a = DADOS / "assets" / nome
+            if ASSET_OK.match(nome) and a.is_file():
+                try:
+                    z.write(a, f"assets/{nome}", zipfile.ZIP_STORED)   # PNG e JPG já vêm comprimidos
+                    imagens += 1
+                except OSError:
+                    falhas.append({"id": nome, "motivo": "não consegui ler a imagem"})
+        z.writestr("manifesto.json", json.dumps({
+            "formato": FORMATO_PACOTE, "programa": "Giz Livre", "versao": VERSAO,
+            "criado": time.strftime("%Y-%m-%dT%H:%M:%S"), "quadros": lista}, ensure_ascii=False, indent=1), zipfile.ZIP_DEFLATED)
+    return {"quadros": len(lista), "imagens": imagens, "falhas": falhas}
+
+
+def trazer_pacote(arquivo) -> dict:
+    """Junta os quadros de um pacote aos que já existem, sem apagar nem sobrescrever nada; devolve o resumo."""
+    try:
+        z = zipfile.ZipFile(arquivo)
+    except (zipfile.BadZipFile, OSError):
+        raise ValueError("Este arquivo não é um pacote de quadros do Giz Livre.")
+    with z:
+        infos = z.infolist()
+        if len(infos) > MAX_ARQUIVOS_PACOTE or sum(i.file_size for i in infos) > LIMITE_DESCOMPRIMIDO:
+            raise ValueError("O pacote é grande demais ou está danificado; nada foi trazido.")
+        porNome = {i.filename: i for i in infos}
+
+        def ler(info, limite):
+            if info.file_size > limite:
+                raise ValueError("arquivo grande demais")
+            with z.open(info) as f:
+                dados = f.read(limite + 1)
+            if len(dados) > limite:   # não confia no tamanho declarado
+                raise ValueError("arquivo grande demais")
+            return dados
+
+        try:
+            manifesto = json.loads(ler(porNome["manifesto.json"], 5 * MB).decode("utf-8"))
+            formato = manifesto.get("formato")
+        except (KeyError, ValueError, AttributeError, zipfile.BadZipFile):
+            raise ValueError("Este arquivo não é um pacote de quadros do Giz Livre.")
+        if type(formato) is not int or formato < 1:
+            raise ValueError("Este arquivo não é um pacote de quadros do Giz Livre.")
+        if formato > FORMATO_PACOTE:
+            raise ValueError("Este pacote foi feito por uma versão mais nova do Giz Livre. Atualize o programa e tente de novo.")
+        livre = shutil.disk_usage(DADOS).free
+        if sum(i.file_size for i in infos) + 50 * MB > livre:
+            raise ValueError("Não há espaço suficiente no disco para trazer este pacote.")
+
+        r = {"trazidos": 0, "iguais": 0, "copias": 0, "imagens": 0, "falhas": []}
+        # 1) imagens primeiro: um quadro nunca fica apontando para imagem que ainda não chegou
+        for nome, info in porNome.items():
+            m = ASSET_NO_PACOTE.match(nome)
+            if not m:
+                continue
+            try:
+                dados = ler(info, LIMITES["assets"])
+                if hashlib.sha1(dados).hexdigest() != m.group(1)[:40]:
+                    raise ValueError("imagem não confere")
+                existia = (DADOS / "assets" / m.group(1)).exists()
+                if guardar_asset(dados) != "/assets/" + m.group(1):   # confere também o tipo (PNG ou JPEG)
+                    raise ValueError("imagem não confere")
+                r["imagens"] += 0 if existia else 1
+            except (ValueError, OSError, zipfile.BadZipFile):
+                r["falhas"].append({"id": m.group(1), "motivo": "imagem danificada"})
+        # 2) quadros
+        titulos = {q["title"] for q in listar_quadros()}
+        # cópias feitas em importações anteriores: trazer o mesmo pacote de novo não cria outra cópia
+        origens = set()
+        for arq in DADOS.glob("*.json"):
+            try:
+                t = json.loads(arq.read_text(encoding="utf-8")).get("trazido_de")
+                if isinstance(t, dict):
+                    origens.add((t.get("id"), t.get("impressao")))
+            except (OSError, ValueError, AttributeError):
+                pass
+        hoje = time.strftime("%d/%m")
+        for nome, info in porNome.items():
+            m = QUADRO_NO_PACOTE.match(nome)
+            if not m or not ID_OK.match(m.group(1)):
+                continue
+            bid = m.group(1)
+            try:
+                dados = ler(info, LIMITES["boards"])
+                board = quadro_do_pacote(dados, bid)
+                # compara pelo que veio no pacote (o arquivo do outro PC), não pela versão limpa, que ganha fundo e ids
+                original = impressao_quadro(json.loads(dados.decode("utf-8")))
+            except (ValueError, UnicodeDecodeError, zipfile.BadZipFile):
+                r["falhas"].append({"id": bid, "motivo": "quadro danificado"})
+                continue
+            png = None
+            mini = porNome.get(f"quadros/{bid}.png")
+            if mini:
+                try:
+                    png = ler(mini, LIMITES["thumbs"])
+                    if png[:8] != bytes.fromhex("89504e470d0a1a0a"):
+                        png = None
+                except (ValueError, zipfile.BadZipFile):
+                    png = None
+            titulo = board["title"]
+            board["updated"] = int(numero(board.get("updated")) or time.time() * 1000)
+            board["_rev"] = 0
+            try:
+                with trava(bid):
+                    arq = DADOS / f"{bid}.json"
+                    if arq.exists():
+                        try:
+                            atual = json.loads(arq.read_text(encoding="utf-8"))
+                        except (OSError, ValueError):
+                            atual = None
+                        if isinstance(atual, dict) and (impressao_quadro(atual) in (original, impressao_quadro(board))
+                                                        or limpo_igual(atual, bid, board)):
+                            r["iguais"] += 1
+                            continue
+                        destino = None   # mesmo id, conteúdo diferente: vira cópia
+                    else:
+                        destino = bid
+                        if titulo in titulos:
+                            board["title"] = titulo[:200 - len(" (trazido)")] + " (trazido)"
+                        gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+                        if png:
+                            gravar_atomico(DADOS / f"{bid}.png", png)
+                if destino is None and (bid, original) in origens:
+                    r["iguais"] += 1
+                    continue
+                if destino is None:
+                    board["trazido_de"] = {"id": bid, "impressao": original}
+                    origens.add((bid, original))
+                    sufixo = f" (trazido em {hoje})"
+                    board["title"] = titulo[:200 - len(sufixo)] + sufixo
+                    novo = novo_id_quadro()
+                    with trava(novo):
+                        gravar_atomico(DADOS / f"{novo}.json", json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+                        if png:
+                            gravar_atomico(DADOS / f"{novo}.png", png)
+                    r["copias"] += 1
+                else:
+                    r["trazidos"] += 1
+                titulos.add(board["title"])
+            except OSError as e:
+                registrar(e)
+                r["falhas"].append({"id": bid, "motivo": "não consegui gravar"})
+        return r
+
+
+def abrir_pasta(pasta: Path) -> None:
+    if WINDOWS:
+        os.startfile(str(pasta))   # noqa: S606 (pasta do próprio programa, nunca vinda do pedido)
+    else:
+        subprocess.Popen(["open" if MAC else "xdg-open", str(pasta)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 # ---------------- PowerPoint → imagens (COM, sem dependências) ----------------
 SCRIPT_PPTX = r"""
 param([string]$arq, [string]$saida, [int]$largura)
@@ -1948,6 +2299,13 @@ def pode_instalar_sozinho() -> bool:
     return sys.platform == "win32" and CONGELADO and not (RAIZ / "portatil.txt").exists()
 
 
+def notas_da_release(corpo) -> str:
+    """Só o "O que mudou": o topo das notas traz a tabela de download, que é para a página do GitHub, não para o Sobre."""
+    texto = str(corpo or "")
+    marca = re.search(r"^## O que mudou\s*$", texto, re.M)
+    return texto[marca.end():].strip() if marca else texto
+
+
 def info_atualizacao(release: dict | None = None) -> dict:
     if release is None:
         release = json.loads(baixar_https(RELEASES_API, 2_000_000, 15, "application/vnd.github+json").decode("utf-8"))
@@ -1961,7 +2319,7 @@ def info_atualizacao(release: dict | None = None) -> dict:
         else "https://github.com/HeraldoAntunes/giz-livre/releases/latest"
     nova = vu > va
     return {"atual": VERSAO, "ultima": ultima, "nova": nova, "mais_nova_aqui": va > vu,
-            "notas": str(release.get("body") or "")[:4000], "pagina": pagina,
+            "notas": notas_da_release(release.get("body"))[:4000], "pagina": pagina,
             "pode_instalar": bool(nova and pode_instalar_sozinho() and endereco_permitido(anexos.get(nome))
                                   and endereco_permitido(anexos.get("SHA256SUMS.txt"))),
             "_instalador": (nome, anexos.get(nome)), "_somas": anexos.get("SHA256SUMS.txt")}
@@ -1987,11 +2345,18 @@ def instalar_atualizacao() -> dict:
     pasta = Path(tempfile.mkdtemp(prefix="gizlivre-atualizacao-"))
     exe = pasta / nome
     exe.write_bytes(dados)
+    # registro do instalador ao lado da pasta dos quadros (Documentos\Giz Livre): se a instalação não terminar, fica o
+    # rastro do que aconteceu (no notebook do professor, em 22/10/2026, ela parou em "Instalando" sem deixar pista)
+    log = DADOS.parent / "atualizacao.log"
+    try:
+        log.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        log = pasta / "atualizacao.log"
     # /reabrir=1: o instalador abre o Giz Livre de novo no fim (seção [Code] do lousa.iss)
-    subprocess.Popen([str(exe), "/SILENT", "/CURRENTUSER", "/NORESTART", "/SUPPRESSMSGBOXES", "/reabrir=1"],
+    subprocess.Popen([str(exe), "/SILENT", "/CURRENTUSER", "/NORESTART", "/SUPPRESSMSGBOXES", "/reabrir=1", f"/LOG={log}"],
                      creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
                      close_fds=True)
-    return {"ok": True, "versao": info["ultima"]}
+    return {"ok": True, "versao": info["ultima"], "log": str(log)}
 
 
 def resposta_publica(info: dict) -> dict:

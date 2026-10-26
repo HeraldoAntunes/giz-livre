@@ -53,7 +53,7 @@ export const TEMAS = [
   { id: 'salvar', titulo: 'Salvar, exportar e backup', icone: 'print', alvo: '#bMenu',
     figura: [['more', 'Menu'], ['print', 'Imprimir']], destaque: 0,
     passos: ['O quadro se salva sozinho enquanto você escreve.', 'Menu … do quadro: exportar PDF, imprimir, exportar imagem ou o arquivo .lousa.',
-      'Os quadros ficam em Documentos\\Giz Livre\\quadros. Para backup, copie essa pasta.'] },
+      'Backup ou outro computador: botão Levar quadros, na galeria, guarda todos num arquivo .zip e traz de volta sem apagar nada.'] },
   { id: 'caneta', titulo: 'Mesa digitalizadora', icone: 'pen', alvo: '#bMenu',
     figura: [['pen', 'Caneta e escrita']], destaque: 0,
     passos: ['Ligue o Windows Ink no programa da mesa (no driver da Wacom, por exemplo).', 'Menu … → Caneta e escrita: teste da pressão, botão lateral e estabilizador contra tremido.',

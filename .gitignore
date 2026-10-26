@@ -37,3 +37,6 @@ scripts/vitrine/saida/
 !.agentes/*/*/manifesto.json
 # marca da pasta de exportação pública (não versionar)
 .giz-livre-publico
+
+# documentos oficiais do INPI (GRU com CPF, protocolo, declaração assinada): só no disco, nunca no Git
+docs/INPI/documentos-oficiais/

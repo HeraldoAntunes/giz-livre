@@ -184,6 +184,27 @@ class ApiTests(unittest.TestCase):
 
 
 # canal dos agentes de IA (rotas /api/agente/*) e o servidor MCP por stdio, num servidor temporário próprio
+
+    def test_pacote_pede_token_e_vai_e_volta(self):
+        status, _ = self.request("/api/boards/levar1", "PUT", {"board": {"title": "Levar", "items": []}, "revision": 0})
+        self.assertEqual(status, 200)
+        req = urllib.request.Request(self.base + "/api/pacote")
+        with self.assertRaises(urllib.error.HTTPError) as e:
+            urllib.request.urlopen(req, timeout=10)
+        self.assertEqual(e.exception.code, 409)
+        req = urllib.request.Request(self.base + "/api/pacote", headers={"X-Lousa": self.token})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            zipado = r.read()
+            total = json.loads(r.headers["X-Pacote-Resumo"])["quadros"]
+            self.assertGreaterEqual(total, 1)
+        req = urllib.request.Request(self.base + "/api/pacote", data=zipado, method="POST",
+                                     headers={"X-Lousa": self.token, "Content-Type": "application/zip"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            self.assertEqual(json.loads(r.read())["iguais"], total)   # tudo já existe: nada se repete
+        status, info = self.request("/api/info")
+        self.assertIn("onedrive", info)
+
+
 class AgenteTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -694,6 +715,12 @@ class AtualizacaoTests(unittest.TestCase):
         self.assertIsNone(v("1.9"))
         self.assertIsNone(v("../1.0.0"))
 
+    def test_notas_sem_a_tabela_de_download(self):
+        corpo = "## Qual arquivo baixar?\n\n| a | b |\n\n---\n\n## O que mudou\nCorreções.\n- item"
+        self.assertEqual(self.srv.notas_da_release(corpo), "Correções.\n- item")
+        self.assertEqual(self.srv.notas_da_release("Só o texto antigo"), "Só o texto antigo")
+        self.assertEqual(self.srv.notas_da_release(None), "")
+
     def test_so_aceita_github_por_https(self):
         ok = self.srv.endereco_permitido
         self.assertTrue(ok("https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.0.0/x.exe"))
@@ -747,6 +774,29 @@ class AtualizacaoTests(unittest.TestCase):
                 s.instalar_atualizacao()
             self.assertIn("não confere", str(erro.exception))
             roda.assert_not_called()
+
+    def test_instalador_conferido_roda_com_registro(self):
+        import hashlib
+        s = self.srv
+        rel = self.release("v1.11.0")
+        exe = b"instalador de verdade"
+
+        def falso(url, limite, timeout=30, aceita=""):
+            if url.endswith("SHA256SUMS.txt"):
+                return (hashlib.sha256(exe).hexdigest() + "  Instalar-GizLivre-1.11.0.exe\n").encode()
+            return exe
+
+        real = s.info_atualizacao
+        with tempfile.TemporaryDirectory() as tmp, patch.object(s, "DADOS", Path(tmp) / "Giz Livre" / "quadros"), \
+                patch.object(s, "VERSAO", "1.10.0"), patch.object(s, "pode_instalar_sozinho", return_value=True), \
+                patch.object(s, "info_atualizacao", side_effect=lambda: real(rel)), \
+                patch.object(s, "baixar_https", side_effect=falso), patch.object(s.subprocess, "Popen") as roda:
+            r = s.instalar_atualizacao()
+            args = roda.call_args[0][0]
+            self.assertEqual(Path(args[0]).read_bytes(), exe)
+            self.assertIn("/CURRENTUSER", args)
+            self.assertIn("/LOG=" + str(Path(tmp) / "Giz Livre" / "atualizacao.log"), args)   # rastro se não terminar
+            self.assertEqual((r["versao"], r["log"]), ("1.11.0", str(Path(tmp) / "Giz Livre" / "atualizacao.log")))
 
 
 class ReconhecedorEscritaTests(unittest.TestCase):
@@ -887,6 +937,165 @@ class ExportTests(unittest.TestCase):
                 module.validar_destino(parent / "novo")
                 module.validar_destino(marked)
                 self.assertEqual(sentinel.read_text(encoding="utf-8"), "preservado")
+
+
+class PacoteTests(unittest.TestCase):
+    """Levar os quadros para outro computador: pacote .zip, sem apagar nem sobrescrever nada ao trazer."""
+    PNG = bytes.fromhex("89504e470d0a1a0a") + b"imagem de teste"
+
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location("servidor_pacote", ROOT / "server.py")
+        cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="giz-pacote-")
+        self.usar(Path(self.temp.name) / "pc1")
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def usar(self, pasta):   # troca o "computador": a pasta de quadros do módulo
+        pasta.mkdir(parents=True, exist_ok=True)
+        self.srv.DADOS, self.srv.LIXEIRA = pasta, pasta / "lixeira"
+        self.srv.RESUMOS.clear()
+
+    def quadro(self, bid, titulo, itens=None, **extra):
+        b = {"title": titulo, "items": itens if itens is not None else [{"id": "t1", "type": "text", "text": titulo}],
+             "background": {"color": "#ffffff", "pattern": "none"}, "_rev": 3, "updated": 1000, **extra}
+        (self.srv.DADOS / f"{bid}.json").write_text(json.dumps(b), encoding="utf-8")
+        (self.srv.DADOS / f"{bid}.png").write_bytes(self.PNG)
+        return b
+
+    def pacote(self):
+        import io
+        f = io.BytesIO()
+        resumo = self.srv.montar_pacote(f)
+        f.seek(0)
+        return f, resumo
+
+    def titulos(self):
+        return sorted(json.loads(p.read_text(encoding="utf-8"))["title"] for p in self.srv.DADOS.glob("*.json"))
+
+    def test_ida_e_volta_leva_quadros_miniaturas_e_imagens(self):
+        import hashlib, zipfile
+        nome = hashlib.sha1(self.PNG).hexdigest() + ".png"
+        (self.srv.DADOS / "assets").mkdir()
+        (self.srv.DADOS / "assets" / nome).write_bytes(self.PNG)
+        (self.srv.DADOS / "assets" / ("0" * 40 + ".png")).write_bytes(self.PNG)   # sem uso: não vai
+        self.quadro("aula1", "Aula 1", [{"id": "i", "type": "image", "src": "/assets/" + nome, "x": 0, "y": 0, "w": 1, "h": 1}], folder="Hidráulica")
+        self.quadro("aula2", "Aula 2")
+        f, resumo = self.pacote()
+        self.assertEqual((resumo["quadros"], resumo["imagens"], resumo["falhas"]), (2, 1, []))
+        nomes = set(zipfile.ZipFile(f).namelist()); f.seek(0)
+        self.assertEqual(nomes, {"manifesto.json", "quadros/aula1.json", "quadros/aula1.png", "quadros/aula2.json",
+                                 "quadros/aula2.png", "assets/" + nome})
+        self.usar(Path(self.temp.name) / "pc2")
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual((r["trazidos"], r["iguais"], r["copias"], r["imagens"], r["falhas"]), (2, 0, 0, 1, []))
+        b = json.loads((self.srv.DADOS / "aula1.json").read_text(encoding="utf-8"))
+        self.assertEqual((b["title"], b["folder"], b["_rev"], b["updated"]), ("Aula 1", "Hidráulica", 0, 1000))
+        self.assertEqual((self.srv.DADOS / "assets" / nome).read_bytes(), self.PNG)
+        self.assertEqual((self.srv.DADOS / "aula1.png").read_bytes(), self.PNG)
+
+    def test_trazer_de_novo_nao_repete_e_quadro_mexido_vira_copia(self):
+        self.quadro("aula1", "Aula 1")
+        self.quadro("aula2", "Aula 2")
+        f, _ = self.pacote()
+        # no outro PC: aula1 igual (só revisão, data e posição da tela diferentes), aula2 mexida
+        self.usar(Path(self.temp.name) / "pc2")
+        self.quadro("aula1", "Aula 1", _rev=9, updated=5000, view={"x": 5, "y": 5, "zoom": 2})
+        self.quadro("aula2", "Aula 2", [{"id": "t1", "type": "text", "text": "mudou"}])
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual((r["trazidos"], r["iguais"], r["copias"]), (0, 1, 1))
+        self.assertEqual(json.loads((self.srv.DADOS / "aula2.json").read_text(encoding="utf-8"))["items"][0]["text"], "mudou")
+        self.assertEqual(len(self.titulos()), 3)
+        self.assertTrue(any(t.startswith("Aula 2 (trazido em ") for t in self.titulos()))
+        f.seek(0)
+        r = self.srv.trazer_pacote(f)   # a cópia de antes é reconhecida: trazer de novo não multiplica cópias
+        self.assertEqual((r["iguais"], r["copias"]), (2, 0))
+        self.assertEqual(len(self.titulos()), 3)
+
+    def test_quadro_antigo_sem_id_nem_fundo_nao_multiplica_copias(self):
+        # quadro feito fora da página: itens sem id e sem fundo; a limpeza ao trazer não pode virar "diferença"
+        antigo = {"title": "Antigo", "items": [{"type": "text", "text": "a"}, {"type": "text", "text": "b"}]}
+        (self.srv.DADOS / "velho1.json").write_text(json.dumps(antigo), encoding="utf-8")
+        f, _ = self.pacote()
+        self.usar(Path(self.temp.name) / "pc2")
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual(r["trazidos"], 1)
+        ids = [i["id"] for i in json.loads((self.srv.DADOS / "velho1.json").read_text(encoding="utf-8"))["items"]]
+        self.assertEqual(len(set(ids)), 2)
+        f.seek(0)
+        r = self.srv.trazer_pacote(f)   # o mesmo pacote de novo
+        self.assertEqual((r["iguais"], r["copias"]), (1, 0))
+        g, _ = self.pacote()             # e a volta para o primeiro PC, onde o quadro ainda não tem id nem fundo
+        self.usar(Path(self.temp.name) / "pc1")
+        r = self.srv.trazer_pacote(g)
+        self.assertEqual((r["iguais"], r["copias"]), (1, 0))
+        self.assertEqual(self.titulos(), ["Antigo"])
+
+    def test_titulo_repetido_ganha_marca_so_quando_ja_existe(self):
+        self.quadro("x1", "Bombas")
+        f, _ = self.pacote()
+        self.usar(Path(self.temp.name) / "pc2")
+        self.quadro("y1", "Bombas")
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual(r["trazidos"], 1)
+        self.assertEqual(self.titulos(), ["Bombas", "Bombas (trazido)"])
+
+    def zip_feito(self, arquivos):
+        import io, zipfile
+        f = io.BytesIO()
+        with zipfile.ZipFile(f, "w") as z:
+            for nome, dados in arquivos.items():
+                z.writestr(nome, dados)
+        f.seek(0)
+        return f
+
+    def test_pacote_malicioso_nao_grava_fora_e_tira_imagem_externa(self):
+        man = json.dumps({"formato": 1})
+        ruim = {"title": "x", "items": [{"id": "a", "type": "image", "src": "https://exemplo.com/espiao.png"},
+                                        {"id": "b", "type": "text", "text": "fica"}]}
+        f = self.zip_feito({"manifesto.json": man, "../../fora.json": json.dumps(ruim), "quadros/../fora2.json": "{}",
+                            "quadros/con.json": json.dumps(ruim), "quadros/bom.json": json.dumps(ruim),
+                            "assets/" + "1" * 40 + ".png": self.PNG})   # sha1 não confere
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual(r["trazidos"], 1)
+        self.assertEqual([x["motivo"] for x in r["falhas"]], ["imagem danificada"])
+        self.assertFalse((Path(self.temp.name) / "fora.json").exists())
+        self.assertEqual(sorted(p.name for p in self.srv.DADOS.iterdir() if p.is_file()), ["bom.json"])
+        itens = json.loads((self.srv.DADOS / "bom.json").read_text(encoding="utf-8"))["items"]
+        self.assertEqual([i["id"] for i in itens], ["b"])
+
+    def test_recusa_o_que_nao_e_pacote_ou_e_de_versao_nova(self):
+        import io
+        with self.assertRaisesRegex(ValueError, "não é um pacote"):
+            self.srv.trazer_pacote(io.BytesIO(b"isto nao e zip"))
+        with self.assertRaisesRegex(ValueError, "não é um pacote"):
+            self.srv.trazer_pacote(self.zip_feito({"quadros/a.json": "{}"}))
+        with self.assertRaisesRegex(ValueError, "versão mais nova"):
+            self.srv.trazer_pacote(self.zip_feito({"manifesto.json": json.dumps({"formato": 99})}))
+
+    def test_quadro_danificado_e_contado_e_o_resto_entra(self):
+        f = self.zip_feito({"manifesto.json": json.dumps({"formato": 1}), "quadros/a.json": "{nao e json",
+                            "quadros/b.json": json.dumps({"title": "B", "items": [], "layout": {"mode": "pages", "w": 1, "h": 1, "count": 1e9}}),
+                            "quadros/c.json": json.dumps({"title": "C", "items": []})})
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual((r["trazidos"], len(r["falhas"])), (1, 2))
+
+    def test_zip_que_incha_e_recusado_sem_extrair(self):
+        f = self.zip_feito({"manifesto.json": json.dumps({"formato": 1}), "quadros/a.json": "{}"})
+        with patch.object(self.srv, "LIMITE_DESCOMPRIMIDO", 10):   # o que o zip declara passa do limite
+            with self.assertRaisesRegex(ValueError, "grande demais"):
+                self.srv.trazer_pacote(f)
+        self.assertEqual(list(self.srv.DADOS.glob("*.json")), [])
+
+    def test_onedrive(self):
+        with patch.dict("os.environ", {"OneDrive": self.temp.name}):
+            self.assertTrue(self.srv.em_onedrive(Path(self.temp.name) / "Documentos" / "Giz Livre" / "quadros"))
+        with patch.dict("os.environ", {"OneDrive": "", "OneDriveCommercial": "", "OneDriveConsumer": ""}):
+            self.assertFalse(self.srv.em_onedrive(Path(self.temp.name) / "quadros"))
 
 
 if __name__ == "__main__":

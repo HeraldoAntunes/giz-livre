@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/capa.png" alt="Giz Livre: lousa digital livre e offline" width="820"></p>
 
-# Giz Livre
+# <img src="app/icon.svg" alt="" width="44" align="top"> Giz Livre
 
 [![Testes](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg)](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge)](https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre)
@@ -20,12 +20,12 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
   &nbsp;·&nbsp; <a href="#perguntas-frequentes">Perguntas frequentes</a>
 </p>
 
-### ⬇ Qual arquivo baixar? (versão 1.11.0)
+### ⬇ Qual arquivo baixar? (versão 1.12.0)
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.11.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/Instalar-GizLivre-1.11.0.exe) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.11.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.11.0/GizLivre-1.11.0-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.12.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.12.0/Instalar-GizLivre-1.12.0.exe) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.12.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.12.0/GizLivre-1.12.0-portatil.zip) |
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
@@ -192,6 +192,10 @@ galeria do Giz Livre: cada imagem vira um quadro em que dá para continuar escre
 **O antivírus reclamou. É seguro?** O executável passa pelo Microsoft Defender antes de cada publicação, e você pode
 conferir o SHA-256. Alertas de "editor desconhecido" acontecem porque não há assinatura digital paga. Veja
 [SECURITY.md](.github/SECURITY.md).
+
+**Dá para trocar o ícone?** Dá. A pasta `icones`, dentro da pasta do programa, traz outras opções (quadro azul,
+lousa azul-escura, estilo aplicativo e o ícone antigo). Clique com o botão direito no atalho → *Propriedades* →
+*Alterar ícone...* → *Procurar...* e escolha um deles. O `LEIA-ME.txt` da pasta explica o passo a passo.
 
 **Posso usar na minha escola ou rede de ensino?** Pode, à vontade, mantendo o aviso de licença.
 

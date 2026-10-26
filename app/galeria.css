@@ -107,3 +107,10 @@ dialog.g-pick .acts .btn { min-height: 36px; }
 .gv-item img { width: 72px; height: 56px; object-fit: contain; }
 .gv-item span { font-size: 12px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gv-item small { font-size: 11px; color: var(--muted); }
+
+/* Levar quadros para outro computador */
+.lv-aviso { margin: 0 0 6px; padding: 8px 10px; border-radius: 8px; background: #fff4ce; color: #5c4400; font-size: 13px; max-width: 460px; }
+.lv-saida { margin: 12px 0 0; font-size: 13px; max-width: 460px; min-height: 1em; }
+.lv-saida.lv-erro { color: #a4262c; }
+dialog .choices .btn:has(small) { flex-direction: column; align-items: flex-start; gap: 2px; }
+dialog .choices .btn small { color: #605e5c; }
