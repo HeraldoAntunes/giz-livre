@@ -795,6 +795,9 @@ class AtualizacaoTests(unittest.TestCase):
             args = roda.call_args[0][0]
             self.assertEqual(Path(args[0]).read_bytes(), exe)
             self.assertIn("/CURRENTUSER", args)
+            self.assertIn("/FORCECLOSEAPPLICATIONS", args)   # o programa ainda está aberto quando o instalador começa
+            iss = (ROOT / "installer" / "lousa.iss").read_text(encoding="utf-8-sig")
+            self.assertIn("\nCloseApplications=force", iss)   # vale também para quem atualiza a partir da 1.11.0
             self.assertIn("/LOG=" + str(Path(tmp) / "Giz Livre" / "atualizacao.log"), args)   # rastro se não terminar
             self.assertEqual((r["versao"], r["log"]), ("1.11.0", str(Path(tmp) / "Giz Livre" / "atualizacao.log")))
 

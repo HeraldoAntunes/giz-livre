@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.12.0"
+VERSAO = "1.12.1"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -2353,7 +2353,10 @@ def instalar_atualizacao() -> dict:
     except OSError:
         log = pasta / "atualizacao.log"
     # /reabrir=1: o instalador abre o Giz Livre de novo no fim (seção [Code] do lousa.iss)
-    subprocess.Popen([str(exe), "/SILENT", "/CURRENTUSER", "/NORESTART", "/SUPPRESSMSGBOXES", "/reabrir=1", f"/LOG={log}"],
+    # /FORCECLOSEAPPLICATIONS: este programa ainda está aberto quando o instalador começa; sem isso, o modo silencioso
+    # cancela a instalação ao não conseguir fechá-lo
+    subprocess.Popen([str(exe), "/SILENT", "/CURRENTUSER", "/NORESTART", "/SUPPRESSMSGBOXES", "/FORCECLOSEAPPLICATIONS",
+                      "/reabrir=1", f"/LOG={log}"],
                      creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
                      close_fds=True)
     return {"ok": True, "versao": info["ultima"], "log": str(log)}

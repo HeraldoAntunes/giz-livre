@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.12.1 (26/10/2026)
+Correção.
+- **Atualização pelo programa:** ao clicar em Baixar e instalar, o programa mostrava "Instalando", fechava e nada
+  mudava. O instalador começava com o Giz Livre ainda aberto, não conseguia fechá-lo e desistia sem avisar. Agora ele
+  fecha o programa antigo e termina a instalação. A correção vale também para quem está na 1.11.0 ou na 1.12.0, porque
+  fica no instalador novo.
+
 ## 1.12.0 (26/10/2026)
 Levar os quadros para outro computador, atualização acompanhada e ícone novo.
 - **Levar quadros** (botão na galeria): guarda todos os quadros num único arquivo .zip, com miniaturas, pastas e
