@@ -59,6 +59,12 @@ O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa nã
 certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
 ```
 
+**Pelo winget** (gerenciador de pacotes do Windows), para quem prefere instalar pela linha de comando:
+```bash
+winget install HeraldoAntunes.GizLivre
+```
+O pacote está em análise no catálogo da Microsoft; o comando passa a funcionar quando ele for aprovado.
+
 ## Como é
 | Caderno A4 com plano cartesiano | Slides do PowerPoint anotados |
 |---|---|
