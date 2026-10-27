@@ -5,6 +5,7 @@
 [![Testes](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg)](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge)](https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre)
 [![Versão](https://img.shields.io/github/v/release/HeraldoAntunes/giz-livre?label=vers%C3%A3o)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/HeraldoAntunes/giz-livre/total?label=downloads)](https://github.com/HeraldoAntunes/giz-livre/releases)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg)](https://doi.org/10.5281/zenodo.23552115)
 [![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
 [![Testado no Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D6)](#sistemas)
