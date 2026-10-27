@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/img/capa.png" alt="Giz Livre: lousa digital livre e offline" width="820"></p>
 
-# <img src="app/icon.svg" alt="" width="44" align="top"> Giz Livre
+# <img src="app/icon.svg" alt="" width="44" align="top"> Giz Livre <img src="docs/img/bandeira-brasil.svg" alt="Brasil" title="Feito no Brasil" width="20" height="14">
 
 [![Testes](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg)](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge)](https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre)
