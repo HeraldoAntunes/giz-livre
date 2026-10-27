@@ -87,7 +87,7 @@ export function aboutBox(version, antesDeAtualizar = null) {
       ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
       ${lin('Atualizações', `Esta é a versão ${esc(version)}. <button class="btn" data-atu>Procurar versão nova</button>
         <div class="sb-atu" aria-live="polite"></div><small class="sb-nota">Só consulta o GitHub quando você clica.</small>`)}
-      ${lin('Registro', 'Pedido de registro de programa de computador no INPI: BR 51 2026 009384-8.')}
+      ${lin('Registro', 'Programa de computador registrado no INPI sob o nº BR 51 2026 009384-8.')}
       ${lin('Como foi feito', 'Com apoio de assistentes de programação de inteligência artificial, usados como ferramenta: a concepção, as decisões, a revisão e os testes são do autor.')}
       ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT); contornos de mapas do Natural Earth (domínio público); programa empacotado com Python (PSF) e PyInstaller (GPL com exceção e Apache 2.0); OpenSSL (Apache 2.0) para a atualização. Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
       ${lin('Desinstalar', 'Menu Iniciar → "Desinstalar o Giz Livre". Os quadros são mantidos.')}

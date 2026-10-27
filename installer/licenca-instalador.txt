@@ -3,6 +3,7 @@ Lousa livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mo
 
 SOFTWARE LIVRE E GRATUITO - LICENÇA MIT
 Copyright (c) 2026 Heraldo Antunes
+Programa de computador registrado no INPI sob o nº BR 51 2026 009384-8.
 
 Você pode usar, copiar, modificar, mesclar, publicar, distribuir, sublicenciar e/ou
 vender cópias deste programa, gratuitamente e sem pedir autorização, desde que o aviso

@@ -31,4 +31,4 @@ identifiers:
     description: "DOI de todas as versões no Zenodo (aponta sempre para a mais recente)"
   - type: other
     value: "BR 51 2026 009384-8"
-    description: "Pedido de registro de programa de computador no INPI (versão 1.9.0)"
+    description: "Registro de programa de computador no INPI (versão 1.9.0)"

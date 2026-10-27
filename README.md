@@ -235,6 +235,11 @@ Se usar o Giz Livre num trabalho, artigo ou material didático, cite a versão u
 Cada versão fica arquivada no Zenodo com DOI. O DOI geral, que leva sempre à versão mais recente, é
 [10.5281/zenodo.23552115](https://doi.org/10.5281/zenodo.23552115).
 
+## Registro
+Programa de computador registrado no INPI (Instituto Nacional da Propriedade Industrial) sob o nº
+**BR 51 2026 009384-8**, com o certificado publicado na Revista da Propriedade Industrial nº 2912, de 27/10/2026.
+O registro prova a autoria e a data; o programa continua livre, sob a licença MIT.
+
 ## Como foi feito
 Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de inteligência artificial, usados como
 ferramenta: a concepção, as decisões, a revisão e os testes são do autor, que responde pelo programa.
