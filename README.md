@@ -21,12 +21,12 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
   &nbsp;·&nbsp; <a href="#perguntas-frequentes">Perguntas frequentes</a>
 </p>
 
-### ⬇ Qual arquivo baixar? (versão 1.12.1)
+### ⬇ Qual arquivo baixar? (versão 1.13.0)
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.12.1.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.12.1/Instalar-GizLivre-1.12.1.exe) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.12.1-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.12.1/GizLivre-1.12.1-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.13.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.13.0/Instalar-GizLivre-1.13.0.exe) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.13.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.13.0/GizLivre-1.13.0-portatil.zip) |
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na

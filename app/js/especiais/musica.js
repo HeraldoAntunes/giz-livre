@@ -136,7 +136,7 @@ const ANTIGOS = [
   ].join(''),{"h":700,"footer":"A indicação de compasso não é uma divisão aritmética de números."})},
 ];
 
-// >>> CONSULTA (gerado): material de consulta: só dados fixos, sem texto de aula. Ver docs/BRIEF-MATERIAL-DE-CONSULTA.md.
+// >>> CONSULTA (gerado): material de consulta: só dados fixos, sem texto de aula.
 export const CONSULTA = [
 // Fonte: https://online.berklee.edu/takenote/circle-of-fifths-the-key-to-unlocking-harmonic-understanding/
 {id:"esp-musica-circulo-quintas",nome:"Círculo de quintas",grupo:"musica",make(){

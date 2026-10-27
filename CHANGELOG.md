@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## 1.13.0 (27/10/2026)
+Galeria que se atualiza sozinha e registro no INPI.
+- **Galeria sempre em dia:** quando outro programa cria ou muda um quadro (um agente de IA ou o Giz na Tela, ao
+  mandar a tela para o Giz), ele aparece na galeria aberta em poucos segundos, sem precisar recarregar. Menus e
+  janelas abertos não são interrompidos.
+- **Registro no INPI:** o programa está registrado no INPI sob o nº BR 51 2026 009384-8; o Sobre e o texto do
+  instalador agora dizem isso.
+- **Ícone novo em tudo:** a aba do navegador e os atalhos do Windows passam a mostrar o ícone da lousa verde logo
+  depois da instalação (antes alguns lugares ainda mostravam o ícone antigo).
+- **Escrita à mão → texto:** a fonte escolhida passa a ser conferida numa lista fixa antes de entrar na janela.
+- Ferramenta usada só para montar o instalador atualizada por segurança.
+
 ## 1.12.1 (26/10/2026)
 Correção.
 - **Atualização pelo programa:** ao clicar em Baixar e instalar, o programa mostrava "Instalando", fechava e nada

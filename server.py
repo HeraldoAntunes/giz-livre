@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.12.1"
+VERSAO = "1.13.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -1504,7 +1504,7 @@ def coletar_assets_orfaos(dias: int = 7) -> None:
         registrar(e)
 
 
-# ---------------- levar os quadros para outro computador (pacote .zip; ver docs/P27-PLANO-LEVAR-QUADROS.md) ----------
+# ---------------- levar os quadros para outro computador (pacote .zip) ----------
 # O pacote é um zip comum: manifesto.json, quadros/<id>.json, quadros/<id>.png (miniatura) e assets/<sha1>.png|jpg.
 # Trazer nunca apaga nem sobrescreve: quadro novo entra com o mesmo id (uma segunda importação o reconhece), quadro
 # igual é pulado e quadro que mudou entra como cópia, com id novo.

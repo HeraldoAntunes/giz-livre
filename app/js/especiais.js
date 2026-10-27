@@ -1,5 +1,5 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
-// Material de consulta com fundo próprio. Direção em docs/BRIEF-MATERIAL-DE-CONSULTA.md.
+// Material de consulta com fundo próprio.
 // SVG determinístico e local; dados/fontes documentados em cada elemento.
 // O ID da tabela periódica anterior é preservado para busca e compatibilidade.
 // Os ids nunca mudam: a busca e os Recentes usam o id.

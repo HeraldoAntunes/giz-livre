@@ -21,7 +21,7 @@ export function table(headers,rows,{x=35,y=150,width=930,rowH=58,font=26,colWidt
 
 // Consulta: corpo a partir de y=64; notas e fonte são linhas discretas, sem moldura.
 export function ref(titulo,corpo,{w=1040,h=600,fonte='',notas=[]}={}){
- const ns=[]; // notas só no código: na tela, só a linha de fonte (pedido do professor)
+ const ns=[]; // notas só no código: na tela, só a linha de fonte
  let rodape='';
  ns.forEach((nota,i)=>{rodape+=text(24,h-40-(fonte?26:0)-(ns.length-1-i)*24,nota,18,'text-anchor="start" fill="#58635c"');});
  if(fonte)rodape+=text(24,h-40,fonte,18,'text-anchor="start" fill="#58635c"');

@@ -440,7 +440,7 @@ teste('tempo digitado vira segundos (7, 7,5, 7:30, 1:05:00)', () => {
 });
 
 // ------------------------------------------------------------------
-console.log('Versão igual em todos os lugares (P47, 16/10/2026)');
+console.log('Versão igual em todos os lugares');
 {
   const { readFileSync } = await import('node:fs');
   const lê = f => readFileSync(path.join(raiz, '..', '..', f), 'utf8').replace(/^\uFEFF/, '');

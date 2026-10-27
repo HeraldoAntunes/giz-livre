@@ -356,7 +356,7 @@ const ANTIGOS = [
   ].join(''),{"h":700,"footer":"A energia solar sustenta os produtores fotossintéticos."})},
 ];
 
-// >>> CONSULTA (gerado): material de consulta: só dados fixos, sem texto de aula. Ver docs/BRIEF-MATERIAL-DE-CONSULTA.md.
+// >>> CONSULTA (gerado): material de consulta: só dados fixos, sem texto de aula.
 export const CONSULTA = [
 // Fonte: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi
 {id:"esp-biologia-codigo-genetico",nome:"Código genético: 64 códons de RNA",grupo:"biologia",make(){return refTable("Código genético padrão: códons do RNAm (5′ → 3′)",[{"label":"1ª base","weight":0.7,"align":"middle"},{"label":"2ª base: U","weight":2,"align":"start"},{"label":"2ª base: C","weight":2,"align":"start"},{"label":"2ª base: A","weight":2,"align":"start"},{"label":"2ª base: G","weight":2,"align":"start"},{"label":"3ª base","weight":0.7,"align":"middle"}],[["U","UUU  Phe\nUUC  Phe\nUUA  Leu\nUUG  Leu","UCU  Ser\nUCC  Ser\nUCA  Ser\nUCG  Ser","UAU  Tyr\nUAC  Tyr\nUAA  Pare\nUAG  Pare","UGU  Cys\nUGC  Cys\nUGA  Pare\nUGG  Trp","U\nC\nA\nG"],["C","CUU  Leu\nCUC  Leu\nCUA  Leu\nCUG  Leu","CCU  Pro\nCCC  Pro\nCCA  Pro\nCCG  Pro","CAU  His\nCAC  His\nCAA  Gln\nCAG  Gln","CGU  Arg\nCGC  Arg\nCGA  Arg\nCGG  Arg","U\nC\nA\nG"],["A","AUU  Ile\nAUC  Ile\nAUA  Ile\nAUG  Met (início)","ACU  Thr\nACC  Thr\nACA  Thr\nACG  Thr","AAU  Asn\nAAC  Asn\nAAA  Lys\nAAG  Lys","AGU  Ser\nAGC  Ser\nAGA  Arg\nAGG  Arg","U\nC\nA\nG"],["G","GUU  Val\nGUC  Val\nGUA  Val\nGUG  Val","GCU  Ala\nGCC  Ala\nGCA  Ala\nGCG  Ala","GAU  Asp\nGAC  Asp\nGAA  Glu\nGAG  Glu","GGU  Gly\nGGC  Gly\nGGA  Gly\nGGG  Gly","U\nC\nA\nG"]],{"w":1240,"font":20,"rowH":118,"fonte":"Fonte: NCBI, The Genetic Codes, tabela 1 (código padrão)."});}},

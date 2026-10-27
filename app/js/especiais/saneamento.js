@@ -125,7 +125,7 @@ const TODOS = [
 // Fontes oficiais: https://water.usgs.gov/water-resources/memos/documents/WQ.2011.03.pdf | https://pubs.usgs.gov/tm/09/a6.2/tm9a6.2.pdf
 {...{"id": "esp-saneamento-od-pressao", "nome": "Oxigênio dissolvido · correção por pressão · água doce", "grupo": "saneamento"},make(){return refTable("Oxigênio dissolvido · correção por pressão · água doce",[{"label": "T (°C)", "weight": 180, "align": "start"}, {"label": "80 kPa · mg/L", "weight": 290, "align": "end"}, {"label": "90 kPa · mg/L", "weight": 290, "align": "end"}, {"label": "101,325 kPa · mg/L", "weight": 290, "align": "end"}],[["0", "11,53", "12,98", "14,62"], ["10", "8,88", "10,01", "11,29"], ["20", "7,13", "8,05", "9,09"], ["30", "5,90", "6,68", "7,56"], ["40", "4,96", "5,64", "6,41"]],{"w": 1100, "font": 22, "rowH": 38, "headH": 44, "fonte": "Fonte: USGS WQ.2011.03, equações 7, 9, 14 e 15; salinidade 0.", "notas": ["Pressão barométrica total local, sem redução ao nível do mar; equilíbrio com ar úmido.", "Válido 0–40 °C e 0,5–1,1 atm. Altitude requer pressão local; cálculos arredondados a 0,01 mg/L."]});}},
 ];
-// Normas (CONAMA 357, Portaria 888) ficam ocultas: o professor quer só constantes e dados fixos, sem legislação.
+// Normas (CONAMA 357, Portaria 888) ficam ocultas: o material traz só constantes e dados fixos, sem legislação.
 export const NORMAS = TODOS.filter(e=>!e.id.startsWith('esp-saneamento-od-'));
 export const CONSULTA = TODOS.filter(e=>e.id.startsWith('esp-saneamento-od-'));
 export default [...ANTIGOS,...TODOS];

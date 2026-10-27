@@ -3750,14 +3750,16 @@ async function inkToText(ids) {
   const box = R.unionBox(strokes);
   const hs = strokes.map(s => R.bbox(s).h).sort((a, b) => a - b);
   const size = Math.max(10 / z, hs[Math.floor(hs.length / 2)] * 1.1);
-  const font = cfg.ocrFont || 'Segoe Script';
+  // só nomes da lista: a fonte vem da configuração salva e entra no HTML do diálogo
+  const FONTES = ['Segoe Script', 'Segoe Print', 'Ink Free', 'Lucida Handwriting', 'Segoe UI', 'Times New Roman'];
+  const font = FONTES.includes(cfg.ocrFont) ? cfg.ocrFont : 'Segoe Script';
   const aviso = ocrAvisado ? '' : ocrAviso(serverInfo());   // reconhecedor de outro idioma: avisa uma vez por sessão
   if (aviso) ocrAvisado = true;
   const d = document.createElement('dialog');
   d.innerHTML = `<div class="dlg-head"><h3>Texto reconhecido</h3></div>${aviso ? `<small class="tb-nota">${esc(aviso)}</small>` : ''}
     <input type="text" id="ocrIn" value="${esc(palavras.map(c => c[0]).join(' '))}" style="font: 22px '${font}', 'Segoe UI'">
     <div class="ocr-words">${palavras.map((c, i) => `<div>${c.slice(0, 5).map(w => `<button class="btn" data-i="${i}" data-w="${esc(w)}">${esc(w)}</button>`).join('')}</div>`).join('')}</div>
-    <div class="row"><span>Fonte</span><select id="ocrFont">${['Segoe Script', 'Segoe Print', 'Ink Free', 'Lucida Handwriting', 'Segoe UI', 'Times New Roman'].map(f => `<option ${f === font ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>
+    <div class="row"><span>Fonte</span><select id="ocrFont">${FONTES.map(f => `<option ${f === font ? 'selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select></div>
     <div class="acts"><button class="btn" data-a="x">Cancelar</button><button class="btn primary" data-a="ok">Substituir a escrita</button></div>`;
   document.body.appendChild(d);
   const inp = d.querySelector('#ocrIn'), cur = palavras.map(c => c[0]);

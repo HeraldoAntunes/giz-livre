@@ -9,7 +9,7 @@ import { boardThumb, makeLayout, SIZES } from './pages.js';
 import { boardFromSlides, uploadAsset, isPptx, isPdf } from './importer.js';
 import { embedAssets } from './editor.js';
 import { ICON } from './icons.js';
-import { fillIcons, toast, askText, confirmBox, showPop, hidePop, aboutBox, dialog } from './ui.js';
+import { fillIcons, toast, askText, confirmBox, showPop, hidePop, popOpen, aboutBox, dialog } from './ui.js';
 import { VERSION } from './version.js';
 import { jaEscolheu, escolherDisciplinas, agruparPorArea, abasOcultas, amostraDaVitrine } from './disciplinas.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
@@ -530,7 +530,7 @@ $('gAgentes').onclick = () => painelAgentes(wfetch, toast);
 $('gLevar').onclick = levarQuadros;
 
 // Levar os quadros para outro computador: um .zip com tudo (o servidor monta e, na volta, junta sem apagar nem
-// sobrescrever nada). Ver docs/P27-PLANO-LEVAR-QUADROS.md.
+// sobrescrever nada).
 async function levarQuadros() {
   const info = serverInfo() || {};
   await dialog(`<h3>Levar quadros para outro computador</h3>
@@ -615,6 +615,19 @@ addEventListener('pagehide', () => {
   if (!temSessao()) return;
   try { fetch('/api/janela-fechou', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', ...tokenHeader() }, body: JSON.stringify({ janela: JANELA }) }).catch(() => {}); } catch {}
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
+// a galeria aberta se atualiza sozinha quando outro programa (agente de IA, Giz na Tela) cria ou muda um quadro:
+// confere a lista a cada 5 s e ao voltar para a janela, e só redesenha se algo mudou e não há menu nem diálogo aberto
+const assinatura = l => l.map(b => `${b.id}:${b.updated}:${b.folder || ''}:${b.title}`).sort().join('|');
+async function atualizarGaleria() {
+  if (!temSessao() || document.hidden || $('gallery').hidden || view !== 'grid') return;
+  if (popOpen() || document.querySelector('dialog[open]')) return;
+  let novos;
+  try { novos = await listBoards(); } catch { return; }
+  if ($('gallery').hidden || view !== 'grid' || assinatura(novos) === assinatura(boards)) return;
+  boards = novos;
+  renderGrid();
+}
+setInterval(atualizarGaleria, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { ping(); atualizarGaleria(); } });
 addEventListener('hashchange', route);
 initSession().then(() => { loadExtraFolders(); route(); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });

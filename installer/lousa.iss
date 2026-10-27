@@ -1,6 +1,6 @@
 ﻿; Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 ; Instalador do Giz Livre (Inno Setup 6). Compilado por installer\build.ps1.
-#define AppVer "1.12.1"
+#define AppVer "1.13.0"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]
@@ -30,6 +30,8 @@ SolidCompression=yes
 ; force: na atualização pelo programa o Giz Livre ainda está aberto quando o instalador começa e não tem janela própria
 ; para receber o pedido de fechar; com "yes", o modo silencioso respondia "Cancelar" sozinho e nada era instalado
 CloseApplications=force
+; avisa o Windows no fim para refazer o cache de ícones: sem isso, atalhos e barra de tarefas ficavam com o ícone antigo
+ChangesAssociations=yes
 OutputDir=..\dist
 OutputBaseFilename=Instalar-GizLivre-{#AppVer}
 

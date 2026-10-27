@@ -40,3 +40,9 @@ scripts/vitrine/saida/
 
 # documentos oficiais do INPI (GRU com CPF, protocolo, declaração assinada): só no disco, nunca no Git
 docs/INPI/documentos-oficiais/
+
+# protótipos: dependências e capturas de tela locais (as capturas mostram a área de trabalho do professor)
+prototipos/**/node_modules/
+prototipos/**/*.png
+prototipos/**/target/
+prototipos/**/gen/
