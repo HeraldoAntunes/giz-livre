@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.14.1"
+VERSAO = "1.14.2"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam

@@ -1,6 +1,6 @@
 # Histórico de versões
 
-## 1.14.2 (em preparo)
+## 1.14.2 (28/10/2026)
 Correções.
 - **Imagens dos quadros protegidas:** a limpeza automática de imagens sem uso podia apagar imagens de um quadro que não
   conseguiu ler naquele momento (por exemplo, um quadro guardado só na nuvem do OneDrive, com o computador sem internet).
