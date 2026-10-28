@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.14.0"
+VERSAO = "1.14.1"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -2569,6 +2569,33 @@ def marcar_janelas_na_barra(parar: threading.Event) -> None:
         parar.wait(0.5 if time.time() - inicio < 30 else 3)
 
 
+def fechar_janelas_antigas(velhas: list, espera_s: float = 25) -> None:
+    """Depois de uma atualização, fecha as janelas da versão antiga assim que a da versão nova aparecer.
+    Sem janela nova no prazo, não fecha nada: melhor sobrar uma janela do que ficar sem nenhuma."""
+    if not velhas:
+        return
+    try:
+        import ctypes
+        janelas = _com_aumid()[2]
+        fim = time.time() + espera_s
+        while time.time() < fim:
+            if [h for h in janelas() if h not in velhas]:
+                for h in velhas:
+                    ctypes.windll.user32.PostMessageW(h, 0x0010, 0, 0)   # WM_CLOSE: fecha só aquela janela do Edge
+                return
+            time.sleep(0.5)
+    except Exception as e:
+        registrar(e)
+
+
+def janelas_abertas() -> list:
+    try:
+        return _com_aumid()[2]() if WINDOWS else []
+    except Exception as e:
+        registrar(e)
+        return []
+
+
 def vigiar_inatividade(srv, limite_s: int, passo: float = 15, dormir=time.sleep, relogio=time.time) -> None:
     # a página manda /api/ping a cada 30 s (até 60 s com a janela minimizada); sem sinal por `limite_s`, ninguém está
     # com a janela aberta e o servidor se encerra. É a reserva do aviso de janela fechada, que pode não chegar quando a
@@ -2606,6 +2633,7 @@ def main():
     ap.add_argument("--sem-janela", action="store_true")
     ap.add_argument("--dados", help="pasta dos quadros (padrão: quadros/ ao lado do server.py)")
     ap.add_argument("--sem-auto-encerrar", action="store_true")
+    ap.add_argument("--depois-de-atualizar", action="store_true", help="aberto pelo instalador da atualização")
     args = ap.parse_args()
     if args.dados:
         DADOS = Path(args.dados).resolve()
@@ -2634,7 +2662,11 @@ def main():
     if sys.stdout:
         print(f"Giz Livre {VERSAO} em {url}  (quadros em {DADOS})")
     if not args.sem_janela:
+        # a janela da versão antiga continua aberta depois da atualização: sai quando a nova aparece
+        velhas = janelas_abertas() if args.depois_de_atualizar else []
         threading.Timer(0.4, abrir_janela, args=(url,)).start()
+        if velhas:
+            threading.Thread(target=fechar_janelas_antigas, args=(velhas,), daemon=True).start()
         if WINDOWS:
             threading.Thread(target=marcar_janelas_na_barra, args=(threading.Event(),), daemon=True).start()
     if not args.sem_auto_encerrar and not args.sem_janela:

@@ -1,6 +1,6 @@
 ﻿; Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 ; Instalador do Giz Livre (Inno Setup 6). Compilado por installer\build.ps1.
-#define AppVer "1.14.0"
+#define AppVer "1.14.1"
 #define Dist "..\build\dist\GizLivre"
 
 [Setup]
@@ -62,7 +62,7 @@ Name: "{userdocs}\Giz Livre\quadros"; Flags: uninsneveruninstall
 [Run]
 Filename: "{app}\GizLivre.exe"; Description: "Abrir o Giz Livre agora"; Flags: nowait postinstall skipifsilent
 ; atualização feita pelo próprio programa (/reabrir=1): abre o Giz Livre de novo no fim, mesmo no modo silencioso
-Filename: "{app}\GizLivre.exe"; Flags: nowait; Check: ReabrirAoTerminar
+Filename: "{app}\GizLivre.exe"; Parameters: "--depois-de-atualizar"; Flags: nowait; Check: ReabrirAoTerminar
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM GizLivre.exe /F"; Flags: runhidden; RunOnceId: "FecharLousa"

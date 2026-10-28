@@ -701,6 +701,24 @@ class AtualizacaoTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("servidor_atu", ROOT / "server.py")
         cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
 
+    @unittest.skipUnless(sys.platform == "win32", "janelas do Windows")
+    def test_depois_de_atualizar_fecha_so_as_janelas_antigas(self):
+        import ctypes
+        vistas = [[11, 12], [11, 12], [11, 12, 99]]   # a janela nova (99) aparece na terceira olhada
+        janelas = lambda: vistas.pop(0) if len(vistas) > 1 else vistas[0]
+        with patch.object(self.srv, "_com_aumid", return_value=(None, None, janelas)), \
+                patch.object(ctypes.windll.user32, "PostMessageW") as post, patch.object(self.srv.time, "sleep"):
+            self.srv.fechar_janelas_antigas([11, 12])
+        self.assertEqual([c.args[:2] for c in post.call_args_list], [(11, 0x0010), (12, 0x0010)])
+
+    @unittest.skipUnless(sys.platform == "win32", "janelas do Windows")
+    def test_depois_de_atualizar_sem_janela_nova_nao_fecha_nada(self):
+        import ctypes
+        with patch.object(self.srv, "_com_aumid", return_value=(None, None, lambda: [11])), \
+                patch.object(ctypes.windll.user32, "PostMessageW") as post:
+            self.srv.fechar_janelas_antigas([11], espera_s=0.6)
+        post.assert_not_called()
+
     def release(self, tag, com_anexos=True):
         base = "https://github.com/HeraldoAntunes/giz-livre/releases/download/" + tag
         anexos = [{"name": f"Instalar-GizLivre-{tag.lstrip('v')}.exe", "browser_download_url": f"{base}/Instalar-GizLivre-{tag.lstrip('v')}.exe"},

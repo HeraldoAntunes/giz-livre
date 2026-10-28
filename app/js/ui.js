@@ -120,7 +120,7 @@ function ligarAtualizacao(d, antes) {
       try {
         const i = await (await fetch('/api/info', { cache: 'no-store' })).json();
         if (i.versao === versao) {
-          saida.innerHTML = `<b class="sb-ok">✓ Versão ${esc(versao)} instalada.</b> O Giz Livre abriu numa janela nova; pode fechar esta.`;
+          saida.innerHTML = `<b class="sb-ok">✓ Versão ${esc(versao)} instalada.</b> O Giz Livre abriu numa janela nova; esta se fecha sozinha (se não fechar, pode fechar).`;
           return;
         }
       } catch { /* programa fechado durante a instalação: espera */ }

@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.14.1 (27/10/2026)
+Correção.
+- **Atualização pelo programa:** depois de instalar a versão nova, a janela antiga continuava aberta ao lado da nova.
+  Agora ela se fecha sozinha assim que a nova aparece. Vale também para quem atualiza a partir da 1.13.0 ou da 1.14.0.
+
 ## 1.14.0 (27/10/2026)
 Esquadro, calculadora, encaixe na grade e formas da galeria direto no quadro.
 - **Formas da galeria vão direto para um quadro:** tocar numa forma da vitrine ou do catálogo da galeria abre um menu
