@@ -37,12 +37,12 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.14.2**.
+Versão atual: **1.14.3**.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.14.2.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.14.2/Instalar-GizLivre-1.14.2.exe) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.14.2-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.14.2/GizLivre-1.14.2-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.14.3.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.14.3/Instalar-GizLivre-1.14.3.exe) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.14.3-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.14.3/GizLivre-1.14.3-portatil.zip) |
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
@@ -242,9 +242,14 @@ Para entender o código, veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 ## Privacidade
 
-Este programa não transfere nenhuma informação para outros sistemas em rede, a não ser quando pedido expressamente
-pelo usuário ou por quem o instala ou opera. O único acesso à internet é o botão "Procurar versão nova", no Sobre, que
-consulta a página de versões do GitHub quando o usuário clica. Os quadros ficam só no computador.
+O Giz Livre não manda nada para a internet por conta própria. Ele só se conecta quando você clica em **Procurar versão
+nova**, no Sobre: aí consulta a página do programa no GitHub. Se você clicar em **Baixar e instalar**, ele baixa o
+instalador de lá e confere se o arquivo é o original antes de abrir.
+
+Os quadros e os ajustes ficam só no seu computador. O programa funciona como um pequeno servidor que só atende o próprio
+computador; outros computadores da rede não conseguem abrir. Se a pasta dos quadros estiver dentro do OneDrive, quem
+copia os quadros para a nuvem é o OneDrive, não o Giz Livre. Os agentes de IA vêm desligados; se você ligar, só
+programas do próprio computador conseguem usar, e com um código de acesso que o Giz Livre cria e guarda.
 
 *This program will not transfer any information to other networked systems unless specifically requested by the user or
 the person installing or operating it.*

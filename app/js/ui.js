@@ -84,7 +84,7 @@ export function aboutBox(version, antesDeAtualizar = null, quadroAqui = null) {
     <dl>
       ${lin('Autor', '© 2026 Heraldo Antunes')}
       ${lin('Licença', 'Software livre, licença MIT: uso, cópia, modificação e distribuição gratuitos, mantendo o aviso de licença.')}
-      ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados. A internet só é usada quando você clica em Procurar versão nova, e esse pedido ao GitHub não leva seus quadros nem dados pessoais.')}
+      ${lin('Privacidade', 'Funciona sem internet e não tem conta, anúncio nem coleta de dados. Só se conecta quando você clica em Procurar versão nova: aí consulta a página do programa no GitHub. Se você clicar em Baixar e instalar, ele baixa o instalador de lá e confere se o arquivo é o original antes de abrir. Os quadros ficam só no seu computador.')}
       ${lin('Seus quadros', 'Na versão instalada, ficam em <i>Documentos\\Giz Livre\\quadros</i>; na portátil, na pasta <i>quadros</i> ao lado do programa. Para cópia de segurança ou para levar a outro computador, use <b>Levar quadros</b>, na galeria.')}
       ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
       ${lin('Atualizações', `Esta é a versão ${esc(version)}. <button class="btn" data-atu>Procurar versão nova</button>

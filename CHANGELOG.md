@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.14.3 (28/10/2026)
+Texto.
+- **Privacidade, no Sobre e no README:** agora diz por inteiro o que acontece na atualização pelo programa: em
+  **Baixar e instalar**, ele baixa o instalador do GitHub e confere se o arquivo é o original antes de abrir. O README
+  também explica que o programa só atende o próprio computador e que os agentes de IA usam um código de acesso que o
+  Giz Livre cria e guarda.
+
 ## 1.14.2 (28/10/2026)
 Correções.
 - **Imagens dos quadros protegidas:** a limpeza automática de imagens sem uso podia apagar imagens de um quadro que não
