@@ -28,6 +28,8 @@ export function dialog(html, onOpen) {
   return new Promise(resolve => {
     const d = document.createElement('dialog');
     d.innerHTML = html;
+    const tit = d.querySelector('h3, h4');
+    if (tit) { tit.id ||= 'dlg-' + Math.random().toString(36).slice(2, 9); d.setAttribute('aria-labelledby', tit.id); }
     document.body.appendChild(d);
     const close = v => { d.close(); d.remove(); resolve(v); };
     d.addEventListener('cancel', e => { e.preventDefault(); close(null); });
@@ -39,7 +41,7 @@ export function dialog(html, onOpen) {
 export const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export function askText(title, value = '') {
-  return dialog(`<h3>${esc(title)}</h3><input type="text" value="${esc(value)}">
+  return dialog(`<h3>${esc(title)}</h3><input type="text" value="${esc(value)}" aria-label="${esc(title)}">
     <div class="acts"><button class="btn" data-a="0">Cancelar</button><button class="btn primary" data-a="1">OK</button></div>`,
     (d, close) => {
       const inp = d.querySelector('input');
@@ -74,7 +76,7 @@ export function choiceBox(title, msg, options) {
 // "Sobre": cartão organizado só com o que é útil
 const RELEASES = 'https://github.com/HeraldoAntunes/giz-livre/releases/latest';
 // antesDeAtualizar: grava o quadro aberto antes de o instalador fechar o programa
-export function aboutBox(version, antesDeAtualizar = null) {
+export function aboutBox(version, antesDeAtualizar = null, quadroAqui = null) {
   const lin = (rot, txt) => `<div class="sb-l"><dt>${rot}</dt><dd>${txt}</dd></div>`;
   const promessa = infoBox('Sobre o Giz Livre', `<div class="sobre">
     <div class="sb-cab"><img src="icon.svg" alt="" width="56" height="56"><div><b>Giz Livre <img class="sb-br" src="bandeira-brasil.svg" alt="Brasil" title="Feito no Brasil" width="20" height="14"></b><span>versão ${esc(version)}</span>
@@ -83,7 +85,7 @@ export function aboutBox(version, antesDeAtualizar = null) {
       ${lin('Autor', '© 2026 Heraldo Antunes')}
       ${lin('Licença', 'Software livre, licença MIT: uso, cópia, modificação e distribuição gratuitos, mantendo o aviso de licença.')}
       ${lin('Privacidade', 'Funciona sem internet. Nada sai do computador: não há conta, anúncio nem coleta de dados. A internet só é usada quando você clica em Procurar versão nova, e esse pedido ao GitHub não leva seus quadros nem dados pessoais.')}
-      ${lin('Seus quadros', 'Ficam em <i>Documentos\\Giz Livre\\quadros</i>. Para cópia de segurança ou para levar a outro computador, use <b>Levar quadros</b>, na galeria.')}
+      ${lin('Seus quadros', 'Na versão instalada, ficam em <i>Documentos\\Giz Livre\\quadros</i>; na portátil, na pasta <i>quadros</i> ao lado do programa. Para cópia de segurança ou para levar a outro computador, use <b>Levar quadros</b>, na galeria.')}
       ${lin('Código', 'github.com/HeraldoAntunes/giz-livre')}
       ${lin('Atualizações', `Esta é a versão ${esc(version)}. <button class="btn" data-atu>Procurar versão nova</button>
         <div class="sb-atu" aria-live="polite"></div><small class="sb-nota">Só consulta o GitHub quando você clica.</small>`)}
@@ -105,8 +107,8 @@ function ligarAtualizacao(d, antes) {
   const bt = d.querySelector('[data-atu]'), saida = d.querySelector('.sb-atu');
   if (!bt || !saida) return;
   const pagina = url => `<a href="${esc(url || RELEASES)}" target="_blank" rel="noopener noreferrer">Abrir a página de downloads</a>`;
-  const pede = async rota => {
-    const r = await wfetch(rota, { method: 'POST' });
+  const pede = async (rota, corpo) => {
+    const r = await wfetch(rota, { method: 'POST', ...(corpo ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) } : {}) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.erro || 'Não deu para concluir agora.');
     return j;
@@ -151,8 +153,8 @@ function ligarAtualizacao(d, antes) {
       bi.disabled = true;
       saida.querySelector('.sb-acoes').insertAdjacentHTML('afterend', '<p class="sb-espera">Salvando o quadro, baixando e conferindo o arquivo… pode levar um minuto.</p>');
       try {
-        await antes?.();
-        const r = await pede('/api/atualizacao/instalar');
+        if (antes && (await antes()) === false) throw new Error('Não consegui salvar o quadro aberto, então a atualização não começou. Veja o aviso de salvamento no quadro e tente de novo.');
+        const r = await pede('/api/atualizacao/instalar', { quadro: quadroAqui });
         saida.innerHTML = `<b class="sb-ok">Instalando a versão ${esc(r.versao)}.</b> O Giz Livre vai fechar e abrir de novo sozinho; os quadros ficam como estão.`;
         setTimeout(() => window.close(), 2500);
         acompanhar(r.versao, r.log);

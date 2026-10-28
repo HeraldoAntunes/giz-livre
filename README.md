@@ -1,27 +1,43 @@
-<p align="center"><img src="docs/img/capa.png" alt="Giz Livre: lousa digital livre e offline" width="820"></p>
+<p align="center"><img src="app/icon.svg" alt="" width="120"></p>
 
-# <img src="app/icon.svg" alt="" width="44" align="top"> Giz Livre <img src="docs/img/bandeira-brasil.svg" alt="Brasil" title="Feito no Brasil" width="20" height="14">
+<h1 align="center">Giz Livre <img src="docs/img/bandeira-brasil.svg" alt="Brasil" title="Feito no Brasil" width="20" height="14"></h1>
 
-[![Testes](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg)](https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge)](https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre)
-[![Versão](https://img.shields.io/github/v/release/HeraldoAntunes/giz-livre?label=vers%C3%A3o)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/HeraldoAntunes/giz-livre/total?label=downloads)](https://github.com/HeraldoAntunes/giz-livre/releases)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg)](https://doi.org/10.5281/zenodo.23552115)
-[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
-[![Testado no Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D6)](#sistemas)
-
-**Lousa digital livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.**
-Feita por um professor para as próprias aulas e distribuída livremente: quadro infinito, caderno A4,
-slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, fórmulas e ferramentas de professor.
+<p align="center"><b>Lousa digital livre e offline para dar aula com mesa digitalizadora, caneta, toque ou mouse.</b><br>
+Feita por um professor para as próprias aulas: quadro infinito, caderno A4, slides do PowerPoint com escrita por cima,
+folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem internet.</p>
 
 <p align="center">
-  <a href="https://github.com/HeraldoAntunes/giz-livre/releases/latest"><b>⬇ Baixar o Giz Livre para Windows</b></a>
-  &nbsp;·&nbsp; <a href="docs/GUIA-DE-USO.md">Guia de uso</a>
-  &nbsp;·&nbsp; <a href="#linux-e-macos-experimental">Linux e macOS</a>
-  &nbsp;·&nbsp; <a href="#perguntas-frequentes">Perguntas frequentes</a>
+  <img src="https://img.shields.io/badge/feito%20em-JavaScript%20e%20Python-555" alt="Feito em JavaScript e Python">
+  <a href="#sistemas"><img src="https://img.shields.io/badge/testado%20no-Windows%2011-0078D6" alt="Testado no Windows 11"></a>
+  <img src="https://img.shields.io/badge/internet-n%C3%A3o%20precisa-2b8a3e" alt="Não precisa de internet">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue" alt="Licença MIT"></a>
+  <img src="https://img.shields.io/badge/situa%C3%A7%C3%A3o-est%C3%A1vel-2b8a3e" alt="Situação: estável">
+  <a href="docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental"><img src="https://img.shields.io/badge/agentes-MCP-6f42c1" alt="Agentes: MCP"></a>
+  <br>
+  <a href="https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml"><img src="https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg" alt="Testes"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre"><img src="https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://github.com/HeraldoAntunes/giz-livre/releases/latest"><img src="https://img.shields.io/github/v/release/HeraldoAntunes/giz-livre?label=vers%C3%A3o" alt="Versão"></a>
+  <a href="https://github.com/HeraldoAntunes/giz-livre/releases"><img src="https://img.shields.io/github/downloads/HeraldoAntunes/giz-livre/total?label=downloads" alt="Downloads"></a>
+  <a href="https://doi.org/10.5281/zenodo.23552115"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg" alt="DOI"></a>
 </p>
 
-### ⬇ Qual arquivo baixar? (versão 1.14.1)
+<p align="center">
+  <a href="https://github.com/HeraldoAntunes/giz-livre/releases/latest"><b>⬇ Baixar o Giz Livre</b></a>
+  &nbsp;·&nbsp; <a href="docs/GUIA-DE-USO.md">Guia de uso</a>
+  &nbsp;·&nbsp; <a href="#programas-livres-">Programas Livres</a>
+</p>
+
+<p align="center"><img src="docs/img/capa.png" alt="Giz Livre: aula de movimento harmônico simples na lousa verde" width="820"></p>
+
+<p align="center">
+  <a href="#qual-arquivo-baixar">Baixar</a> · <a href="#recursos">Recursos</a> · <a href="#sistemas">Sistemas</a> ·
+  <a href="#atalhos-de-teclado">Atalhos</a> · <a href="#perguntas-frequentes">Perguntas</a> ·
+  <a href="#programas-livres-">Programas Livres</a>
+</p>
+
+### Qual arquivo baixar?
+
+Versão atual: **1.14.1**.
 
 | Para quê | Baixar |
 |---|---|
@@ -270,3 +286,14 @@ As placas de prototipagem aparecem como desenhos esquemáticos genéricos, só c
 Arduino, ESP32, Raspberry Pi e STM32 são marcas dos respectivos donos e aparecem apenas para identificar o tipo de placa.
 Os únicos ícones de terceiros são os da interface (Fluent UI System Icons, MIT), listados em
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Programas Livres <img src="docs/img/bandeira-brasil.svg" alt="Brasil" title="Feito no Brasil" width="20" height="14">
+
+Programas gratuitos e de código aberto, feitos por um professor para as próprias aulas. Cada um funciona sozinho,
+sem internet e sem conta.
+
+| | Programa | Para que serve | Código | Baixar |
+|---|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/HeraldoAntunes/giz-livre/main/docs/img/icone.png" alt="" width="36"> | **Giz Livre** | **Lousa digital para dar aula com mesa digitalizadora, caneta, toque ou mouse · você está aqui** | [GitHub](https://github.com/HeraldoAntunes/giz-livre) | [Baixar](https://github.com/HeraldoAntunes/giz-livre/releases/latest) |
+| <img src="https://raw.githubusercontent.com/HeraldoAntunes/giz-na-tela/main/docs/img/icone.png" alt="" width="36"> | **Giz na Tela** | Escrever por cima de qualquer programa aberto no computador | [GitHub](https://github.com/HeraldoAntunes/giz-na-tela) | [Baixar](https://github.com/HeraldoAntunes/giz-na-tela/releases/latest) |
+| <img src="https://raw.githubusercontent.com/HeraldoAntunes/bancada-livre/main/src/assets/icone.svg" alt="" width="36"> | **Bancada Livre** | Simulador de lógica digital: portas, CIs 74xx, flip-flops e tabela-verdade | [GitHub](https://github.com/HeraldoAntunes/bancada-livre) | [Baixar](https://github.com/HeraldoAntunes/bancada-livre/releases/latest) |

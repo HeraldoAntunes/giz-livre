@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 1.14.2 (em preparo)
+Correções.
+- **Imagens dos quadros protegidas:** a limpeza automática de imagens sem uso podia apagar imagens de um quadro que não
+  conseguiu ler naquele momento (por exemplo, um quadro guardado só na nuvem do OneDrive, com o computador sem internet).
+  Agora, se algum quadro não se lê, nada é apagado.
+- **Atualização pelo programa mais segura:** ela não começa se o quadro aberto não conseguiu ser salvo, nem se há um
+  quadro aberto em outra janela do Giz Livre (o aviso pede para voltar à galeria nela).
+- **Renomear pela galeria:** quando não dá para renomear, aparece um aviso em vez de nada acontecer.
+- **Teclado e leitor de tela:** Enter no botão "…" de um cartão abre o menu (antes abria o quadro); cartões e janelas de
+  diálogo passam a ter nome para o leitor de tela.
+- **Fórmulas:** ao editar uma fórmula com "&", ela volta exatamente como foi escrita.
+- **Sobre:** diz onde ficam os quadros também na versão portátil.
+- Agentes de IA: pedido com campo de tipo errado recebe uma recusa clara, em vez de a conexão cair.
+
 ## 1.14.1 (27/10/2026)
 Correção.
 - **Atualização pelo programa:** depois de instalar a versão nova, a janela antiga continuava aberta ao lado da nova.

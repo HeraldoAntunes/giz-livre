@@ -2710,7 +2710,7 @@ function openMenu(anchor) {
     p.querySelector('[data-a="keys"]').onclick = () => { hidePop(); showKeys(); };
     p.querySelector('[data-a="disc"]').onclick = () => { hidePop(); escolherDisciplinas(); };
     p.querySelector('[data-a="agentes"]').onclick = () => { hidePop(); painelAgentes(wfetch, toast); };
-    p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION, flush); };
+    p.querySelector('[data-a="about"]').onclick = () => { hidePop(); aboutBox(VERSION, flush, S?.id); };
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg, () => penPress); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
     p.querySelector('[data-a="avisoZ"]').onclick = () => { hidePop(); avisoDesfazerPop(anchor); };
@@ -3854,7 +3854,7 @@ async function formulaDialog(edit = null) {
   const d = document.createElement('dialog');
   d.className = 'formula';
   d.innerHTML = `<div class="dlg-head"><h3>${edit ? 'Editar fórmula' : 'Inserir fórmula'}</h3><button class="ib" data-a="x" title="Fechar" aria-label="Fechar">${ICON.close}</button></div>
-    <textarea id="fxIn" rows="3" spellcheck="false" placeholder="ex.: K_c = \\frac{[C]^c[D]^d}{[A]^a[B]^b}">${edit?.latex ? edit.latex.replace(/</g, '&lt;') : ''}</textarea>
+    <textarea id="fxIn" rows="3" spellcheck="false" placeholder="ex.: K_c = \\frac{[C]^c[D]^d}{[A]^a[B]^b}">${edit?.latex ? esc(edit.latex) : ''}</textarea>
     <div class="fx-chips">${['\\frac{a}{b}', 'x^{2}', 'x_{i}', '\\sqrt{x}', '\\Delta H', '\\rightleftharpoons', '\\rightarrow', '\\pm', '\\cdot', '\\alpha', '\\beta', '\\pi', '\\sum_{i=1}^{n}', '\\int_{a}^{b}', '\\ce{}'].filter(x => x !== '\\ce{}').map(c => `<button class="btn" data-c="${c}">${c}</button>`).join('')}</div>
     <div class="fx-prev" id="fxPrev"></div><div class="fx-err" id="fxErr"></div>
     <div class="acts"><button class="btn" data-a="x">Cancelar</button><button class="btn primary" data-a="ok">${edit ? 'Atualizar' : 'Inserir'}</button></div>`;

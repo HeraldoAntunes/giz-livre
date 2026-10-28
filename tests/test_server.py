@@ -286,6 +286,26 @@ class AgenteTests(unittest.TestCase):
         self.ping(None)
         self.desligar()
 
+    def test_campo_com_tipo_errado_recusa_sem_derrubar_a_conexao(self):
+        self.ligar(2)
+        bid = self.novo_quadro()
+        for pedido in ({"tipo": "texto", "texto": "Oi", "alinhamento": ["x"]}, {"tipo": "forma", "forma": ["x"]}):
+            with self.subTest(pedido=pedido):
+                code, r = self.itens(bid, pedido)
+                self.assertEqual(code, 400, r)
+        code, r = self.agente("quadros", "POST", {"titulo": "x", "formato": ["a4"]})
+        self.assertEqual(code, 400, r)
+        self.assertEqual(self.itens(bid, {"tipo": "texto", "texto": "Oi"})[0], 200)   # o servidor segue no ar
+
+    def test_atualizar_recusa_com_quadro_aberto_em_outra_janela(self):
+        self.ping("quadroDeOutraJanela", janela="outraJanela")
+        try:
+            code, r = self.pagina("/api/atualizacao/instalar", "POST", {"quadro": "quadroDaqui"})
+            self.assertEqual(code, 409, r)
+            self.assertIn("outra janela", r["erro"])
+        finally:
+            self.ping(None, janela="outraJanela")
+
     def test_desligado_recusa_tudo(self):
         self.desligar()
         self.assertFalse((self.dados / ".agente" / "token").exists())
@@ -618,6 +638,26 @@ class GuardTests(unittest.TestCase):
     def setUpClass(cls):
         spec = importlib.util.spec_from_file_location("servidor", ROOT / "server.py")
         cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def test_coleta_de_imagens_nao_apaga_nada_se_um_quadro_nao_se_le(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dados = Path(tmp); (dados / "assets").mkdir(); (dados / "lixeira").mkdir()
+            img = dados / "assets" / ("a" * 40 + ".png"); img.write_bytes(b"x")
+            velho = time.time() - 30 * 86400
+            import os; os.utime(img, (velho, velho))
+            (dados / "aula.json").write_text('{"items": [{"src": "/assets/' + "a" * 40 + '.png"}]}', encoding="utf-8")
+            ler = Path.read_text
+            def falha(caminho, *a, **k):
+                if caminho.name == "aula.json":
+                    raise OSError("arquivo só na nuvem")
+                return ler(caminho, *a, **k)
+            with patch.object(self.srv, "DADOS", dados), patch.object(self.srv, "LIXEIRA", dados / "lixeira"),                     patch.object(Path, "read_text", falha):
+                self.srv.coletar_assets_orfaos()
+            self.assertTrue(img.exists(), "a imagem do quadro que não se leu foi apagada")
+            (dados / "aula.json").write_text("{}", encoding="utf-8")   # agora ninguém usa a imagem: ela sai
+            with patch.object(self.srv, "DADOS", dados), patch.object(self.srv, "LIXEIRA", dados / "lixeira"):
+                self.srv.coletar_assets_orfaos()
+            self.assertFalse(img.exists())
 
     def test_presentation_bomb_is_refused(self):
         import io, zipfile

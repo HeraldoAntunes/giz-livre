@@ -140,21 +140,25 @@ function renderGrid() {
     const name = c.dataset.folder;
     c.onclick = e => { if (!e.target.closest('.dots')) openFolder(name); };
     c.onkeydown = e => { if (e.key === 'Enter' && e.target === c) openFolder(name); };
+    c.setAttribute('role', 'button');
     c.querySelector('.dots').onclick = e => { e.stopPropagation(); folderMenu(e.currentTarget, name); };
   });
   ligarFormas();
   $('gGrid').querySelectorAll('.card[data-id]').forEach(c => {
     c.onclick = e => { if (!e.target.closest('.dots')) location.hash = '#/b/' + c.dataset.id; };
+    c.setAttribute('role', 'button');
     c.querySelector('.dots').onclick = e => { e.stopPropagation(); cardMenu(e.currentTarget, c.dataset.id); };
     c.querySelector('.t').title = 'Toque duas vezes para renomear';
     c.querySelector('.t').ondblclick = async e => {
       e.stopPropagation();
       const b = boards.find(x => x.id === c.dataset.id), t = await askText('Renomear quadro', b.title);
       if (!t) return;
-      const data = await loadBoard(b.id); data.title = t; await saveBoard(b.id, data, null); refresh();
+      try { const data = await loadBoard(b.id); data.title = t; await saveBoard(b.id, data, null); }
+      catch (err) { toast('Não deu para renomear: ' + (err.message || 'erro ao salvar')); }
+      refresh();
     };
     c.tabIndex = 0;
-    c.onkeydown = e => { if (e.key === 'Enter') location.hash = '#/b/' + c.dataset.id; };
+    c.onkeydown = e => { if (e.key === 'Enter' && e.target === c) location.hash = '#/b/' + c.dataset.id; };   // Enter no botão … abre o menu
   });
 }
 const refresh = () => view === 'trash' ? showTrash() : showGallery(curFolder);

@@ -382,6 +382,9 @@ class Handler(SimpleHTTPRequestHandler):
             raise RecusaAgente("rota", 404)
         except RecusaAgente as e:
             return self._json({"erro": str(e)}, e.status)
+        except TypeError as e:   # campo com tipo errado (lista no lugar de texto...): nada foi gravado
+            registrar(e)
+            return self._json({"erro": "um campo veio com tipo inválido; nada foi alterado"}, 400)
         except (OSError, ValueError) as e:
             registrar(e)
             return self._json({"erro": "falha ao gravar o quadro; nada foi alterado"}, 500)
@@ -695,6 +698,16 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 if rota.endswith("verificar"):
                     return self._json(resposta_publica(info_atualizacao()))
+                corpo = self._corpo()
+                if corpo is None:
+                    return
+                try:
+                    aqui = json.loads(corpo.decode("utf-8")).get("quadro") if corpo.strip() else None
+                except (ValueError, AttributeError):
+                    aqui = None
+                if quadros_abertos() - {aqui}:
+                    return self._json({"erro": "Há um quadro aberto em outra janela do Giz Livre. Volte à galeria nela "
+                                               "(ou feche-a) e tente de novo."}, 409)
                 r = instalar_atualizacao()
                 self._json(r)
                 threading.Timer(1.5, self.server.shutdown).start()   # o instalador fecha o programa e abre de novo
@@ -1494,8 +1507,8 @@ def coletar_assets_orfaos(dias: int = 7) -> None:
         for arq in list(DADOS.glob("*.json")) + list(LIXEIRA.glob("*.json")):
             try:
                 usados.update(re.findall(r"[0-9a-f]{40}\.(?:png|jpg)", arq.read_text(encoding="utf-8", errors="ignore")))
-            except OSError:
-                pass
+            except OSError:   # quadro que não se leu (OneDrive sem internet, arquivo preso): não dá para saber o que ele usa
+                return
         limite = time.time() - dias * 86400
         for a in pasta.iterdir():
             if ASSET_OK.match(a.name) and a.name not in usados and a.stat().st_mtime < limite:
