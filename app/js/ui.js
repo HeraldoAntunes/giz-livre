@@ -77,7 +77,7 @@ const RELEASES = 'https://github.com/HeraldoAntunes/giz-livre/releases/latest';
 export function aboutBox(version, antesDeAtualizar = null) {
   const lin = (rot, txt) => `<div class="sb-l"><dt>${rot}</dt><dd>${txt}</dd></div>`;
   const promessa = infoBox('Sobre o Giz Livre', `<div class="sobre">
-    <div class="sb-cab"><img src="icon.svg" alt="" width="56" height="56"><div><b>Giz Livre</b><span>versão ${esc(version)}</span>
+    <div class="sb-cab"><img src="icon.svg" alt="" width="56" height="56"><div><b>Giz Livre <img class="sb-br" src="bandeira-brasil.svg" alt="Brasil" title="Feito no Brasil" width="20" height="14"></b><span>versão ${esc(version)}</span>
       <small>Lousa digital livre e offline, para dar aula com mesa digitalizadora.</small></div></div>
     <dl>
       ${lin('Autor', '© 2026 Heraldo Antunes')}

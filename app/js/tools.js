@@ -111,7 +111,7 @@ function modelosPop(el) {
   box.querySelector('[data-a="sem"]').onclick = () => { const x = lerMostrador(); delete x.cor; salva(x); box.remove(); modelosPop(el); };
 }
 export function toggleTimer() {
-  if (timer) { timer.el.remove(); clearInterval(timer.iv); timer = null; return; }
+  if (timer) { timer.el.remove(); clearInterval(timer.iv); timer = null; fechou(); return; }
   const el = document.createElement('div');
   el.className = 'timerbox';
   el.innerHTML = `<div class="tm-head"><span>Cronômetro</span><span><button class="ib" data-a="cor" title="Cor e modelo do mostrador">${ICON.color}</button><button class="ib" data-a="mini" title="Reduzir: só o mostrador, pequeno e discreto">${ICON.collapse}</button><button class="ib" data-a="x" title="Fechar">${ICON.close}</button></span></div>
@@ -171,7 +171,7 @@ export function draggable(el, key) {
   if (!el.style.left) {
     // sem posição guardada: não cobre a barra do professor quando ela está aberta à direita
     const tb = document.getElementById('teachbar');
-    if (tb && !tb.hidden && !el.classList.contains('clockbox')) { const r = tb.getBoundingClientRect(); place(r.left - el.offsetWidth - 12, r.top); }
+    if (tb && !tb.hidden && !el.classList.contains('clockbox')) { const r = tb.getBoundingClientRect(); place(r.left - el.offsetWidth - 12, Math.max(r.top, 64)); }   // abaixo das barras de cima
   }
   head.onpointerdown = e => {
     if (e.target.closest('button') || document.body.classList.contains('barras-travadas')) return;
@@ -186,6 +186,9 @@ export function draggable(el, key) {
   };
 }
 
+// janela flutuante fechada (pelo X ou pelo botão): o editor apaga o botão aceso na barra
+export const fechou = () => dispatchEvent(new CustomEvent('giz:flutuante-fechou'));
+
 // fecha cronômetro e relógio (ao sair do quadro)
 export function closeFloating() { if (timer) toggleTimer(); if (clock) toggleClock(); }
 
@@ -193,7 +196,7 @@ export function closeFloating() { if (timer) toggleTimer(); if (clock) toggleClo
 let clock = null;
 export const clockOpen = () => !!clock;
 export function toggleClock() {
-  if (clock) { clock.el.remove(); clearInterval(clock.iv); clock = null; return; }
+  if (clock) { clock.el.remove(); clearInterval(clock.iv); clock = null; fechou(); return; }
   const el = document.createElement('div');
   el.className = 'timerbox clockbox';
   el.innerHTML = `<div class="tm-head"><span>Relógio e calendário</span><span><button class="ck-sec on" data-a="s" title="Mostrar ou esconder os segundos">segundos</button><button class="ck-sec" data-a="cal" title="Mostrar ou esconder o calendário do mês">calendário</button><button class="ib" data-a="cor" title="Cor e modelo do mostrador">${ICON.color}</button><button class="ib" data-a="mini" title="Reduzir: só o mostrador, pequeno e discreto">${ICON.collapse}</button><button class="ib" data-a="x" title="Fechar">${ICON.close}</button></span></div>

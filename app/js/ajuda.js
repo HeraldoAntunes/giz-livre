@@ -48,7 +48,7 @@ export const TEMAS = [
       'Trocar a folha também se desfaz com Ctrl+Z.'] },
   { id: 'ferramentas', titulo: 'Ferramentas do professor', icone: 'tools', alvo: '#tTools',
     figura: [['tools', 'Ferramentas'], ['fx', 'Função'], ['clock', 'Cronômetro']], destaque: 0,
-    passos: ['Botão Ferramentas: lupa de escrita, transferidor, compasso, cortina, holofote, cronômetro e relógio.', 'Plotar função: digite x^2 - 4 e o gráfico aparece no plano cartesiano.',
+    passos: ['Botão Ferramentas: lupa de escrita, transferidor, esquadro, compasso, cortina, holofote, calculadora, cronômetro e relógio.', 'Plotar função: digite x^2 - 4 e o gráfico aparece no plano cartesiano.',
       'Fórmula: escreva em LaTeX e ela entra pronta no quadro.'] },
   { id: 'salvar', titulo: 'Salvar, exportar e backup', icone: 'print', alvo: '#bMenu',
     figura: [['more', 'Menu'], ['print', 'Imprimir']], destaque: 0,

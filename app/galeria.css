@@ -93,6 +93,8 @@ dialog.g-pick .acts .btn { min-height: 36px; }
 .cat-forma { background: #fff; border-radius: 8px; border: 1px solid #e6e6e6; padding: 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; text-align: center; }
 .cat-forma img { width: 100px; height: 64px; object-fit: contain; }
 .cat-forma small { display: block; font-size: 10px; color: #8a8886; }
+.cat-forma { cursor: pointer; } .cat-forma:hover, .cat-forma:focus-visible { border-color: #0f6cbd; }
+.menu .menu-sub { font-size: 11px; color: #8a8886; padding: 2px 8px; }
 .cat-voltar { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin: 2px 0 8px; text-decoration: none; }
 
 /* vitrine da biblioteca de formas no topo da galeria */

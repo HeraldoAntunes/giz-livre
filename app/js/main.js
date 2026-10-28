@@ -1,7 +1,7 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
 import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
-import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId } from './editor.js';
+import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, inserirForma } from './editor.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
 import { renderToCanvas } from './render.js';
@@ -97,14 +97,14 @@ function bindBack() {
 }
 
 // vitrine da biblioteca de formas no topo da galeria: amostras das disciplinas marcadas, sorteadas a cada abertura;
-// cada amostra abre a disciplina no catálogo, e "Ver todas" abre o catálogo inteiro
+// tocar numa amostra oferece pôr a forma num quadro (novo ou recente) ou ver a disciplina; "Ver todas" abre o catálogo inteiro
 function vitrineFormas() {
   const amostra = amostraDaVitrine(12).map(([g, id]) => [g, shapeById(id)]).filter(([, f]) => f);
   if (!amostra.length) return '';
   return `<section class="g-vitrine" aria-label="Biblioteca de formas">
     <div class="gv-cab"><b>${ALL_SHAPES.length.toLocaleString('pt-BR')} formas técnicas para a sua aula</b>
       <span>desenhadas para o Giz Livre, prontas para pôr no quadro</span><a class="btn" href="#/formas">Ver todas</a></div>
-    <div class="gv-lista">${amostra.map(([g, f]) => `<a class="gv-item" href="#/formas/${g.id}" title="${esc(f[1])} (${esc(g.nome)})">
+    <div class="gv-lista">${amostra.map(([g, f]) => `<a class="gv-item" href="#/formas/${g.id}" data-forma="${esc(f[0])}" data-g="${esc(g.id)}" title="${esc(f[1])} (${esc(g.nome)}): toque para pôr num quadro">
       <img src="${imgForma(f[0])}" alt=""><span>${esc(f[1])}</span><small>${esc(g.nome)}</small></a>`).join('')}</div>
   </section>`;
 }
@@ -142,6 +142,7 @@ function renderGrid() {
     c.onkeydown = e => { if (e.key === 'Enter' && e.target === c) openFolder(name); };
     c.querySelector('.dots').onclick = e => { e.stopPropagation(); folderMenu(e.currentTarget, name); };
   });
+  ligarFormas();
   $('gGrid').querySelectorAll('.card[data-id]').forEach(c => {
     c.onclick = e => { if (!e.target.closest('.dots')) location.hash = '#/b/' + c.dataset.id; };
     c.querySelector('.dots').onclick = e => { e.stopPropagation(); cardMenu(e.currentTarget, c.dataset.id); };
@@ -356,7 +357,7 @@ function cardMenu(anchor, id) {
 // ---- catálogo de formas (#/formas e #/formas/<disciplina>): vitrine da biblioteca, com busca ----
 const DISC_DE = new Map(SHAPE_GROUPS.flatMap(g => g.secoes.flatMap(([, l]) => l.map(f => [f[0], g.nome]))));
 const imgForma = id => svgDataUrl(shapeSvg(id, '#323130').svg);
-const celulaForma = (f, disc) => `<div class="cat-forma" title="${esc(f[1])}"><img src="${imgForma(f[0])}" alt="" loading="lazy"><span>${esc(f[1])}${disc ? `<small>${esc(disc)}</small>` : ''}</span></div>`;
+const celulaForma = (f, disc) => `<div class="cat-forma" data-forma="${esc(f[0])}" tabindex="0" title="${esc(f[1])}: toque para pôr num quadro"><img src="${imgForma(f[0])}" alt="" loading="lazy"><span>${esc(f[1])}${disc ? `<small>${esc(disc)}</small>` : ''}</span></div>`;
 function showShapes(discId = '') {
   hidePop();
   view = 'formas';
@@ -400,6 +401,49 @@ function renderShapes(g = SHAPE_GROUPS.find(x => location.hash === '#/formas/' +
   bindBack();
   $('gDisc')?.addEventListener('click', async () => { if (await escolherDisciplinas()) renderShapes(); });
   $('gMoreShapes')?.addEventListener('click', () => { shapesLimit += 600; renderShapes(g); });
+  ligarFormas();
+}
+
+// forma tocada na vitrine ou no catálogo: pôr num quadro novo, num dos quadros recentes ou ver a disciplina.
+// A forma entra no meio da tela, já selecionada, quando o quadro abre (formaAoAbrir, usada em route)
+let formaAoAbrir = null;
+function ligarFormas() {
+  $('gGrid').querySelectorAll('[data-forma]').forEach(el => {
+    const abrir = e => { e.preventDefault(); usarForma(el, el.dataset.forma, el.dataset.g || ''); };
+    el.onclick = abrir;
+    el.onkeydown = e => { if (e.key === 'Enter') abrir(e); };
+  });
+}
+async function usarForma(anchor, fid, gid) {
+  const f = shapeById(fid);
+  if (!f) return;
+  if (!boards.length) { try { boards = await listBoards(); } catch {} }
+  const recentes = [...boards].sort((a, b) => b.updated - a.updated).slice(0, 5);
+  const g = SHAPE_GROUPS.find(x => x.id === gid);
+  showPop(anchor, `<h4>${esc(f[1])}</h4><div class="menu">
+    <button data-a="novo">${ICON.plus} Pôr num quadro novo</button>
+    ${recentes.length ? `<hr><small class="menu-sub">Pôr no quadro</small>${recentes.map(b =>
+      `<button data-q="${esc(b.id)}">${ICON.expand} ${esc(b.title)}</button>`).join('')}` : ''}
+    ${g ? `<hr><button data-a="disc">${ICON.shapes} Ver as formas de ${esc(g.nome)}</button>` : ''}</div>`, p => {
+    p.querySelector('[data-a="novo"]').onclick = async () => {
+      hidePop();
+      try {
+        const id = newId(), board = emptyBoard(autoTitle('Quadro'), null);
+        board.novo = true;
+        if (curFolder) board.folder = curFolder;
+        await saveBoard(id, board, null);
+        formaAoAbrir = { quadro: id, forma: fid };
+        location.hash = '#/b/' + id;
+      } catch { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 5000); }
+    };
+    p.querySelectorAll('[data-q]').forEach(x => x.onclick = () => {
+      hidePop();
+      formaAoAbrir = { quadro: x.dataset.q, forma: fid };
+      location.hash = '#/b/' + x.dataset.q;
+    });
+    const d = p.querySelector('[data-a="disc"]');
+    if (d) d.onclick = () => { hidePop(); location.hash = '#/formas/' + gid; };
+  });
 }
 
 // ---- lixeira: quadros excluídos (quadros/lixeira), com "Restaurar"; nada é apagado de vez pela interface ----
@@ -510,6 +554,8 @@ async function route() {
     $('board').hidden = false;
     document.title = (data.title || 'Sem título') + ' — Giz Livre';
     openBoard(m[1], data, () => { location.hash = folderHash(cleanFolder(data.folder)); });
+    if (formaAoAbrir?.quadro === m[1]) inserirForma(formaAoAbrir.forma);
+    formaAoAbrir = null;
     ping();
   } catch (e) {
     toast(e.message);

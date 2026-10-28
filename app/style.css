@@ -192,6 +192,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sobre .sb-cab b { display: block; font-size: 22px; }
 .sobre .sb-cab span { font-size: 13px; color: var(--accent); font-weight: 600; }
 .sobre .sb-cab small { display: block; color: #616161; margin-top: 2px; }
+.sobre .sb-cab .sb-br { display: inline-block; vertical-align: 2px; margin-left: 6px; }
 .sobre dl { margin: 0; }
 .sobre .sb-l { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
 .sobre dt { font-weight: 600; color: #424242; }
@@ -428,6 +429,13 @@ label.tb-line { flex-wrap: nowrap; align-items: flex-start; } label.tb-line inpu
 .tm-auto { display: flex; gap: 6px; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); margin-top: 6px; }
 /* reduzido: só o mostrador, pequeno; tocar nele volta ao painel completo */
 .timerbox.mini { min-width: 0; padding: 4px 8px; opacity: .85; }
+/* calculadora */
+.calcbox { width: 290px; }
+.calcbox .cc-in { width: 100%; box-sizing: border-box; margin: 8px 0 2px; padding: 8px 10px; font-size: 20px; border: 1px solid var(--line); border-radius: 8px; text-align: right; }
+.calcbox .cc-res { text-align: right; font-size: 22px; font-weight: 600; color: var(--accent); min-height: 30px; }
+.calcbox .cc-res.erro { font-size: 13px; font-weight: 400; color: #c50f1f; }
+.calcbox .cc-teclas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 6px 0 8px; }
+.calcbox .cc-teclas .btn { padding: 8px 0; font-size: 15px; min-width: 0; }
 .timerbox.mini > :not(.tm-time):not(.tm-head) { display: none; }
 .timerbox.mini .tm-head > span:first-child, .timerbox.mini .tm-head .ck-sec, .timerbox.mini .tm-head [data-a="x"] { display: none; }
 /* botões do mostrador reduzido ficam ao lado, em coluna, sem cobrir os dígitos */

@@ -21,12 +21,12 @@ slides do PowerPoint com escrita por cima, folhas quadriculadas e milimetradas, 
   &nbsp;·&nbsp; <a href="#perguntas-frequentes">Perguntas frequentes</a>
 </p>
 
-### ⬇ Qual arquivo baixar? (versão 1.13.0)
+### ⬇ Qual arquivo baixar? (versão 1.14.0)
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.13.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.13.0/Instalar-GizLivre-1.13.0.exe) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.13.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.13.0/GizLivre-1.13.0-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.14.0.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.14.0/Instalar-GizLivre-1.14.0.exe) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.14.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.14.0/GizLivre-1.14.0-portatil.zip) |
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
@@ -99,7 +99,9 @@ O pacote está em análise no catálogo da Microsoft; o comando passa a funciona
   textos, fórmulas e gráficos; ele não apaga nada. Ver o [Guia de uso](docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental).
 - **Ferramentas de professor:**
   - **plotar função** (digite `x^2 - 4` e o gráfico aparece no plano cartesiano);
-  - lupa de escrita (escreve grande, cai pequeno), transferidor, compasso, cortina, holofote, cronômetro;
+  - lupa de escrita (escreve grande, cai pequeno), transferidor, esquadro (45° e 30°/60°), compasso, cortina,
+    holofote, calculadora, cronômetro;
+  - encaixe na grade da folha ao mover e aumentar, e giro de 15° em 15°;
   - **fórmulas LaTeX**;
   - **tabela periódica** colorida (em Formas → Química → Especiais) e vidrarias (em Formas → Laboratório de Química).
 - **Biblioteca de formas técnicas**, com **3.527 formas em 29 disciplinas e carimbos de correção**, desenhadas para o Giz Livre, com

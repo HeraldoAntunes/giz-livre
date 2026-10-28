@@ -12,6 +12,7 @@ na pasta `licencas\`.
 | **Fontes do KaTeX** (Design Science / MathJax e Khan Academy) | 0.16.11 | letras das fórmulas | SIL Open Font License 1.1 | `app/vendor/katex/fonts/OFL.txt` |
 | **Fluent UI System Icons** (Microsoft) | 1.1.343 | ícones da interface | MIT | `app/vendor/fluent/LICENSE` |
 | **Natural Earth** (dados geográficos 1:50m) | baixado em 15/10/2026 | contornos precisos do Brasil (com regiões e estados), continentes e planisfério (`app/js/shapes/geo-contornos.js`, simplificados) | domínio público | https://www.naturalearthdata.com/about/terms-of-use/ |
+| **Bandeira do Brasil** (Wikimedia Commons, `File:Flag_of_Brazil.svg`) | versão de 09/08/2024 | ao lado do nome no Sobre e no README (`app/bandeira-brasil.svg`, sem alteração) | domínio público (símbolo nacional; uso conforme a Lei 5.700/1971) | https://commons.wikimedia.org/wiki/File:Flag_of_Brazil.svg |
 | **Python** (Python Software Foundation) | 3.13 | servidor local; vai embutido no executável | PSF License Agreement | `licencas/python-LICENSE.txt` |
 | **libffi** | junto com o Python 3.13 | `ctypes` (janelas de aviso do Windows) | MIT | incluída em `licencas/python-LICENSE.txt` |
 | **Microsoft Visual C++ Runtime** (`VCRUNTIME140.dll`) | junto com o Python 3.13 | requisito do Python no Windows | redistribuível da Microsoft | termos da Microsoft para redistribuíveis do Visual Studio |

@@ -88,6 +88,8 @@ for (const [k, f] of Object.entries(MAP)) if (FLUENT[f]) ICON[k] = FLUENT[f];
 ICON.ocr = s('<path d="M2.5 15.5c1.2-3.4 2.6-4.2 3.3-2.4.6 1.6 1.5 2.7 2.6.4.8-1.6 1.5-1.9 2.1-.3"/><path d="M11.5 18.5h2.5m-1 -1.2 1 1.2-1 1.2"/><path d="M15 6.5h7M18.5 6.5v12"/>');   // escrita → texto
 ICON.cena = s('<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 16.5v4"/><path d="M6.5 12.5l3-3.5 2.5 2.5 2-2 3.5 3"/>');   // monitor com a cena
 ICON.levar = s('<rect x="6" y="9.5" width="12" height="12" rx="2"/><path d="M9 9.5V3.5h6v6"/><path d="M10.8 6h.4M12.8 6h.4"/><path d="M12 13v5m-2-2 2 2 2-2"/>');   // pen drive
+ICON.esquadro = s('<path d="M4 20.5V4l16.5 16.5z"/><path d="M4 16.5h4v4"/><path d="M8.5 13.5l-2-2M11.5 16.5l-2-2"/>');   // esquadro com o canto reto
+ICON.calc = s('<rect x="5" y="2.5" width="14" height="19" rx="2"/><rect x="7.5" y="5" width="9" height="3.5" rx=".6"/><path d="M8.3 12h.01M12 12h.01M15.7 12h.01M8.3 15.3h.01M12 15.3h.01M15.7 15.3h.01M8.3 18.6h.01M12 18.6h.01M15.7 18.6h.01" stroke-width="2.4"/>');   // calculadora
 ICON.cortina = s('<path d="M3 4h18"/><path d="M5 4v10h14V4"/><path d="M5 7.5h14M5 11h14"/><path d="M12 14v4"/><circle cx="12" cy="19.6" r="1.4"/>');   // persiana
 
 // caneta desenhada com a cor da tinta

@@ -1,5 +1,24 @@
 # Histórico de versões
 
+## 1.14.0 (27/10/2026)
+Esquadro, calculadora, encaixe na grade e formas da galeria direto no quadro.
+- **Formas da galeria vão direto para um quadro:** tocar numa forma da vitrine ou do catálogo da galeria abre um menu
+  com "Pôr num quadro novo", os 5 quadros mais recentes e um atalho para as outras formas da mesma disciplina. O quadro
+  abre com a forma no meio da tela, já selecionada para mover ou mudar de tamanho.
+- **Esquadro** de 45° e de 30°/60°, nas ferramentas do professor: arrasta pelo corpo, gira pela bolinha da ponta e a
+  caneta corre presa aos lados, como na régua. Um toque no ângulo escrito nele troca o modelo.
+- **Calculadora** nas ferramentas do professor: em graus ou radianos, com sen, cos, tg, raiz, ln, log, π e Ans; o
+  resultado pode ir para o quadro.
+- **Encaixe na grade:** com o botão de grade da barra da seleção ligado, o que você move ou aumenta cai na linha mais
+  próxima da folha (nas folhas sem malha, numa grade invisível). O giro pode parar de 15° em 15° ou de 45° em 45°,
+  sem teclado.
+- **Segurar para virar forma:** em "Tinta vira forma", a opção *Ao segurar a caneta parada no fim* só troca o traço
+  pela forma perfeita quando a caneta fica parada meio segundo antes de levantar; o resto continua desenho livre.
+- **Imagem da seleção:** baixar em PNG só o que está selecionado (com ou sem fundo) ou copiar para colar em outro
+  programa.
+- **Bandeira do Brasil** ao lado do nome do programa, no Sobre e na página do projeto.
+- Correção: ao fechar o cronômetro ou o relógio pelo X, o botão da barra do professor continuava aceso.
+
 ## 1.13.0 (27/10/2026)
 Galeria que se atualiza sozinha e registro no INPI.
 - **Galeria sempre em dia:** quando outro programa cria ou muda um quadro (um agente de IA ou o Giz na Tela, ao

@@ -726,5 +726,68 @@ console.log('Pressão da caneta e escrita→texto (tablet.js)');
   });
 }
 
+// ------------------------------------------------------------------
+console.log('\nEncaixe, esquadro e calculadora');
+{
+  const E = await mod('encaixe.js');
+  teste('encaixe: passo da folha e grade invisível na lisa', () => {
+    igual(E.passoDaFolha({ pattern: 'grid', size: 'm' }), 40, 'quadriculada M');
+    igual(E.passoDaFolha({ pattern: 'grid', size: 'l' }), 64, 'quadriculada G');
+    igual(E.passoDaFolha({ pattern: 'dots' }), 30, 'pontilhada');
+    igual(E.passoDaFolha({ pattern: 'none' }), E.PASSO_LISO, 'lisa');
+  });
+  teste('encaixe: vai para a linha mais próxima, contando da origem da folha', () => {
+    igual(E.encaixar(57, 40), 40, 'para baixo'); igual(E.encaixar(61, 40), 80, 'para cima');
+    igual(E.encaixar(57, 40, 10), 50, 'com origem');
+    const o = E.origemDaFolha({ pattern: 'grid' }, { x: 0, y: 1000, w: 794, h: 1123 });
+    igual(o.x + ',' + o.y, '0,1064', 'na página, a malha começa abaixo da margem de cima');
+  });
+  teste('encaixe: giro preso e escala que leva o canto à linha', () => {
+    perto(E.giroPreso(0.3, 15), Math.PI / 12, 1e-9, '17° vira 15°');
+    igual(E.giroPreso(0.3, 0), 0.3, 'livre');
+    perto(E.escalaEncaixada(100, 50, 1.3, 40), 1.2, 1e-9, '165 vai para 160');
+    igual(E.escalaEncaixada(100, 50, 0.1, 40, 20), 0.1, 'a linha mais perto é a do próprio canto: não encolhe até sumir');
+  });
+
+  const Q = await mod('esquadro.js');
+  teste('esquadro: vértices de 45° e de 30°/60°', () => {
+    const [A, B, C] = Q.vertices({ x: 0, y: 0, angle: 0, tipo: '45' }, 1);
+    igual(`${A.x},${A.y} ${B.x},${B.y} ${Math.round(C.x)},${Math.round(C.y)}`, `0,0 300,0 0,-300`, '45°');
+    const [, , C2] = Q.vertices({ x: 0, y: 0, angle: 0, tipo: '3060' }, 1);
+    perto(-C2.y, 300 * Math.tan(Math.PI / 6), 1e-9, 'cateto menor de 30°');
+    const [, B3] = Q.vertices({ x: 10, y: 20, angle: 90, tipo: '45' }, 2);
+    perto(B3.x, 10, 1e-9, 'girado 90°'); perto(B3.y, 170, 1e-9, 'zoom 2: metade do tamanho no mundo');
+  });
+  teste('esquadro: a caneta perto de um lado corre presa a ele, por fora', () => {
+    const e = { x: 0, y: 0, angle: 0, tipo: '45' };
+    const lado = Q.ladoPerto(e, 100, 12, 1, 4);
+    igual(lado?.i, 0, 'lado de baixo');
+    const p = Q.prender(e, lado, 140, 30, 1);
+    perto(p.y, 3, 1e-9, 'reta por fora, afastada meia espessura e 1 px'); perto(p.x, 140, 1e-9, 'anda junto');
+    perto(Q.prender(e, lado, 500, 3, 1).x, 300, 1e-9, 'não passa da ponta');
+    igual(Q.ladoPerto(e, 100, 80, 1), null, 'longe de todos os lados');
+    igual(Q.dentro(e, 50, -50, 1), true, 'dentro'); igual(Q.dentro(e, 250, -250, 1), false, 'fora, além da hipotenusa');
+  });
+
+  const K = await mod('calc.js');
+  teste('calculadora: contas, vírgula, graus e radianos', () => {
+    igual(K.calcular('2,5 × sen(30)'), 1.25, 'graus');
+    perto(K.calcular('sen(pi/2)', false), 1, 1e-12, 'radianos');
+    perto(K.calcular('asen(0,5)'), 30, 1e-9, 'inversa em graus');
+    igual(K.calcular('√(16) + 2^3 − 10 ÷ 4'), 9.5, 'raiz, potência e os sinais do teclado');
+    igual(K.emGraus('cos(sen(30))'), 'cos((sen((30)*pi/180))*pi/180)', 'aninhadas');
+    perto(K.calcular('arctg(1)'), 45, 1e-9, 'arctg também em graus');
+    perto(K.calcular('Ans × 2', true, 2 ** -30), 2 ** -29, 1e-20, 'Ans como valor, mesmo pequeno (sem virar "e")');
+  });
+  teste('calculadora: erros em português', () => {
+    const msg = f => { try { f(); return ''; } catch (e) { return e.message; } };
+    igual(msg(() => K.calcular('1/0')).startsWith('Conta sem resultado'), true, 'divisão por zero');
+    igual(msg(() => K.calcular('2x')).includes('Função'), true, 'x aponta para a ferramenta Função');
+    igual(msg(() => K.calcular('  ')), 'Digite uma conta', 'vazia');
+    igual(msg(() => K.calcular('ans + 1')), 'Ainda não há resultado para usar em Ans', 'Ans sem conta antes');
+    igual(msg(() => K.calcular('2 + abc')).includes('Use x'), false, 'a mensagem não fala de x');
+  });
+}
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

@@ -9,7 +9,7 @@ abstract: >-
   Lousa digital livre e offline para aulas, com escrita por caneta, caderno A4, importação de PowerPoint e PDF,
   apresentação, biblioteca de formas técnicas e carimbos de correção, ferramentas de professor e preparação de
   quadros por agentes de IA (experimental).
-version: "1.13.0"
+version: "1.14.0"
 date-released: "2026-10-27"
 doi: "10.5281/zenodo.23552115"
 authors:
