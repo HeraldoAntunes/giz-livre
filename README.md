@@ -251,9 +251,6 @@ computador; outros computadores da rede não conseguem abrir. Se a pasta dos qua
 copia os quadros para a nuvem é o OneDrive, não o Giz Livre. Os agentes de IA vêm desligados; se você ligar, só
 programas do próprio computador conseguem usar, e com um código de acesso que o Giz Livre cria e guarda.
 
-*This program will not transfer any information to other networked systems unless specifically requested by the user or
-the person installing or operating it.*
-
 ## Contribuir
 Sugestões e correções são bem-vindas. Veja [CONTRIBUTING.md](.github/CONTRIBUTING.md) e a política de segurança em
 [SECURITY.md](.github/SECURITY.md).
