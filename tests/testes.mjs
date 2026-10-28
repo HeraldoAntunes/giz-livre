@@ -789,5 +789,24 @@ console.log('\nEncaixe, esquadro e calculadora');
   });
 }
 
+console.log('Atualização pelo Sobre');
+{
+  const { readFileSync } = await import('node:fs');
+  const ui = readFileSync(path.join(raiz, 'ui.js'), 'utf8');
+  const corpo = nome => { const i = ui.indexOf(`function ${nome}(`); let n = 0, j = ui.indexOf('{', i);
+    for (let k = j; k < ui.length; k++) { if (ui[k] === '{') n++; else if (ui[k] === '}' && --n === 0) return ui.slice(i, k + 1); } };
+  teste('o botão Baixar e instalar recebe o quadro aberto (na 1.14.2 e 1.14.3 dava "quadroAqui is not defined")', () => {
+    const f = corpo('ligarAtualizacao');
+    igual(/^function ligarAtualizacao\([^)]*quadroAqui/.test(f), true, 'quadroAqui é parâmetro de ligarAtualizacao');
+    igual(/ligarAtualizacao\(d, antesDeAtualizar, quadroAqui\)/.test(ui), true, 'aboutBox passa o quadroAqui');
+  });
+  teste('notas da versão no Sobre: itens viram lista e **x** vira negrito, sem HTML de fora', () => {
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const notasHtml = new Function('esc', corpo('notasHtml').replace(/^function notasHtml/, 'return function') )(esc);
+    const h = notasHtml('Correção.\r\n- **Um:** primeira\r\n  continuação\r\n- dois <img src=x>');
+    igual(h, '<p>Correção.</p><ul><li><b>Um:</b> primeira continuação</li><li>dois &lt;img src=x&gt;</li></ul>', 'html');
+  });
+}
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

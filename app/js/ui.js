@@ -97,13 +97,13 @@ export function aboutBox(version, antesDeAtualizar = null, quadroAqui = null) {
     <p class="sb-aviso">Fornecido "no estado em que se encontra", sem garantia de qualquer tipo. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.</p>
   </div>`);
   const d = [...document.querySelectorAll('dialog[open]')].pop();
-  if (d) ligarAtualizacao(d, antesDeAtualizar);
+  if (d) ligarAtualizacao(d, antesDeAtualizar, quadroAqui);
   return promessa;
 }
 
 // "Procurar versão nova": o próprio programa responde (mais recente, mais nova que a publicada ou versão disponível)
 // e, na versão instalada, baixa, confere e instala quando o professor pede
-function ligarAtualizacao(d, antes) {
+function ligarAtualizacao(d, antes, quadroAqui = null) {
   const bt = d.querySelector('[data-atu]'), saida = d.querySelector('.sb-atu');
   if (!bt || !saida) return;
   const pagina = url => `<a href="${esc(url || RELEASES)}" target="_blank" rel="noopener noreferrer">Abrir a página de downloads</a>`;
@@ -144,7 +144,7 @@ function ligarAtualizacao(d, antes) {
       return;
     }
     saida.innerHTML = `<b>Versão ${esc(j.ultima)} disponível</b> (você tem a ${esc(j.atual)}).
-      ${j.notas ? `<div class="sb-notas">${esc(j.notas)}</div>` : ''}
+      ${j.notas ? `<div class="sb-notas">${notasHtml(j.notas)}</div>` : ''}
       <div class="sb-acoes">${j.pode_instalar ? '<button class="btn primary" data-inst>Baixar e instalar</button>' : ''} ${pagina(j.pagina)}</div>
       ${j.pode_instalar ? '' : '<small>Na versão portátil, baixe o zip novo e troque a pasta; os quadros ficam na pasta quadros.</small>'}`;
     const bi = saida.querySelector('[data-inst]');
@@ -165,6 +165,27 @@ function ligarAtualizacao(d, antes) {
       }
     };
   };
+}
+
+// notas da versão (Markdown simples do CHANGELOG): "- " vira item, linha recuada continua o item, **x** vira negrito
+export function notasHtml(txt) {
+  const neg = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '$1');
+  const blocos = [];
+  for (const l of String(txt).split('\n')) {
+    const t = l.trim();
+    if (!t) continue;
+    if (/^[-*] /.test(t)) blocos.push({ item: true, txt: t.slice(2) });
+    else if (/^\s/.test(l) && blocos.length && blocos.at(-1).item) blocos.at(-1).txt += ' ' + t;
+    else if (blocos.length && !blocos.at(-1).item) blocos.at(-1).txt += ' ' + t;
+    else blocos.push({ item: false, txt: t });
+  }
+  let h = '', lista = false;
+  for (const b of blocos) {
+    if (b.item && !lista) { h += '<ul>'; lista = true; }
+    if (!b.item && lista) { h += '</ul>'; lista = false; }
+    h += b.item ? `<li>${neg(b.txt)}</li>` : `<p>${neg(b.txt)}</p>`;
+  }
+  return h + (lista ? '</ul>' : '');
 }
 
 export function infoBox(title, html) {

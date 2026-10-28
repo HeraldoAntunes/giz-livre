@@ -657,8 +657,9 @@ button:focus:not(:focus-visible) { outline: none; }
 .sb-ok { color: #107c10; }
 .sb-erro { color: #c50f1f; }
 .sb-espera { color: var(--muted); }
-.sb-notas { white-space: pre-wrap; max-height: 160px; overflow: auto; margin: 6px 0; padding: 8px; background: #f5f5f5;
+.sb-notas { max-height: 160px; overflow: auto; margin: 6px 0; padding: 8px; background: #f5f5f5;
   border-radius: 8px; font-size: 13px; }
+.sb-notas p { margin: 0 0 4px; } .sb-notas ul { margin: 0; padding-left: 18px; } .sb-notas li { margin: 2px 0; }
 .sb-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
 /* vitrine do catálogo de formas: o título de cada disciplina leva à disciplina inteira */
 .shp-pop .shp-grid .shp-sec-link { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 2px solid #e0e0e0;

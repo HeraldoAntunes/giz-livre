@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 1.14.4 (28/10/2026)
+Correção.
+- **Atualização pelo Sobre:** na 1.14.2 e na 1.14.3, o botão **Baixar e instalar** mostrava "quadroAqui is not defined" e
+  não instalava nada. Quem está nessas duas versões precisa baixar o instalador da 1.14.4 na página de downloads e rodar
+  à mão, uma vez; os quadros ficam como estão. Da 1.14.4 em diante, o botão volta a funcionar.
+- **Notas da versão no Sobre:** aparecem formatadas, com lista e negrito, em vez das marcas de texto cru.
+
 ## 1.14.3 (28/10/2026)
 Texto.
 - **Privacidade, no Sobre e no README:** agora diz por inteiro o que acontece na atualização pelo programa: em
