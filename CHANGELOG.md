@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1.15.0 (28/10/2026)
+Atalho e opções para limpar o quadro, renomear sem conflito e um teste novo da atualização.
+- **Atalho para limpar o quadro:** a tecla **Del** sem nada selecionado abre "Limpar o quadro", sempre com a pergunta
+  antes (e o Ctrl+Z desfaz).
+- **Limpar só a página da tela:** nos quadros com várias páginas, "Limpar o quadro" oferece apagar só o que foi escrito
+  na página que está na tela; as outras páginas ficam como estão.
+- **Renomear ou mover um quadro aberto em outra janela:** antes, a janela com o quadro aberto passava a avisar
+  "conflito" e parava de salvar. Agora ela continua salvando normalmente e passa a mostrar o nome novo.
+- Teste novo, de ponta a ponta, do botão **Baixar e instalar** do Sobre, rodado antes de cada versão (é o que teria
+  pegado o defeito da 1.14.2).
+
 ## 1.14.4 (28/10/2026)
 Correção.
 - **Atualização pelo Sobre:** na 1.14.2 e na 1.14.3, o botão **Baixar e instalar** mostrava "quadroAqui is not defined" e

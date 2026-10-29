@@ -205,7 +205,7 @@ export function initEditor() {
   $('bHelp').onclick = () => (ajudaAberta() ? fecharAjuda() : abreAjuda());
   $('bShowBars').onclick = () => setClean(false);
   $('bMenu').onclick = () => openMenu($('bMenu'));
-  $('bTitle').addEventListener('change', () => { S.board.title = $('bTitle').value.trim() || 'Sem título'; $('bTitle').title = S.board.title; scheduleSave(); });
+  $('bTitle').addEventListener('change', () => { S.board.title = $('bTitle').value.trim() || 'Sem título'; $('bTitle').title = S.board.title; document.title = S.board.title + ' — Giz Livre'; scheduleSave(); });
   $('bTitle').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); e.stopPropagation(); });
   $('zIn').onclick = () => zoomAt(W / 2, H / 2, S.view.zoom * 1.25);
   $('zOut').onclick = () => zoomAt(W / 2, H / 2, S.view.zoom / 1.25);
@@ -1423,7 +1423,7 @@ function alternaLegendas(ids) {
   toast(esconder ? 'Legendas escondidas. Ctrl+Z desfaz.' : 'Legendas de volta.');
 }
 
-// apaga tudo de uma vez: só o que foi escrito (PDF/slides ficam) ou tudo mesmo; dá para desfazer
+// apaga tudo de uma vez: só a página da tela, só o que foi escrito (PDF/slides ficam) ou tudo mesmo; dá para desfazer
 async function clearBoard() {
   const pages = PG.isPages(S.board) && S.board.layout.count > 1;
   if (!S.items.length && !pages) return toast('O quadro já está limpo');
@@ -1431,12 +1431,20 @@ async function clearBoard() {
   let modo = 'escrita';
   if (locked.length || pages) {
     const ops = [];
+    const pg = pages ? curPage() : -1;
+    const daPagina = pages ? S.items.filter(i => !i.locked && PG.pageOf(S.board.layout, i) === pg) : [];
+    if (daPagina.length) ops.push(['pagina', `Só o que foi escrito na página ${pg + 1} (a que está na tela)`]);
     if (locked.length < S.items.length) ops.push(['escrita', locked.length ? 'Só o que foi escrito (o PDF/slides ficam)' : 'Só o que foi escrito (as páginas ficam)']);
     ops.push(['tudo', 'Tudo, inclusive PDF/slides e páginas extras', true]);
     modo = await choiceBox('Limpar o quadro', 'O que apagar? Dá para desfazer com Ctrl+Z.', ops);
     if (!modo) return;
   } else if (!await confirmBox('Limpar o quadro', 'Apagar tudo o que está neste quadro? Dá para desfazer com Ctrl+Z.', 'Limpar', true)) return;
   clearSel();
+  if (modo === 'pagina') {
+    const pg = curPage(), L = S.board.layout;
+    commit(S.items.filter(i => i.locked || PG.pageOf(L, i) !== pg));
+    return toast(`Página ${pg + 1} limpa. Ctrl+Z desfaz.`);
+  }
   if (modo === 'tudo' && PG.isPages(S.board)) { commit([], { ...S.board.layout, count: 1 }); goToPage(0, present); refreshPanel(); updatePageBar(); }
   else commit(modo === 'tudo' ? [] : locked);
   toast('Quadro limpo. Ctrl+Z desfaz.');
@@ -1594,6 +1602,14 @@ async function writeSnapshot(snap) {
   try {
     await saveBoard(snap.id, snap.board, null);
     snap.state.board._rev = snap.board._rev;
+    if (snap.board._meta && snap.board._meta !== snap.state.board._meta) {   // renomeado/movido pela galeria
+      Object.assign(snap.state.board, { _meta: snap.board._meta, title: snap.board.title });
+      if (snap.board.folder) snap.state.board.folder = snap.board.folder; else delete snap.state.board.folder;
+      if (S === snap.state && document.activeElement !== $('bTitle')) {
+        $('bTitle').value = snap.board.title === 'Sem título' ? '' : snap.board.title; $('bTitle').title = snap.board.title;
+        document.title = snap.board.title + ' — Giz Livre';
+      }
+    }
     if (failedSnaps.get(snap.id) === snap) failedSnaps.delete(snap.id);
     if (S === snap.state) {
       savedVer = snap.ver;
@@ -2614,6 +2630,7 @@ function onKey(e) {
       const ult = S.items.findLast(i => !i.locked && !oculto(i));
       if (ult) { commit(S.items.filter(i => i !== ult)); avisoAcao('Último item apagado', { label: 'Desfazer', fn: undo }); }
     }
+    else clearBoard();   // Del sem seleção: "Limpar o quadro", sempre com a pergunta antes
   }
   // passador de slides: o botão de iniciar manda F5 ou Shift+F5 (sem isto, o navegador recarregaria a página)
   else if (e.key === 'F5') { e.preventDefault(); if (!present) setPresent(true); }
@@ -2876,7 +2893,7 @@ function showKeys() {
       ['[  /  ]', 'Caneta mais fina / mais grossa'], ['Botão lateral da caneta', 'Borracha (muda em Caneta e escrita)']]],
     ['Seleção e edição', [['Ctrl + Z / Ctrl + Y', 'Desfazer / refazer (Ctrl + Shift + Z também refaz)'],
       ['Ctrl + C / X / V / D', 'Copiar / recortar / colar / duplicar'], ['Ctrl + A', 'Selecionar tudo'],
-      ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'], ['Backspace sem seleção', 'Apagar o último item desenhado'],
+      ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'], ['Backspace sem seleção', 'Apagar o último item desenhado'], ['Del sem seleção', 'Limpar o quadro (pergunta antes)'],
       ['Enter', 'Editar o texto ou a nota selecionada'], ['Esc', 'Tirar a seleção, fechar menus, sair da apresentação']]],
     ['Páginas e apresentação', [['PageDown / PageUp', 'Próxima / página anterior'], ['→ ← (na apresentação)', 'Passar as páginas'],
       ['F5', 'Iniciar a apresentação (botão do passador de slides)'], ['B ou .', 'Tela preta (a mesma tecla, Esc ou um toque voltam)'],

@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.14.4"
+VERSAO = "1.15.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -590,7 +590,9 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"erro": str(e)}, 400)
             return self._json({"ok": True})
         if rota.startswith("/api/folder/"):
-            # muda só a pasta do quadro, sem mexer na data de edição nem reenviar o quadro inteiro
+            # muda só o nome e/ou a pasta do quadro (renomear e mover pela galeria), sem mexer na data de edição nem
+            # reenviar o quadro inteiro. Não aumenta a revisão: um quadro aberto em outra janela continua salvando sem
+            # "conflito"; o contador _meta faz o salvamento dela manter o nome e a pasta novos (ver o PUT)
             bid = self._id("/api/folder/")
             if bid is None:
                 return
@@ -601,7 +603,12 @@ class Handler(SimpleHTTPRequestHandler):
                 pacote = json.loads(corpo.decode("utf-8"))
                 if not isinstance(pacote, dict):
                     raise ValueError("pedido inválido")
-                pasta = nome_pasta(pacote.get("folder"))
+                pasta = nome_pasta(pacote.get("folder")) if "folder" in pacote else None
+                titulo = None
+                if "title" in pacote:
+                    titulo = str(pacote["title"] or "").strip()[:200]
+                    if not titulo:
+                        raise ValueError("nome vazio")
             except Exception as e:
                 return self._json({"erro": str(e)}, 400)
             arq = DADOS / f"{bid}.json"
@@ -611,15 +618,19 @@ class Handler(SimpleHTTPRequestHandler):
                 try:
                     with open(arq, encoding="utf-8") as f:
                         board = json.load(f)
-                    if pasta:
-                        board["folder"] = pasta
-                    else:
-                        board.pop("folder", None)
-                    board["_rev"] = board.get("_rev", 0) + 1
+                    if pasta is not None:
+                        if pasta:
+                            board["folder"] = pasta
+                        else:
+                            board.pop("folder", None)
+                    if titulo is not None:
+                        board["title"] = titulo
+                    meta = board.get("_meta", 0)
+                    board["_meta"] = (meta if type(meta) is int else 0) + 1
                     gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
                 except Exception as e:
                     return self._json({"erro": str(e)}, 500)
-            return self._json({"ok": True, "folder": pasta})
+            return self._json({"ok": True, "folder": board.get("folder", ""), "title": board.get("title", "")})
         if not rota.startswith("/api/boards/"):
             return self._json({"erro": "rota"}, 404)
         bid = self._id("/api/boards/")
@@ -665,12 +676,22 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({"erro": "não foi possível verificar a revisão do quadro existente"}, 500)
             if revision != atual.get("_rev", 0):
                 return self._json({"erro": "quadro alterado em outra janela", "revision": atual.get("_rev", 0)}, 412)
+            meta = atual.get("_meta", 0)
+            if type(meta) is int and meta > (board.get("_meta") if type(board.get("_meta")) is int else 0):
+                # renomeado ou movido pela galeria depois que esta janela abriu o quadro: o nome e a pasta novos ficam
+                board["title"] = atual.get("title", board["title"])
+                if atual.get("folder"):
+                    board["folder"] = atual["folder"]
+                else:
+                    board.pop("folder", None)
+                board["_meta"] = meta
             board["_rev"] = revision + 1
             dados = json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8")
             gravar_atomico(arq, dados)
             if png:
                 gravar_atomico(DADOS / f"{bid}.png", png)
-        return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"]})
+        return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"], "title": board["title"],
+                           "folder": board.get("folder", ""), "meta": board.get("_meta", 0)})
 
     def do_POST(self):
         if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):

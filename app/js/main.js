@@ -1,6 +1,6 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
-import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
+import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, renameBoard, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
 import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, inserirForma } from './editor.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
@@ -153,7 +153,7 @@ function renderGrid() {
       e.stopPropagation();
       const b = boards.find(x => x.id === c.dataset.id), t = await askText('Renomear quadro', b.title);
       if (!t) return;
-      try { const data = await loadBoard(b.id); data.title = t; await saveBoard(b.id, data, null); }
+      try { await renameBoard(b.id, t); }
       catch (err) { toast('Não deu para renomear: ' + (err.message || 'erro ao salvar')); }
       refresh();
     };
@@ -323,9 +323,7 @@ function cardMenu(anchor, id) {
     on('rename', async () => {
       const t = await askText('Renomear quadro', b.title);
       if (!t) return;
-      const data = await loadBoard(id);
-      data.title = t;
-      await saveBoard(id, data, null);
+      await renameBoard(id, t);
       refresh();
     });
     on('dup', async () => {

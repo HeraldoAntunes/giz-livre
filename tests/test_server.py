@@ -85,11 +85,34 @@ class ApiTests(unittest.TestCase):
         code, saved = self.request("/api/boards/current", "PUT", {"board": board})
         self.assertEqual((code, saved["revision"]), (200, 2))
 
-    def test_folder_change_prevents_stale_save(self):
-        stale = self.create("folder")
+    def test_mover_pela_galeria_nao_da_conflito_no_quadro_aberto(self):
+        aberto = self.create("folder")   # o quadro aberto numa janela, antes de ser movido em outra
         self.assertEqual(self.request("/api/folder/folder", "PUT", {"folder": "Disciplina"})[0], 200)
-        self.assertEqual(self.request("/api/boards/folder", "PUT", {"board": stale})[0], 412)
-        self.assertEqual(self.request("/api/boards/folder")[1]["folder"], "Disciplina")
+        aberto["items"] = [{"type": "text", "id": "t1"}]
+        code, r = self.request("/api/boards/folder", "PUT", {"board": aberto})
+        self.assertEqual(code, 200)
+        self.assertEqual((r["folder"], r["meta"]), ("Disciplina", 1))
+        salvo = self.request("/api/boards/folder")[1]
+        self.assertEqual((salvo["folder"], len(salvo["items"])), ("Disciplina", 1))
+
+    def test_renomear_pela_galeria_nao_da_conflito_e_o_nome_fica(self):
+        aberto = self.create("renomear")
+        code, r = self.request("/api/folder/renomear", "PUT", {"title": "  Aula de MHS  "})
+        self.assertEqual((code, r["title"]), (200, "Aula de MHS"))
+        self.assertEqual(self.request("/api/boards/renomear")[1]["_rev"], aberto["_rev"])   # revisão não muda
+        code, r = self.request("/api/boards/renomear", "PUT", {"board": aberto, "title": aberto.get("title")})
+        self.assertEqual((code, r["title"]), (200, "Aula de MHS"))
+        aberto["_rev"], aberto["_meta"], aberto["title"] = r["revision"], r["meta"], "Nome dado no quadro"
+        code, r = self.request("/api/boards/renomear", "PUT", {"board": aberto, "title": aberto["title"]})
+        self.assertEqual((code, r["title"]), (200, "Nome dado no quadro"))   # depois de sincronizar, vale o do quadro
+        self.assertEqual(self.request("/api/folder/renomear", "PUT", {"title": "   "})[0], 400)
+
+    def test_edicao_de_verdade_em_outra_janela_ainda_da_conflito(self):
+        stale = self.create("edita")
+        outra = dict(stale, items=[{"type": "text", "id": "x"}])
+        self.assertEqual(self.request("/api/boards/edita", "PUT", {"board": outra})[0], 200)
+        self.assertEqual(self.request("/api/folder/edita", "PUT", {"folder": "Disciplina"})[0], 200)
+        self.assertEqual(self.request("/api/boards/edita", "PUT", {"board": stale})[0], 412)
 
     def test_invalid_revision(self):
         for rev in [-1, True, "1", 1.5, None]:

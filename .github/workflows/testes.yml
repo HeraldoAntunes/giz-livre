@@ -44,5 +44,8 @@ jobs:
       - name: Teste de ponta a ponta (servidor, MCP e Edge sem janela)
         run: node tests/e2e_agente.mjs
 
+      - name: Teste de ponta a ponta do botão de atualizar (Sobre, Edge sem janela)
+        run: node tests/e2e_atualizacao.mjs
+
       - name: Teste visual das formas (todas desenhadas no Edge sem janela)
         run: node tests/formas_visual.mjs

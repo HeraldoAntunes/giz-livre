@@ -21,7 +21,7 @@ export const TEMAS = [
   { id: 'apagar', titulo: 'Apagar e desfazer', icone: 'eraser', alvo: '#inkbar [data-tool="eraser"]',
     figura: [['eraser'], ['undo'], ['redo']], destaque: 0,
     passos: ['Borracha (E) ou o botão lateral da caneta.', 'Toque de novo na borracha para o tamanho e para apagar o traço inteiro ou só onde passar.',
-      'Backspace sem nada selecionado apaga o último item desenhado.', 'Ctrl+Z desfaz e Ctrl+Y refaz, quantas vezes precisar.'] },
+      'Backspace sem nada selecionado apaga o último item desenhado; Del sem nada selecionado limpa o quadro (pergunta antes).', 'Ctrl+Z desfaz e Ctrl+Y refaz, quantas vezes precisar.'] },
   { id: 'selecionar', titulo: 'Selecionar, mover e girar', icone: 'lasso', alvo: '#inkbar [data-tool="lasso"]',
     figura: [['lasso'], ['select'], ['group'], ['duplicate']], destaque: 0,
     passos: ['Laço (L): contorne o que quer pegar. Seleção (V): toque ou arraste um retângulo.', 'Arraste para mover. A alça redonda de cima gira; o canto de baixo muda o tamanho.',

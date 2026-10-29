@@ -68,7 +68,7 @@ Windows Ink* no driver.
 | Avisos de desfazer e apagar | o `Ctrl+Z` e o `Backspace` sem seleção não mostram mais "Desfeito" nem "Último item apagado". Para ligar: menu `…` → **Avisos de desfazer e apagar**: desligado (padrão), curto (1 s) ou normal (3 s, com Refazer) |
 | Apresentar | botão **Apresentar**: setas ou passador mudam de slide; `B` = página em branco; `Esc` sai. Na mini-bandeja: cor, espessura (bolinha com anel tracejado; `[` e `]` também mudam), formas (linha, seta, retângulo, elipse, triângulo: a forma continua ativa para desenhar várias setas seguidas; toque numa caneta para voltar a escrever), "tinta vira forma" (desligado = desenho livre) e lupa |
 | Esconder as barras | `Tab` (modo aula); para voltar, `Tab` de novo ou o botão **Mostrar barras** no canto de baixo |
-| Limpar o quadro | lixeira da barra de cima ou menu `…`: pergunta se apaga só o que foi escrito ou tudo, inclusive PDF |
+| Limpar o quadro | tecla Del sem nada selecionado, lixeira da barra de cima ou menu `…`: pergunta se apaga só a página que está na tela (quadro com várias páginas), só o que foi escrito ou tudo, inclusive PDF |
 | PDF, imprimir, imagem | menu `…` → Exportar PDF / Imprimir / Exportar imagem |
 | Desfazer / refazer | `Ctrl+Z` / `Ctrl+Y` (o aviso de desfazer também tem **Refazer**) |
 | Salvar | automático |

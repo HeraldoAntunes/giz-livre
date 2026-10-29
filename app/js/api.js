@@ -66,6 +66,8 @@ export async function saveBoard(id, board, thumb) {
   }
   const result = await r.json();
   board._rev = result.revision;
+  // renomeado ou movido pela galeria enquanto estava aberto: o servidor manteve o nome e a pasta novos
+  if (result.meta) { board._meta = result.meta; board.title = result.title; if (result.folder) board.folder = result.folder; else delete board.folder; }
   return result;
 }
 
@@ -83,6 +85,16 @@ export async function setBoardFolder(id, folder) {
   });
   if (!r.ok) throw new Error('Falha ao mover o quadro');
   return (await r.json()).folder || '';
+}
+
+// renomeia sem reenviar o quadro e sem mudar a revisão (um quadro aberto em outra janela não entra em conflito)
+export async function renameBoard(id, title) {
+  const r = await wfetch('/api/folder/' + id, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.erro || 'erro ao salvar');
+  return j.title;
 }
 
 // move para a lixeira; devolve o nome do item na lixeira (para o "Desfazer") ou null
