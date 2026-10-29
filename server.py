@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.15.1"
+VERSAO = "1.15.2"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -102,6 +102,28 @@ def gravar_atomico(caminho: Path, dados: bytes) -> None:
         except OSError:
             pass
         raise
+
+
+def limpar_temporarios(pasta: Path, idade_s: float = 120) -> int:
+    """Apaga os temporários de gravar_atomico que uma queda brusca deixou (o programa morreu entre criar o .tmp e trocar
+    pelo arquivo final; o arquivo final continua inteiro). Só os com mais de `idade_s`, para nunca pegar uma gravação
+    em andamento. Achado na bateria de testes de 28/10/2026 (teste C2)."""
+    apagados, agora = 0, time.time()
+    for raiz in (pasta, pasta / "assets", pasta.parent):
+        try:
+            candidatos = list(raiz.glob("*.tmp"))
+        except OSError:
+            continue
+        for arq in candidatos:
+            try:
+                if re.fullmatch(r".+\.(json|png|jpg|txt)\.[A-Za-z0-9_]+\.tmp", arq.name) and agora - arq.stat().st_mtime > idade_s:
+                    arq.unlink()
+                    apagados += 1
+            except OSError:
+                pass
+    if apagados:
+        diario(f"apagados {apagados} arquivos temporários deixados por um encerramento brusco")
+    return apagados
 
 
 RESUMOS: dict[str, tuple] = {}     # id -> (mtime_ns, tamanho, resumo): a galeria não relê quadros que não mudaram
@@ -2878,6 +2900,7 @@ def main():
 
     srv = Servidor(("127.0.0.1", PORTA), Handler)
     threading.Thread(target=coletar_assets_orfaos, daemon=True).start()
+    threading.Thread(target=limpar_temporarios, args=(DADOS,), daemon=True).start()
     threading.Thread(target=detectar_reconhecedor, daemon=True).start()
     if sys.stdout:
         print(f"Giz Livre {VERSAO} em {url}  (quadros em {DADOS})")

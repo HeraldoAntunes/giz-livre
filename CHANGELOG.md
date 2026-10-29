@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 1.15.2 (29/10/2026)
+Correção.
+- **Arquivos temporários de uma queda brusca:** se o programa for interrompido no meio de um salvamento (falta de
+  energia), o quadro continua inteiro, mas ficava um arquivo `.tmp` na pasta dos quadros. Agora o programa apaga essas
+  sobras ao abrir. Achado na bateria de testes de 28/10/2026.
+
 ## 1.15.1 (28/10/2026)
 O Giz Livre não some mais quando o navegador cai.
 - **Navegador caindo:** se o navegador que mostra o Giz Livre cair (aconteceu em 28/10/2026 com o Edge, por causa de um

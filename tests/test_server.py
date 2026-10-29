@@ -996,6 +996,17 @@ class FecharJanelaTests(unittest.TestCase):
     def test_sem_sinal_da_pagina_encerra(self):
         self.assertTrue(self._vigia([15] * 6))   # 90 s sem sinal, limite de 60 s
 
+    def test_temporarios_de_queda_brusca_sao_apagados_na_abertura(self):
+        with tempfile.TemporaryDirectory() as d:
+            q = Path(d) / "quadros"; q.mkdir()
+            velho, novo, outro = q / "a.json.x1y2.tmp", q / "b.json.z9.tmp", q / "meu.tmp"
+            for f in (velho, novo, outro):
+                f.write_text("x")
+            os.utime(velho, (time.time() - 600, time.time() - 600))
+            os.utime(outro, (time.time() - 600, time.time() - 600))
+            self.assertEqual(self.srv.limpar_temporarios(q), 1)
+            self.assertEqual((velho.exists(), novo.exists(), outro.exists()), (False, True, True))   # gravação recente e arquivo alheio ficam
+
     def test_encerramento_fica_anotado_no_diario(self):
         with tempfile.TemporaryDirectory() as d:
             antes, self.srv.DADOS = self.srv.DADOS, Path(d) / "quadros"

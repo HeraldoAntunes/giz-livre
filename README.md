@@ -37,15 +37,15 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.15.1**.
+Versão atual: **1.15.2**.
 
 > ⚠ Quem está na 1.14.2 ou 1.14.3: o **Baixar e instalar** do Sobre dessas versões não funciona. Baixe o instalador
 > abaixo e rode à mão uma vez; depois a atualização pelo programa volta a funcionar. Os quadros ficam como estão.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.15.1.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.15.1/Instalar-GizLivre-1.15.1.exe) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.15.1-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.15.1/GizLivre-1.15.1-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.15.2.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.15.2/Instalar-GizLivre-1.15.2.exe) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.15.2-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.15.2/GizLivre-1.15.2-portatil.zip) |
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
