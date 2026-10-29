@@ -3,6 +3,7 @@
 import http.client
 import importlib.util
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -14,6 +15,7 @@ import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
+os.environ["GIZ_SEM_DIARIO"] = "1"   # o diário (giz-livre.log) não vai para a pasta real de quadros
 ROOT = Path(__file__).resolve().parent.parent
 sys.dont_write_bytecode = True
 
@@ -954,6 +956,7 @@ class FecharJanelaTests(unittest.TestCase):
 
     def setUp(self):
         self.srv.ABERTOS.clear()
+        self.srv.PERFIL_PROPRIO, self.srv.NAVEGADOR_PERFIL, self.srv.TRABALHO_NA_TELA = False, None, False
         self.parou = []
         self.falso = type("Srv", (), {"shutdown": lambda _s: self.parou.append(True)})()
 
@@ -992,6 +995,118 @@ class FecharJanelaTests(unittest.TestCase):
 
     def test_sem_sinal_da_pagina_encerra(self):
         self.assertTrue(self._vigia([15] * 6))   # 90 s sem sinal, limite de 60 s
+
+    def test_encerramento_fica_anotado_no_diario(self):
+        with tempfile.TemporaryDirectory() as d:
+            antes, self.srv.DADOS = self.srv.DADOS, Path(d) / "quadros"
+            os.environ.pop("GIZ_SEM_DIARIO")
+            try:
+                self.assertTrue(self._vigia([15] * 6))
+                for i in range(self.srv.DIARIO_MAX + 5):
+                    self.srv.diario(f"linha {i}")
+                self.srv.diario("fim")
+                linhas = (Path(d) / "giz-livre.log").read_text(encoding="utf-8").splitlines()
+            finally:
+                os.environ["GIZ_SEM_DIARIO"] = "1"; self.srv.DADOS = antes
+            self.assertEqual(len(linhas), self.srv.DIARIO_MAX)        # guarda só as mais recentes
+            self.assertTrue(linhas[-1].endswith("  fim"))
+        with tempfile.TemporaryDirectory() as d:
+            self.srv.DADOS, antes = Path(d) / "q", self.srv.DADOS
+            os.environ.pop("GIZ_SEM_DIARIO")
+            try:
+                self._vigia([15] * 6)
+                txt = (Path(d) / "giz-livre.log").read_text(encoding="utf-8")
+            finally:
+                os.environ["GIZ_SEM_DIARIO"] = "1"; self.srv.DADOS = antes
+            self.assertIn("sem sinal de nenhuma janela", txt)
+
+    def _vigia_reabrindo(self, falhas, voltas=14):
+        # relógio falso com passo de 15 s; `falhas`: hora do relatório de falha do navegador (0 = sem falha)
+        s, agora, abertos = self.srv, [1000.0], []
+        s.ULTIMA_ATIVIDADE = s.CONTATO_JANELA = 1000.0
+        s.NAVEGADOR, s.NAVEGADOR_PERFIL, s.PERFIL_PROPRIO = "edge", None, False
+
+        def abrir(url, evitar=(), proprio=None):
+            abertos.append((evitar, proprio)); s.NAVEGADOR_PERFIL = "perfil-proprio"
+            s.CONTATO_JANELA = agora[0]          # a janela nova manda sinal
+
+        reab = s.Reabridor("http://x", falha=lambda nav: falhas, abrir=abrir)
+        tempos = iter([15] * voltas)
+
+        class Fim(Exception):
+            pass
+
+        def dormir(_):
+            try:
+                agora[0] += next(tempos)
+            except StopIteration:
+                raise Fim
+        try:
+            s.vigiar_inatividade(self.falso, 180, passo=15, dormir=dormir, relogio=lambda: agora[0], reabrir=reab)
+        except Fim:
+            pass
+        return abertos
+
+    def test_edge_caiu_reabre_no_edge_com_perfil_proprio(self):
+        abertos = self._vigia_reabrindo(falhas=1010.0)   # relatório de falha 10 s depois do último sinal
+        self.assertEqual(abertos, [((), True)])
+        self.assertTrue(self.srv.PERFIL_PROPRIO)          # as próximas janelas também usam o perfil próprio
+        self.assertFalse(self.parou)                      # o programa continua
+
+    def test_caiu_ate_no_perfil_proprio_vai_para_outro_navegador(self):
+        s, abertos = self.srv, []
+        s.NAVEGADOR, s.NAVEGADOR_PERFIL = "edge", "perfil-proprio"
+        r = s.Reabridor("http://x", falha=lambda nav: 1010.0, abrir=lambda u, evitar=(), proprio=None: abertos.append((evitar, proprio)))
+        self.assertTrue(r(1000.0, 1120.0))
+        self.assertEqual(abertos, [(("edge",), True)])
+
+    def test_fechar_a_janela_sem_falha_encerra_como_antes(self):
+        abertos = self._vigia_reabrindo(falhas=0.0)
+        self.assertEqual(abertos, [])
+        self.assertTrue(self.parou)
+
+    def test_falha_antiga_do_navegador_nao_reabre(self):
+        abertos = self._vigia_reabrindo(falhas=500.0)    # relatório de antes de a janela ficar muda
+        self.assertEqual((abertos, bool(self.parou)), ([], True))
+
+    def test_reabre_no_maximo_algumas_vezes(self):
+        s, abertos = self.srv, []
+        s.NAVEGADOR, s.NAVEGADOR_PERFIL = "edge", None
+        hora = [100.0]
+        r = s.Reabridor("http://x", max_vezes=2, falha=lambda nav: hora[0], abrir=lambda u, evitar=(), proprio=None: abertos.append(1))
+        for _ in range(4):
+            hora[0] += 50
+            r(hora[0] - 10, hora[0])
+        self.assertEqual(len(abertos), 2)
+
+    def test_ajustes_da_pagina_guardados_no_programa(self):
+        s = self.srv
+        with tempfile.TemporaryDirectory() as d:
+            antes, s.DADOS = s.DADOS, Path(d) / "quadros"
+            try:
+                self.assertEqual(s.ler_prefs(), {})
+                self.assertTrue(s.guardar_prefs({"lousa.cfg": '{"tool":"pen"}', "outra.coisa": "x", "lousa.n": 3}))
+                self.assertEqual(s.ler_prefs(), {"lousa.cfg": '{"tool":"pen"}'})   # só 'lousa.*' com texto
+                self.assertFalse(s.guardar_prefs({"lousa.cfg": '{"tool":"pen"}'}))  # igual: não regrava
+                self.assertFalse(s.guardar_prefs({"lousa.x": "a" * (s.PREFS_MAX + 1)}))   # grande demais
+                self.assertFalse(s.guardar_prefs("lixo"))
+                s.PERFIL_PROPRIO = False
+                with patch.object(s, "WINDOWS", True):
+                    chamadas = []
+                    with patch.object(s.subprocess, "Popen", side_effect=lambda a, **k: chamadas.append(a)), \
+                         patch.object(s.os.path, "exists", return_value=True):
+                        s.abrir_janela("http://127.0.0.1:1/")
+                    self.assertTrue(any(a.startswith("--user-data-dir=") for a in chamadas[0]))   # já há cópia: perfil próprio
+            finally:
+                s.DADOS = antes; s.NAVEGADOR_PERFIL = None
+
+    def test_com_quadro_aberto_o_vigia_nao_encerra(self):
+        self.srv.marcar_aberto("j1", "quadro1")            # último sinal: quadro aberto
+        self.assertFalse(self._vigia([15] * 20))          # 300 s mudo, limite de 60 s: continua
+        self.srv.marcar_aberto("j1", None, pendente=True)  # galeria, mas com edição não salva
+        self.assertFalse(self._vigia([15] * 20))
+        self.srv.marcar_aberto("j1", None)                 # só a galeria, tudo salvo: encerra como antes
+        self.assertTrue(self._vigia([15] * 20))
 
     def test_suspensao_do_computador_nao_encerra_na_hora(self):
         self.assertFalse(self._vigia([15, 3600, 15, 15]))   # acordou depois de 1 h: a contagem recomeça

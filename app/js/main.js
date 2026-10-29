@@ -1,7 +1,7 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
 import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, renameBoard, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
-import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, inserirForma } from './editor.js';
+import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, temPendente, inserirForma } from './editor.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
 import { renderToCanvas } from './render.js';
@@ -645,18 +645,26 @@ $('gTablet').onclick = () => openTabletSettings(tabletCfg(), saveTabletCfg);
 $('gImportFile').addEventListener('change', async e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) await importFiles(f); });
 $('gallery').addEventListener('dragover', e => e.preventDefault());
 $('gallery').addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) importFiles([...e.dataTransfer.files]); });
+// cópia dos ajustes (localStorage 'lousa.*') para o programa: um perfil novo de navegador recebe tudo de volta
+// (ver js/prefs.js, que roda antes desta página)
+function prefsLocais() {
+  const p = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith('lousa.')) p[k] = localStorage.getItem(k); } } catch {}
+  return p;
+}
 // mantém o servidor vivo enquanto houver janela aberta; se ele tiver sido fechado, avisa em vez de "salvar" no vazio.
 // Também conta qual quadro está aberto nesta janela: um agente de IA não grava em quadro aberto.
 const JANELA = newId();
 async function ping() {
   if (!temSessao()) return;   // a página ainda está abrindo (ex.: a janela ficou visível antes do /api/info voltar)
   try {
-    const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ janela: JANELA, quadro: openBoardId() }) });
+    const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ janela: JANELA, quadro: openBoardId(), pendente: temPendente(), prefs: prefsLocais() }) });
     if (!r.ok && r.status !== 409) throw 0;
   }
   catch { sessionLost('O programa Giz Livre foi fechado. Abra-o de novo pelo atalho e depois recarregue esta página; o que não foi salvo continua aqui.'); }
 }
 setInterval(ping, 30000);
+setTimeout(ping, 3000);   // a cópia dos ajustes chega logo, sem esperar os 30 s
 // ao fechar a janela, avisa o programa: sem outra janela aberta, ele se encerra uns segundos depois (keepalive: o
 // pedido sai mesmo com a página fechando)
 addEventListener('pagehide', () => {
@@ -678,4 +686,4 @@ async function atualizarGaleria() {
 setInterval(atualizarGaleria, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { ping(); atualizarGaleria(); } });
 addEventListener('hashchange', route);
-initSession().then(() => { loadExtraFolders(); route(); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });
+initSession().then(() => { loadExtraFolders(); route(); if (serverInfo().aviso) toast(serverInfo().aviso, 12000); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });

@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 1.15.1 (28/10/2026)
+O Giz Livre não some mais quando o navegador cai.
+- **Navegador caindo:** se o navegador que mostra o Giz Livre cair (aconteceu em 28/10/2026 com o Edge, por causa de um
+  módulo de segurança de banco), o programa reabre a janela sozinho: primeiro num perfil do navegador só dele e, se
+  cair de novo, em outro navegador instalado (Chrome). Um aviso na tela diz o que aconteceu.
+- **Nada se perde com a janela muda:** o programa não se encerra sozinho enquanto o último sinal da janela era de um
+  quadro aberto ou de uma edição ainda não salva (antes, encerrava depois de 3 minutos sem sinal).
+- **Ajustes guardados no programa:** canetas, barras, pastas e áreas das formas ganham uma cópia em
+  `preferencias.json`; uma janela num navegador ou perfil novo recebe tudo de volta.
+- **Registro de abertura e encerramento** em `Documentos\Giz Livre\giz-livre.log`, com o motivo de cada encerramento.
+
 ## 1.15.0 (28/10/2026)
 Atalho e opções para limpar o quadro, renomear sem conflito e um teste novo da atualização.
 - **Atalho para limpar o quadro:** a tecla **Del** sem nada selecionado abre "Limpar o quadro", sempre com a pergunta

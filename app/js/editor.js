@@ -343,6 +343,8 @@ window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; 
 export function isOpen() { return !!S && !$('board').hidden; }
 // quadro aberto nesta janela (o ping avisa o servidor, para um agente de IA não gravar nele)
 export function openBoardId() { return isOpen() ? S.id : null; }
+// há edição ainda não confirmada pelo programa? (vai no ping: com isso, o programa não se encerra sozinho)
+export function temPendente() { return failedSnaps.size > 0 || !!(S && (dirtyVer !== savedVer || saveTimer || saving)); }
 
 // conteúdo deixado por um agente de IA (fórmula, gráfico) chega ao abrir o quadro: troca os pendentes pelos itens
 // reais sem passo de Desfazer (é a chegada do conteúdo, não uma edição) e salva

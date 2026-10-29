@@ -63,7 +63,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.15.0"
+VERSAO = "1.15.1"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -481,9 +481,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
                                "onedrive": em_onedrive(DADOS),
                                "pptx": "powerpoint" if tem_powerpoint() else ("libreoffice" if achar_libreoffice() else None),
-                               **info_ocr()})
+                               "aviso": tomar_aviso(), **info_ocr()})
         if rota == "/api/ping":
             return self._json({"ok": True})
+        if rota == "/api/prefs":   # cópia dos ajustes da página (ver guardar_prefs)
+            return self._json(ler_prefs())
         if rota == "/api/pacote":   # todos os quadros num zip: entrega tudo, então exige o token como uma escrita
             if not self._escrita_ok():
                 return
@@ -711,7 +713,9 @@ class Handler(SimpleHTTPRequestHandler):
             except ValueError:
                 pacote = {}
             if isinstance(pacote, dict) and isinstance(pacote.get("janela"), str) and JANELA_OK.match(pacote["janela"]):
-                marcar_aberto(pacote["janela"], pacote.get("quadro"))
+                marcar_aberto(pacote["janela"], pacote.get("quadro"), pacote.get("pendente"))
+            if isinstance(pacote, dict) and "prefs" in pacote:
+                guardar_prefs(pacote["prefs"])
             return self._json({"ok": True})
         if rota in ("/api/atualizacao/verificar", "/api/atualizacao/instalar"):
             if not TRAVA_ATUALIZACAO.acquire(blocking=False):
@@ -763,6 +767,7 @@ class Handler(SimpleHTTPRequestHandler):
                 threading.Timer(ESPERA_FECHAR, encerrar_se_ninguem_voltou, args=(self.server, time.time())).start()
             return self._json({"ok": True})
         if rota == "/api/sair":
+            diario("encerrado: pedido de saída (outra cópia do Giz Livre abrindo, ou a atualização)")
             self._json({"ok": True})
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return
@@ -907,6 +912,7 @@ def encerrar_se_ninguem_voltou(srv, marco: float) -> bool:
         outras = any(agora - t <= VALIDADE_ABERTO for _, t in ABERTOS.values())
     if CONTATO_JANELA > marco or outras:
         return False
+    diario(f"encerrado: a última janela avisou que fechou e nenhuma voltou em {ESPERA_FECHAR} s")
     threading.Thread(target=srv.shutdown, daemon=True).start()
     return True
 JANELA_OK = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
@@ -1009,9 +1015,14 @@ def marcar_contato() -> None:
     CONTATO_JANELA = time.time()
 
 
-def marcar_aberto(janela: str, quadro) -> None:
+TRABALHO_NA_TELA = False              # o último sinal das janelas tinha quadro aberto ou edição não salva
+
+
+def marcar_aberto(janela: str, quadro, pendente=False) -> None:
+    global TRABALHO_NA_TELA
     agora = time.time()
     marcar_contato()
+    TRABALHO_NA_TELA = bool(pendente is True or (isinstance(quadro, str) and ID_OK.match(quadro)))
     with TRAVA_GERAL:
         ABERTOS[janela] = (quadro if isinstance(quadro, str) and ID_OK.match(quadro) else None, agora)
         for k in [k for k, (_, t) in ABERTOS.items() if agora - t > VALIDADE_ABERTO]:
@@ -1974,6 +1985,29 @@ def rodar_conversao(cmd: list, limite: int, texto: bool = False):
 def registrar(e: Exception) -> None:
     if sys.stderr:
         print(f"[Lousa] {type(e).__name__}: {e}", file=sys.stderr)
+    diario(f"erro: {type(e).__name__}: {e}")
+
+
+DIARIO_MAX = 400                     # linhas guardadas no giz-livre.log (as mais recentes)
+TRAVA_DIARIO = threading.Lock()
+
+
+def diario(msg: str) -> None:
+    """Uma linha com data e hora em giz-livre.log, ao lado da pasta dos quadros (Documentos\\Giz Livre). O executável
+    não tem console: sem isto, um encerramento inesperado não deixa pista (relato do professor, 28/10/2026: o programa
+    fechou depois de uma queda de energia, sem internet). Nunca derruba o programa."""
+    if os.environ.get("GIZ_SEM_DIARIO"):   # os testes automáticos não escrevem na pasta real
+        return
+    try:
+        arq = DADOS.parent / "giz-livre.log"
+        linha = time.strftime("%Y-%m-%d %H:%M:%S") + f"  {msg}"
+        with TRAVA_DIARIO:
+            arq.parent.mkdir(parents=True, exist_ok=True)
+            antigas = arq.read_text(encoding="utf-8", errors="replace").splitlines() if arq.exists() else []
+            novas = (antigas + [linha])[-DIARIO_MAX:]
+            arq.write_text("\n".join(novas) + "\n", encoding="utf-8")
+    except Exception:
+        pass
 
 
 def achar_libreoffice() -> str | None:
@@ -2400,29 +2434,165 @@ def resposta_publica(info: dict) -> dict:
     return {k: v for k, v in info.items() if not k.startswith("_")}
 
 
-def abrir_janela(url: str) -> None:
-    """Abre o programa numa janela própria (modo app) do Edge/Chrome/Chromium; senão, no navegador padrão."""
+# ---- ajustes da página guardados também no programa ----
+# Canetas, barras, pastas vazias, áreas das formas etc. ficam no localStorage do navegador. Uma cópia fica aqui, em
+# preferencias.json ao lado da pasta dos quadros: trocar de navegador ou de perfil (ver PERFIL_PROPRIO) não perde nada.
+PREFS_MAX = 48 * 1024
+TRAVA_PREFS = threading.Lock()
+
+
+def arquivo_prefs() -> Path:
+    return DADOS.parent / "preferencias.json"
+
+
+def ler_prefs() -> dict:
+    try:
+        d = json.loads(arquivo_prefs().read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def guardar_prefs(prefs) -> bool:
+    """Grava os ajustes (só chaves 'lousa.*' com texto) se mudaram. Devolve True se gravou."""
+    if not isinstance(prefs, dict) or not prefs:
+        return False
+    limpo = {k: v for k, v in prefs.items() if isinstance(k, str) and k.startswith("lousa.") and len(k) <= 300
+             and isinstance(v, str)}
+    dados = json.dumps(limpo, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    if not limpo or len(dados) > PREFS_MAX:
+        return False
+    with TRAVA_PREFS:
+        arq = arquivo_prefs()
+        try:
+            if arq.exists() and arq.read_bytes() == dados:
+                return False
+            arq.parent.mkdir(parents=True, exist_ok=True)
+            gravar_atomico(arq, dados)
+            return True
+        except OSError as e:
+            registrar(e)
+            return False
+
+
+# ---- perfil próprio do navegador ----
+# A janela usava o perfil de navegação do professor. Em 28/10/2026 esse perfil do Edge se estragou numa queda de energia
+# e o Edge passou a cair a cada abertura (com um perfil novo, não caía): a lousa sumia no meio do uso. O Giz Livre passa
+# a abrir num perfil só dele, fora do OneDrive. Só depois que os ajustes da página já têm cópia no programa (senão o
+# perfil novo começaria sem eles), ou de vez se o navegador cair.
+PERFIL_PROPRIO = False               # forçado depois de uma queda do navegador
+
+
+def pasta_perfil(navegador: str) -> Path:
+    base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    return base / "Giz Livre" / f"navegador-{navegador}"
+
+
+NAVEGADOR = None                     # "edge", "chrome" ou "outro": quem mostra a janela do Giz Livre
+NAVEGADOR_PERFIL = None              # pasta do perfil próprio em uso (None: perfil do usuário)
+
+
+def abrir_janela(url: str, evitar=(), proprio=None) -> None:
+    """Abre o programa numa janela própria (modo app) do Edge/Chrome/Chromium; senão, no navegador padrão.
+    `evitar`: navegadores a pular (o que acabou de cair), se houver outro. `proprio`: usar o perfil só do Giz Livre
+    (padrão: no Windows, se já houver cópia dos ajustes ou se o navegador já caiu)."""
+    global NAVEGADOR, NAVEGADOR_PERFIL
+    if proprio is None:
+        proprio = WINDOWS and (PERFIL_PROPRIO or arquivo_prefs().exists())
     if WINDOWS:
         candidatos = [
-            os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
-            os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
-            os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
-            os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+            ("edge", os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")),
+            ("edge", os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe")),
+            ("chrome", os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe")),
+            ("chrome", os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe")),
         ]
     elif MAC:
-        candidatos = [f"/Applications/{a}.app/Contents/MacOS/{a}" for a in
+        candidatos = [("outro", f"/Applications/{a}.app/Contents/MacOS/{a}") for a in
                       ("Google Chrome", "Microsoft Edge", "Chromium", "Brave Browser")]
     else:
-        candidatos = [shutil.which(n) or "" for n in
+        candidatos = [("outro", shutil.which(n) or "") for n in
                       ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "brave-browser")]
-    for exe in candidatos:
-        if exe and os.path.exists(exe):
-            try:
-                subprocess.Popen([exe, f"--app={url}", "--start-maximized"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                return
-            except OSError:
-                continue
+    existentes = [(n, exe) for n, exe in candidatos if exe and os.path.exists(exe)]
+    if any(n not in evitar for n, _ in existentes):
+        existentes = [(n, exe) for n, exe in existentes if n not in evitar]
+    for nome, exe in existentes:
+        perfil = pasta_perfil(nome) if proprio and nome in ("edge", "chrome") else None
+        extra = [f"--user-data-dir={perfil}", "--no-first-run", "--no-default-browser-check"] if perfil else []
+        try:
+            subprocess.Popen([exe, f"--app={url}", "--start-maximized", *extra],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            NAVEGADOR, NAVEGADOR_PERFIL = nome, perfil
+            return
+        except OSError:
+            continue
+    NAVEGADOR, NAVEGADOR_PERFIL = "outro", None
     webbrowser.open(url)
+
+
+# ---- o navegador caiu: reabrir a janela ----
+# Em 28/10/2026, depois de uma queda de energia, o Edge do professor passou a cair a cada um ou dois minutos (26
+# relatórios de falha numa noite) e a janela do Giz Livre sumia com o programa ainda aberto. Quando as janelas param de
+# dar sinal E o navegador que mostra o Giz Livre deixou um relatório de falha novo, foi queda, não o professor fechando:
+# o programa reabre a janela, de preferência em outro navegador. Fechar a janela de propósito não deixa relatório de
+# falha, então continua encerrando o programa como antes.
+PASTAS_FALHA = {"edge": r"%LOCALAPPDATA%\Microsoft\Edge\User Data\Crashpad\reports",
+                "chrome": r"%LOCALAPPDATA%\Google\Chrome\User Data\Crashpad\reports"}
+
+
+def ultima_falha(navegador: str) -> float:
+    """Hora do relatório de falha mais recente do navegador (0 se não houver), no perfil que mostra o Giz Livre."""
+    if NAVEGADOR_PERFIL and navegador == NAVEGADOR:
+        pasta = Path(NAVEGADOR_PERFIL) / "Crashpad" / "reports"
+    elif navegador in PASTAS_FALHA:
+        pasta = Path(os.path.expandvars(PASTAS_FALHA[navegador]))
+    else:
+        return 0.0
+    try:
+        return max((a.stat().st_mtime for a in pasta.iterdir()), default=0.0)
+    except OSError:
+        return 0.0
+
+
+AVISO_JANELA = ""                    # recado para a próxima janela que abrir (entregue uma vez só)
+
+
+def tomar_aviso() -> str:
+    global AVISO_JANELA
+    msg, AVISO_JANELA = AVISO_JANELA, ""
+    return msg
+
+
+class Reabridor:
+    def __init__(self, url: str, max_vezes: int = 6, periodo_s: float = 1800, falha=ultima_falha, abrir=None):
+        self.url, self.max_vezes, self.periodo_s = url, max_vezes, periodo_s
+        self.falha, self.abrir = falha, abrir or abrir_janela
+        self.vista, self.vezes = 0.0, []
+
+    def __call__(self, ultimo_sinal: float, agora: float) -> bool:
+        nav = NAVEGADOR
+        quando = self.falha(nav) if nav else 0.0
+        # o relatório tem de ser do intervalo em que as janelas ficaram mudas (com folga de um ping) e ainda não tratado
+        if quando <= self.vista or quando < ultimo_sinal - 35:
+            return False
+        self.vista = quando
+        self.vezes = [t for t in self.vezes if agora - t < self.periodo_s]
+        if len(self.vezes) >= self.max_vezes:
+            diario(f"o navegador ({nav}) caiu de novo; já reabri {self.max_vezes} vezes em {self.periodo_s // 60} min, "
+                   "então desta vez não reabro")
+            return False
+        self.vezes.append(agora)
+        global PERFIL_PROPRIO
+        if not NAVEGADOR_PERFIL and WINDOWS:   # caiu no perfil do usuário: tenta o mesmo navegador com perfil próprio
+            PERFIL_PROPRIO = True
+            self.abrir(self.url, proprio=True)
+        else:                                  # caiu até no perfil próprio: outro navegador
+            self.abrir(self.url, evitar=(nav,), proprio=True)
+        global AVISO_JANELA
+        AVISO_JANELA = ("O navegador que mostrava o Giz Livre caiu, e o programa reabriu a janela"
+                        + (" em outro navegador" if NAVEGADOR != nav else "") + ". O que estava salvo continua aqui.")
+        diario(f"o navegador ({nav}) caiu (relatório de falha às {time.strftime('%H:%M:%S', time.localtime(quando))}); "
+               f"janela reaberta no {NAVEGADOR}" + (" com perfil próprio" if NAVEGADOR_PERFIL else ""))
+        return True
 
 
 # ---- ícone na barra de tarefas (Windows) ----
@@ -2630,20 +2800,36 @@ def janelas_abertas() -> list:
         return []
 
 
-def vigiar_inatividade(srv, limite_s: int, passo: float = 15, dormir=time.sleep, relogio=time.time) -> None:
+def vigiar_inatividade(srv, limite_s: int, passo: float = 15, dormir=time.sleep, relogio=time.time, reabrir=None,
+                       mudo_s: float = 100, limite_trabalho_s: int = 12 * 3600) -> None:
     # a página manda /api/ping a cada 30 s (até 60 s com a janela minimizada); sem sinal por `limite_s`, ninguém está
     # com a janela aberta e o servidor se encerra. É a reserva do aviso de janela fechada, que pode não chegar quando a
     # janela fechada é a última do Edge. Se o relógio pular muito entre duas voltas, o computador estava suspenso: a
     # contagem recomeça, para dar tempo de a página acordar e mandar o sinal.
     global ULTIMA_ATIVIDADE
-    antes = relogio()
+    antes, avisado = relogio(), False
     while True:
         dormir(passo)
         agora = relogio()
         if agora - antes > passo * 4:
+            diario(f"o relógio pulou {int(agora - antes)} s (computador suspenso?): a contagem de inatividade recomeçou")
             ULTIMA_ATIVIDADE = agora
         antes = agora
-        if agora - ULTIMA_ATIVIDADE > limite_s:
+        # janelas mudas há mais de `mudo_s` (o ping vem a cada 30 s, até 60 s minimizada): se foi o navegador que caiu,
+        # reabre a janela e a contagem recomeça
+        if reabrir and agora - CONTATO_JANELA > mudo_s and reabrir(CONTATO_JANELA, agora):
+            ULTIMA_ATIVIDADE = agora
+            continue
+        # o último sinal tinha um quadro aberto ou edição não salva: a janela pode estar congelada (economia de energia)
+        # ou ter caído sem que desse para reabrir. O programa espera muito mais, para nada se perder.
+        limite = limite_trabalho_s if TRABALHO_NA_TELA else limite_s
+        if agora - ULTIMA_ATIVIDADE > limite_s and limite > limite_s and not avisado:
+            diario(f"janelas mudas há {int(agora - ULTIMA_ATIVIDADE)} s, mas havia quadro aberto: o programa continua")
+            avisado = True
+        if agora - ULTIMA_ATIVIDADE <= limite_s:
+            avisado = False
+        if agora - ULTIMA_ATIVIDADE > limite:
+            diario(f"encerrado: {int(agora - ULTIMA_ATIVIDADE)} s sem sinal de nenhuma janela (limite {limite} s)")
             srv.shutdown()
             return
 
@@ -2705,11 +2891,16 @@ def main():
             threading.Thread(target=marcar_janelas_na_barra, args=(threading.Event(),), daemon=True).start()
     if not args.sem_auto_encerrar and not args.sem_janela:
         AUTO_ENCERRAR = True
-        threading.Thread(target=vigiar_inatividade, args=(srv, 3 * 60), daemon=True).start()
+        threading.Thread(target=vigiar_inatividade, args=(srv, 3 * 60),
+                         kwargs={"reabrir": Reabridor(url)}, daemon=True).start()
+    diario(f"aberto: Giz Livre {VERSAO}, porta {PORTA}" + (" (depois de atualizar)" if args.depois_de_atualizar else ""))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+    except BaseException as e:
+        diario(f"encerrado por erro: {type(e).__name__}: {e}")
+        raise
 
 
 if __name__ == "__main__":

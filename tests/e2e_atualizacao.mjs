@@ -14,8 +14,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
-const EDGE = ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+// GIZ_NAVEGADOR=<caminho>: outro navegador Chromium (ex.: o Chrome, num PC em que o Edge está caindo)
+const EDGE = [process.env.GIZ_NAVEGADOR, 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(c => c && existsSync(c));
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
 let ok = 0, falhas = 0;
