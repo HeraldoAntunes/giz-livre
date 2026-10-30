@@ -16,9 +16,12 @@ export const GAP = 48;
 
 export const isPages = b => b?.layout?.mode === 'pages';
 
+export const MAX_PAGINAS = 500;
+
 export function makeLayout(kind = 'a4', count = 1, custom = null) {
   const s = custom || SIZES[kind] || SIZES.a4;
-  return { mode: 'pages', kind: custom ? 'custom' : kind, w: s.w, h: s.h, gap: GAP, count: Math.max(1, count) };
+  // no máximo 500 páginas, o mesmo limite da importação (.lousa e pacote) e do PDF (auditoria de 29/10/2026, GL-M2)
+  return { mode: 'pages', kind: custom ? 'custom' : kind, w: s.w, h: s.h, gap: GAP, count: Math.min(MAX_PAGINAS, Math.max(1, count)) };
 }
 
 export const pageRect = (L, i) => ({ x: 0, y: i * (L.h + L.gap), w: L.w, h: L.h });

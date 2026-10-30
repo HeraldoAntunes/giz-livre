@@ -5,10 +5,11 @@
 //   node tests/bateria/c4_sem_internet.mjs [caminho do GizLivre.exe]
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtempSync, existsSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { codigo, entrarNoNavegador } from '../acesso.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const EXE = process.argv[2] || join(RAIZ, 'build', 'dist', 'GizLivre', 'GizLivre.exe');
@@ -28,9 +29,11 @@ async function esperarAte(expr, ms) { const fim = Date.now() + ms; while (Date.n
 
 try {
   console.log('C4: sem internet');
-  srv = spawn(EXE, ['--sem-janela', '--porta', String(PORTA), '--dados', DADOS], { stdio: 'ignore',
+  // .py: o código-fonte (para conferir uma mudança antes do build)
+  // .py com GIZ_PYTHON_C4: o servidor no Python embutido do pacote da janela própria (P60)
+  srv = spawn(EXE.endsWith('.py') ? (process.env.GIZ_PYTHON_C4 || 'python') : EXE, [...(EXE.endsWith('.py') ? [EXE] : []), '--sem-janela', '--porta', String(PORTA), '--dados', DADOS], { stdio: 'ignore',
     env: { ...process.env, HTTPS_PROXY: 'http://127.0.0.1:9', HTTP_PROXY: 'http://127.0.0.1:9', NO_PROXY: '127.0.0.1,localhost' } });
-  let token; for (let t = 0; t < 100 && !token; t++) { try { token = (await (await fetch(BASE + '/api/info')).json()).token; } catch { await espera(150); } }
+  let token; for (let t = 0; t < 100 && !token; t++) { try { token = await codigo(BASE, DADOS); } catch { await espera(150); } }
   conferir('o programa abre sem internet', !!token);
   await fetch(BASE + '/api/boards/c4quadro', { method: 'PUT', headers: { 'X-Lousa': token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ board: { title: 'C4', items: [] }, revision: 0 }) });
@@ -41,6 +44,7 @@ try {
   ws = new WebSocket(alvo.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
   ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { pend.get(m.id)?.(m); pend.delete(m.id); } };
   await cdp('Page.enable'); await cdp('Runtime.enable');
+  await entrarNoNavegador(cdp, BASE, token);
   await cdp('Page.navigate', { url: BASE + '/' });
   conferir('a galeria abre e lista o quadro', !!await esperarAte(`document.body.innerText.includes('C4')`, 20000));
   await espera(2500);
@@ -59,4 +63,6 @@ try {
 } catch (e) { falhas++; console.log('  ✗ parou: ' + e.message); }
 finally { try { ws?.close(); } catch {} nav?.kill(); srv?.kill(); }
 console.log(`\n${ok} conferências passaram, ${falhas} falharam`);
+// a pasta temporária do teste sai no fim, também com falha (GIZ_MANTER=1 para guardar)
+if (!process.env.GIZ_MANTER) try { rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + tmp); }
 process.exit(falhas ? 1 : 0);

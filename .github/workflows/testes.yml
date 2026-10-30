@@ -41,6 +41,9 @@ jobs:
       - name: Testes do servidor
         run: python -m unittest tests/test_server.py -v
 
+      - name: Testes da janela própria e da instalação própria (Rust, P60)
+        run: cargo test --locked --release --manifest-path janela/Cargo.toml
+
       - name: Teste de ponta a ponta (servidor, MCP e Edge sem janela)
         run: node tests/e2e_agente.mjs
 

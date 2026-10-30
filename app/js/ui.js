@@ -90,9 +90,9 @@ export function aboutBox(version, antesDeAtualizar = null, quadroAqui = null) {
       ${lin('Atualizações', `Esta é a versão ${esc(version)}. <button class="btn" data-atu>Procurar versão nova</button>
         <div class="sb-atu" aria-live="polite"></div><small class="sb-nota">Só consulta o GitHub quando você clica.</small>`)}
       ${lin('Registro', 'Programa de computador registrado no INPI sob o nº BR 51 2026 009384-8.')}
-      ${lin('Como foi feito', 'Com apoio de assistentes de programação de inteligência artificial, usados como ferramenta: a concepção, as decisões, a revisão e os testes são do autor.')}
-      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT); contornos de mapas do Natural Earth (domínio público); programa empacotado com Python (PSF) e PyInstaller (GPL com exceção e Apache 2.0); OpenSSL (Apache 2.0) para a atualização. Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
-      ${lin('Desinstalar', 'Menu Iniciar → "Desinstalar o Giz Livre". Os quadros são mantidos.')}
+      ${lin('Como foi feito', 'Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de inteligência artificial (Claude, da Anthropic, e Codex, da OpenAI), usados como ferramenta. A concepção, as decisões, a revisão e os testes são do autor, que responde pelo programa.')}
+      ${lin('Componentes', 'pdf.js (Apache 2.0, com OpenJPEG, BSD), KaTeX (MIT) com as fontes KaTeX (SIL OFL 1.1) e ícones Fluent UI (MIT); contornos de mapas do Natural Earth (domínio público); o Python oficial embutido (PSF), com o OpenSSL (Apache 2.0) usado na atualização; a janela própria, feita com o Tauri (MIT ou Apache 2.0) sobre o WebView2 da Microsoft. Textos completos na pasta <i>licencas</i>. As fontes de texto usadas são as instaladas no computador.')}
+      ${lin('Desinstalar', 'Configurações do Windows → Aplicativos → Giz Livre → Desinstalar. Os quadros são mantidos.')}
     </dl>
     <p class="sb-aviso">Fornecido "no estado em que se encontra", sem garantia de qualquer tipo. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.</p>
   </div>`);

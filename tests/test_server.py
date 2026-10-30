@@ -4,6 +4,7 @@ import http.client
 import importlib.util
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -33,7 +34,8 @@ class ApiTests(unittest.TestCase):
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(100):
             try:
-                cls.token = json.load(urllib.request.urlopen(cls.base + "/api/info", timeout=1))["token"]
+                cls.token = json.loads((Path(cls.temp.name) / ".agente" / "conexao.json").read_text(encoding="utf-8"))["token"]
+                urllib.request.urlopen(cls.base + "/api/info", timeout=1).read()
                 return
             except (OSError, ValueError):
                 time.sleep(.1)
@@ -130,6 +132,34 @@ class ApiTests(unittest.TestCase):
         b = self.request("/api/boards/legacy")[1]
         self.assertEqual(self.request("/api/boards/legacy", "PUT", {"board": b})[1]["revision"], 1)
 
+    def test_pdf_recusa_dimensoes_invalidas_antes_de_montar(self):
+        import base64
+        jpeg = base64.b64encode(bytes.fromhex("ffd8ffe000104a46494600010100000100010000ffd9")).decode()
+        pagina = {"w": 72, "h": 72, "pw": 1, "ph": 1, "jpeg": "data:image/jpeg;base64," + jpeg}
+        def enviar(pg):
+            conn = http.client.HTTPConnection("127.0.0.1", int(self.base.rsplit(":", 1)[1]), timeout=5)
+            try:
+                conn.request("POST", "/api/pdf", json.dumps({"pages": [pg]}),
+                             {"X-Lousa": self.token, "Content-Type": "application/json"})
+                resposta = conn.getresponse()
+                return resposta.status, resposta.headers["Content-Type"], resposta.read()
+            finally:
+                conn.close()
+        code, tipo, pdf = enviar(pagina)
+        self.assertEqual(code, 200)
+        self.assertEqual(tipo, "application/pdf")
+        self.assertTrue(pdf.startswith(b"%PDF-1.4"))
+        self.assertIn(b"/MediaBox [0 0 72.00 72.00]", pdf)
+        for campo in ("w", "h", "pw", "ph"):
+            for valor in ("NaN", "Infinity", "-Infinity", float("nan"), float("inf"), -1, 0, 100001, True, None):
+                with self.subTest(campo=campo, valor=valor):
+                    code, _, erro = enviar({**pagina, campo: valor})
+                    self.assertEqual(code, 400, "dimensões inválidas não podem produzir PDF")
+                    self.assertIn("dimens", json.loads(erro)["erro"])
+        for campo in ("pw", "ph"):
+            with self.subTest(campo=campo, valor=1.5):
+                self.assertEqual(enviar({**pagina, campo: 1.5})[0], 400)
+
     def test_delete_and_restore(self):
         self.create("trash")
         code, deleted = self.request("/api/boards/trash", "DELETE")
@@ -137,6 +167,44 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.request("/api/boards/trash")[0], 404)
         self.assertEqual(self.request("/api/lixeira/restaurar", "POST", {"nome": deleted["lixeira"]})[0], 200)
         self.assertEqual(self.request("/api/boards/trash")[0], 200)
+
+    def test_envio_http_curto_nao_grava_mesmo_com_json_completo(self):
+        self.create("controleEnvio")
+        corpo = json.dumps({"board": {"title": "Envio interrompido", "items": []}, "revision": 0}).encode()
+        porta = int(self.base.rsplit(":", 1)[1])
+        conn = http.client.HTTPConnection("127.0.0.1", porta, timeout=5)
+        try:
+            conn.request("PUT", "/api/boards/interrompido", corpo,
+                         {"X-Lousa": self.token, "Content-Length": str(len(corpo) + 8)})
+            conn.sock.shutdown(socket.SHUT_WR)
+            resposta = conn.getresponse()
+            status, erro = resposta.status, resposta.read()
+        finally:
+            conn.close()
+        self.assertIn(status, (400, 408, None), "envio incompleto deve ser recusado")
+        self.assertFalse((Path(self.temp.name) / "interrompido.json").exists())
+        self.assertEqual(status, 400)
+        self.assertIn("interrompido", json.loads(erro)["erro"])
+        self.assertEqual(self.request("/api/ping")[0], 200)
+
+    def test_token_nao_ascii_devolve_erro_http_sem_gravar(self):
+        self.create("controleToken")
+        code, _ = self.request("/api/boards/negado", "PUT",
+                               {"board": {"title": "Negado", "items": []}, "revision": 0},
+                               {"X-Lousa": "errado"})
+        self.assertEqual(code, 409)
+        for token in ("é", "ÿ"):
+            with self.subTest(token=token):
+                code, _ = self.request("/api/boards/negado", "PUT",
+                                       {"board": {"title": "Negado", "items": []}, "revision": 0},
+                                       {"X-Lousa": token})
+                self.assertIn(code, (400, 401, 403, 409))
+                self.assertFalse((Path(self.temp.name) / "negado.json").exists())
+                self.assertEqual(self.request("/api/ping")[0], 200)
+        porta = int(self.base.rsplit(":", 1)[1])
+        for headers in ({"X-Lousa": "é"}, {"X-Lousa": "", "Cookie": f'giz{porta}="é"'}):
+            with self.subTest(headers=headers):
+                self.assertEqual(self.request("/api/boards", headers=headers)[0], 401)
 
     def test_security_guards(self):
         self.assertEqual(self.request("/api/info", headers={"Host": "externo.invalid"})[0], 403)
@@ -210,13 +278,76 @@ class ApiTests(unittest.TestCase):
 
 # canal dos agentes de IA (rotas /api/agente/*) e o servidor MCP por stdio, num servidor temporário próprio
 
+    # ---- acesso por conta do Windows (29/10/2026) ----
+    def _cru(self, path, method="GET", data=None, headers=None):
+        req = urllib.request.Request(self.base + path, method=method, headers=headers or {},
+                                     data=json.dumps(data).encode() if data is not None else None)
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return r.status, r.read(), r.headers
+        except urllib.error.HTTPError as e:
+            with e:
+                return e.code, e.read(), e.headers
+
+    def test_sem_codigo_nenhum_quadro_sai(self):
+        self.request("/api/boards/privado1", "PUT", {"board": {"title": "Diário de classe", "items": []}, "revision": 0})
+        for rota in ["/api/boards", "/api/boards/privado1", "/api/prefs", "/api/lixeira", "/thumbs/privado1.png",
+                     "/assets/" + "a" * 40 + ".png", "/api/pacote"]:
+            with self.subTest(rota=rota):
+                status, corpo, _ = self._cru(rota)
+                self.assertEqual(status, 401)
+                self.assertNotIn("Diário".encode(), corpo)
+
+    def test_imagem_guardada_vem_com_os_cabecalhos_de_protecao(self):
+        # auditoria de 29/10/2026: /assets/ saía sem os cabeçalhos das outras respostas (só o cache longo é diferente)
+        png = bytes.fromhex("89504e470d0a1a0a") + os.urandom(64)
+        req = urllib.request.Request(self.base + "/api/assets", data=png, method="POST",
+                                     headers={"X-Lousa": self.token, "Content-Type": "image/png"})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            url = json.loads(r.read())["url"]
+        with urllib.request.urlopen(urllib.request.Request(self.base + url, headers={"X-Lousa": self.token}), timeout=5) as r:
+            self.assertEqual(r.read(), png)
+            h = r.headers
+        self.assertEqual(h["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(h["X-Frame-Options"], "DENY")
+        self.assertEqual(h["Cross-Origin-Resource-Policy"], "same-origin")
+        self.assertIn("default-src 'self'", h["Content-Security-Policy"])
+        self.assertEqual(h.get_all("Cache-Control"), ["max-age=31536000, immutable"])   # um só, o da imagem
+
+    def test_info_publica_nao_entrega_codigo_nem_pasta(self):
+        status, corpo, _ = self._cru("/api/info")
+        info = json.loads(corpo)
+        self.assertEqual((status, info["app"]), (200, "giz-livre"))
+        self.assertNotIn("token", info); self.assertNotIn("dados", info)
+        self.assertEqual(self.request("/api/info")[1]["token"], self.token)   # com o código: completo
+
+    def test_chave_de_abertura_vira_cookie_e_vale_uma_vez(self):
+        k = self.request("/api/chave", "POST", {})[1]["k"]
+        status, corpo, cab = self._cru("/api/sessao", "POST", {"k": k}, {"Content-Type": "application/json"})
+        self.assertEqual((status, json.loads(corpo)["token"]), (200, self.token))
+        biscoito = cab["Set-Cookie"]
+        self.assertIn("HttpOnly", biscoito); self.assertIn("SameSite=Strict", biscoito)
+        par = biscoito.split(";")[0]
+        self.assertEqual(self._cru("/api/boards", headers={"Cookie": par})[0], 200)   # imagens e listas com o cookie
+        self.assertEqual(self._cru("/api/sessao", "POST", {"k": k}, {"Content-Type": "application/json"})[0], 401)
+        self.assertEqual(self._cru("/api/sessao", "POST", {"k": "inventada"}, {"Content-Type": "application/json"})[0], 401)
+        k2 = self.request("/api/chave", "POST", {})[1]["k"]
+        self.assertEqual(self._cru("/api/sessao", "POST", {"k": k2}, {"Origin": "https://exemplo.com",
+                                                                        "Content-Type": "application/json"})[0], 403)
+        self.assertEqual(self._cru("/api/boards", headers={"Cookie": "giz1=" + self.token})[0], 401)   # cookie de outra porta
+        self.assertEqual(self._cru("/api/chave", "POST", {})[0], 409)   # chave nova só com o código
+
+    def test_arquivo_de_conexao_tem_porta_e_codigo(self):
+        con = json.loads((Path(self.temp.name) / ".agente" / "conexao.json").read_text(encoding="utf-8"))
+        self.assertEqual((con["porta"], con["token"]), (int(self.base.rsplit(":", 1)[1]), self.token))
+
     def test_pacote_pede_token_e_vai_e_volta(self):
         status, _ = self.request("/api/boards/levar1", "PUT", {"board": {"title": "Levar", "items": []}, "revision": 0})
         self.assertEqual(status, 200)
         req = urllib.request.Request(self.base + "/api/pacote")
         with self.assertRaises(urllib.error.HTTPError) as e:
             urllib.request.urlopen(req, timeout=10)
-        self.assertEqual(e.exception.code, 409)
+        self.assertEqual(e.exception.code, 401)   # sem o código desta conta, nada sai
         req = urllib.request.Request(self.base + "/api/pacote", headers={"X-Lousa": self.token})
         with urllib.request.urlopen(req, timeout=30) as r:
             zipado = r.read()
@@ -244,7 +375,8 @@ class AgenteTests(unittest.TestCase):
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(100):
             try:
-                cls.token = json.load(urllib.request.urlopen(cls.base + "/api/info", timeout=1))["token"]
+                cls.token = json.loads((Path(cls.temp.name) / ".agente" / "conexao.json").read_text(encoding="utf-8"))["token"]
+                urllib.request.urlopen(cls.base + "/api/info", timeout=1).read()
                 return
             except (OSError, ValueError):
                 time.sleep(.1)
@@ -350,6 +482,12 @@ class AgenteTests(unittest.TestCase):
         self.assertNotEqual(self.token_agente(), antigo)
         self.assertEqual(self.http("/api/agente/estado", headers={"X-Agente": antigo})[0], 401)
 
+    def test_token_de_agente_nao_ascii_e_recusado_sem_fechar_conexao(self):
+        self.ligar()
+        code, _ = self.agente("estado", headers={"X-Agente": "é"})
+        self.assertEqual(code, 401)
+        self.assertEqual(self.agente("estado")[0], 200)
+
     def test_tokens_separados_origem_e_host(self):
         self.ligar()
         self.assertEqual(self.http("/api/agente/estado", headers={"X-Agente": "f" * 64})[0], 401)
@@ -361,7 +499,7 @@ class AgenteTests(unittest.TestCase):
         self.assertEqual(self.http("/api/boards/x", "PUT", {"board": {"items": []}}, {"X-Agente": self.token_agente()})[0], 403)
         self.assertEqual(self.http("/api/agentes", headers={"X-Agente": self.token_agente()})[0], 403)
         # o painel da página exige o token da página
-        self.assertEqual(self.http("/api/agentes")[0], 409)
+        self.assertEqual(self.http("/api/agentes")[0], 401)
         self.assertEqual(self.http("/api/agentes", "PUT", {"ligado": True})[0], 409)
         # pedido de navegador (Origin / Sec-Fetch-Site) e Host estranho
         self.assertEqual(self.agente("estado", headers={"Origin": f"http://127.0.0.1:{self.port}"})[0], 403)
@@ -581,6 +719,63 @@ class AgenteTests(unittest.TestCase):
         log = (self.dados / ".agente" / "registro.log").read_text(encoding="utf-8")
         self.assertIn(f"criar_quadro\t{bid}", log)
         self.assertNotIn("Aula do agente", log)                          # o registro não guarda conteúdo
+
+    def test_pptx_que_descompacta_demais_e_recusado(self):
+        # auditoria de 29/10/2026: a conferência do .pptx não limitava a soma dos tamanhos descompactados (zip-bomba)
+        import io, zipfile
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("[Content_Types].xml", '<Types><Override ContentType="presentationml.presentation.main"/></Types>')
+            with z.open("ppt/media/zeros.bin", "w") as f:
+                bloco = bytes(1 << 20)
+                for _ in range(150):                      # 150 MB de zeros: viram poucos KB comprimidos
+                    f.write(bloco)
+        with self.assertRaisesRegex(ValueError, "descompactad"):
+            server_mod().checar_pptx(b.getvalue())
+        b = io.BytesIO()                                   # uma apresentação comum continua passando
+        with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("[Content_Types].xml", '<Types><Override ContentType="presentationml.presentation.main"/></Types>')
+            z.writestr("ppt/media/foto.png", os.urandom(2 << 20))
+        self.assertEqual(server_mod().checar_pptx(b.getvalue()), ".pptx")
+
+    def test_mcp_pedido_malformado_vira_erro_e_o_processo_segue(self):
+        # auditoria de 29/10/2026: name:[] ou tipo:[] (lista onde se espera texto) encerravam o servidor MCP
+        proc = subprocess.Popen([sys.executable, str(ROOT / "mcp" / "giz_livre_mcp.py"), "--dados", self.temp.name,
+                                 "--porta", "1"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        try:
+            pedidos = [{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": [], "arguments": {}}},
+                       {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "adicionar_itens",
+                        "arguments": {"quadro": "q", "itens": [{"tipo": []}]}}},
+                       {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "escrever_texto",
+                        "arguments": {"quadro": {"x": 1}}}},
+                       {"jsonrpc": "2.0", "id": 4, "method": "initialize", "params": {"protocolVersion": []}},
+                       {"jsonrpc": "2.0", "id": 5, "method": "ping"}]
+            respostas = []
+            for p in pedidos:
+                proc.stdin.write(json.dumps(p).encode() + b"\n"); proc.stdin.flush()
+                linha = proc.stdout.readline()
+                self.assertTrue(linha, f"o processo caiu no pedido {p['id']}")
+                respostas.append(json.loads(linha))
+            self.assertIn("error", respostas[0])                           # ferramenta desconhecida
+            self.assertTrue(respostas[1]["result"]["isError"])             # tipo inválido: erro que o agente lê
+            self.assertTrue(respostas[2]["result"]["isError"])
+            self.assertEqual(respostas[3]["result"]["serverInfo"]["name"], "giz-livre")
+            self.assertEqual(respostas[4]["result"], {})                    # e o processo continua respondendo
+        finally:
+            proc.stdin.close(); proc.wait(timeout=10)
+
+    def test_mcp_lote_vazio_vira_erro_de_pedido_invalido(self):
+        # auditoria de 30/10/2026 (GL-X04): [] era ignorado em silêncio; o JSON-RPC pede o erro -32600
+        proc = subprocess.Popen([sys.executable, str(ROOT / "mcp" / "giz_livre_mcp.py"), "--dados", self.temp.name,
+                                 "--porta", "1"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        try:
+            proc.stdin.write(b"[]\n" + json.dumps({"jsonrpc": "2.0", "id": 9, "method": "ping"}).encode() + b"\n")
+            proc.stdin.flush()
+            vazio, ping = json.loads(proc.stdout.readline()), json.loads(proc.stdout.readline())
+            self.assertEqual((vazio["id"], vazio["error"]["code"]), (None, -32600))
+            self.assertEqual((ping["id"], ping["result"]), (9, {}))   # e o processo continua respondendo
+        finally:
+            proc.stdin.close(); proc.wait(timeout=10)
 
     def test_mcp_por_stdio(self):
         self.ligar()
@@ -885,6 +1080,51 @@ class AtualizacaoTests(unittest.TestCase):
             self.assertEqual((r["versao"], r["log"]), ("1.11.0", str(Path(tmp) / "Giz Livre" / "atualizacao.log")))
 
 
+    def test_janela_propria_atualiza_pelo_zip_de_instalacao(self):
+        # P60 (29/10/2026): a versão com janela própria é distribuída no zip de instalação (o exe com o programa dentro
+        # levava alerta no VirusTotal); o Sobre baixa o zip, confere o SHA-256, extrai e roda o GizLivre.exe de dentro
+        import hashlib, io, zipfile
+        s = self.srv
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as z:
+            z.writestr("GizLivre-1.17.0/GizLivre.exe", b"exe da janela")
+            z.writestr("GizLivre-1.17.0/instalar.txt", "marca")
+            z.writestr("GizLivre-1.17.0/python/pythonw.exe", b"py")
+        pacote = b.getvalue()
+        base = "https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.0/"
+        rel = {"tag_name": "v1.17.0", "body": "", "html_url": "https://github.com/HeraldoAntunes/giz-livre/releases/tag/v1.17.0",
+               "assets": [{"name": n, "browser_download_url": base + n} for n in ("Instalar-GizLivre-1.17.0.zip", "SHA256SUMS.txt")]}
+
+        def falso(url, limite, timeout=30, aceita=""):
+            if url.endswith("SHA256SUMS.txt"):
+                return (hashlib.sha256(pacote).hexdigest() + "  Instalar-GizLivre-1.17.0.zip\n").encode()
+            return pacote
+
+        real = s.info_atualizacao
+        with tempfile.TemporaryDirectory() as tmp, patch.object(s, "DADOS", Path(tmp) / "Giz Livre" / "quadros"), \
+                patch.object(s, "VERSAO", "1.16.0"), patch.object(s, "JANELA_PROPRIA", True), \
+                patch.object(s, "pode_instalar_sozinho", return_value=True), \
+                patch.object(s, "info_atualizacao", side_effect=lambda: real(rel)), \
+                patch.object(s, "baixar_https", side_effect=falso), patch.object(s.subprocess, "Popen") as roda:
+            self.assertTrue(real(rel)["pode_instalar"])
+            s.instalar_atualizacao()
+            args = roda.call_args[0][0]
+            self.assertEqual(Path(args[0]).name, "GizLivre.exe")
+            self.assertEqual(Path(args[0]).read_bytes(), b"exe da janela")          # o exe extraído do zip conferido
+            self.assertTrue((Path(args[0]).parent / "python" / "pythonw.exe").exists())   # com a pasta inteira
+            self.assertIn("/SILENT", args); self.assertIn("/reabrir=1", args)
+
+    def test_zip_de_instalacao_com_caminho_para_fora_e_recusado(self):
+        import io, zipfile
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as z:
+            z.writestr("../fora.exe", b"x")
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(ValueError):
+                self.srv.extrair_instalador(b.getvalue(), Path(tmp) / "x")
+            self.assertFalse((Path(tmp) / "fora.exe").exists())
+
+
 class ReconhecedorEscritaTests(unittest.TestCase):
     """/api/info diz se a escrita→texto vai funcionar e em que idioma (detecção simulada, sem depender do Windows real)."""
 
@@ -940,7 +1180,8 @@ class ReconhecedorEscritaTests(unittest.TestCase):
         try:
             with patch.object(s, "PORTA", porta), patch.object(s, "WINDOWS", True), \
                     patch.dict(s.OCR_ESTADO, {"conferido": True, "nomes": ["Microsoft English (US) Handwriting Recognizer"]}):
-                info = json.load(urllib.request.urlopen(f"http://127.0.0.1:{porta}/api/info", timeout=5))
+                info = json.load(urllib.request.urlopen(urllib.request.Request(
+                    f"http://127.0.0.1:{porta}/api/info", headers={"X-Lousa": s.TOKEN}), timeout=5))
             self.assertEqual((info["ocr"], info["ocr_idioma"], info["ocr_conferido"]), (True, "English (US)", True))
         finally:
             srv.shutdown(); srv.server_close()
@@ -1007,6 +1248,19 @@ class FecharJanelaTests(unittest.TestCase):
             self.assertEqual(self.srv.limpar_temporarios(q), 1)
             self.assertEqual((velho.exists(), novo.exists(), outro.exists()), (False, True, True))   # gravação recente e arquivo alheio ficam
 
+    def test_temporarios_na_pasta_de_cima_so_os_do_giz(self):
+        # auditoria de 29/10/2026: com --dados, a pasta de cima pode ser de outro programa (Documentos, Área de
+        # Trabalho); lá só o temporário do preferencias.json é do Giz Livre
+        with tempfile.TemporaryDirectory() as d:
+            q = Path(d) / "quadros"; q.mkdir()
+            alheio, nosso = Path(d) / "relatorio.json.k3j2.tmp", Path(d) / "preferencias.json.a1b2.tmp"
+            for f in (alheio, nosso):
+                f.write_text("x")
+                os.utime(f, (time.time() - 600, time.time() - 600))
+            self.srv.limpar_temporarios(q)
+            self.assertTrue(alheio.exists())                       # arquivo de outro programa fica
+            self.assertFalse(nosso.exists())
+
     def test_encerramento_fica_anotado_no_diario(self):
         with tempfile.TemporaryDirectory() as d:
             antes, self.srv.DADOS = self.srv.DADOS, Path(d) / "quadros"
@@ -1058,8 +1312,12 @@ class FecharJanelaTests(unittest.TestCase):
             pass
         return abertos
 
+    # o Edge e o perfil próprio dele só existem no Windows (no Linux, falhava; validação de 30/10/2026)
+    @unittest.skipUnless(sys.platform == "win32", "Edge do Windows")
     def test_edge_caiu_reabre_no_edge_com_perfil_proprio(self):
-        abertos = self._vigia_reabrindo(falhas=1010.0)   # relatório de falha 10 s depois do último sinal
+        # plataforma explícita (auditoria de 29/10/2026, GL-T1): no Linux o ramo era outro e o teste falhava sem defeito
+        with patch.object(self.srv, "WINDOWS", True):
+            abertos = self._vigia_reabrindo(falhas=1010.0)   # relatório de falha 10 s depois do último sinal
         self.assertEqual(abertos, [((), True)])
         self.assertTrue(self.srv.PERFIL_PROPRIO)          # as próximas janelas também usam o perfil próprio
         self.assertFalse(self.parou)                      # o programa continua
@@ -1131,6 +1389,19 @@ class FecharJanelaTests(unittest.TestCase):
 
 @unittest.skipUnless((ROOT / "scripts/exportar_publico.py").exists(), "sem scripts/exportar_publico.py")
 class ExportTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("git") and (ROOT / ".git").exists(), "precisa do Git e desta pasta como repositório")
+    def test_giz_livre_sh_sai_executavel_na_copia_publica(self):
+        # auditoria de 29/10/2026: na cópia pública o giz-livre.sh saía 100644 (a cópia no Windows perde o modo)
+        spec = importlib.util.spec_from_file_location("exportar_x", ROOT / "scripts/exportar_publico.py")
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        self.assertIn("giz-livre.sh", module.executaveis())
+        with tempfile.TemporaryDirectory(prefix="giz-export-x-") as d:
+            subprocess.run(["git", "init", "-q", d], check=True)
+            shutil.copy2(ROOT / "giz-livre.sh", Path(d) / "giz-livre.sh")
+            self.assertEqual(module.marcar_executaveis(Path(d), ["giz-livre.sh"]), ["giz-livre.sh"])
+            modo = subprocess.run(["git", "-C", d, "ls-files", "-s", "giz-livre.sh"], capture_output=True, text=True).stdout
+            self.assertTrue(modo.startswith("100755 "), modo)
+
     def test_only_safe_destinations_accepted(self):
         spec = importlib.util.spec_from_file_location("exportar", ROOT / "scripts/exportar_publico.py")
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
@@ -1171,7 +1442,9 @@ class PacoteTests(unittest.TestCase):
         self.srv.RESUMOS.clear()
 
     def quadro(self, bid, titulo, itens=None, **extra):
-        b = {"title": titulo, "items": itens if itens is not None else [{"id": "t1", "type": "text", "text": titulo}],
+        # itens como o programa grava (com posição): desde a auditoria de 29/10/2026, item sem geometria não entra
+        b = {"title": titulo, "items": itens if itens is not None else [{"id": "t1", "type": "text", "text": titulo,
+                                                                          "x": 10, "y": 10, "w": 300}],
              "background": {"color": "#ffffff", "pattern": "none"}, "_rev": 3, "updated": 1000, **extra}
         (self.srv.DADOS / f"{bid}.json").write_text(json.dumps(b), encoding="utf-8")
         (self.srv.DADOS / f"{bid}.png").write_bytes(self.PNG)
@@ -1208,6 +1481,107 @@ class PacoteTests(unittest.TestCase):
         self.assertEqual((self.srv.DADOS / "assets" / nome).read_bytes(), self.PNG)
         self.assertEqual((self.srv.DADOS / "aula1.png").read_bytes(), self.PNG)
 
+    def pacote_com_imagem(self):
+        import hashlib
+        nome = hashlib.sha1(self.PNG).hexdigest() + ".png"
+        (self.srv.DADOS / "assets").mkdir(exist_ok=True)
+        (self.srv.DADOS / "assets" / nome).write_bytes(self.PNG)
+        self.quadro("aulaImagem", "Aula com imagem",
+                    [{"id": "i", "type": "image", "x": 0, "y": 0, "w": 1, "h": 1, "src": "/assets/" + nome}])
+        f, resumo = self.pacote()
+        self.assertEqual(resumo["falhas"], [])
+        self.usar(Path(self.temp.name) / "pc2")
+        primeiro = self.srv.trazer_pacote(f)
+        self.assertEqual((primeiro["imagens"], primeiro["falhas"]), (1, []))
+        arq = self.srv.DADOS / "assets" / nome
+        self.assertEqual(arq.read_bytes(), self.PNG)
+        return f, arq
+
+    def test_reimportar_repara_imagem_existente_corrompida(self):
+        f, arq = self.pacote_com_imagem()
+        arq.write_bytes(b"IMAGEM LOCAL CORROMPIDA")
+        f.seek(0)
+        r = self.srv.trazer_pacote(f)
+        self.assertTrue(arq.read_bytes() == self.PNG or r["falhas"],
+                        "a imagem deve ser reparada ou a falha precisa aparecer")
+        self.assertEqual(arq.read_bytes(), self.PNG)
+        self.assertEqual((r["iguais"], r["falhas"]), (1, []))
+
+    def test_reparo_de_imagem_que_falha_avisa_e_preserva_o_arquivo(self):
+        f, arq = self.pacote_com_imagem()
+        antigo = b"IMAGEM LOCAL CORROMPIDA"
+        arq.write_bytes(antigo)
+        f.seek(0)
+        with patch.object(self.srv.os, "replace", side_effect=OSError("falha simulada de disco")):
+            r = self.srv.trazer_pacote(f)
+        self.assertTrue(r["falhas"], "reparo que falhou nao pode anunciar integridade")
+        self.assertIn("imagem", r["falhas"][0]["motivo"])
+        self.assertEqual(arq.read_bytes(), antigo)
+        self.assertEqual(list(arq.parent.glob("*.tmp")), [])
+
+    def test_imagem_faltando_aparece_nas_falhas_ao_levar_e_ao_trazer(self):
+        # auditoria de 29/10/2026: o quadro apontava para uma imagem que não estava na pasta, e o resumo dizia sucesso
+        import io, zipfile
+        falta = "f" * 40 + ".png"
+        self.quadro("aula1", "Aula 1", [{"id": "i", "type": "image", "src": "/assets/" + falta, "x": 0, "y": 0, "w": 1, "h": 1}])
+        self.quadro("aula2", "Aula 2")
+        f, resumo = self.pacote()
+        self.assertEqual((resumo["quadros"], resumo["imagens"]), (2, 0))          # os quadros vão assim mesmo
+        self.assertEqual([x["id"] for x in resumo["falhas"]], ["aula1"])        # e a falta é avisada, com o quadro
+        self.assertIn("imagem", resumo["falhas"][0]["motivo"])
+        self.usar(Path(self.temp.name) / "pc2")
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual(r["trazidos"], 2)                                        # nada do que é válido se perde
+        self.assertEqual([x["id"] for x in r["falhas"]], ["aula1"])
+        self.assertIn("imagem", r["falhas"][0]["motivo"])
+
+    def test_item_com_geometria_invalida_fica_de_fora_ao_trazer(self):
+        # auditoria de 29/10/2026: um traço com pts=null entrava e derrubava o desenho do quadro
+        bom = {"id": "s1", "type": "stroke", "pts": [1, 2, 0.5, 4, 5, 0.5], "width": 3}
+        self.quadro("aula1", "Aula 1", [bom, {"id": "s2", "type": "stroke", "pts": None, "width": 3},
+                                         {"id": "r1", "type": "shape", "kind": "rect", "x1": 0, "y1": "x", "x2": 1, "y2": 1, "width": 2}])
+        f, _ = self.pacote()
+        self.usar(Path(self.temp.name) / "pc2")
+        r = self.srv.trazer_pacote(f)
+        b = json.loads((self.srv.DADOS / "aula1.json").read_text(encoding="utf-8"))
+        self.assertEqual([i["id"] for i in b["items"]], ["s1"])     # o quadro vem com o que é válido
+        self.assertEqual(r["trazidos"], 1)
+        self.assertIn("2 item(ns)", r["falhas"][0]["motivo"])      # e o que ficou de fora é avisado
+
+    def test_metadado_de_origem_invalido_nao_contamina_importacoes(self):
+        import io, zipfile
+        def pacote(bid, **extra):
+            f = io.BytesIO()
+            with zipfile.ZipFile(f, "w") as z:
+                z.writestr("manifesto.json", '{"formato":1}')
+                z.writestr(f"quadros/{bid}.json", json.dumps({"title": bid, "items": [], **extra}))
+            f.seek(0)
+            return f
+        controle = self.srv.trazer_pacote(pacote("controle", trazido_de={"id": "anterior", "impressao": "abc"}))
+        self.assertEqual(controle["trazidos"], 1)
+        for n, origem in enumerate(({"id": [], "impressao": []}, {"id": 7, "impressao": 9}, [], 42)):
+            with self.subTest(origem=origem):
+                # o quadro vem sem o metadado inválido (a aula não se perde por causa dele)
+                primeiro = self.srv.trazer_pacote(pacote(f"hostil{n}", trazido_de=origem))
+                self.assertEqual(primeiro["trazidos"], 1)
+                gravado = json.loads((self.srv.DADOS / f"hostil{n}.json").read_text(encoding="utf-8"))
+                self.assertNotIn("trazido_de", gravado)
+                segundo = self.srv.trazer_pacote(pacote(f"proximo{n}"))
+                self.assertEqual(segundo["trazidos"], 1)
+                self.assertTrue((self.srv.DADOS / f"proximo{n}.json").exists())
+
+    def test_origens_antigas_contaminadas_nao_derrubam_novo_pacote(self):
+        self.quadro("novo", "Importação legítima")
+        f, _ = self.pacote()
+        self.usar(Path(self.temp.name) / "pc2")
+        for n, origem in enumerate(({"id": [], "impressao": []}, {"id": 3, "impressao": []}, [], 7)):
+            self.quadro(f"antigo{n}", "Quadro antigo", trazido_de=origem)
+        antes = {p: p.read_bytes() for p in self.srv.DADOS.glob("antigo*.json")}
+        r = self.srv.trazer_pacote(f)
+        self.assertEqual(r["trazidos"], 1)
+        self.assertTrue((self.srv.DADOS / "novo.json").exists())
+        self.assertEqual({p: p.read_bytes() for p in antes}, antes)
+
     def test_trazer_de_novo_nao_repete_e_quadro_mexido_vira_copia(self):
         self.quadro("aula1", "Aula 1")
         self.quadro("aula2", "Aula 2")
@@ -1228,7 +1602,8 @@ class PacoteTests(unittest.TestCase):
 
     def test_quadro_antigo_sem_id_nem_fundo_nao_multiplica_copias(self):
         # quadro feito fora da página: itens sem id e sem fundo; a limpeza ao trazer não pode virar "diferença"
-        antigo = {"title": "Antigo", "items": [{"type": "text", "text": "a"}, {"type": "text", "text": "b"}]}
+        antigo = {"title": "Antigo", "items": [{"type": "text", "text": "a", "x": 0, "y": 0, "w": 50},
+                                               {"type": "text", "text": "b", "x": 0, "y": 60, "w": 50}]}
         (self.srv.DADOS / "velho1.json").write_text(json.dumps(antigo), encoding="utf-8")
         f, _ = self.pacote()
         self.usar(Path(self.temp.name) / "pc2")
@@ -1265,14 +1640,15 @@ class PacoteTests(unittest.TestCase):
 
     def test_pacote_malicioso_nao_grava_fora_e_tira_imagem_externa(self):
         man = json.dumps({"formato": 1})
-        ruim = {"title": "x", "items": [{"id": "a", "type": "image", "src": "https://exemplo.com/espiao.png"},
-                                        {"id": "b", "type": "text", "text": "fica"}]}
+        ruim = {"title": "x", "items": [{"id": "a", "type": "image", "src": "https://exemplo.com/espiao.png", "x": 0, "y": 0, "w": 9, "h": 9},
+                                        {"id": "b", "type": "text", "text": "fica", "x": 0, "y": 0, "w": 90}]}
         f = self.zip_feito({"manifesto.json": man, "../../fora.json": json.dumps(ruim), "quadros/../fora2.json": "{}",
                             "quadros/con.json": json.dumps(ruim), "quadros/bom.json": json.dumps(ruim),
                             "assets/" + "1" * 40 + ".png": self.PNG})   # sha1 não confere
         r = self.srv.trazer_pacote(f)
         self.assertEqual(r["trazidos"], 1)
-        self.assertEqual([x["motivo"] for x in r["falhas"]], ["imagem danificada"])
+        # desde a auditoria de 29/10/2026, a imagem externa tirada do quadro também é avisada (antes, saía calada)
+        self.assertEqual([x["motivo"][:28] for x in r["falhas"]], ["imagem danificada", "1 item(ns) danificado(s) ou "])
         self.assertFalse((Path(self.temp.name) / "fora.json").exists())
         self.assertEqual(sorted(p.name for p in self.srv.DADOS.iterdir() if p.is_file()), ["bom.json"])
         itens = json.loads((self.srv.DADOS / "bom.json").read_text(encoding="utf-8"))["items"]
@@ -1294,6 +1670,27 @@ class PacoteTests(unittest.TestCase):
         r = self.srv.trazer_pacote(f)
         self.assertEqual((r["trazidos"], len(r["falhas"])), (1, 2))
 
+    def test_zip_com_nomes_duplicados_e_recusado_antes_de_gravar(self):
+        import io, warnings, zipfile
+        self.quadro("controle", "Controle preservado")
+        antes = {p.name: p.read_bytes() for p in self.srv.DADOS.iterdir()}
+        quadro = json.dumps({"title": "Novo", "items": []})
+        for duplicado in ("manifesto.json", "quadros/ambiguo.json", "assets/" + "a" * 40 + ".png"):
+            with self.subTest(duplicado=duplicado):
+                f = io.BytesIO()
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", UserWarning)
+                    with zipfile.ZipFile(f, "w") as z:
+                        z.writestr("manifesto.json", '{"formato":1}')
+                        z.writestr("quadros/novo.json", quadro)
+                        if duplicado != "manifesto.json":
+                            z.writestr(duplicado, quadro)
+                        z.writestr(duplicado, quadro)
+                f.seek(0)
+                with self.assertRaisesRegex(ValueError, "duplicad"):
+                    self.srv.trazer_pacote(f)
+                self.assertEqual({p.name: p.read_bytes() for p in self.srv.DADOS.iterdir()}, antes)
+
     def test_zip_que_incha_e_recusado_sem_extrair(self):
         f = self.zip_feito({"manifesto.json": json.dumps({"formato": 1}), "quadros/a.json": "{}"})
         with patch.object(self.srv, "LIMITE_DESCOMPRIMIDO", 10):   # o que o zip declara passa do limite
@@ -1306,6 +1703,977 @@ class PacoteTests(unittest.TestCase):
             self.assertTrue(self.srv.em_onedrive(Path(self.temp.name) / "Documentos" / "Giz Livre" / "quadros"))
         with patch.dict("os.environ", {"OneDrive": "", "OneDriveCommercial": "", "OneDriveConsumer": ""}):
             self.assertFalse(self.srv.em_onedrive(Path(self.temp.name) / "quadros"))
+
+
+
+class DuasContasTests(unittest.TestCase):
+    """Duas contas do Windows no mesmo PC (troca rápida de usuário): cada uma com seus dados e seu arquivo de conexão.
+    A segunda não derruba a primeira e usa a próxima porta; uma não lê os quadros da outra."""
+
+    def test_segunda_conta_usa_outra_porta_sem_derrubar_a_primeira(self):
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0)); porta = sock.getsockname()[1]
+            procs = []
+            try:
+                def subir(pasta):
+                    p = subprocess.Popen([sys.executable, str(ROOT / "server.py"), "--sem-janela", "--porta", str(porta),
+                                          "--dados", pasta], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    procs.append(p)
+                    arq = Path(pasta) / ".agente" / "conexao.json"
+                    for _ in range(100):
+                        if arq.exists():
+                            return json.loads(arq.read_text(encoding="utf-8"))
+                        time.sleep(.1)
+                    raise RuntimeError("não abriu")
+                ca = subir(a)
+                urllib.request.urlopen(urllib.request.Request(f"http://127.0.0.1:{porta}/api/boards/daconta1", method="PUT",
+                    data=json.dumps({"board": {"title": "Só da conta A", "items": []}, "revision": 0}).encode(),
+                    headers={"X-Lousa": ca["token"], "Content-Type": "application/json"}), timeout=5).read()
+                cb = subir(b)
+                self.assertEqual(ca["porta"], porta)
+                self.assertNotEqual(cb["porta"], porta)            # a segunda conta foi para a próxima porta
+                self.assertIsNone(procs[0].poll())                  # e a primeira continua aberta
+                # abrir de novo na mesma conta e pasta: não sobe outro servidor (só pediria outra janela ao que está aberto)
+                c = subprocess.run([sys.executable, str(ROOT / "server.py"), "--sem-janela", "--porta", str(porta),
+                                    "--dados", a], capture_output=True, timeout=30)
+                self.assertEqual(c.returncode, 0)
+                self.assertEqual(json.loads((Path(a) / ".agente" / "conexao.json").read_text(encoding="utf-8"))["pid"], procs[0].pid)
+                for token in (cb["token"], ""):                     # a conta B não lê os quadros da conta A
+                    req = urllib.request.Request(f"http://127.0.0.1:{porta}/api/boards", headers={"X-Lousa": token})
+                    with self.assertRaises(urllib.error.HTTPError) as e:
+                        urllib.request.urlopen(req, timeout=5)
+                    self.assertEqual(e.exception.code, 401)
+            finally:
+                for p in procs:
+                    p.terminate(); p.wait()
+
+
+def server_mod():
+    """O server.py como módulo, para testar funções soltas (carregado uma vez)."""
+    global _SERVER_MOD
+    if _SERVER_MOD is None:
+        spec = importlib.util.spec_from_file_location("servidor_solto", ROOT / "server.py")
+        _SERVER_MOD = importlib.util.module_from_spec(spec); spec.loader.exec_module(_SERVER_MOD)
+    return _SERVER_MOD
+
+
+_SERVER_MOD = None
+
+
+class AuditorTests(unittest.TestCase):
+    """Testes independentes do auditor externo (29/10/2026) que ainda não estavam na suíte, adaptados ao código atual."""
+
+    def test_gravacao_atomica_que_falha_preserva_o_arquivo_anterior(self):
+        s = server_mod()
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "quadro.json"; p.write_bytes(b"ANTIGO")
+            with patch.object(s.os, "replace", side_effect=OSError("falha de disco simulada")):
+                with self.assertRaises(OSError):
+                    s.gravar_atomico(p, b"NOVO")
+            self.assertEqual(p.read_bytes(), b"ANTIGO")
+            self.assertEqual(list(Path(d).glob("*.tmp")), [])
+
+    def test_pptx_com_tamanho_declarado_de_3_gb_e_recusado(self):
+        # só os metadados do zip são adulterados (o conteúdo é minúsculo): a guarda vale antes de descompactar
+        import io, struct, zipfile
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("[Content_Types].xml", "<Types>presentationml.presentation.main</Types>")
+            z.writestr("ppt/media/image1.png", b"x")
+        raw = bytearray(b.getvalue()); ini = 0
+        while (p := raw.find(b"PK\x01\x02", ini)) >= 0:
+            n = struct.unpack_from("<H", raw, p + 28)[0]
+            if bytes(raw[p + 46:p + 46 + n]) == b"ppt/media/image1.png":
+                struct.pack_into("<I", raw, p + 24, 3_000_000_000)
+            ini = p + 46 + n
+        with self.assertRaises(ValueError):
+            server_mod().checar_pptx(bytes(raw))
+
+
+class JanelaPropriaTests(unittest.TestCase):
+    """Janela própria (P60): o GizLivre.exe (Tauri) roda o server.py como processo filho, com --pai."""
+
+    def test_servidor_sai_quando_a_janela_morre(self):
+        with tempfile.TemporaryDirectory() as d:
+            pai = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+            srv = subprocess.Popen([sys.executable, str(ROOT / "server.py"), "--sem-janela", "--porta", "0", "--dados", d,
+                                    "--pai", str(pai.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   env={**os.environ, "GIZ_SEM_DIARIO": "1"})
+            try:
+                arq = Path(d) / ".agente" / "conexao.json"
+                for _ in range(100):
+                    if arq.exists():
+                        break
+                    time.sleep(.1)
+                self.assertTrue(arq.exists())
+                self.assertIsNone(srv.poll())                       # com a janela viva, o servidor fica
+                pai.kill(); pai.wait()                              # a janela morre de repente (Gerenciador de Tarefas)
+                self.assertEqual(srv.wait(timeout=15), 0)           # o servidor sai sozinho, sem ficar órfão
+                self.assertFalse(arq.exists())                      # e apaga o arquivo de conexão
+            finally:
+                for p in (pai, srv):
+                    if p.poll() is None:
+                        p.kill(); p.wait()
+
+    def test_quadro_corrompido_nao_derruba_a_galeria(self):
+        # auditoria de 29/10/2026 (rodada 2): um arquivo corrompido não pode derrubar os quadros bons
+        s = server_mod()
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "bom.json").write_text(json.dumps({"title": "Bom", "items": [], "updated": 1}), encoding="utf-8")
+            (Path(d) / "ruim.json").write_text('{"title": "Ru', encoding="utf-8")
+            with patch.object(s, "DADOS", Path(d)):
+                s.RESUMOS.clear()
+                self.assertEqual([q["id"] for q in s.listar_quadros()], ["bom"])
+
+    def test_aviso_quando_ha_versao_antiga_para_todos_os_usuarios(self):
+        # auditoria de 29/10/2026: o Inno permitia instalar para todos; a janela própria só instala na conta
+        s = server_mod()
+        self.assertIn("1.15.2", s.aviso_instalacao_para_todos(lambda: "1.15.2"))
+        self.assertIn("administrador", s.aviso_instalacao_para_todos(lambda: "1.15.2"))
+
+        def nada():
+            raise FileNotFoundError
+        self.assertEqual(s.aviso_instalacao_para_todos(nada), "")
+
+    def test_gravacao_que_ja_chegou_termina_mesmo_com_a_janela_saindo(self):
+        # auditoria de 29/10/2026 (rodada 2): ao fechar, esperar a gravação que já saiu. A janela sai logo depois de a
+        # página mandar o quadro; o servidor (que sai junto com a janela) tem de terminar a gravação que já recebeu
+        with tempfile.TemporaryDirectory() as d:
+            pai = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0)); porta = sock.getsockname()[1]
+            srv = subprocess.Popen([sys.executable, str(ROOT / "server.py"), "--sem-janela", "--porta", str(porta),
+                                    "--dados", d, "--pai", str(pai.pid)], stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, env={**os.environ, "GIZ_SEM_DIARIO": "1"})
+            try:
+                arq = Path(d) / ".agente" / "conexao.json"
+                for _ in range(100):
+                    if arq.exists():
+                        break
+                    time.sleep(.1)
+                token = json.loads(arq.read_text(encoding="utf-8"))["token"]
+                corpo = json.dumps({"board": {"title": "Última", "items": []}, "revision": 0}).encode()
+                c = socket.create_connection(("127.0.0.1", porta))
+                c.sendall((f"PUT /api/boards/ultima HTTP/1.1\r\nHost: 127.0.0.1:{porta}\r\nX-Lousa: {token}\r\n"
+                           f"Content-Type: application/json\r\nContent-Length: {len(corpo)}\r\n\r\n").encode())
+                time.sleep(.3)
+                pai.kill(); pai.wait()                  # a janela sai com a gravação a caminho
+                time.sleep(1)
+                c.sendall(corpo)                        # o resto da gravação chega depois
+                c.settimeout(10)
+                resposta = c.recv(200)
+                c.close()
+                self.assertIn(b" 200 ", resposta.split(b"\r\n")[0])
+                self.assertEqual(srv.wait(timeout=20), 0)
+                self.assertEqual(json.loads((Path(d) / "ultima.json").read_text(encoding="utf-8"))["title"], "Última")
+            finally:
+                for p in (pai, srv):
+                    if p.poll() is None:
+                        p.kill(); p.wait()
+
+    def test_pasta_do_programa_e_dados_na_janela_propria(self):
+        with tempfile.TemporaryDirectory() as raiz:
+            codigo = ("import server, json; print(json.dumps([server.JANELA_PROPRIA, server.INSTALADO, str(server.RAIZ), "
+                      "str(server.pasta_dados_padrao()), server.pode_instalar_sozinho()]))")
+            env = {**os.environ, "GIZ_LIVRE_JANELA": "1", "GIZ_LIVRE_PASTA": raiz, "GIZ_SEM_DIARIO": "1"}
+            r = json.loads(subprocess.run([sys.executable, "-c", codigo], cwd=ROOT, env=env, capture_output=True,
+                                          text=True, timeout=30).stdout)
+            self.assertEqual(r[:3], [True, True, str(Path(raiz).resolve())])
+            self.assertNotEqual(Path(r[3]), Path(raiz).resolve() / "quadros")   # instalado: quadros em Documentos
+            self.assertEqual(r[4], sys.platform == "win32")        # instalada: atualiza pelo Sobre
+            (Path(raiz) / "portatil.txt").write_text("x", encoding="utf-8")
+            r = json.loads(subprocess.run([sys.executable, "-c", codigo], cwd=ROOT, env=env, capture_output=True,
+                                          text=True, timeout=30).stdout)
+            self.assertEqual(Path(r[3]), Path(raiz).resolve() / "quadros")      # portátil: quadros ao lado do programa
+            self.assertFalse(r[4])                                  # e não se atualiza sozinha (página de downloads)
+
+
+class RestauracaoConcorrenteTests(unittest.TestCase):
+    def test_duas_restauracoes_da_mesma_origem_respondem_sem_perder_dados(self):
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+        spec = importlib.util.spec_from_file_location("servidor_restauracao", ROOT / "server.py")
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        with tempfile.TemporaryDirectory(prefix="giz-restauracao-") as pasta:
+            s.DADOS = Path(pasta)
+            s.LIXEIRA = s.DADOS / "lixeira"
+            s.LIXEIRA.mkdir()
+            original = b'{"title":"Original preservado","items":[]}'
+            (s.DADOS / "aula.json").write_bytes(original)
+            nome = "aula_20261029-120001"
+            origem = s.LIXEIRA / (nome + ".json")
+            restaurado = b'{"title":"Restaurar uma unica copia","items":[]}'
+            origem.write_bytes(restaurado)
+            srv = s.Servidor(("127.0.0.1", 0), s.Handler)
+            s.PORTA = srv.server_address[1]
+            thread = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": .02}, daemon=True)
+            thread.start()
+            def restaurar():
+                conn = http.client.HTTPConnection("127.0.0.1", s.PORTA, timeout=5)
+                try:
+                    conn.request("POST", "/api/lixeira/restaurar", json.dumps({"nome": nome}),
+                                 {"X-Lousa": s.TOKEN, "Content-Type": "application/json"})
+                    r = conn.getresponse()
+                    return r.status, json.loads(r.read())
+                except (http.client.RemoteDisconnected, ConnectionResetError):
+                    return None, None
+                finally:
+                    conn.close()
+            mover = s.os.replace
+            tentativas = []
+            def mover_devagar(src, dst, *args, **kwargs):
+                if Path(src) == origem:
+                    tentativas.append(dst)
+                    time.sleep(.12)
+                return mover(src, dst, *args, **kwargs)
+            try:
+                with patch.object(s.os, "replace", side_effect=mover_devagar):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        respostas = list(pool.map(lambda _: restaurar(), range(2)))
+                self.assertGreaterEqual(len(tentativas), 1)
+                self.assertEqual((s.DADOS / "aula.json").read_bytes(), original)
+                self.assertEqual(len([p for p in s.DADOS.glob("*.json") if p.read_bytes() == restaurado]), 1)
+                statuses = [r[0] for r in respostas]
+                self.assertEqual(statuses.count(200), 1)
+                self.assertTrue(all(code in (200, 404, 409) for code in statuses), respostas)
+            finally:
+                srv.shutdown()
+                srv.server_close()
+                thread.join(timeout=5)
+                self.assertFalse(thread.is_alive())
+
+    def test_duas_versoes_do_mesmo_quadro_restauradas_juntas_ganham_ids_diferentes(self):
+        # validação no Linux da rc.2: as duas escolhiam o mesmo id e a segunda voltava 409 (que a página tomava por
+        # sessão perdida)
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+        spec = importlib.util.spec_from_file_location("servidor_restauracao2", ROOT / "server.py")
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        with tempfile.TemporaryDirectory(prefix="giz-restauracao-") as pasta:
+            s.DADOS = Path(pasta)
+            s.LIXEIRA = s.DADOS / "lixeira"
+            s.LIXEIRA.mkdir()
+            nomes = ["aula_20261029-120001", "aula_20261029-120002"]
+            for n, nome in enumerate(nomes):
+                (s.LIXEIRA / (nome + ".json")).write_text(json.dumps({"title": f"Versão {n}", "items": []}))
+            srv = s.Servidor(("127.0.0.1", 0), s.Handler)
+            s.PORTA = srv.server_address[1]
+            thread = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": .02}, daemon=True)
+            thread.start()
+            def restaurar(nome):
+                conn = http.client.HTTPConnection("127.0.0.1", s.PORTA, timeout=5)
+                try:
+                    conn.request("POST", "/api/lixeira/restaurar", json.dumps({"nome": nome}),
+                                 {"X-Lousa": s.TOKEN, "Content-Type": "application/json"})
+                    r = conn.getresponse()
+                    return r.status, json.loads(r.read())
+                finally:
+                    conn.close()
+            mover = s.os.replace
+            def mover_devagar(src, dst, *args, **kwargs):
+                time.sleep(.12)
+                return mover(src, dst, *args, **kwargs)
+            try:
+                with patch.object(s.os, "replace", side_effect=mover_devagar):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        respostas = list(pool.map(restaurar, nomes))
+                self.assertEqual([r[0] for r in respostas], [200, 200], respostas)
+                ids = {r[1]["id"] for r in respostas}
+                self.assertEqual(len(ids), 2)
+                self.assertEqual(sorted(json.loads((s.DADOS / f"{i}.json").read_text())["title"] for i in ids),
+                                 ["Versão 0", "Versão 1"])
+                self.assertEqual(s.ID_RESERVADOS, set())
+            finally:
+                srv.shutdown()
+                srv.server_close()
+                thread.join(timeout=5)
+
+    def test_409_de_sessao_diz_que_e_de_sessao(self):
+        spec = importlib.util.spec_from_file_location("servidor_sessao", ROOT / "server.py")
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        import threading
+        with tempfile.TemporaryDirectory(prefix="giz-sessao-") as pasta:
+            s.DADOS = Path(pasta)
+            srv = s.Servidor(("127.0.0.1", 0), s.Handler)
+            s.PORTA = srv.server_address[1]
+            thread = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": .02}, daemon=True)
+            thread.start()
+            try:
+                conn = http.client.HTTPConnection("127.0.0.1", s.PORTA, timeout=5)
+                conn.request("PUT", "/api/boards/q1", json.dumps({"board": {"title": "q", "items": []}, "revision": 0}),
+                             {"X-Lousa": "codigo-velho", "Content-Type": "application/json"})
+                r = conn.getresponse()
+                self.assertEqual((r.status, json.loads(r.read()).get("sessao")), (409, True))
+                conn.close()
+            finally:
+                srv.shutdown()
+                srv.server_close()
+                thread.join(timeout=5)
+
+    def test_quadro_que_nao_sai_da_lixeira_devolve_a_miniatura_e_a_nova_tentativa_traz_os_dois(self):
+        # auditoria da rc.3: com o quadro movido e a miniatura falhando, ela ficava na lixeira e a nova tentativa
+        # dava 404; agora a miniatura vai antes e volta se o quadro não sair
+        import threading
+        spec = importlib.util.spec_from_file_location("servidor_miniatura", ROOT / "server.py")
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        with tempfile.TemporaryDirectory(prefix="giz-miniatura-") as pasta:
+            s.DADOS = Path(pasta)
+            s.LIXEIRA = s.DADOS / "lixeira"
+            s.LIXEIRA.mkdir()
+            nome = "aula_20261030-120000"
+            (s.LIXEIRA / f"{nome}.json").write_text('{"title":"Aula","items":[]}')
+            (s.LIXEIRA / f"{nome}.png").write_bytes(b"miniatura")
+            srv = s.Servidor(("127.0.0.1", 0), s.Handler)
+            s.PORTA = srv.server_address[1]
+            thread = threading.Thread(target=srv.serve_forever, kwargs={"poll_interval": .02}, daemon=True)
+            thread.start()
+            def restaurar():
+                conn = http.client.HTTPConnection("127.0.0.1", s.PORTA, timeout=5)
+                try:
+                    conn.request("POST", "/api/lixeira/restaurar", json.dumps({"nome": nome}),
+                                 {"X-Lousa": s.TOKEN, "Content-Type": "application/json"})
+                    r = conn.getresponse()
+                    return r.status, json.loads(r.read())
+                finally:
+                    conn.close()
+            mover = s.os.replace
+            def quadro_preso(src, dst, *args, **kwargs):
+                if str(src).endswith(".json"):
+                    raise OSError("arquivo em uso")
+                return mover(src, dst, *args, **kwargs)
+            try:
+                with patch.object(s.os, "replace", side_effect=quadro_preso), patch.object(s, "registrar"):
+                    status, corpo = restaurar()
+                self.assertEqual(status, 500)
+                self.assertIn("continua na lixeira", corpo["erro"])
+                self.assertEqual((s.LIXEIRA / f"{nome}.png").read_bytes(), b"miniatura")
+                self.assertFalse((s.DADOS / "aula.png").exists())
+                status, corpo = restaurar()
+                self.assertEqual((status, corpo["id"]), (200, "aula"))
+                self.assertEqual((s.DADOS / "aula.png").read_bytes(), b"miniatura")
+                self.assertTrue((s.DADOS / "aula.json").exists())
+                self.assertFalse(any(s.LIXEIRA.iterdir()))
+            finally:
+                srv.shutdown()
+                srv.server_close()
+                thread.join(timeout=5)
+
+    def test_fora_do_windows_a_pasta_da_conta_segue_o_xdg(self):
+        spec = importlib.util.spec_from_file_location("servidor_xdg", ROOT / "server.py")
+        s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        from pathlib import PurePosixPath   # no Windows não se cria PosixPath: o caminho é só comparado
+        with patch.object(s.os, "name", "posix"), patch.object(s, "Path", PurePosixPath),                 patch.dict(s.os.environ, {"XDG_DATA_HOME": "/dados/xdg"}):
+            self.assertEqual(s.pasta_da_conta(), PurePosixPath("/dados/xdg/giz-livre"))
+            s.DADOS_ESCOLHIDOS = False
+            self.assertEqual(s.arquivo_conexao(), PurePosixPath("/dados/xdg/giz-livre/conexao.json"))
+
+
+class RestauracaoPublicacaoTests(unittest.TestCase):
+    """HTTP real, dados isolados e pausa antes da trava do destino, sem modificar o servidor."""
+
+    def setUp(self):
+        import threading
+        self.temp = tempfile.TemporaryDirectory(prefix="giz-restauracao-publicacao-")
+        self.addCleanup(self.temp.cleanup)
+        spec = importlib.util.spec_from_file_location("servidor_publicacao_concorrente", ROOT / "server.py")
+        self.s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.s)
+        self.s.DADOS = Path(self.temp.name)
+        self.s.LIXEIRA = self.s.DADOS / "lixeira"
+        self.s.LIXEIRA.mkdir()
+        (self.s.DADOS / "assets").mkdir()
+        self.bid = "same"
+        self.nome = self.bid + "_20261030-120001"
+        self.original = {"title": "Conteúdo da lixeira",
+                         "items": [{"id": "texto-antigo", "type": "text", "text": "Não perder a origem",
+                                    "x": 10, "y": 10, "w": 200}],
+                         "background": {"color": "#ffffff", "pattern": "none"}}
+        self.origem = self.s.LIXEIRA / (self.nome + ".json")
+        self.bytes_origem = json.dumps(self.original, ensure_ascii=False).encode("utf-8")
+        self.origem.write_bytes(self.bytes_origem)
+        self.mini_origem = self.s.LIXEIRA / (self.nome + ".png")
+        self.png_origem = bytes.fromhex("89504e470d0a1a0a") + b"miniatura da lixeira"
+        self.mini_origem.write_bytes(self.png_origem)
+        self.pausar = False
+        self.escolheu = threading.Event()
+        self.liberar = threading.Event()
+        self.segunda_iniciou = threading.Event()
+        self.contexto = threading.local()
+        contador = threading.Lock()
+        self.iniciadas = 0
+        teste = self
+
+        class HandlerTeste(self.s.Handler):
+            def _restaurar(handler):
+                with contador:
+                    teste.iniciadas += 1
+                    if teste.iniciadas == 2:
+                        teste.segunda_iniciou.set()
+                teste.contexto.restaurando = True
+                teste.contexto.pausou = False
+                try:
+                    return super()._restaurar()
+                finally:
+                    teste.contexto.restaurando = False
+
+        trava_original = self.s.trava
+
+        def trava_com_pausa(bid):
+            if (self.pausar and bid == self.bid and getattr(self.contexto, "restaurando", False)
+                    and not self.contexto.pausou):
+                self.contexto.pausou = True
+                self.id_escolhido = bid
+                self.escolheu.set()
+                if not self.liberar.wait(timeout=10):
+                    raise TimeoutError("o teste não liberou a restauração antes da trava do destino")
+            return trava_original(bid)
+
+        interceptacao = patch.object(self.s, "trava", side_effect=trava_com_pausa)
+        interceptacao.start()
+        self.addCleanup(interceptacao.stop)
+        self.http = self.s.Servidor(("127.0.0.1", 0), HandlerTeste)
+        self.s.PORTA = self.http.server_address[1]
+        self.thread = threading.Thread(target=self.http.serve_forever, kwargs={"poll_interval": .02}, daemon=True)
+        self.addCleanup(self.encerrar)
+        self.thread.start()
+
+    def encerrar(self):
+        self.liberar.set()
+        self.http.shutdown()
+        self.http.server_close()
+        self.thread.join(timeout=5)
+        self.assertFalse(self.thread.is_alive(), "servidor temporário não terminou")
+
+    def pedido(self, rota, metodo="POST", dados=None, tipo="application/json"):
+        corpo = dados if isinstance(dados, bytes) else json.dumps(dados).encode("utf-8") if dados is not None else None
+        conn = http.client.HTTPConnection("127.0.0.1", self.s.PORTA, timeout=15)
+        try:
+            conn.request(metodo, rota, corpo, {"X-Lousa": self.s.TOKEN, "Content-Type": tipo})
+            resposta = conn.getresponse()
+            return resposta.status, json.loads(resposta.read())
+        finally:
+            conn.close()
+
+    def restaurar(self):
+        return self.pedido("/api/lixeira/restaurar", dados={"nome": self.nome})
+
+    def conferir_restaurado(self, resposta):
+        status, corpo = resposta
+        self.assertEqual(status, 200, resposta)
+        bid = corpo.get("id")
+        self.assertTrue(isinstance(bid, str) and self.s.ID_OK.fullmatch(bid), resposta)
+        self.assertEqual(json.loads((self.s.DADOS / (bid + ".json")).read_text(encoding="utf-8")), self.original)
+        self.assertEqual((self.s.DADOS / (bid + ".png")).read_bytes(), self.png_origem)
+        self.assertFalse(self.origem.exists())
+        self.assertFalse(self.mini_origem.exists())
+        self.assertEqual(self.s.ID_RESERVADOS, set())
+        return bid
+
+    def disputar_publicacao(self, operacao):
+        import base64
+        import io
+        import zipfile
+        from concurrent.futures import ThreadPoolExecutor
+        publicado = {"title": "Conteúdo recém-publicado por " + operacao,
+                     "items": [{"id": "texto-novo", "type": "text", "text": "Não sobrescrever este quadro",
+                                "x": 20, "y": 20, "w": 250}],
+                     "background": {"color": "#abcdef", "pattern": "none"}}
+        png_publicado = bytes.fromhex("89504e470d0a1a0a") + b"miniatura recem-publicada"
+        self.pausar = True
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            futuro = pool.submit(self.restaurar)
+            try:
+                self.assertTrue(self.escolheu.wait(timeout=10), "a restauração não chegou à barreira")
+                self.assertEqual(self.id_escolhido, self.bid)
+                self.assertFalse((self.s.DADOS / (self.bid + ".json")).exists())
+                self.assertEqual(self.origem.read_bytes(), self.bytes_origem)
+                if operacao == "criacao":
+                    publicacao = self.pedido("/api/boards/" + self.bid, "PUT", {
+                        "board": publicado, "revision": 0,
+                        "thumb": "data:image/png;base64," + base64.b64encode(png_publicado).decode("ascii")})
+                    self.assertEqual(publicacao[0], 200, publicacao)
+                    self.assertEqual(publicacao[1]["revision"], 1)
+                else:
+                    pacote = io.BytesIO()
+                    with zipfile.ZipFile(pacote, "w", zipfile.ZIP_DEFLATED) as z:
+                        z.writestr("manifesto.json", json.dumps({"formato": self.s.FORMATO_PACOTE}))
+                        z.writestr("quadros/" + self.bid + ".json", json.dumps(publicado))
+                        z.writestr("quadros/" + self.bid + ".png", png_publicado)
+                    publicacao = self.pedido("/api/pacote", dados=pacote.getvalue(), tipo="application/zip")
+                    self.assertEqual(publicacao[0], 200, publicacao)
+                    self.assertEqual((publicacao[1]["trazidos"], publicacao[1]["copias"], publicacao[1]["falhas"]),
+                                     (1, 0, []))
+                destino = self.s.DADOS / (self.bid + ".json")
+                bytes_publicados = destino.read_bytes()
+                self.assertEqual(json.loads(bytes_publicados)["items"], publicado["items"])
+                self.assertEqual((self.s.DADOS / (self.bid + ".png")).read_bytes(), png_publicado)
+            finally:
+                self.liberar.set()
+            resposta = futuro.result(timeout=20)
+
+        self.assertEqual(destino.read_bytes(), bytes_publicados,
+                         "a restauração sobrescreveu o quadro publicado enquanto aguardava a trava; "
+                         f"publicacao={publicacao[0]}, restauracao={resposta[0]}, "
+                         f"origem_na_lixeira={self.origem.exists()}")
+        self.assertEqual((self.s.DADOS / (self.bid + ".png")).read_bytes(), png_publicado,
+                         "a miniatura recém-publicada deve ficar intacta")
+        if resposta[0] == 200:
+            self.assertNotEqual(resposta[1].get("id"), self.bid, "sucesso precisa usar outro id")
+            self.conferir_restaurado(resposta)
+        else:
+            self.assertIn(resposta[0], (409, 412, 423), resposta)
+            self.assertTrue(resposta[1].get("erro"), "conflito deve explicar o motivo")
+            self.assertEqual(self.origem.read_bytes(), self.bytes_origem,
+                             "conflito não pode consumir nem alterar a origem na lixeira")
+            self.assertEqual(self.mini_origem.read_bytes(), self.png_origem)
+            self.assertEqual(self.s.ID_RESERVADOS, set())
+            # O conflito é recuperável: uma nova tentativa conserva os dois conteúdos.
+            self.assertNotEqual(self.conferir_restaurado(self.restaurar()), self.bid)
+        self.assertEqual(destino.read_bytes(), bytes_publicados)
+        self.assertEqual((self.s.DADOS / (self.bid + ".png")).read_bytes(), png_publicado)
+        self.assertEqual(len(list(self.s.DADOS.glob("*.json"))), 2)
+
+    def test_restauracao_nao_sobrescreve_criacao_publicada_durante_a_pausa(self):
+        self.disputar_publicacao("criacao")
+
+    def test_restauracao_nao_sobrescreve_pacote_publicado_durante_a_pausa(self):
+        self.disputar_publicacao("pacote")
+
+    def test_controle_restauracao_sem_concorrencia_preserva_quadro_e_miniatura(self):
+        self.assertEqual(self.conferir_restaurado(self.restaurar()), self.bid)
+        self.assertEqual(len(list(self.s.DADOS.glob("*.json"))), 1)
+
+    def test_controle_duas_restauracoes_da_mesma_origem_tem_um_sucesso_e_uma_recusa(self):
+        from concurrent.futures import ThreadPoolExecutor
+        self.pausar = True
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            primeira = pool.submit(self.restaurar)
+            try:
+                self.assertTrue(self.escolheu.wait(timeout=10), "primeiro pedido não chegou à barreira")
+                segunda = pool.submit(self.restaurar)
+                self.assertTrue(self.segunda_iniciou.wait(timeout=10), "segundo pedido não começou")
+            finally:
+                self.liberar.set()
+            respostas = [primeira.result(timeout=20), segunda.result(timeout=20)]
+        statuses = [r[0] for r in respostas]
+        self.assertEqual(statuses.count(200), 1, respostas)
+        self.assertTrue(all(code in (200, 404, 409, 412, 423) for code in statuses), respostas)
+        self.conferir_restaurado(next(r for r in respostas if r[0] == 200))
+        self.assertTrue(next(r for r in respostas if r[0] != 200)[1].get("erro"))
+        self.assertEqual(len(list(self.s.DADOS.glob("*.json"))), 1)
+
+
+class IdPublicavelTests(unittest.TestCase):
+    """Contrato único de quem publica um quadro com id novo (auditoria da rc.4: o agente de IA e a cópia na
+    importação escolhiam o id sem conferir de novo sob a trava)."""
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("servidor_id", ROOT / "server.py")
+        self.s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.s)
+        self.temp = tempfile.TemporaryDirectory(prefix="giz-id-")
+        self.s.DADOS = Path(self.temp.name)
+        self.s.LIXEIRA = self.s.DADOS / "lixeira"
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_id_publicado_por_outro_no_meio_passa_ao_candidato_seguinte(self):
+        import threading
+        s = self.s
+        escolheu, liberar, resultado = threading.Event(), threading.Event(), {}
+        original = s.trava
+
+        def trava_com_pausa(bid):
+            # pausa só o publicador, entre reservar "x" e pegar a trava dele
+            if bid == "x" and threading.current_thread().name == "publicador":
+                escolheu.set()
+                liberar.wait(5)
+            return original(bid)
+
+        def publicar():
+            with s.id_publicavel(iter(["x", "y", "z"])) as bid:
+                (s.DADOS / f"{bid}.json").write_text("do publicador")
+                resultado["id"] = bid
+
+        with patch.object(s, "trava", side_effect=trava_com_pausa):
+            t = threading.Thread(target=publicar, name="publicador")
+            t.start()
+            self.assertTrue(escolheu.wait(5))
+            with original("x"):   # outro escritor (criação na revisão 0, importação) publica "x" no meio
+                (s.DADOS / "x.json").write_text("do outro")
+            liberar.set()
+            t.join(5)
+        self.assertEqual(resultado.get("id"), "y")
+        self.assertEqual((s.DADOS / "x.json").read_text(), "do outro")
+        self.assertEqual((s.DADOS / "y.json").read_text(), "do publicador")
+        self.assertEqual(s.ID_RESERVADOS, set())
+
+    def test_agente_e_copia_na_importacao_passam_pelo_contrato(self):
+        import io, zipfile
+        s = self.s
+        chamadas = []
+        real = s.id_publicavel
+
+        def espia(candidatos):
+            chamadas.append(1)
+            return real(candidatos)
+
+        with patch.object(s, "id_publicavel", side_effect=espia):
+            r = s.criar_quadro_agente({"titulo": "Do agente"})
+            self.assertTrue((s.DADOS / f"{r['quadro']}.json").exists())
+            self.assertEqual(len(chamadas), 1)
+            # um quadro com o mesmo id e conteúdo diferente: a importação traz como cópia
+            (s.DADOS / "aula.json").write_text(json.dumps({"title": "Aula daqui", "items": []}), encoding="utf-8")
+            f = io.BytesIO()
+            with zipfile.ZipFile(f, "w") as z:
+                z.writestr("manifesto.json", '{"formato":1}')
+                z.writestr("quadros/aula.json", json.dumps({"title": "Aula de lá", "items": []}))
+            f.seek(0)
+            self.assertEqual(s.trazer_pacote(f)["copias"], 1)
+            self.assertEqual(len(chamadas), 2)
+        self.assertEqual(json.loads((s.DADOS / "aula.json").read_text(encoding="utf-8"))["title"], "Aula daqui")
+
+
+@unittest.skipUnless((ROOT / "scripts/montar_janela.py").exists(), "sem scripts/montar_janela.py")
+class MontagemTests(unittest.TestCase):
+    def test_compilar_passa_as_features_ao_cargo(self):
+        # auditoria da rc.2 (GL-D02): o --features tinha ido parar dentro de um comentário e sumia do comando
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import montar_janela
+        from unittest import mock
+        with mock.patch.object(montar_janela.subprocess, "run") as run, mock.patch.object(montar_janela.shutil, "copy2"):
+            montar_janela.compilar(None, ["so-janela", "sem-filho"], "teste")
+            montar_janela.compilar(None, [], "teste")
+        com, sem = run.call_args_list[0].args[0], run.call_args_list[1].args[0]
+        self.assertEqual(com[-2:], ["--features", "so-janela,sem-filho"])
+        self.assertIn("--locked", com)
+        self.assertNotIn("--features", sem)
+
+    def test_textos_dos_zips_nao_tem_link_local_quebrado(self):
+        # auditoria da rc.4 (GL-D05): o README dos zips apontava para 15 arquivos que só existem no repositório
+        import re
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import montar_janela
+        no_zip = set(montar_janela.TEXTOS)
+        for destino, origem in montar_janela.TEXTOS.items():
+            if not origem.endswith(".md"):
+                continue
+            texto = montar_janela.links_do_pacote((ROOT / origem).read_text(encoding="utf-8"), origem, "9.9.9")
+            for _, alvo in montar_janela.LINK.findall(texto):
+                if re.match(r"[a-z][a-z0-9+.-]*:", alvo, re.I) or alvo.startswith("#"):
+                    continue
+                with self.subTest(texto=destino, link=alvo):
+                    self.assertIn(alvo.partition("#")[0], no_zip)
+        readme = montar_janela.links_do_pacote("[a](docs/img/capa.png) [b](LICENSE)", "README.md", "9.9.9")
+        self.assertEqual(readme, "[a](https://github.com/HeraldoAntunes/giz-livre/blob/v9.9.9/docs/img/capa.png) [b](LICENSE)")
+
+
+class FalhaDeDisco:
+    """Faz falhar a n-ésima operação de disco do servidor (criar o temporário, fsync, trocar ou mover arquivo) e, com
+    `seguintes`, todas as depois dela, como um disco que enche ou some no meio. Apagar arquivo continua funcionando."""
+
+    def __init__(self, n, seguintes):
+        self.n, self.seguintes, self.chamadas, self.falhas = n, seguintes, 0, 0
+
+    def _talvez(self, real):
+        def f(*a, **kw):
+            self.chamadas += 1
+            if self.chamadas == self.n or (self.seguintes and self.chamadas > self.n):
+                self.falhas += 1
+                raise OSError(28, "disco cheio (simulado)")
+            return real(*a, **kw)
+        return f
+
+    def __enter__(self):
+        self._p = [patch.object(os, "replace", self._talvez(os.replace)), patch.object(os, "rename", self._talvez(os.rename)),
+                   patch.object(os, "fsync", self._talvez(os.fsync)),
+                   patch.object(tempfile, "mkstemp", self._talvez(tempfile.mkstemp))]
+        for p in self._p:
+            p.start()
+        return self
+
+    def __exit__(self, *exc):
+        for p in reversed(self._p):
+            p.stop()
+
+
+def sha(caminho: Path):
+    import hashlib
+    return hashlib.sha256(caminho.read_bytes()).hexdigest() if caminho.is_file() else None
+
+
+class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
+    """Quadro e miniatura com falha em cada operação de disco (auditoria da rc.5). Contrato conferido pelos bytes:
+    o quadro fica inteiro com o conteúdo de antes ou com o novo, nunca pela metade; a resposta diz a verdade (200 só
+    se o novo ficou, senão 500, nunca a conexão cortada nem um falso conflito); a miniatura é a do próprio quadro ou
+    nenhuma (a página faz outra ao fechar o quadro), nunca solta na galeria ou na lixeira; nenhum temporário fica; e,
+    com o disco de volta, a nova tentativa chega ao estado completo."""
+    J0, P0 = b'{"title":"Antes","items":[],"_rev":0}', b"\x89PNG\r\n\x1a\nminiatura-antes"
+    P1 = b"\x89PNG\r\n\x1a\nminiatura-nova"
+    casos_com_falha = 0   # contado para o relatório de tests/prova_gravacao.py
+
+    @classmethod
+    def setUpClass(cls):
+        import threading
+        spec = importlib.util.spec_from_file_location("servidor_falha_disco", ROOT / "server.py")
+        cls.s = s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        s.registrar = s.diario = lambda *a, **kw: None
+        cls.pasta = tempfile.TemporaryDirectory(prefix="giz-falha-disco-")
+        s.DADOS = Path(cls.pasta.name)
+        cls.srv = s.Servidor(("127.0.0.1", 0), s.Handler)
+        s.PORTA = cls.srv.server_address[1]
+        cls.thread = threading.Thread(target=cls.srv.serve_forever, kwargs={"poll_interval": .02}, daemon=True)
+        cls.thread.start()
+        cls.n = 0
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.srv.shutdown()
+        cls.srv.server_close()
+        cls.thread.join(timeout=5)
+        cls.pasta.cleanup()
+
+    def novo_lugar(self):
+        type(self).n += 1
+        d = Path(self.pasta.name) / f"caso{self.n}"
+        (d / "lixeira").mkdir(parents=True)
+        self.s.DADOS, self.s.LIXEIRA = d, d / "lixeira"
+        return d
+
+    def pedir(self, metodo, rota, corpo):
+        conn = http.client.HTTPConnection("127.0.0.1", self.s.PORTA, timeout=10)
+        try:
+            conn.request(metodo, rota, json.dumps(corpo) if corpo is not None else None,
+                         {"X-Lousa": self.s.TOKEN, "Content-Type": "application/json"})
+            r = conn.getresponse()
+            return r.status, json.loads(r.read() or b"{}")
+        except (http.client.RemoteDisconnected, ConnectionResetError):
+            return "conexão cortada", {}
+        finally:
+            conn.close()
+
+    def sem_temporarios(self, d):
+        self.assertEqual([p.name for p in d.rglob("*.tmp")], [])
+
+    def casos(self, rodar):
+        """Roda `rodar(falha)` com a 1ª, 2ª... operação falhando, nos dois modos, até sobrar uma rodada sem falha."""
+        vistos = 0
+        for seguintes in (False, True):
+            for n in range(1, 40):
+                with self.subTest(falha=n, seguintes=seguintes):
+                    d = self.novo_lugar()
+                    falha = FalhaDeDisco(n, seguintes)
+                    rodar(d, falha)
+                    self.sem_temporarios(d)
+                    self.assertEqual(self.s.ID_RESERVADOS, set())
+                if not falha.falhas:
+                    break
+                vistos += 1
+                GravacaoComFalhaDeDiscoTests.casos_com_falha += 1
+        self.assertGreater(vistos, 2)   # o cenário passou mesmo por várias operações de disco
+
+    def test_salvar_quadro_com_miniatura(self):
+        dados = lambda: {"board": {"title": "Depois", "items": [{"id": "a", "type": "text", "x": 1, "y": 2, "text": "x"}]},
+                         "revision": 0, "thumb": "data:image/png;base64," + __import__("base64").b64encode(self.P1).decode()}
+
+        def rodar(d, falha):
+            (d / "q.json").write_bytes(self.J0)
+            (d / "q.png").write_bytes(self.P0)
+            with falha:
+                status, corpo = self.pedir("PUT", "/api/boards/q", dados())
+            atual = json.loads((d / "q.json").read_bytes())
+            if status == 200:
+                self.assertEqual((atual["_rev"], atual["items"][0]["text"]), (1, "x"))
+                self.assertIn(sha(d / "q.png"), (sha_p1, None))
+                pacote = dados()
+                pacote["revision"] = 1
+            else:
+                self.assertEqual(status, 500, corpo)
+                self.assertEqual((d / "q.json").read_bytes(), self.J0)
+                self.assertEqual((d / "q.png").read_bytes(), self.P0)
+                pacote = dados()
+            self.assertEqual(self.pedir("PUT", "/api/boards/q", pacote)[0], 200)   # disco de volta
+            self.assertEqual(json.loads((d / "q.json").read_bytes())["items"][0]["text"], "x")
+            self.assertEqual(sha(d / "q.png"), sha_p1)
+        sha_p1 = __import__("hashlib").sha256(self.P1).hexdigest()
+        self.casos(rodar)
+
+    def test_salvar_so_a_miniatura(self):
+        corpo = {"thumb": "data:image/png;base64," + __import__("base64").b64encode(self.P1).decode()}
+
+        def rodar(d, falha):
+            (d / "q.json").write_bytes(self.J0)
+            (d / "q.png").write_bytes(self.P0)
+            with falha:
+                status, _ = self.pedir("PUT", "/api/thumbs/q", corpo)
+            esperado = self.P1 if status == 200 else self.P0
+            if status != 200:
+                self.assertEqual(status, 500)
+            self.assertEqual((d / "q.png").read_bytes(), esperado)
+            self.assertEqual((d / "q.json").read_bytes(), self.J0)
+            self.assertEqual(self.pedir("PUT", "/api/thumbs/q", corpo)[0], 200)
+            self.assertEqual((d / "q.png").read_bytes(), self.P1)
+        self.casos(rodar)
+
+    def test_excluir_quadro_com_miniatura(self):
+        def rodar(d, falha):
+            (d / "q.json").write_bytes(self.J0)
+            (d / "q.png").write_bytes(self.P0)
+            with falha:
+                status, corpo = self.pedir("DELETE", "/api/boards/q", None)
+            if status == 200:
+                nome = corpo["lixeira"]
+                self.assertEqual((d / "lixeira" / f"{nome}.json").read_bytes(), self.J0)
+                self.assertIn(sha(d / "lixeira" / f"{nome}.png"), (__import__("hashlib").sha256(self.P0).hexdigest(), None))
+                self.assertFalse((d / "q.png").exists())   # nada solto na galeria ocupando o id
+            else:
+                self.assertEqual(status, 500, corpo)
+                self.assertEqual(((d / "q.json").read_bytes(), (d / "q.png").read_bytes()), (self.J0, self.P0))
+                self.assertEqual(list((d / "lixeira").iterdir()), [])
+                status, corpo = self.pedir("DELETE", "/api/boards/q", None)
+                self.assertEqual(status, 200)
+                self.assertEqual((d / "lixeira" / f"{corpo['lixeira']}.png").read_bytes(), self.P0)
+            self.assertEqual(sorted(p.name for p in d.iterdir()), ["lixeira"])
+            soltas = [p for p in (d / "lixeira").glob("*.png") if not p.with_suffix(".json").is_file()]
+            self.assertEqual(soltas, [])
+        self.casos(rodar)
+
+    def test_restaurar_quadro_com_miniatura(self):
+        nome = "q_20261030-120000"
+
+        def rodar(d, falha, ocupado=False):
+            (d / "lixeira" / f"{nome}.json").write_bytes(self.J0)
+            (d / "lixeira" / f"{nome}.png").write_bytes(self.P0)
+            if ocupado:
+                (d / "q.json").write_bytes(b'{"title":"Outro","items":[]}')
+            with falha:
+                status, corpo = self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})
+            if status != 200:
+                self.assertEqual(status, 500, corpo)
+                self.assertEqual(((d / "lixeira" / f"{nome}.json").read_bytes(),
+                                  (d / "lixeira" / f"{nome}.png").read_bytes()), (self.J0, self.P0))
+                status, corpo = self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})
+                self.assertEqual(status, 200)
+                self.assertEqual((d / f"{corpo['id']}.png").read_bytes(), self.P0)
+            novo = corpo["id"]
+            self.assertEqual((d / f"{novo}.json").read_bytes(), self.J0)
+            self.assertIn((d / f"{novo}.png").read_bytes() if (d / f"{novo}.png").exists() else None, (self.P0, None))
+            self.assertEqual(list((d / "lixeira").iterdir()), [])
+            if ocupado:
+                self.assertNotEqual(novo, "q")
+                self.assertEqual((d / "q.json").read_bytes(), b'{"title":"Outro","items":[]}')
+                self.assertFalse((d / "q.png").exists())
+            soltas = [p for p in d.glob("*.png") if not p.with_suffix(".json").is_file()]
+            self.assertEqual(soltas, [])
+        self.casos(rodar)
+        self.casos(lambda d, falha: rodar(d, falha, ocupado=True))
+
+    def test_restaurar_nunca_deixa_o_quadro_nos_dois_lugares(self):
+        # mover entre pastas com shutil.move, se a troca falha, vira copiar e apagar: com o apagar falhando, o quadro
+        # ficava na galeria e na lixeira, e a nova tentativa fazia outra cópia
+        nome = "q_20261030-120000"
+        d = self.novo_lugar()
+        (d / "lixeira" / f"{nome}.json").write_bytes(self.J0)
+        with FalhaDeDisco(1, False), patch.object(os, "unlink", side_effect=OSError(13, "em uso (simulado)")), \
+                patch.object(os, "remove", side_effect=OSError(13, "em uso (simulado)")):
+            status, _ = self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})
+        self.assertEqual(status, 500)
+        self.assertEqual(list(d.glob("*.json")), [])
+        self.assertEqual(self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})[0], 200)
+        self.assertEqual([p.read_bytes() for p in d.glob("*.json")], [self.J0])
+
+    def test_morte_entre_mover_o_quadro_e_a_miniatura_nao_deixa_miniatura_solta(self):
+        # sem diário do par: o programa morto entre os dois movimentos (excluir e restaurar) deixa só a miniatura para
+        # trás; ao abrir, ela sai, e o id volta a ficar livre
+        d = self.novo_lugar()
+        lix = d / "lixeira"
+        for p, b in ((d / "solta.png", self.P0), (d / "q.json", self.J0), (d / "q.png", self.P0),
+                     (lix / "r_20261030-120000.png", self.P0), (lix / "s_20261030-120000.json", self.J0),
+                     (lix / "s_20261030-120000.png", self.P1), (d / "reservada.png", self.P1)):
+            p.write_bytes(b)
+        self.s.ID_RESERVADOS.add("reservada")   # uma publicação em andamento com esse id
+        try:
+            self.assertEqual(self.s.limpar_miniaturas_soltas(), 2)
+        finally:
+            self.s.ID_RESERVADOS.discard("reservada")
+        self.assertEqual(sorted(p.name for p in d.glob("*.png")), ["q.png", "reservada.png"])
+        self.assertEqual([p.name for p in lix.glob("*.png")], ["s_20261030-120000.png"])
+        self.assertEqual(((d / "q.png").read_bytes(), (lix / "s_20261030-120000.png").read_bytes()), (self.P0, self.P1))
+        with self.s.id_publicavel(iter(["solta", "outro"])) as novo:
+            self.assertEqual(novo, "solta")
+
+    def test_miniatura_que_chega_depois_de_excluir_nao_fica_solta(self):
+        # a existência do quadro era conferida antes da trava: um excluir no meio deixava a miniatura na galeria
+        d = self.novo_lugar()
+        (d / "q.json").write_bytes(self.J0)
+        real = self.s.trava
+
+        def excluir_antes(bid):
+            if bid == "q" and (d / "q.json").exists():
+                os.replace(d / "q.json", d / "lixeira" / "q_20261030-120000.json")
+            return real(bid)
+        corpo = {"thumb": "data:image/png;base64," + __import__("base64").b64encode(self.P1).decode()}
+        with patch.object(self.s, "trava", side_effect=excluir_antes):
+            status, _ = self.pedir("PUT", "/api/thumbs/q", corpo)
+        self.assertEqual(status, 404)
+        self.assertEqual(list(d.glob("*.png")), [])
+
+    def test_trazer_quadro_sem_miniatura_nao_herda_uma_avulsa(self):
+        import io
+        import zipfile
+        d = self.novo_lugar()
+        (d / "q.png").write_bytes(self.P0)   # avulsa, de outro conteúdo
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("manifesto.json", json.dumps({"formato": 1}))
+            z.writestr("quadros/q.json", json.dumps({"title": "Do outro PC", "items": []}))
+        buf.seek(0)
+        self.assertEqual(self.s.trazer_pacote(buf)["trazidos"], 1)
+        self.assertTrue((d / "q.json").exists())
+        self.assertFalse((d / "q.png").exists())
+
+    def test_trazer_pacote_com_miniatura(self):
+        import io
+        import zipfile
+
+        def pacote():
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("manifesto.json", json.dumps({"formato": 1}))
+                z.writestr("quadros/q.json", json.dumps({"title": "Do outro PC", "items": []}))
+                z.writestr("quadros/q.png", self.P1)
+            buf.seek(0)
+            return buf
+
+        def rodar(d, falha, ocupado=False):
+            if ocupado:
+                (d / "q.json").write_bytes(self.J0)
+            with falha:
+                r = self.s.trazer_pacote(pacote())
+            vieram = [p for p in d.glob("*.json") if json.loads(p.read_bytes())["title"].startswith("Do outro PC")]
+            self.assertEqual(len(vieram), r["trazidos"] + r["copias"])
+            self.assertEqual(len(vieram) == 0, bool(r["falhas"]), r)   # o resumo diz a verdade
+            for p in vieram:
+                self.assertIn(sha(p.with_suffix(".png")), (sha_p1, None))
+            if ocupado:
+                self.assertEqual((d / "q.json").read_bytes(), self.J0)
+            r = self.s.trazer_pacote(pacote())   # disco de volta: chega ao quadro, sem cópia a mais
+            self.assertEqual(r["falhas"], [])
+            vieram = [p for p in d.glob("*.json") if json.loads(p.read_bytes())["title"].startswith("Do outro PC")]
+            self.assertEqual(len(vieram), 1)
+            soltas = [p for p in d.glob("*.png") if not p.with_suffix(".json").is_file()]
+            self.assertEqual(soltas, [])
+        sha_p1 = __import__("hashlib").sha256(self.P1).hexdigest()
+        self.casos(rodar)
+        self.casos(lambda d, falha: rodar(d, falha, ocupado=True))
 
 
 if __name__ == "__main__":

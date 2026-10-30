@@ -80,3 +80,8 @@ subprocess.run(["taskkill", "/PID", str(p.pid), "/F"], capture_output=True)
 sobras = [x.name for x in dados.iterdir() if x.is_file() and x.suffix not in (".json", ".png")]
 print("arquivos temporários sobrando:", sobras or "nenhum")
 print("RESULTADO:", "passou" if not falhas and not sobras else "FALHOU")
+# a pasta temporária do teste sai no fim (GIZ_MANTER=1 para guardar)
+if not os.environ.get("GIZ_MANTER"):
+    import shutil
+    time.sleep(1)
+    shutil.rmtree(tmp, ignore_errors=True)

@@ -808,5 +808,166 @@ console.log('Atualização pelo Sobre');
   });
 }
 
+console.log('Auditoria externa de 29/10/2026: salvamento com prazo máximo e limite de páginas');
+{
+  const S = await mod('salvar.js').catch(() => ({}));
+  teste('GL-M1: espera 500 ms de pausa, mas nunca mais de 3 s desde a primeira mudança', () => {
+    igual(typeof S.atrasoDeGravacao, 'function', 'atrasoDeGravacao existe');
+    igual(S.atrasoDeGravacao(1000, 1000), 500, 'mudança nova: espera a pausa de 500 ms');
+    igual(S.atrasoDeGravacao(3000, 1000), 500, 'aos 2 s de edição: ainda espera a pausa');
+    igual(S.atrasoDeGravacao(3800, 1000), 200, 'perto dos 3 s: só o que falta até o prazo');
+    igual(S.atrasoDeGravacao(4500, 1000), 0, 'passou dos 3 s: grava já');
+    // 30 mudanças a cada 100 ms (o ensaio do auditor): com o prazo, grava aos 3 s, sem esperar a pausa
+    let t = 0, desde = null, agendada = null, gravou = null;
+    for (let i = 0; i < 30 && gravou === null; i++, t += 100) {
+      if (desde === null) desde = t;
+      agendada = t + S.atrasoDeGravacao(t, desde);
+      if (agendada <= t + 100 && gravou === null) gravou = agendada;
+    }
+    igual(gravou !== null && gravou <= 3000, true, `gravou aos ${gravou} ms`);
+  });
+  const PG = await mod('pages.js');
+  teste('GL-M2: criar quadro respeita o mesmo limite de 500 páginas da importação e do PDF', () => {
+    igual(PG.makeLayout('a4', 501).count, 500, '501 vira 500');
+    igual(PG.makeLayout('a4', 500).count, 500, '500 fica');
+    igual(PG.makeLayout('a4', 0).count, 1, 'nunca menos de 1');
+  });
+}
+
+console.log('Importação: itens com geometria inválida ficam de fora (auditoria de 29/10/2026)');
+{
+  const V = R.itemValido;
+  teste('traço com pts=null, ímpar, com texto ou sem largura é recusado; o bom passa', () => {
+    igual(typeof V, 'function', 'itemValido existe');
+    igual(V({ type: 'stroke', pts: null, width: 3 }), false, 'pts null');
+    igual(V({ type: 'stroke', pts: [1, 2], width: 3 }), false, 'pts curto');
+    igual(V({ type: 'stroke', pts: [1, 2, 0.5, 'x', 3, 0.5], width: 3 }), false, 'pts com texto');
+    igual(V({ type: 'stroke', pts: [1, 2, 0.5], width: null }), false, 'sem largura');
+    igual(V({ type: 'stroke', pts: [1, 2, 0.5, 4, 5, 0.5], width: 3 }), true, 'traço bom');
+  });
+  teste('formas, textos, notas e imagens precisam de posição e tamanho em números', () => {
+    igual(V({ type: 'shape', kind: 'rect', x1: 0, y1: 0, x2: 5, y2: 5, width: 2 }), true, 'retângulo');
+    igual(V({ type: 'shape', kind: 'rect', x1: 0, y1: null, x2: 5, y2: 5, width: 2 }), false, 'retângulo sem y1');
+    igual(V({ type: 'shape', kind: 'polygon', pts: [0, 0, 5, 5, 9, 0], width: 2 }), true, 'polígono');
+    igual(V({ type: 'shape', kind: 'polygon', pts: null, width: 2 }), false, 'polígono sem pontos');
+    igual(V({ type: 'text', x: 1, y: 2, w: 100, text: 'a' }), true, 'texto');
+    igual(V({ type: 'text', x: 1, y: 'b', w: 100, text: 'a' }), false, 'texto sem y');
+    igual(V({ type: 'image', x: 0, y: 0, w: 10, h: Infinity }), false, 'imagem infinita');
+    igual(V({ type: 'note', x: 0, y: 0, w: 10, h: 10 }), true, 'nota');
+  });
+}
+
+// ------------------------------------------------------------------
+console.log('Fechar a janela própria (janela/src/main.rs)');
+{
+  // o script que a janela roda na página ao pedir para fechar, tirado do main.rs e rodado com respostas falsas:
+  // só `true` de window.gizAntesDeFechar conta como gravado; vazio, null ou erro perguntam antes de fechar
+  const rs = lerArq(path.join(raiz, '..', '..', 'janela', 'src', 'main.rs'), 'utf8');
+  const marca = n => rs.match(new RegExp(`const ${n}: &str = "([^"]+)"`))[1];
+  const js = rs.match(/j\.eval\(&format!\(\s*"(\(async[\s\S]*?\)\(\))"\)/)[1]
+    .replaceAll('{{', '{').replaceAll('}}', '}')
+    .replace('{MARCA_RECEBIDO}', marca('MARCA_RECEBIDO')).replace('{MARCA_FICA}', marca('MARCA_FICA'))
+    .replace('{MARCA_FECHAR}', marca('MARCA_FECHAR')).replace('{MARCA_PERGUNTA}', marca('MARCA_PERGUNTA'));
+  const rodar = async (antes, resposta) => {
+    const w = { gizAntesDeFechar: antes }, doc = { title: 'quadro' };
+    let perguntou = false, tituloNaPergunta = null;
+    const confirm = () => { perguntou = true; tituloNaPergunta = doc.title; return resposta; };
+    await new Function('window', 'document', 'confirm', 'setTimeout', `return ${js}`)(w, doc, confirm, () => {});
+    return { titulo: doc.title, perguntou, tituloNaPergunta };
+  };
+  const casos = {
+    gravou: await rodar(async () => true, false),
+    falhou: await rodar(async () => false, false),
+    vazio: await rodar(async () => undefined, false),
+    nulo: await rodar(async () => null, false),
+    erro: await rodar(async () => { throw new Error('x'); }, false),
+    vazioSim: await rodar(async () => undefined, true),
+    semEditor: await rodar(undefined, false),
+  };
+  teste('gravou: fecha sem perguntar', () => {
+    igual(casos.gravou.titulo, marca('MARCA_FECHAR'), 'título'); igual(casos.gravou.perguntou, false, 'perguntou');
+  });
+  teste('falhou, vazio, null ou erro: pergunta e, com "não", a janela fica', () => {
+    for (const k of ['falhou', 'vazio', 'nulo', 'erro']) {
+      igual(casos[k].perguntou, true, `${k} perguntou`); igual(casos[k].titulo, marca('MARCA_FICA'), `${k} título`);
+    }
+  });
+  // enquanto a pergunta está na tela, a janela sabe que a resposta é do professor e não fecha pelo prazo de 2 min
+  teste('durante a pergunta, o título avisa a janela (sem prazo para fechar)', () => {
+    igual(casos.falhou.tituloNaPergunta, marca('MARCA_PERGUNTA'), 'título durante a pergunta');
+  });
+  teste('vazio com "sim": fecha', () => igual(casos.vazioSim.titulo, marca('MARCA_FECHAR'), 'título'));
+  teste('página sem o editor (sem gizAntesDeFechar): fecha sem perguntar', () => {
+    igual(casos.semEditor.titulo, marca('MARCA_FECHAR'), 'título'); igual(casos.semEditor.perguntou, false, 'perguntou');
+  });
+}
+
+// ------------------------------------------------------------------
+console.log('Servidor aberto de novo com outro código (api.js)');
+{
+  // servidor de mentira: o código vale até "reabrir"; depois, o /api/info (com o cookie novo) entrega o código novo
+  let codigo = 'A', gravados = 0, faixa = null, botoes = 0;
+  const resp = (status, corpo = {}) => { const r = { status, ok: status < 300, json: async () => corpo }; r.clone = () => r; return r; };
+  globalThis.fetch = async (url, o = {}) => {
+    if (url === '/api/info') return resp(200, { token: codigo, app: 'giz-livre' });
+    if (o.headers?.['X-Lousa'] !== codigo) return resp(409, { sessao: true });
+    gravados++;
+    return resp(200, { revisao: gravados });
+  };
+  const doc = globalThis.document;
+  globalThis.document = { ...doc, getElementById: () => faixa, body: { appendChild: el => { faixa = el; } },
+    createElement: t => (t === 'canvas' ? doc.createElement(t) : t === 'button' ? (botoes++, {}) : { append() {}, set innerHTML(v) {}, hidden: true }) };
+  const api = await mod('api.js');
+  await api.initSession();
+  const put = () => api.wfetch('/api/boards/q1', { method: 'PUT', body: '{}' });
+  const r1 = await put();
+  codigo = 'B';   // o servidor caiu e voltou: código novo
+  const r2 = await put();
+  teste('com o código trocado, a página pega o novo e grava o pendente, sem a faixa de recarregar', () => {
+    igual(r1.status, 200, 'antes de reabrir'); igual(r2.status, 200, 'depois de reabrir'); igual(gravados, 2, 'gravados');
+    igual(faixa, null, 'faixa');
+  });
+  // duas gravações ao mesmo tempo com o código velho: as duas repetem com o novo (antes, só a primeira)
+  codigo = 'B2';
+  const [r4, r5] = await Promise.all([put(), put()]);
+  teste('duas gravações ao mesmo tempo com o código trocado: as duas gravam', () => {
+    igual(r4.status, 200, 'primeira'); igual(r5.status, 200, 'segunda'); igual(gravados, 4, 'gravados');
+    igual(faixa, null, 'faixa');
+  });
+  // um 409 que não é de sessão (conflito do próprio pedido) volta para quem chamou, sem renovar nem faixa
+  let infos = 0;
+  globalThis.fetch = async url => (url === '/api/info' ? (infos++, resp(200, { token: 'X' })) : resp(409, { erro: 'conflito' }));
+  const rc = await put();
+  teste('409 de conflito não é tratado como sessão perdida', () => {
+    igual(rc.status, 409, 'status'); igual(infos, 0, 'renovações'); igual(faixa, null, 'faixa');
+  });
+  codigo = 'C';
+  globalThis.fetch = async (url, o = {}) => (url === '/api/info' ? resp(200, { app: 'giz-livre' }) : resp(409, { sessao: true }));
+  const r3 = await put();
+  teste('sem acesso ao código novo, mostra a faixa sem "Recarregar" (recarregar perderia o pendente)', () => {
+    igual(r3.status, 409, 'status'); igual(!!faixa && faixa.hidden === false, true, 'faixa visível');
+    igual(botoes, 0, 'botão Recarregar');
+  });
+  globalThis.document = doc;
+}
+
+// ------------------------------------------------------------------
+console.log('Autoria igual no Sobre, no README e no AUTORES');
+{
+  const raizDoProjeto = path.join(raiz, '..', '..');
+  const so = s => s.replace(/\s+/g, ' ').trim();
+  const sobre = lerArq(path.join(raiz, 'ui.js'), 'utf8').match(/lin\('Como foi feito', '([^']+)'\)/)[1];
+  const paragrafo = f => so((lerArq(path.join(raizDoProjeto, f), 'utf8').match(/Desenvolvido por[\s\S]*?(?=\r?\n\r?\n|$)/) || [''])[0]);
+  teste('o Sobre cita Claude e Codex com o mesmo texto do README e do AUTORES', () => {
+    igual(so(sobre), paragrafo('README.md'), 'README'); igual(so(sobre), paragrafo('AUTORES.md'), 'AUTORES');
+    igual(/Claude, da Anthropic, e Codex, da OpenAI/.test(sobre), true, 'nomes');
+  });
+  // auditoria da rc.4 (GL-D06): o guia mandava recarregar depois do aviso, o que descartava o que não foi salvo
+  teste('o guia não manda recarregar depois do aviso de programa fechado', () => {
+    const linha = lerArq(path.join(raizDoProjeto, 'docs', 'GUIA-DE-USO.md'), 'utf8').split('\n').find(l => l.includes('o programa foi fechado')) || '';
+    igual(/sem recarregar/.test(linha) && !/recarregue/.test(linha), true, linha);
+  });
+}
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

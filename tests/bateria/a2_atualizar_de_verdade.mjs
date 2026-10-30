@@ -5,9 +5,10 @@
 //   node tests/bateria/a2_atualizar_de_verdade.mjs <porta> <versão esperada>
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtempSync, existsSync } from 'node:fs';
+import { mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { codigo, entrarNoNavegador } from '../acesso.mjs';
 
 const [PORTA, ESPERADA] = [process.argv[2] || '8765', process.argv[3]];
 const BASE = `http://127.0.0.1:${PORTA}`;
@@ -35,6 +36,7 @@ try {
   ws = new WebSocket(alvo.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
   ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { pend.get(m.id)?.(m); pend.delete(m.id); } };
   await cdp('Page.enable'); await cdp('Runtime.enable');
+  await entrarNoNavegador(cdp, BASE, (await codigo(BASE)));
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: 'window.close = () => {};' });
   await cdp('Page.navigate', { url: BASE + '/' });
   conferir('galeria abriu', !!await esperarAte(`!!document.getElementById('gAbout')`, 20000));
@@ -59,4 +61,6 @@ try {
 } catch (e) { falhas++; console.log('  ✗ parou: ' + e.message); }
 finally { try { ws?.close(); } catch {} nav?.kill(); }
 console.log(`\n${ok} conferências passaram, ${falhas} falharam`);
+// a pasta temporária do teste sai no fim, também com falha (GIZ_MANTER=1 para guardar)
+if (!process.env.GIZ_MANTER) try { rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + tmp); }
 process.exit(falhas ? 1 : 0);

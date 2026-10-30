@@ -37,15 +37,19 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.15.2**.
-
-> ⚠ Quem está na 1.14.2 ou 1.14.3: o **Baixar e instalar** do Sobre dessas versões não funciona. Baixe o instalador
-> abaixo e rode à mão uma vez; depois a atualização pelo programa volta a funcionar. Os quadros ficam como estão.
+Versão atual: **1.16.0**.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.15.2.exe**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.15.2/Instalar-GizLivre-1.15.2.exe) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.15.2-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.15.2/GizLivre-1.15.2-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.16.0.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.16.0/Instalar-GizLivre-1.16.0.zip) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.16.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.16.0/GizLivre-1.16.0-portatil.zip) |
+
+Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
+se instala, copia a pasta para a sua conta, sem pedir administrador, e cria os atalhos. Os quadros e ajustes
+continuam.
+
+> Quem está na 1.15 ou antes: atualize à mão uma vez, com o zip acima. O Sobre dessas versões só sabe baixar o
+> instalador antigo. Da 1.16.0 em diante, o Sobre atualiza sozinho de novo.
 
 Se o Windows avisar "o Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o
 programa é gratuito e não tem assinatura paga). Versões anteriores e a conferência dos arquivos ficam na
@@ -60,22 +64,28 @@ programa é gratuito e não tem assinatura paga). Versões anteriores e a confer
 > tipo**. Faça backup dos seus quadros. As marcas citadas pertencem aos seus donos; o Giz Livre é um projeto independente, sem vínculo com elas.
 
 ## Como baixar e instalar (Windows)
+
+As instruções abaixo descrevem a 1.16.0, com janela própria. A tabela de downloads acima permanece na última versão
+publicada; os links da versão nova serão atualizados quando ela for publicada.
+
 1. Abra a página de **[downloads (Releases)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)**.
 2. Baixe o arquivo que serve para você:
 
    | Arquivo | Para quem |
    |---|---|
-   | **`Instalar-GizLivre-x.y.z.exe`** ⭐ | **quase todo mundo.** Dois cliques e "Avançar": cria os atalhos e não pede senha de administrador |
+   | **`Instalar-GizLivre-x.y.z.zip`** ⭐ | **quase todo mundo.** Extraia o zip inteiro e abra o `GizLivre.exe` da pasta: ele pergunta se instala, cria os atalhos e não pede senha de administrador |
    | `GizLivre-x.y.z-portatil.zip` | quem quer levar num pendrive sem instalar: descompacte e abra `GizLivre.exe` |
    | Código-fonte | só para quem vai estudar ou modificar o programa |
 
-3. Abra pelo atalho **Giz Livre** na Área de Trabalho ou no Menu Iniciar.
+3. Depois de instalar, abra pelo atalho **Giz Livre** na Área de Trabalho ou no Menu Iniciar. O Python necessário
+   já vem no pacote; não é preciso instalar Python nem ter Edge ou Chrome. A janela usa o WebView2 do Windows.
+   Se o componente faltar, o programa orienta instalar o WebView2 oficial da Microsoft.
 
 O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa não tem assinatura digital paga. Clique em
 *Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
 `SHA256SUMS.txt` da mesma página (troque `x.y.z` pela versão que baixou):
 ```bash
-certutil -hashfile Instalar-GizLivre-x.y.z.exe SHA256
+certutil -hashfile Instalar-GizLivre-x.y.z.zip SHA256
 ```
 
 **Pelo winget** (gerenciador de pacotes do Windows), para quem prefere instalar pela linha de comando:
@@ -156,10 +166,12 @@ O pacote está em análise no catálogo da Microsoft; o comando passa a funciona
 | Abrir PDF | ✅ | ✅ | ✅ |
 | Escrita à mão → texto | ✅ (com o reconhecimento de escrita do idioma instalado no Windows) | ❌ (usa o reconhecedor do Windows) | ❌ |
 
-É preciso ter o **Microsoft Edge** ou o **Google Chrome/Chromium** instalado; o programa abre numa janela própria deles.
+No Windows, o Giz Livre abre em **janela própria, com Tauri e WebView2**. O componente WebView2 é necessário;
+Edge e Chrome instalados como navegadores não são requisitos. O Python oficial embutido acompanha o programa.
 
-Testado com Windows 11, Microsoft Edge e mesa Wacom Intuos. No Windows 10, em outros navegadores baseados em Chromium e
-com outras mesas digitalizadoras deve funcionar, mas não foi verificado.
+A janela própria foi testada automaticamente no Windows 11; caneta, pressão, toque, projetor, DPI e vários monitores
+nessa janela ainda dependem de homologação manual. As versões anteriores foram usadas com Wacom Intuos no Windows 11.
+O Windows 10 e outras mesas digitalizadoras ainda precisam de verificação nesta arquitetura.
 
 **Tamanho de apresentação testado:** até **200 slides** roda liso, inclusive num computador modesto; de 200 a 400
 slides roda bem num computador atual, mas num computador modesto o painel "Ver todas as páginas" e a vista afastada
@@ -202,11 +214,14 @@ driver dela.
 **É de graça mesmo?** Sim. É software livre (licença MIT): pode usar, copiar, instalar em quantos computadores quiser e
 distribuir.
 
-**Precisa de internet?** Não. Tudo funciona offline. O programa só acessa a internet quando você clica em **Procurar
-versão nova** no Sobre, e esse pedido ao GitHub não leva seus quadros nem dados pessoais.
+**Precisa de internet?** Não para trabalhar com os quadros. **Procurar versão nova**, no Sobre, consulta o GitHub;
+**Baixar e instalar** baixa o pacote de instalação. O WebView2 pode abrir conexão própria com a Microsoft, mesmo sem
+usar esses botões. Veja a seção Privacidade.
 
 **Como atualizo?** No **Sobre**, **Procurar versão nova**. Na versão instalada, **Baixar e instalar** baixa a versão nova
-daqui, confere o SHA-256 publicado, instala por cima e abre o programa de novo; os quadros ficam como estão.
+em zip daqui, confere o SHA-256 publicado, extrai, instala por cima e abre o programa de novo; os quadros ficam como
+estão. Quem usa a 1.15 ou anterior precisa fazer a primeira atualização para a janela própria à mão, extraindo o zip
+de instalação e abrindo o `GizLivre.exe`; o Sobre antigo só reconhece o instalador anterior.
 
 **Onde ficam os meus quadros?** Na versão instalada, em `Documentos\Giz Livre\quadros`. Na portátil e no Linux/macOS,
 na pasta `quadros` ao lado do programa. Para fazer backup, copie essa pasta.
@@ -239,15 +254,20 @@ lousa azul-escura, estilo aplicativo e o ícone antigo). Clique com o botão dir
 - **Recursos do sistema (opcionais):**
   - Windows Ink (caneta e reconhecimento de escrita);
   - PowerPoint (COM) ou LibreOffice para `.pptx`.
-- **Empacotamento:** PyInstaller e Inno Setup.
+- **Janela:** Tauri 2 (Rust) e WebView2 do Windows.
+- **Distribuição:** Python oficial embutido, servidor e interface acompanham o `GizLivre.exe`. O zip
+  `Instalar-GizLivre-x.y.z.zip` contém a pasta que se instala na conta do usuário; há também o zip portátil.
 
 Para entender o código, veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 ## Privacidade
 
-O Giz Livre não manda nada para a internet por conta própria. Ele só se conecta quando você clica em **Procurar versão
-nova**, no Sobre: aí consulta a página do programa no GitHub. Se você clicar em **Baixar e instalar**, ele baixa o
-instalador de lá e confere se o arquivo é o original antes de abrir.
+**Procurar versão nova**, no Sobre, consulta a página do programa no GitHub. **Baixar e instalar** baixa o zip de
+instalação e confere seu SHA-256 antes de extrair e executar.
+
+A janela usa o WebView2, componente da Microsoft que pode abrir conexão própria com a Microsoft. O programa reduz
+alguns gatilhos dessas conexões, mas isso não garante ausência de tráfego. O servidor do Giz Livre não envia quadros
+nessas consultas de atualização.
 
 Os quadros e os ajustes ficam só no seu computador. O programa funciona como um pequeno servidor que só atende o próprio
 computador; outros computadores da rede não conseguem abrir. Se a pasta dos quadros estiver dentro do OneDrive, quem
@@ -270,8 +290,11 @@ Programa de computador registrado no INPI (Instituto Nacional da Propriedade Ind
 O registro prova a autoria e a data; o programa continua livre, sob a licença MIT.
 
 ## Como foi feito
-Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de inteligência artificial, usados como
-ferramenta: a concepção, as decisões, a revisão e os testes são do autor, que responde pelo programa.
+Desenvolvido por Heraldo Antunes com apoio de assistentes de programação de inteligência artificial (Claude, da
+Anthropic, e Codex, da OpenAI), usados como ferramenta. A concepção, as decisões, a revisão e os testes são do autor,
+que responde pelo programa.
+
+A participação e a declaração de uso de IA estão em [AUTORES.md](AUTORES.md).
 
 ## Licença
 [MIT](LICENSE) © 2026 Heraldo Antunes. Há uma [tradução informativa para o português](docs/LICENCA-traducao-pt-BR.md);

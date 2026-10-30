@@ -6,12 +6,15 @@ Obrigado pelo interesse! O Giz Livre é software livre (MIT), feito para profess
   se possível, um print. Problemas de segurança vão pelo caminho descrito em [SECURITY.md](SECURITY.md).
 - **Propor uma melhoria:** descreva a situação de aula que ela resolve.
 - **Enviar código:**
-  1. Sem dependências novas, sem build e sem frameworks: JavaScript puro no navegador e Python só com biblioteca padrão.
+  1. Sem dependências novas e sem frameworks: a lousa (`app/`) é JavaScript puro, sem build, e o servidor
+     (`server.py`) usa só a biblioteca padrão do Python. A janela própria do Windows (`janela/`) é em Rust (Tauri 2,
+     WebView2) e é a única parte com build: `cargo build --locked --release` em `janela/`; o pacote para distribuir sai
+     de `python scripts/montar_janela.py`. Dependência nova do Rust só com motivo forte, e o `Cargo.lock` vai junto.
   2. Os itens do quadro são **imutáveis** (cada edição cria um objeto novo). O desfazer depende disso.
   3. Teste com `python server.py --sem-janela --porta 8799 --dados <pasta-temporária>`, para não mexer nos seus quadros.
   4. Antes do *pull request*, rode `node tests/testes.mjs` e `python -m unittest tests/test_server.py` (todos devem
-     passar) e `node --check` nos arquivos JS alterados. Mudança de comportamento vem com teste que falha sem ela. Para
-     entender o código, leia `docs/ARQUITETURA.md`.
+     passar) e `node --check` nos arquivos JS alterados; mexeu em `janela/`, rode também `cargo test --locked` lá.
+     Mudança de comportamento vem com teste que falha sem ela. Para entender o código, leia `docs/ARQUITETURA.md`.
   5. Textos da interface em português do Brasil, com acentuação correta.
 
 Ao contribuir, você concorda em licenciar a sua contribuição sob a licença MIT do projeto e em seguir o

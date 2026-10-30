@@ -1,5 +1,56 @@
 # Histórico de versões
 
+## 1.16.0 (30/10/2026)
+O Giz Livre ganha janela própria e não depende mais do Edge nem do Chrome.
+- **Janela própria:** a lousa abre numa janela do próprio programa (WebView2 do Windows), com o ícone do Giz Livre na
+  barra de tarefas. Uma pane do navegador do dia a dia (como as quedas do Edge de 28/10/2026, causadas por um módulo
+  de segurança de banco) não derruba mais a lousa. Fechar a janela espera o quadro terminar de salvar; se o salvamento
+  falhar, o programa pergunta antes de fechar.
+- **Instalação nova, sem pedir administrador:** o download agora é um zip. Extraia e abra o `GizLivre.exe` da pasta:
+  ele pergunta se instala, copia a pasta para a sua conta e cria os atalhos. Toma o lugar da versão anterior, e os
+  quadros e ajustes continuam. Quem está na 1.15 ou antes atualiza à mão uma vez (o Sobre dessas versões mostra o
+  link da página de downloads); da 1.16.0 em diante, o Sobre atualiza sozinho de novo.
+- **Menos alertas de antivírus:** o programa deixou de usar o PyInstaller e o Inno Setup, que levavam alertas falsos no
+  VirusTotal; o servidor roda no Python oficial do python.org, que vai junto. Os dois zips desta versão deram 0
+  alertas em 75 no VirusTotal.
+- **Menos conexão com a Microsoft:** ao abrir, a janela apaga o arquivo do perfil que fazia o WebView2 se conectar
+  com a Microsoft. Isso reduz, mas não impede: o componente da Microsoft ainda pode abrir uma conexão própria. O Giz
+  Livre não envia os quadros para fora do computador.
+- **Se o servidor cair, a lousa continua:** se o servidor interno do Giz Livre parar com a lousa aberta, a janela o
+  abre de novo sozinha, e o que foi escrito nesse meio tempo é salvo assim que ele volta, sem precisar recarregar. Se
+  ele não voltar, fechar a janela avisa antes que há algo sem salvar.
+- **Salvar com o disco falhando:** nos testes com falha de disco simulada em cada passo de gravar, excluir, restaurar e
+  trazer quadros, o quadro ficou como estava ou com o conteúdo novo, sem ficar pela metade nem nos dois lugares, e o
+  programa disse o que aconteceu. A miniatura da galeria pode sumir ou ficar desatualizada nesse caso; ela é refeita
+  ao fechar o quadro. Antes, uma falha na miniatura depois do quadro gravado podia dar um falso aviso de "quadro
+  alterado em outra janela".
+- **Atualização segura:** a versão nova é preparada e conferida inteira antes de tocar na instalada; se algo falhar no
+  meio, a versão anterior é devolvida. Se a atualização for interrompida, a próxima instalação termina de devolver a
+  anterior antes de qualquer outra coisa, sem misturar as duas. Isso foi testado nos testes da instalação, com falha e
+  com parada simulada depois de cada passo da troca; com o programa exato no Windows e com corte de energia de verdade,
+  ainda não. Para atualizar ou desinstalar, o Giz Livre espera o quadro terminar de
+  salvar e nunca fecha à força uma lousa aberta: se o professor preferir não fechar, nada é mudado.
+- **Limitação conhecida:** se a janela for fechada no primeiro segundo, enquanto ainda está sendo criada, ela pode
+  reaparecer uma vez; basta fechar de novo.
+- **Falha ao abrir:** se a janela não puder ser criada (por exemplo, depois de uma queda), o programa tenta de novo e,
+  se não der, diz em português o que fazer, sem mensagem técnica.
+- **Levar quadros para outro computador:** se faltar uma imagem de um quadro, o aviso agora diz qual quadro, em vez de
+  dizer que deu tudo certo. Itens danificados de um arquivo trazido ficam de fora, e o resto do quadro vem.
+- **Outras correções da auditoria de 29/10/2026:** a limpeza de arquivos temporários não toca mais em arquivos de outros
+  programas; a importação de PowerPoint recusa arquivo preparado para travar o computador; os agentes de IA não derrubam
+  o programa com pedidos malformados; a desinstalação não fica pela metade se o programa estiver em uso.
+- **Privacidade em PC com várias contas do Windows** (laboratório com troca rápida de usuário): até aqui, qualquer
+  programa do computador, inclusive de outra conta, conseguia ler os quadros de quem estava com o Giz Livre aberto, e a
+  segunda conta que abria o programa fechava o da primeira. Agora nenhum quadro, imagem ou ajuste sai sem o código da
+  própria conta; a janela abre com uma chave de uso único; o código fica num arquivo do perfil da conta
+  (`%LOCALAPPDATA%\Giz Livre\conexao.json`), que o Giz na Tela e os agentes de IA leem; e a segunda conta usa outra
+  porta, sem derrubar a primeira.
+- **Projetor de 1024×768 e telas baixas:** a barra de desfazer cobria 6 botões da barra das canetas, entre eles as
+  Ferramentas do professor, e a barra de ferramentas da direita escondia o próprio botão de recolher atrás da de zoom.
+  Agora, quando não cabem, a barra de desfazer desce para a esquerda, a das canetas fica mais justa, a da direita sobe
+  (ou rola por dentro em telas de 600 px de altura) e a de zoom se afasta. Conferido em 1024×600, 1024×768, 1280×720,
+  1280×800, 1366×768 e 1920×1080, com o processador 6 vezes mais lento.
+
 ## 1.15.2 (29/10/2026)
 Correção.
 - **Arquivos temporários de uma queda brusca:** se o programa for interrompido no meio de um salvamento (falta de

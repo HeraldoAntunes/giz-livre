@@ -5,6 +5,9 @@ let TOKEN = '', INFO = {};
 export async function initSession() {
   const r = await fetch('/api/info');
   const j = await r.json();
+  // sem o cookie de acesso (página aberta à mão no navegador, ou por outra conta do Windows), o /api/info não traz o
+  // código e nenhum quadro é lido: quem chama mostra "abra pelo atalho"
+  if (!j.token) throw new Error('sem acesso');
   TOKEN = j.token || '';
   INFO = j;
   if (j.ocr_conferido === false) conferirOcr(5);
@@ -22,21 +25,53 @@ function conferirOcr(n) {
 }
 // recursos que dependem do sistema: { pptx: 'powerpoint' | 'libreoffice' | null, ocr: bool, ocr_idioma: 'pt-BR' | outro | null, sistema }
 export const serverInfo = () => INFO;
+// 409: o código mudou, porque o servidor foi aberto de novo (queda, reabertura pelo atalho). A página pede o código
+// novo, como ao abrir, e repete o pedido uma vez: o que estava por gravar grava sozinho. Antes, só mostrava
+// "Recarregue", e recarregar descartava o que não tinha sido salvo (validação no Linux, 30/10/2026).
+// Vários pedidos podem levar 409 ao mesmo tempo (duas gravações em andamento): cada um lembra o código que usou; se
+// outro já trouxe o novo, repete direto; se não, todos esperam a mesma renovação (auditoria da rc.2, GL-R01).
 export async function wfetch(url, opts = {}) {
-  const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Lousa': TOKEN } });
-  if (r.status === 409) sessionLost('O Giz Livre foi reaberto por outra janela ou cópia. Recarregue esta página para continuar salvando.');
+  const pedir = t => fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Lousa': t } });
+  const usado = TOKEN;
+  let r = await pedir(usado);
+  if (await deSessao(r) && (TOKEN !== usado || await renovarSessao(usado))) r = await pedir(TOKEN);
+  // sem "Recarregar": recarregar descartaria o que ainda não foi salvo (validação no Linux da rc.2)
+  if (await deSessao(r)) sessionLost('O Giz Livre foi aberto de novo e esta página perdeu o acesso. Abra o Giz Livre pelo atalho: o que não foi salvo continua nesta página.', false);
   return r;
+}
+// só o 409 de sessão (código trocado) leva a renovar; outro 409 é conflito do próprio pedido e vai para quem chamou
+async function deSessao(r) {
+  if (r.status !== 409) return false;
+  try { return (await r.clone().json()).sessao === true; } catch { return false; }
+}
+let renovando = null;
+function renovarSessao(antigo) {
+  renovando ||= (async () => {
+    try {
+      const j = await (await fetch('/api/info')).json();
+      if (!j.token || j.token === antigo) return false;
+      TOKEN = j.token;
+      Object.assign(INFO, j);
+      const b = document.getElementById('banner');
+      if (b) b.hidden = true;   // o aviso de programa fechado já não vale
+      return true;
+    } catch { return false; } finally { renovando = null; }
+  })();
+  return renovando;
 }
 export function tokenHeader() { return { 'X-Lousa': TOKEN }; }
 // a página já recebeu o token? (antes disso, um pedido de escrita volta 409 e pareceria "sessão perdida")
 export const temSessao = () => !!TOKEN;
-export function sessionLost(msg) {
+export function sessionLost(msg, recarregar = true) {
   let b = document.getElementById('banner');
   if (!b) { b = document.createElement('div'); b.id = 'banner'; document.body.appendChild(b); }
   b.innerHTML = '';
   const t = document.createElement('span'); t.textContent = msg;
-  const btn = document.createElement('button'); btn.textContent = 'Recarregar'; btn.onclick = () => location.reload();
-  b.append(t, btn);
+  b.append(t);
+  if (recarregar) {
+    const btn = document.createElement('button'); btn.textContent = 'Recarregar'; btn.onclick = () => location.reload();
+    b.append(btn);
+  }
   b.hidden = false;
 }
 export async function listBoards() {
@@ -100,7 +135,7 @@ export async function renameBoard(id, title) {
 // move para a lixeira; devolve o nome do item na lixeira (para o "Desfazer") ou null
 export async function deleteBoard(id) {
   const r = await wfetch('/api/boards/' + id, { method: 'DELETE' });
-  if (!r.ok) throw new Error('Falha ao excluir');
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || 'Falha ao excluir');
   return (await r.json()).lixeira || null;
 }
 

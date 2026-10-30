@@ -12,6 +12,7 @@ import { mkdtempSync, existsSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { codigo, entrarNoNavegador } from './acesso.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 // GIZ_NAVEGADOR=<caminho>: outro navegador Chromium (ex.: o Chrome, num PC em que o Edge está caindo)
@@ -58,7 +59,7 @@ try {
   if (!EDGE) throw new Error('Microsoft Edge não encontrado');
   servidor = spawn('python', [join(RAIZ, 'server.py'), '--sem-janela', '--porta', String(PORTA), '--dados', DADOS], { stdio: 'ignore' });
   for (let t = 0; t < 100 && !token; t++) {
-    try { token = (await (await fetch(BASE + '/api/info')).json()).token; } catch { await espera(100); }
+    try { token = await codigo(BASE, DADOS); } catch { await espera(100); }
   }
   if (!conferir('o servidor temporário abriu', !!token)) throw new Error('sem servidor');
   const VERSAO = (await (await fetch(BASE + '/api/info')).json()).versao;
@@ -95,6 +96,7 @@ try {
     }
   };
   await cdp('Runtime.enable'); await cdp('Page.enable');
+  await entrarNoNavegador(cdp, BASE, token);
   await cdp('Fetch.enable', { patterns: [{ urlPattern: '*/api/atualizacao/*' }] });
   // fechar a janela depois de mandar instalar encerraria o teste: o window.close vira um aviso guardado
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: 'window.close = () => { window.__fechou = true; };' });
@@ -125,7 +127,7 @@ try {
   try { ws?.close(); } catch {}
   edge?.kill(); servidor?.kill();
   await espera(800);
-  try { rmSync(pastaTmp, { recursive: true, force: true }); } catch {}
+  try { rmSync(pastaTmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + pastaTmp); }
 }
 console.log(`\n${ok} conferências passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

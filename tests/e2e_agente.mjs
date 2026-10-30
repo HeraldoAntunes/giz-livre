@@ -11,6 +11,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync, mkdirSync
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { codigo, entrarNoNavegador } from './acesso.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MANTER = process.argv.includes('--manter');
@@ -112,6 +113,7 @@ async function iniciarEdge() {
       errosConsole.push('log: ' + m.params.entry.text + ' ' + (m.params.entry.url || ''));
   };
   await cdp('Runtime.enable'); await cdp('Log.enable'); await cdp('Page.enable');
+  await entrarNoNavegador(cdp, BASE, tokenPagina);
 }
 function cdp(method, params = {}) {
   const id = ++nCdp;
@@ -154,7 +156,7 @@ try {
   servidor = spawn('python', [join(RAIZ, 'server.py'), '--sem-janela', '--porta', String(PORTA), '--dados', DADOS],
     { stdio: 'ignore' });
   for (let t = 0; t < 100 && !tokenPagina; t++) {
-    try { tokenPagina = (await (await fetch(BASE + '/api/info')).json()).token; } catch { await espera(100); }
+    try { tokenPagina = await codigo(BASE, DADOS); } catch { await espera(100); }
   }
   if (!conferir('o servidor temporário abriu (porta ' + PORTA + ')', !!tokenPagina)) throw new Error('sem servidor');
   const ag0 = await pagina('/api/agentes');
@@ -387,6 +389,7 @@ try {
   console.log(`\n${ok} passaram, ${falhas} falharam`);
   console.log('Capturas e relatório: ' + SAIDA + (MANTER ? '\nDados mantidos em: ' + DADOS : ''));
   await espera(500);
-  if (!MANTER) { try { rmSync(DADOS, { recursive: true, force: true }); rmSync(join(pastaTmp, 'perfil-edge'), { recursive: true, force: true }); } catch {} }
+  // a pasta temporária inteira sai no fim, também com falha (--manter para guardar as capturas e os dados)
+  if (!MANTER) { try { rmSync(pastaTmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + pastaTmp); } }
   process.exit(falhas ? 1 : 0);
 }

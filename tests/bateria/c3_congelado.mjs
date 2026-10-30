@@ -5,10 +5,11 @@
 //   node tests/bateria/c3_congelado.mjs [minutos=15]      (GIZ_NAVEGADOR=<chrome.exe> para usar outro navegador)
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtempSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { codigo, entrarNoNavegador } from '../acesso.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MIN = Number(process.argv[2] || 15);
@@ -33,7 +34,7 @@ const vivo = async () => srv.exitCode === null && srv.signalCode === null;
 try {
   console.log(`C3/C5: página congelada ${MIN} min com traço não salvo (${hora()})`);
   srv = spawn('python', [join(RAIZ, 'tests', 'bateria', 'servidor_sem_janela_com_vigia.py'), '--porta', String(PORTA), '--dados', DADOS], { stdio: 'ignore' });
-  let token; for (let t = 0; t < 100 && !token; t++) { try { token = (await (await fetch(BASE + '/api/info')).json()).token; } catch { await espera(100); } }
+  let token; for (let t = 0; t < 100 && !token; t++) { try { token = await codigo(BASE, DADOS); } catch { await espera(100); } }
   conferir('servidor com vigia no ar', !!token);
   await fetch(BASE + '/api/boards/c3quadro', { method: 'PUT', headers: { 'X-Lousa': token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ board: { title: 'C3', items: [] }, revision: 0 }) });
@@ -44,6 +45,7 @@ try {
   ws = new WebSocket(alvo.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
   ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { pend.get(m.id)?.(m); pend.delete(m.id); } };
   await cdp('Page.enable'); await cdp('Runtime.enable');
+  await entrarNoNavegador(cdp, BASE, token);
   await cdp('Page.navigate', { url: `${BASE}/#/b/c3quadro` });
   await espera(4000);
   await avaliar(`[...document.querySelectorAll('button')].find(b => ['Começar','Pular'].includes(b.textContent.trim()))?.click()`);
@@ -71,4 +73,6 @@ try {
 } catch (e) { falhas++; console.log('  ✗ parou: ' + e.message); }
 finally { try { ws?.close(); } catch {} nav?.kill(); srv?.kill(); }
 console.log(`\n${ok} conferências passaram, ${falhas} falharam (${hora()})`);
+// a pasta temporária do teste sai no fim, também com falha (GIZ_MANTER=1 para guardar)
+if (!process.env.GIZ_MANTER) try { rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + tmp); }
 process.exit(falhas ? 1 : 0);
