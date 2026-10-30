@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Giz Livre
+GenericName=Lousa digital
+GenericName[pt_BR]=Lousa digital
+Comment=Lousa digital livre e offline para aulas
+Comment[pt_BR]=Lousa digital livre e offline para aulas
+Keywords=lousa;quadro;aula;giz;professor;whiteboard;
+Exec=@EXEC@
+Icon=giz-livre
+Terminal=false
+StartupNotify=false
+Categories=Education;

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Depois de remover o pacote: só avisa. Os quadros ficam na pasta pessoal de cada conta e nunca são apagados aqui.
+set -e
+case "$1" in
+  remove|purge)
+    echo "Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre"
+    echo "(ou em \$XDG_DATA_HOME/giz-livre) na pasta pessoal de cada conta. Para apagá-los, apague essa pasta."
+    ;;
+esac
+exit 0

@@ -1,0 +1,289 @@
+Giz Livre 1.16.0-rc.2 (commit 0105f8f) no Linux, 30/10/2026: saídas dos testes
+Ubuntu 24.04.5 LTS, núcleo 6.18.44-fc-v185, Node v22.22.0, Chromium 153.0.8010.12 (Playwright 1.63.0)
+
+== python3.13 -m unittest tests/test_server.py
+test_depois_de_atualizar_fecha_so_as_janelas_antigas (tests.test_server.AtualizacaoTests.test_depois_de_atualizar_fecha_so_as_janelas_antigas) ... skipped 'janelas do Windows'
+test_depois_de_atualizar_sem_janela_nova_nao_fecha_nada (tests.test_server.AtualizacaoTests.test_depois_de_atualizar_sem_janela_nova_nao_fecha_nada) ... skipped 'janelas do Windows'
+test_giz_livre_sh_sai_executavel_na_copia_publica (tests.test_server.ExportTests.test_giz_livre_sh_sai_executavel_na_copia_publica) ... skipped 'sem scripts/exportar_publico.py'
+test_only_safe_destinations_accepted (tests.test_server.ExportTests.test_only_safe_destinations_accepted) ... skipped 'sem scripts/exportar_publico.py'
+test_edge_caiu_reabre_no_edge_com_perfil_proprio (tests.test_server.FecharJanelaTests.test_edge_caiu_reabre_no_edge_com_perfil_proprio) ... skipped 'Edge do Windows'
+Ran 109 tests in 10.569s
+OK (skipped=5)
+
+== python3.12 -m unittest tests/test_server.py
+Ran 109 tests in 9.719s
+OK (skipped=5)
+
+== python3.11 -m unittest tests/test_server.py
+Ran 109 tests in 9.847s
+OK (skipped=5)
+
+== python3.10 -m unittest tests/test_server.py
+Ran 109 tests in 10.157s
+OK (skipped=5)
+
+== node tests/testes.mjs
+123 testes passaram, 0 falharam
+
+== node tests/linux/agente_no_chromium.mjs (tests/e2e_agente.mjs com Chromium no lugar do Edge)
+60 passaram, 0 falharam
+
+== GIZ_NAVEGADOR=chromium node tests/e2e_atualizacao.mjs
+11 conferências passaram, 0 falharam
+
+== GIZ_BROWSER=chromium node tests/formas_visual.mjs
+Formas desenhadas no Edge: 3527 formas e 41 especiais (30 s)
+10 problema(s):
+  ✗ nut-colheres: texto fora da caixa: sobremesa (5.1)
+  ✗ nut-get: texto fora da caixa: Atividade física (2.5)
+  ✗ edf-eixos: texto fora da caixa: anteroposterior (1.4)
+  ✗ por-sub-substantivas: texto fora da caixa: completivas nominais (5)
+  ✗ por-estrutura-verbo: texto fora da caixa: VT: vogal temática · DMT: modo-tempo (5.8)
+  ✗ por-dialogo: texto fora da caixa: o travessão marca a fala do personagem (22.4)
+  ✗ por-paragrafo: texto fora da caixa: desenvolvimento (2.6)
+  ✗ por-narrador: texto fora da caixa: 1ª pessoa: personagem (4.8)
+  ✗ geo-zonas-termicas: texto fora da caixa: Temperada (4.3), Temperada (4.3)
+  ✗ geo-rio-planta: texto fora da caixa: nascente (1.2)
+
+== python3 tests/linux/queda_gravacao.py
+rodada  1: ok  no disco: gravação 1011; última confirmada: 1011; temporários sobrando: 0
+rodada  2: ok  no disco: gravação 2011; última confirmada: 2011; temporários sobrando: 0
+rodada  3: ok  no disco: gravação 3009; última confirmada: 3009; temporários sobrando: 0
+rodada  4: ok  no disco: gravação 4006; última confirmada: 4006; temporários sobrando: 0
+rodada  5: ok  no disco: gravação 5004; última confirmada: 5004; temporários sobrando: 0
+rodada  6: ok  no disco: gravação 6011; última confirmada: 6011; temporários sobrando: 0
+rodada  7: ok  no disco: gravação 7009; última confirmada: 7009; temporários sobrando: 0
+rodada  8: ok  no disco: gravação 8014; última confirmada: 8014; temporários sobrando: 0
+rodada  9: ok  no disco: gravação 9010; última confirmada: 9010; temporários sobrando: 0
+rodada 10: ok  no disco: gravação 10006; última confirmada: 10006; temporários sobrando: 0
+rodada 11: ok  no disco: gravação 11003; última confirmada: 11003; temporários sobrando: 0
+rodada 12: ok  no disco: gravação 12009; última confirmada: 12009; temporários sobrando: 0
+rodada 13: ok  no disco: gravação 13003; última confirmada: 13003; temporários sobrando: 0
+rodada 14: ok  no disco: gravação 14007; última confirmada: 14007; temporários sobrando: 0
+rodada 15: ok  no disco: gravação 15008; última confirmada: 15008; temporários sobrando: 0
+rodada 16: ok  no disco: gravação 16005; última confirmada: 16005; temporários sobrando: 0
+rodada 17: ok  no disco: gravação 17010; última confirmada: 17010; temporários sobrando: 0
+rodada 18: ok  no disco: gravação 18008; última confirmada: 18008; temporários sobrando: 0
+rodada 19: ok  no disco: gravação 19008; última confirmada: 19008; temporários sobrando: 0
+rodada 20: ok  no disco: gravação 20007; última confirmada: 20007; temporários sobrando: 0
+
+20 rodadas passaram, 0 falharam (pasta: /tmp/giz-queda-eg1mfwbi)
+
+== node tests/linux/e2e_linux.mjs chromium (e2e_chromium_313)
+
+Giz Livre no Linux: chromium 153.0.8010.12, Python do servidor: Python 3.13.17
+
+1. Criar um quadro e desenhar
+  ✓ a chave de uso único saiu do endereço
+  ✓ a galeria abriu
+  ✓ quadro novo criado e aberto
+  ✓ dois traços de caneta no quadro
+
+2. Texto, fórmula LaTeX e forma
+  ✓ texto escrito
+  ✓ fórmula LaTeX inserida como imagem
+  ✓ retângulo desenhado
+  ✓ elipse desenhada
+
+3. Salvar, fechar e reabrir
+  ✓ o quadro mostra "Salvo"
+  ✓ no disco: 2 traços, texto, fórmula e 2 formas
+  ✓ reaberto com os 6 itens
+  ✓ a imagem da fórmula volta do servidor
+  ✓ sem o código, a imagem não sai do servidor
+
+4. Exportar PDF
+  ✓ PDF baixado
+
+5. Importar um backup (zip do "Levar quadros" feito em outra pasta)
+  ✓ backup fictício gerado pelo próprio programa
+  ✓ o diálogo diz que 1 quadro foi trazido
+  ✓ o quadro do backup aparece na lista
+  ✓ "Guardar todos" baixa o zip
+
+6. Matar o servidor no meio de uma gravação e reabrir
+  ✓ o servidor foi morto durante a gravação
+  ✓ a página avisa que não salvou
+  ✓ o arquivo do quadro continua inteiro (JSON válido)
+  ✓ o quadro no disco não perdeu nada do que já estava salvo
+  ✓ o servidor reabriu com a mesma pasta e a mesma porta
+    (servidor de volta sem janela nova: status "Erro ao salvar — tentando de novo", faixa: "O Giz Livre foi reaberto por outra janela ou cópia. Recarregue esta página para continuar salvando.", itens no disco: 6, antes: 6)
+    (depois de abrir outra janela: status "Salvo", faixa de recarregar: não, itens no disco: 7)
+  ✓ o traço feito durante a queda chegou ao disco sem recarregar a página
+  ✓ a faixa de recarregar sumiu e o quadro mostra "Salvo"
+  ✓ reaberto depois da queda sem perder o quadro
+  ✓ nem o traço feito durante a queda se perdeu
+  ✓ console sem erros além dos da queda do servidor
+
+28 conferências passaram, 0 falharam
+exit 0
+
+== node tests/linux/e2e_linux.mjs chromium (e2e_chromium_310)
+
+Giz Livre no Linux: chromium 153.0.8010.12, Python do servidor: Python 3.10.20
+
+1. Criar um quadro e desenhar
+  ✓ a chave de uso único saiu do endereço
+  ✓ a galeria abriu
+  ✓ quadro novo criado e aberto
+  ✓ dois traços de caneta no quadro
+
+2. Texto, fórmula LaTeX e forma
+  ✓ texto escrito
+  ✓ fórmula LaTeX inserida como imagem
+  ✓ retângulo desenhado
+  ✓ elipse desenhada
+
+3. Salvar, fechar e reabrir
+  ✓ o quadro mostra "Salvo"
+  ✓ no disco: 2 traços, texto, fórmula e 2 formas
+  ✓ reaberto com os 6 itens
+  ✓ a imagem da fórmula volta do servidor
+  ✓ sem o código, a imagem não sai do servidor
+
+4. Exportar PDF
+  ✓ PDF baixado
+
+5. Importar um backup (zip do "Levar quadros" feito em outra pasta)
+  ✓ backup fictício gerado pelo próprio programa
+  ✓ o diálogo diz que 1 quadro foi trazido
+  ✓ o quadro do backup aparece na lista
+  ✓ "Guardar todos" baixa o zip
+
+6. Matar o servidor no meio de uma gravação e reabrir
+  ✓ o servidor foi morto durante a gravação
+  ✓ a página avisa que não salvou
+  ✓ o arquivo do quadro continua inteiro (JSON válido)
+  ✓ o quadro no disco não perdeu nada do que já estava salvo
+  ✓ o servidor reabriu com a mesma pasta e a mesma porta
+    (servidor de volta sem janela nova: status "Erro ao salvar — tentando de novo", faixa: "O Giz Livre foi reaberto por outra janela ou cópia. Recarregue esta página para continuar salvando.", itens no disco: 6, antes: 6)
+    (depois de abrir outra janela: status "Salvo", faixa de recarregar: não, itens no disco: 7)
+  ✓ o traço feito durante a queda chegou ao disco sem recarregar a página
+  ✓ a faixa de recarregar sumiu e o quadro mostra "Salvo"
+  ✓ reaberto depois da queda sem perder o quadro
+  ✓ nem o traço feito durante a queda se perdeu
+  ✓ console sem erros além dos da queda do servidor
+
+28 conferências passaram, 0 falharam
+exit 0
+
+== node tests/linux/e2e_linux.mjs chromium (e2e_chromium_recarregar)
+
+Giz Livre no Linux: chromium 153.0.8010.12, Python do servidor: Python 3.13.17
+
+1. Criar um quadro e desenhar
+  ✓ a chave de uso único saiu do endereço
+  ✓ a galeria abriu
+  ✓ quadro novo criado e aberto
+  ✓ dois traços de caneta no quadro
+
+2. Texto, fórmula LaTeX e forma
+  ✓ texto escrito
+  ✓ fórmula LaTeX inserida como imagem
+  ✓ retângulo desenhado
+  ✓ elipse desenhada
+
+3. Salvar, fechar e reabrir
+  ✓ o quadro mostra "Salvo"
+  ✓ no disco: 2 traços, texto, fórmula e 2 formas
+  ✓ reaberto com os 6 itens
+  ✓ a imagem da fórmula volta do servidor
+  ✓ sem o código, a imagem não sai do servidor
+
+4. Exportar PDF
+  ✓ PDF baixado
+
+5. Importar um backup (zip do "Levar quadros" feito em outra pasta)
+  ✓ backup fictício gerado pelo próprio programa
+  ✓ o diálogo diz que 1 quadro foi trazido
+  ✓ o quadro do backup aparece na lista
+  ✓ "Guardar todos" baixa o zip
+
+6. Matar o servidor no meio de uma gravação e reabrir
+  ✓ o servidor foi morto durante a gravação
+  ✓ a página avisa que não salvou
+  ✓ o arquivo do quadro continua inteiro (JSON válido)
+  ✓ o quadro no disco não perdeu nada do que já estava salvo
+  ✓ o servidor reabriu com a mesma pasta e a mesma porta
+    (servidor de volta sem janela nova: status "Erro ao salvar — tentando de novo", faixa: "O Giz Livre foi reaberto por outra janela ou cópia. Recarregue esta página para continuar salvando.", itens no disco: 6, antes: 6)
+    (RECARREGAR: o navegador perguntou antes de sair: beforeunload; faixa depois de recarregar: "Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.")
+    (depois de abrir outra janela: status "", faixa de recarregar: sim, itens no disco: 6)
+  ✗ o traço feito durante a queda chegou ao disco sem recarregar a página: itens no disco: 6 (esperado 7); status ""
+  ✗ a faixa de recarregar sumiu e o quadro mostra "Salvo": faixa: true; status ""
+  ✓ reaberto depois da queda sem perder o quadro
+  ✗ nem o traço feito durante a queda se perdeu: 6 itens, esperado 7
+  ✓ console sem erros além dos da queda do servidor
+
+25 conferências passaram, 3 falharam
+exit 1
+
+== python3 tests/linux/auditoria_rc2.py
+Giz Livre: 1.16.0, Python 3.13.17, pasta /tmp/giz-auditoria-iskversw
+
+A. Importar backup com imagem corrompida
+  ✓ pacote com 1 quadro e 1 imagem montado pelo próprio programa
+  ✓ A1 imagem corrompida: o pedido responde 200 com o resumo
+  ✓ A1 a imagem é apontada como danificada
+  ✓ A1 o aviso diz qual quadro ficou sem imagem
+  ✓ A1 o quadro veio mesmo assim
+  ✓ A1 a imagem estragada não foi gravada
+  ✓ A2 arquivo que não é imagem: recusado como danificado, o quadro vem
+  ✓ A3 trazer o pacote bom depois traz a imagem que faltava
+  ✓ A servidor no ar e sem temporários
+
+B. trazido_de inválido
+  ✓ B1 pacote com trazido_de inválido: responde 200
+  ✓ B1 os 7 quadros vieram
+  ✓ B1 o trazido_de inválido saiu dos quadros gravados
+  ✓ B2 com quadros antigos de trazido_de inválido na pasta, trazer outro pacote funciona
+  ✓ B2 a galeria lista os quadros antigos
+  ✓ B3 trazer de novo o mesmo pacote não cria cópias
+  ✓ B servidor no ar
+
+C. PDF com dimensão NaN ou infinita
+  ✓ C0 página válida: devolve um PDF
+  ✓ C1 os 16 casos inválidos são recusados com 400
+  ✓ C servidor no ar
+
+D. ZIP com nomes duplicados
+  ✓ D quadro duplicado: recusado com 400 e mensagem clara
+  ✓ D manifesto duplicado: recusado com 400 e mensagem clara
+  ✓ D imagem duplicada: recusado com 400 e mensagem clara
+  ✓ D nada foi gravado
+  ✓ D servidor no ar
+
+E. Corpo HTTP menor que o Content-Length
+  ✓ E1 PUT de quadro com JSON completo mas corpo curto: 400 e nada gravado
+  ✓ E2 pacote (backup) com corpo curto: 400 e nada gravado
+  ✓ E3 imagem com corpo curto: 400
+  ✓ E4 PDF com corpo curto: 400
+  ✓ E5 cliente que para de mandar sem fechar: o resto do servidor continua respondendo
+    (E5: resposta ao cliente parado em 3.0 s: nenhuma; a conexão fica esperando)
+  ✓ E nada gravado e sem temporários
+
+F. Código (token) não ASCII
+    (status por código: PUT quadro, GET quadros, GET info, GET quadros com cookie, GET agente)
+    é (latin-1): (409, 401, 200, 401, 403)
+    é (UTF-8): (409, 401, 200, 401, 403)
+    ÿ: (409, 401, 200, 401, 403)
+    código certo + é: (409, 401, 200, 401, 403)
+    emoji: (409, 401, 200, 401, 403)
+  ✓ F nenhuma resposta 500 nem conexão cortada sem resposta
+  ✓ F escrita com código não ASCII recusada (409)
+  ✓ F leitura com código não ASCII recusada (401)
+  ✓ F /api/info com código não ASCII só diz a versão (200 sem código)
+  ✓ F nada gravado e servidor no ar
+
+G. Restaurações simultâneas
+  ✓ G1 12 pedidos simultâneos da mesma entrada: todos respondem
+    (G1 status: [200, 404, 404, 404, 404, 404, 404, 404, 404, 404, 404, 404])
+  ✓ G1 exatamente 1 restaura; os outros recebem erro recuperável (404 ou 409)
+  ✓ G1 o quadro volta uma vez só, sem cópia
+    (G2: 3 de 20 rodadas com alguma recusa; status recusados: ['409'])
+  ✓ G2 nenhuma versão se perdeu (voltou para a galeria ou ficou na lixeira)
+  ✗ G2 restaurar versões diferentes do mesmo quadro ao mesmo tempo: todas voltam (sem 409): 3 de 20 rodadas com 409 "conflito; tente de novo"
+  ✓ G servidor no ar e sem temporários
+    (Tracebacks na saída de erro: 1, dos quais 1 de conexão fechada pelo cliente do E5)
+  ✓ nenhum outro Traceback na saída de erro do servidor
+
+41 conferências passaram, 1 falharam (pasta: /tmp/giz-auditoria-iskversw)
