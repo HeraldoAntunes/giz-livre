@@ -1,8 +1,10 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Teste do pacote Linux: liga no Chromium que o launcher instalado abriu (sem janela, com porta de depuração) e, pela
 // interface, cria um quadro, desenha, escreve um texto e espera "Salvo". Depois fecha a janela, como o professor faria.
-// Rodar:  node tests/linux/pacote/quadro.mjs <porta-de-depuração> <nome-do-quadro>
+// Rodar:  node tests/linux/pacote/quadro.mjs <porta-de-depuração> <texto-do-quadro>
 // Imprime na última linha:  QUADRO <id>
+// Com REABRIR=<id>: não cria nada; acha o quadro <id> na galeria, clica nele e confere o traço e o texto.
+// Com CAPTURA=arquivo.png: grava a tela no fim (ou na falha).
 // Não sobe servidor nem navegador: quem sobe é o launcher (ver testar-pacotes.sh e dentro.sh).
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
@@ -60,6 +62,18 @@ await page.reload();
 await page.waitForSelector('#gallery:not([hidden])', { timeout: 20000 });
 
 try {
+if (process.env.REABRIR) {
+  ID = process.env.REABRIR;
+  const card = `#gallery .card[data-id="${ID}"]`;
+  const naGaleria = await page.waitForSelector(card, { timeout: 10000 }).then(() => true, () => false);
+  conferir('o quadro salvo antes aparece na galeria', naGaleria, ID);
+  await page.click(card);
+  await page.waitForSelector('#board:not([hidden])');
+  await page.waitForFunction(() => (window.__lousa?.S?.items || []).length > 0, null, { timeout: 15000 }).catch(() => {});
+  const itens = await page.evaluate(() => (window.__lousa?.S?.items || []).map(i => ({ type: i.type, text: i.text })));
+  conferir('reaberto com o traço', itens.some(i => i.type === 'stroke'));
+  conferir('reaberto com o texto', itens.some(i => i.type === 'text' && i.text === NOME), JSON.stringify(itens.map(i => i.text).filter(Boolean)));
+} else {
 await page.click('#gNew');
 await page.click('#pop [data-k="free"]');
 await page.waitForSelector('#board:not([hidden])');
@@ -82,7 +96,9 @@ conferir('texto no quadro', itens.some(i => i.type === 'text' && i.text === NOME
 const salvo = await page.waitForFunction(() => document.getElementById('bStatus')?.textContent.trim() === 'Salvo', null, { timeout: 15000 })
   .then(() => true, () => false);
 conferir('a página mostra "Salvo"', salvo, await page.textContent('#bStatus').catch(() => ''));
+}
 conferir('sem erro de JavaScript na página', erros.length === 0, erros.join(' | '));
+if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA }).catch(() => {});
 } catch (e) {
   conferir('roteiro na interface', false, String(e.message || e).split('\n')[0]);
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA }).catch(() => {});
