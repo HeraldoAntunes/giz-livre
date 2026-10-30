@@ -253,7 +253,17 @@ fn mover(de: &Path, para: &Path) -> io::Result<()> {
         let n = MOVIMENTOS.with(|m| { let n = m.get(); m.set(n + 1); n });
         if n < 64 && FALHAS.with(|f| f.get() >> n & 1 == 1) { return Err(io::Error::other("falha simulada")); }
     }
-    fs::rename(de, para)
+    // acesso negado (5) ou arquivo em uso (32) costuma ser antivírus ou indexador olhando um arquivo recém-copiado:
+    // tenta de novo por alguns segundos antes de dar a troca por falha (e desfazê-la)
+    let inicio = Instant::now();
+    loop {
+        match fs::rename(de, para) {
+            Err(e) if matches!(e.raw_os_error(), Some(5) | Some(32)) && inicio.elapsed() < Duration::from_secs(5) => {
+                std::thread::sleep(Duration::from_millis(200));
+            }
+            r => return r,
+        }
+    }
 }
 #[cfg(test)]
 fn queda_simulada() -> bool { QUEDA.with(|q| q.get()) }
@@ -1117,6 +1127,23 @@ mod testes {
     fn trava(p: &Path) -> fs::File {   // arquivo aberto sem dividir com ninguém: não se lê, não se move
         use std::os::windows::fs::OpenOptionsExt;
         fs::OpenOptions::new().read(true).share_mode(0).open(p).unwrap()
+    }
+
+    // antivírus ou indexador segurando por um instante um arquivo recém-copiado: a troca espera e tenta de novo, em vez
+    // de desistir no primeiro "acesso negado" (os testes da troca falharam assim no GitHub Actions da 1.16.0)
+    #[test]
+    fn mover_espera_arquivo_preso_por_um_instante() {
+        simular(0, false);
+        let base = std::env::temp_dir().join(format!("gizlivre-teste-preso-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(base.join("de")).unwrap();
+        fs::write(base.join("de/pythonw.exe"), "py").unwrap();
+        let preso = trava(&base.join("de/pythonw.exe"));
+        let solta = std::thread::spawn(move || { std::thread::sleep(std::time::Duration::from_millis(800)); drop(preso); });
+        mover(&base.join("de"), &base.join("para")).unwrap();
+        solta.join().unwrap();
+        assert_eq!(fs::read_to_string(base.join("para/pythonw.exe")).unwrap(), "py");
+        let _ = fs::remove_dir_all(base);
     }
 
     #[test]

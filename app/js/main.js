@@ -287,7 +287,7 @@ function createBoard() {
         board.novo = true;   // o editor oferece o estojo inicial ou pergunta sobre as canetas
         if (k === 'chalk') { board.background.color = '#20402f'; board.estojo = 'quadro-negro'; }
         if (curFolder) board.folder = curFolder;   // criado dentro da pasta aberta
-        await saveBoard(id, board, null);
+        await saveBoard(id, board, null, true);
         location.hash = '#/b/' + id;
       } catch (e) { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 5000); }
     });
@@ -301,7 +301,7 @@ async function createFromSlides(file) {
     if (curFolder) board.folder = curFolder;
     const id = newId();
     const c = await boardThumb(board);
-    await saveBoard(id, board, c.toDataURL('image/png'));
+    await saveBoard(id, board, c.toDataURL('image/png'), true);
     toast(`${board.layout.count} página(s) importada(s)`);
     location.hash = '#/b/' + id;
   } catch (e) { toast(e.message, 8000); }
@@ -332,7 +332,7 @@ function cardMenu(anchor, id) {
       delete data._rev;
       const nid = newId();
       const c = await boardThumb(data);
-      await saveBoard(nid, data, c.toDataURL('image/png'));
+      await saveBoard(nid, data, c.toDataURL('image/png'), true);
       refresh();
     });
     on('png', async () => {
@@ -434,7 +434,7 @@ async function usarForma(anchor, fid, gid) {
         const id = newId(), board = emptyBoard(autoTitle('Quadro'), null);
         board.novo = true;
         if (curFolder) board.folder = curFolder;
-        await saveBoard(id, board, null);
+        await saveBoard(id, board, null, true);
         formaAoAbrir = { quadro: id, forma: fid };
         location.hash = '#/b/' + id;
       } catch { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 5000); }
@@ -526,7 +526,7 @@ async function importFiles(files) {
       delete board._rev; // um arquivo importado começa uma revisão própria
       if (curFolder) board.folder = curFolder; else delete board.folder;   // entra na pasta aberta
       const c = await boardThumb(board);
-      await saveBoard(newId(), board, c.toDataURL('image/png'));
+      await saveBoard(newId(), board, c.toDataURL('image/png'), true);
       n++;
     } catch (e) { toast(e.message, 5000); }
   }

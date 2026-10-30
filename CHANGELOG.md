@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 1.16.1 (30/10/2026)
+Correções.
+- **Quadro trazido protegido:** um quadro trazido de outro computador (ou excluído e restaurado depois) podia, num
+  caso raro, ser gravado por cima por um quadro novo com o mesmo código. Agora o quadro novo nunca grava por cima de
+  um que já existe.
+- **Miniatura sempre do conteúdo atual:** se o programa caísse logo depois de salvar um quadro, a galeria podia
+  mostrar a miniatura de antes. Agora uma miniatura mais velha que o quadro não aparece, e uma nova é feita ao fechar
+  o quadro.
+- **Restaurar volta com o mesmo nome:** uma miniatura que não pôde ser apagada (por exemplo, presa pelo antivírus)
+  fazia o quadro restaurado da lixeira voltar com outro código. Os erros ao apagar agora ficam no registro do
+  programa (`giz-livre.log`).
+- **Atualização mais paciente:** se o antivírus segurar por um instante um arquivo recém-copiado, a atualização espera
+  alguns segundos e tenta de novo, em vez de desistir e desfazer a troca.
+
 ## 1.16.0 (30/10/2026)
 O Giz Livre ganha janela própria e não depende mais do Edge nem do Chrome.
 - **Janela própria:** a lousa abre numa janela do próprio programa (WebView2 do Windows), com o ícone do Giz Livre na

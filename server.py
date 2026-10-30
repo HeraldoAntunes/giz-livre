@@ -70,7 +70,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.16.0"
+VERSAO = "1.16.1"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -100,7 +100,9 @@ def trava(bid: str) -> threading.Lock:
 
 
 def id_ocupado(bid: str) -> bool:
-    return (DADOS / f"{bid}.json").exists() or (DADOS / f"{bid}.png").exists()
+    # só o quadro ocupa o id: uma miniatura que ficou para trás (o apagar dela falhou) prendia o id, e restaurar
+    # voltava com outro; quem publica tira a avulsa (id_publicavel), e a galeria não mostra miniatura mais velha
+    return (DADOS / f"{bid}.json").exists()
 
 
 @contextlib.contextmanager
@@ -120,6 +122,7 @@ def id_publicavel(candidatos):
             with trava(bid):
                 if id_ocupado(bid):
                     continue
+                apagar_ou_registrar(DADOS / f"{bid}.png")   # avulsa de antes: não vira a prévia do quadro novo
                 yield bid
                 return
         finally:
@@ -148,6 +151,31 @@ def gravar_atomico(caminho: Path, dados: bytes) -> None:
         raise
 
 
+def apagar_ou_registrar(arq: Path) -> bool:
+    """Apaga um arquivo que pode não existir. Se não der (antivírus ou indexador segurando), o erro vai para o
+    giz-livre.log em vez de sumir calado."""
+    try:
+        arq.unlink(missing_ok=True)
+        return True
+    except OSError as e:
+        registrar(e)
+        return False
+
+
+TOLERANCIA_MINIATURA = 2.0   # s: um pendrive em FAT32 guarda a hora do arquivo de 2 em 2 s
+
+
+def miniatura_vale(bid: str, atualizado_ms) -> bool:
+    """A miniatura só vale se não for mais velha que o conteúdo do quadro ("updated", que renomear ou mudar de pasta
+    não mexe). A página grava o quadro e só uns segundos depois a miniatura: uma queda no meio deixava a prévia de
+    antes na galeria. A que não vale não aparece, e a página faz outra ao fechar o quadro."""
+    try:
+        quando = (DADOS / f"{bid}.png").stat().st_mtime
+    except OSError:
+        return False
+    return quando >= numero(atualizado_ms) / 1000 - TOLERANCIA_MINIATURA
+
+
 def gravar_miniatura(bid: str, png: bytes) -> bool:
     """Grava a miniatura de um quadro que acabou de ser gravado. Ela é só a prévia da galeria (a página faz outra ao
     fechar o quadro): se falhar, o quadro continua gravado e o pedido não vira erro, que faria a página tentar de novo
@@ -158,8 +186,7 @@ def gravar_miniatura(bid: str, png: bytes) -> bool:
         return True
     except OSError as e:
         registrar(e)
-        with contextlib.suppress(OSError):
-            alvo.unlink(missing_ok=True)
+        apagar_ou_registrar(alvo)
         return False
 
 
@@ -172,8 +199,7 @@ def mover_miniatura(origem: Path, destino: Path) -> None:
         os.replace(origem, destino)
     except OSError as e:
         registrar(e)
-        with contextlib.suppress(OSError):
-            origem.unlink()
+        apagar_ou_registrar(origem)
 
 
 def limpar_miniaturas_soltas() -> int:
@@ -194,11 +220,8 @@ def limpar_miniaturas_soltas() -> int:
                 reservado = nome is None and bid in ID_RESERVADOS
             if reservado or png.with_suffix(".json").exists() or not png.is_file():
                 continue
-            try:
-                png.unlink()
+            if apagar_ou_registrar(png):
                 apagadas += 1
-            except OSError:
-                pass
     if apagadas:
         diario(f"apagadas {apagadas} miniaturas sem quadro deixadas por um encerramento brusco")
     return apagadas
@@ -296,8 +319,10 @@ def listar_quadros() -> list:
             continue
         try:
             # a miniatura muda sem o quadro mudar (e um quadro feito por agente só ganha a dele ao ser aberto):
-            # confere a cada listagem, fora do resumo guardado, para a galeria não pedir imagem que não existe
-            lista.append({**resumo_quadro(arq), "thumb": (DADOS / f"{arq.stem}.png").is_file()})
+            # confere a cada listagem, fora do resumo guardado, para a galeria não pedir imagem que não existe nem
+            # mostrar a de um conteúdo anterior
+            r = resumo_quadro(arq)
+            lista.append({**r, "thumb": miniatura_vale(arq.stem, r["updated"])})
             vistos.add(arq.stem)
         except Exception:
             continue
@@ -730,7 +755,11 @@ class Handler(SimpleHTTPRequestHandler):
             nome = rota[len("/thumbs/"):]
             bid = nome[:-4] if nome.endswith(".png") else ""
             arq = DADOS / f"{bid}.png"
-            if not ID_OK.match(bid) or not arq.exists():
+            try:
+                vale = ID_OK.match(bid) and miniatura_vale(bid, resumo_quadro(DADOS / f"{bid}.json")["updated"])
+            except (OSError, ValueError):
+                vale = False
+            if not vale:
                 self.send_response(404)
                 self.end_headers()
                 return
@@ -873,6 +902,10 @@ class Handler(SimpleHTTPRequestHandler):
             except (OSError, ValueError) as e:
                 registrar(e)
                 return self._json({"erro": "não foi possível verificar a revisão do quadro existente"}, 500)
+            # "criar" vem da galeria, com id novo: um quadro trazido por versões anteriores fica com _rev 0, e a
+            # revisão sozinha não separa criar de editar pela primeira vez (provas da 1.16.0, defeito A)
+            if pacote.get("criar") is True and arq.exists():
+                return self._json({"erro": "já existe um quadro com este id", "revision": atual.get("_rev", 0)}, 412)
             if revision != atual.get("_rev", 0):
                 return self._json({"erro": "quadro alterado em outra janela", "revision": atual.get("_rev", 0)}, 412)
             meta = atual.get("_meta", 0)
@@ -2073,7 +2106,9 @@ def trazer_pacote(arquivo) -> dict:
                     png = None
             titulo = board["title"]
             board["updated"] = int(numero(board.get("updated")) or time.time() * 1000)
-            board["_rev"] = 0
+            # revisão 1, como o quadro criado pela página ou pelo agente: na 0, um PUT de criação no mesmo id passava
+            # pela conferência de revisão e gravava por cima (provas da 1.16.0, defeito A)
+            board["_rev"] = 1
             try:
                 with trava(bid):
                     arq = DADOS / f"{bid}.json"
@@ -2095,8 +2130,7 @@ def trazer_pacote(arquivo) -> dict:
                         if png:
                             gravar_miniatura(bid, png)
                         else:   # uma avulsa de antes não vira a prévia deste quadro
-                            with contextlib.suppress(OSError):
-                                (DADOS / f"{bid}.png").unlink(missing_ok=True)
+                            apagar_ou_registrar(DADOS / f"{bid}.png")
                 if destino is None and (bid, original) in origens:
                     r["iguais"] += 1
                     continue

@@ -1477,7 +1477,8 @@ class PacoteTests(unittest.TestCase):
         r = self.srv.trazer_pacote(f)
         self.assertEqual((r["trazidos"], r["iguais"], r["copias"], r["imagens"], r["falhas"]), (2, 0, 0, 1, []))
         b = json.loads((self.srv.DADOS / "aula1.json").read_text(encoding="utf-8"))
-        self.assertEqual((b["title"], b["folder"], b["_rev"], b["updated"]), ("Aula 1", "Hidráulica", 0, 1000))
+        # revisão 1, como um quadro criado aqui: na 0, um PUT de criação no mesmo id gravava por cima
+        self.assertEqual((b["title"], b["folder"], b["_rev"], b["updated"]), ("Aula 1", "Hidráulica", 1, 1000))
         self.assertEqual((self.srv.DADOS / "assets" / nome).read_bytes(), self.PNG)
         self.assertEqual((self.srv.DADOS / "aula1.png").read_bytes(), self.PNG)
 
@@ -2639,6 +2640,106 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         self.assertEqual(self.s.trazer_pacote(buf)["trazidos"], 1)
         self.assertTrue((d / "q.json").exists())
         self.assertFalse((d / "q.png").exists())
+
+    # provas independentes da 1.16.0 (ramo provas-1.16.0), defeito A: o quadro trazido por pacote fica com _rev 0, e um
+    # PUT de criação com revision 0 no mesmo id o sobrescrevia sem 412 e sem lixeira
+    def trazer(self, d, bid="q", titulo="Do outro PC"):
+        import io
+        import zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("manifesto.json", json.dumps({"formato": 1}))
+            z.writestr(f"quadros/{bid}.json", json.dumps({"title": titulo, "items": []}))
+        buf.seek(0)
+        self.assertEqual(self.s.trazer_pacote(buf)["trazidos"], 1)
+        return (d / f"{bid}.json").read_bytes()
+
+    def test_criar_por_cima_de_quadro_trazido_da_412(self):
+        d = self.novo_lugar()
+        antes = self.trazer(d)
+        status, _ = self.pedir("PUT", "/api/boards/q", {"board": {"title": "Novo", "items": []}, "revision": 0,
+                                                        "criar": True})
+        self.assertEqual(status, 412)
+        self.assertEqual((d / "q.json").read_bytes(), antes)
+        # excluído e restaurado, continua protegido
+        nome = self.pedir("DELETE", "/api/boards/q", None)[1]["lixeira"]
+        self.assertEqual(self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})[1]["id"], "q")
+        status, _ = self.pedir("PUT", "/api/boards/q", {"board": {"title": "Novo", "items": []}, "revision": 0,
+                                                        "criar": True})
+        self.assertEqual(status, 412)
+        self.assertEqual((d / "q.json").read_bytes(), antes)
+
+    def test_criar_sem_o_pedido_explicito_tambem_nao_sobrescreve_quadro_trazido(self):
+        # o repro da nuvem (tests/provas/repro_revisao_zero.py): PUT com revision 0 e sem "criar"
+        d = self.novo_lugar()
+        antes = self.trazer(d)
+        self.assertEqual(self.pedir("PUT", "/api/boards/q", {"board": {"title": "Outro", "items": []}, "revision": 0})[0],
+                         412)
+        self.assertEqual((d / "q.json").read_bytes(), antes)
+
+    def test_abrir_quadro_trazido_e_salvar_continua_valendo(self):
+        d = self.novo_lugar()
+        self.trazer(d)
+        rev = json.loads((d / "q.json").read_bytes())["_rev"]   # a página salva com a revisão que leu
+        status, corpo = self.pedir("PUT", "/api/boards/q", {"board": {"title": "Editado", "items": []}, "revision": rev})
+        self.assertEqual((status, corpo.get("revision")), (200, rev + 1))
+        self.assertEqual(json.loads((d / "q.json").read_bytes())["title"], "Editado")
+        # trazido por uma versão anterior (revisão 0): abrir e salvar a primeira edição segue valendo
+        (d / "velho.json").write_text(json.dumps({"title": "Velho", "items": [], "_rev": 0}))
+        self.assertEqual(self.pedir("PUT", "/api/boards/velho", {"board": {"title": "V2", "items": []}, "revision": 0})[0],
+                         200)
+        status, _ = self.pedir("PUT", "/api/boards/novo1", {"board": {"title": "N", "items": []}, "revision": 0,
+                                                            "criar": True})
+        self.assertEqual(status, 200)   # criar num id livre segue valendo
+
+    # defeito B: a página grava o quadro e só uns segundos depois a miniatura; uma queda no meio deixava a miniatura
+    # velha na galeria, com o quadro novo
+    def envelhecer(self, png: Path, segundos: float):
+        t = time.time() - segundos
+        os.utime(png, (t, t))
+
+    def test_miniatura_mais_velha_que_o_quadro_nao_aparece(self):
+        d = self.novo_lugar()
+        self.assertEqual(self.pedir("PUT", "/api/boards/q", {"board": {"title": "Q", "items": []}, "revision": 0})[0], 200)
+        (d / "q.png").write_bytes(self.P0)
+        self.envelhecer(d / "q.png", 30)   # a miniatura de antes; o quadro acabou de mudar e o servidor caiu
+        self.assertFalse(next(b for b in self.s.listar_quadros() if b["id"] == "q")["thumb"])
+        self.assertEqual(self.pedir("GET", "/thumbs/q.png", None)[0], 404)
+        corpo = {"thumb": "data:image/png;base64," + __import__("base64").b64encode(self.P1).decode()}
+        self.assertEqual(self.pedir("PUT", "/api/thumbs/q", corpo)[0], 200)   # a página fez outra ao fechar
+        self.assertTrue(next(b for b in self.s.listar_quadros() if b["id"] == "q")["thumb"])
+
+    def test_miniatura_de_pendrive_com_hora_arredondada_vale(self):
+        # FAT32 guarda a hora do arquivo de 2 em 2 s: a miniatura gravada logo depois pode parecer um pouco mais velha
+        d = self.novo_lugar()
+        self.assertEqual(self.pedir("PUT", "/api/boards/q", {"board": {"title": "Q", "items": []}, "revision": 0})[0], 200)
+        (d / "q.png").write_bytes(self.P0)
+        self.envelhecer(d / "q.png", 1.5)
+        self.assertTrue(next(b for b in self.s.listar_quadros() if b["id"] == "q")["thumb"])
+
+    # defeito C: o erro do apagar era engolido sem registro, e uma miniatura que não saía prendia o id
+    def test_apagar_que_falha_vai_para_o_registro(self):
+        d = self.novo_lugar()
+        (d / "q.json").write_bytes(self.J0)
+        (d / "q.png").write_bytes(self.P0)
+        (d / "solta.png").write_bytes(self.P0)
+        erro = OSError(13, "em uso (simulado)")
+        with patch.object(self.s, "registrar") as reg, patch.object(Path, "unlink", side_effect=erro), \
+                FalhaDeDisco(1, True):
+            self.assertFalse(self.s.gravar_miniatura("q", self.P1))
+            self.assertEqual(self.s.limpar_miniaturas_soltas(), 0)
+        registrados = [c.args[0] for c in reg.call_args_list]
+        self.assertGreaterEqual(sum(e is erro for e in registrados), 2, registrados)
+
+    def test_miniatura_que_nao_saiu_nao_prende_o_id(self):
+        # excluir com a troca e o apagar da miniatura falhando deixava q.png na galeria, e restaurar voltava com outro id
+        d = self.novo_lugar()
+        (d / "lixeira" / "q_20261030-120000.json").write_bytes(self.J0)
+        (d / "q.png").write_bytes(self.P0)   # a que ficou para trás
+        status, corpo = self.pedir("POST", "/api/lixeira/restaurar", {"nome": "q_20261030-120000"})
+        self.assertEqual((status, corpo["id"], corpo["renomeado"]), (200, "q", False))
+        self.assertEqual((d / "q.json").read_bytes(), self.J0)
+        self.assertFalse((d / "q.png").exists())   # a avulsa não vira a prévia do quadro restaurado
 
     def test_trazer_pacote_com_miniatura(self):
         import io

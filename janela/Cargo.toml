@@ -1,7 +1,7 @@
 # Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE). Janela própria (P60): Tauri 2 com o WebView2
 [package]
 name = "giz-livre-janela"
-version = "1.16.0"
+version = "1.16.1"
 description = "Giz Livre: lousa digital livre, na janela própria do programa"
 authors = ["Heraldo Antunes"]
 edition = "2021"

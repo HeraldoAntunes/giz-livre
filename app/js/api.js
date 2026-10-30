@@ -86,15 +86,18 @@ export async function loadBoard(id) {
   return r.json();
 }
 
-export async function saveBoard(id, board, thumb) {
+// criar: quadro novo da galeria (id recém-sorteado); o servidor recusa se já houver um quadro com esse id, em vez de
+// gravar por cima de um trazido por pacote ou restaurado, que também ficam na revisão 0
+export async function saveBoard(id, board, thumb, criar = false) {
   const r = await wfetch('/api/boards/' + id, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: board.title, board, thumb, revision: board._rev || 0 }),
+    body: JSON.stringify({ title: board.title, board, thumb, revision: board._rev || 0, ...(criar ? { criar: true } : {}) }),
   });
   if (!r.ok) {
     const e = new Error(r.status === 412
-      ? 'Este quadro mudou em outra janela. Exporte sua edição como .lousa antes de recarregar.'
+      ? (criar ? 'Já existe um quadro com o mesmo código. Tente de novo.'
+        : 'Este quadro mudou em outra janela. Exporte sua edição como .lousa antes de recarregar.')
       : 'Falha ao salvar');
     e.conflict = r.status === 412;
     throw e;

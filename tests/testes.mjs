@@ -967,6 +967,14 @@ console.log('Autoria igual no Sobre, no README e no AUTORES');
     const linha = lerArq(path.join(raizDoProjeto, 'docs', 'GUIA-DE-USO.md'), 'utf8').split('\n').find(l => l.includes('o programa foi fechado')) || '';
     igual(/sem recarregar/.test(linha) && !/recarregue/.test(linha), true, linha);
   });
+  // provas da 1.16.0 (defeito A): quadro novo da galeria pede "criar", para nunca gravar por cima de um trazido ou
+  // restaurado (que ficam na revisão 0); o editor, que salva quadros que já existem, não pede
+  teste('quadro novo da galeria pede criar, e o editor não', () => {
+    const galeria = lerArq(path.join(raizDoProjeto, 'app', 'js', 'main.js'), 'utf8').split('\n').filter(l => /saveBoard\(/.test(l));
+    const editor = lerArq(path.join(raizDoProjeto, 'app', 'js', 'editor.js'), 'utf8').split('\n').filter(l => /saveBoard\(/.test(l));
+    igual(galeria.length > 0 && galeria.every(l => /, true\);/.test(l)), true, galeria.join('\n'));
+    igual(editor.some(l => /, true\);/.test(l)), false, editor.join('\n'));
+  });
 }
 
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
