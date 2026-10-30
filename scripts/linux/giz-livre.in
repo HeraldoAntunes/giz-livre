@@ -1,0 +1,62 @@
+#!/bin/sh
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Launcher do pacote Linux (montado por scripts/linux/montar-pacotes.sh). Sobe o servidor local com o Python 3 do
+# sistema e abre o Giz Livre no navegador. Sem Chrome, Chromium, Edge ou Brave, quem abre é o navegador padrão.
+#
+# Os quadros ficam em ${XDG_DATA_HOME:-~/.local/share}/giz-livre/quadros (ou na pasta de GIZ_LIVRE_DADOS).
+# O registro (giz-livre.log) e os ajustes (preferencias.json) ficam em ${XDG_DATA_HOME:-~/.local/share}/giz-livre.
+# Nada é gravado na pasta do programa.
+#
+# Uso: giz-livre [--porta 8765] [--sem-janela] [--dados PASTA] [--sem-auto-encerrar]
+
+PROGRAMA="@PROGRAMA@"
+
+avisar() {
+  echo "Giz Livre: $1" >&2
+  # aberto pelo menu não há terminal: mostra o aviso na tela, se der
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Giz Livre" "$1" 2>/dev/null
+  elif command -v zenity >/dev/null 2>&1; then
+    zenity --error --title="Giz Livre" --text="$1" 2>/dev/null
+  fi
+}
+
+# Python 3.10 ou mais novo: tenta primeiro os nomes com versão, depois python3
+PY=
+for nome in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
+  if command -v "$nome" >/dev/null 2>&1 &&
+     "$nome" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
+    PY=$nome
+    break
+  fi
+done
+if [ -z "$PY" ]; then
+  avisar "precisa do Python 3.10 ou mais novo. No Ubuntu ou Debian: sudo apt install python3"
+  exit 1
+fi
+if [ ! -f "$PROGRAMA/server.py" ]; then
+  avisar "não achei o programa em $PROGRAMA. Instale de novo."
+  exit 1
+fi
+
+TEM_DADOS=0
+for a in "$@"; do
+  case "$a" in --dados|--dados=*) TEM_DADOS=1 ;; esac
+done
+
+cd "$PROGRAMA" || exit 1
+export PYTHONDONTWRITEBYTECODE=1   # não tenta gravar __pycache__ na pasta do programa
+if [ "$TEM_DADOS" = 1 ]; then
+  exec "$PY" server.py "$@"
+fi
+
+case "$XDG_DATA_HOME" in
+  /*) BASE=$XDG_DATA_HOME ;;
+  *) BASE=$HOME/.local/share ;;   # vazia ou relativa: a especificação manda usar o padrão
+esac
+DADOS=${GIZ_LIVRE_DADOS:-$BASE/giz-livre/quadros}
+if ! mkdir -p "$DADOS"; then
+  avisar "não consegui criar a pasta dos quadros: $DADOS"
+  exit 1
+fi
+exec "$PY" server.py --dados "$DADOS" "$@"
