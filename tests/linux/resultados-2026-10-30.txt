@@ -1,0 +1,133 @@
+Giz Livre 1.15.2: saídas dos testes no Linux, 30/10/2026
+Ubuntu 24.04.5 LTS, Python 3.13.17 (venv), Node 22.22.0, Chromium 153.0.8010.12 (Playwright 1.63.0, sem janela)
+
+== python -m unittest tests/test_server.py -v (Python 3.13.17) ==
+test_depois_de_atualizar_fecha_so_as_janelas_antigas (tests.test_server.AtualizacaoTests.test_depois_de_atualizar_fecha_so_as_janelas_antigas) ... skipped 'janelas do Windows'
+test_depois_de_atualizar_sem_janela_nova_nao_fecha_nada (tests.test_server.AtualizacaoTests.test_depois_de_atualizar_sem_janela_nova_nao_fecha_nada) ... skipped 'janelas do Windows'
+test_only_safe_destinations_accepted (tests.test_server.ExportTests.test_only_safe_destinations_accepted) ... skipped 'sem scripts/exportar_publico.py'
+test_edge_caiu_reabre_no_edge_com_perfil_proprio (tests.test_server.FecharJanelaTests.test_edge_caiu_reabre_no_edge_com_perfil_proprio) ... FAIL
+======================================================================
+FAIL: test_edge_caiu_reabre_no_edge_com_perfil_proprio (tests.test_server.FecharJanelaTests.test_edge_caiu_reabre_no_edge_com_perfil_proprio)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/giz-livre/tests/test_server.py", line 1063, in test_edge_caiu_reabre_no_edge_com_perfil_proprio
+    self.assertEqual(abertos, [((), True)])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [(('edge',), True)] != [((), True)]
+
+First differing element 0:
+(('edge',), True)
+((), True)
+
+- [(('edge',), True)]
+?    -------
+
++ [((), True)]
+
+----------------------------------------------------------------------
+Ran 78 tests in 3.621s
+
+FAILED (failures=1, skipped=3)
+
+== node tests/testes.mjs ==
+112 testes passaram, 0 falharam
+
+== GIZ_NAVEGADOR=chromium node tests/e2e_atualizacao.mjs ==
+Atualização pelo Sobre, de ponta a ponta
+  ✓ o servidor temporário abriu
+  ✓ quadro de teste criado
+  ✓ o quadro abriu no Edge
+  ✓ o menu "…" tem Sobre o Giz Livre
+  ✓ o Sobre abriu
+  ✓ aparece a versão nova com o botão Baixar e instalar
+  ✓ as notas aparecem formatadas, sem ** nem "- "
+  ✓ Baixar e instalar chega a "Instalando a versão", sem mensagem de erro
+  ✓ o pedido de instalação saiu uma vez, levando o quadro aberto
+  ✓ o programa tentou fechar a janela antiga
+  ✓ console sem erros
+
+11 conferências passaram, 0 falharam
+
+== GIZ_BROWSER=chromium node tests/formas_visual.mjs ==
+Formas desenhadas no Edge: 3527 formas e 41 especiais (27 s)
+
+10 problema(s):
+  ✗ nut-colheres: texto fora da caixa: sobremesa (5.1)
+  ✗ nut-get: texto fora da caixa: Atividade física (2.5)
+  ✗ edf-eixos: texto fora da caixa: anteroposterior (1.4)
+  ✗ por-sub-substantivas: texto fora da caixa: completivas nominais (5)
+  ✗ por-estrutura-verbo: texto fora da caixa: VT: vogal temática · DMT: modo-tempo (5.8)
+  ✗ por-dialogo: texto fora da caixa: o travessão marca a fala do personagem (22.4)
+  ✗ por-paragrafo: texto fora da caixa: desenvolvimento (2.6)
+  ✗ por-narrador: texto fora da caixa: 1ª pessoa: personagem (4.8)
+  ✗ geo-zonas-termicas: texto fora da caixa: Temperada (4.3), Temperada (4.3)
+  ✗ geo-rio-planta: texto fora da caixa: nascente (1.2)
+
+== node tests/linux/e2e_linux.mjs chromium ==
+
+Giz Livre no Linux: chromium 153.0.8010.12, Python do servidor: Python 3.13.17
+
+1. Criar um quadro e desenhar
+  ✓ a galeria abriu
+  ✓ quadro novo criado e aberto
+  ✓ dois traços de caneta no quadro
+
+2. Texto, fórmula LaTeX e forma
+  ✓ texto escrito
+  ✓ fórmula LaTeX inserida como imagem
+  ✓ retângulo desenhado
+  ✓ elipse desenhada
+
+3. Salvar, fechar e reabrir
+  ✓ o quadro mostra "Salvo"
+  ✓ no disco: 2 traços, texto, fórmula e 2 formas
+  ✓ reaberto com os 6 itens
+  ✓ a imagem da fórmula volta do servidor
+
+4. Exportar PDF
+  ✓ PDF baixado
+
+5. Importar um backup (zip do "Levar quadros" feito em outra pasta)
+  ✓ backup fictício gerado pelo próprio programa
+  ✓ o diálogo diz que 1 quadro foi trazido
+  ✓ o quadro do backup aparece na lista
+  ✓ "Guardar todos" baixa o zip
+
+6. Matar o servidor no meio de uma gravação e reabrir
+  ✓ o servidor foi morto durante a gravação
+  ✓ a página avisa que não salvou
+  ✓ o arquivo do quadro continua inteiro (JSON válido)
+  ✓ o quadro no disco não perdeu nada do que já estava salvo
+  ✓ o servidor reabriu com a mesma pasta
+    (depois de reabrir: status "Erro ao salvar — tentando de novo", aviso de recarregar: sim, itens no disco: 6, antes: 6)
+  ✗ o traço feito durante a queda chegou ao disco sem recarregar a página: itens no disco: 6 (esperado 7); status "Erro ao salvar — tentando de novo"; aviso de recarregar: sim
+    (clicou em "Recarregar"; o navegador perguntou antes de sair: beforeunload)
+  ✓ reaberto depois da queda sem perder o quadro
+  ✗ nem o traço feito durante a queda se perdeu: 6 itens, esperado 7
+  ✓ console sem erros além dos da queda do servidor
+
+23 conferências passaram, 2 falharam
+
+== python tests/linux/queda_gravacao.py (Python 3.13.17) ==
+rodada  1: ok  no disco: gravação 1010; última confirmada: 1010; temporários sobrando: 0
+rodada  2: ok  no disco: gravação 2004; última confirmada: 2004; temporários sobrando: 0
+rodada  3: ok  no disco: gravação 3007; última confirmada: 3007; temporários sobrando: 0
+rodada  4: ok  no disco: gravação 4012; última confirmada: 4012; temporários sobrando: 0
+rodada  5: ok  no disco: gravação 5004; última confirmada: 5004; temporários sobrando: 0
+rodada  6: ok  no disco: gravação 6005; última confirmada: 6005; temporários sobrando: 0
+rodada  7: ok  no disco: gravação 7007; última confirmada: 7007; temporários sobrando: 0
+rodada  8: ok  no disco: gravação 8006; última confirmada: 8006; temporários sobrando: 0
+rodada  9: ok  no disco: gravação 9011; última confirmada: 9011; temporários sobrando: 0
+rodada 10: ok  no disco: gravação 10008; última confirmada: 10008; temporários sobrando: 0
+rodada 11: ok  no disco: gravação 11008; última confirmada: 11008; temporários sobrando: 0
+rodada 12: ok  no disco: gravação 12005; última confirmada: 12005; temporários sobrando: 0
+rodada 13: ok  no disco: gravação 13008; última confirmada: 13008; temporários sobrando: 0
+rodada 14: ok  no disco: gravação 14012; última confirmada: 14012; temporários sobrando: 0
+rodada 15: ok  no disco: gravação 15005; última confirmada: 15005; temporários sobrando: 0
+rodada 16: ok  no disco: gravação 16012; última confirmada: 16012; temporários sobrando: 0
+rodada 17: ok  no disco: gravação 17008; última confirmada: 17008; temporários sobrando: 0
+rodada 18: ok  no disco: gravação 18009; última confirmada: 18009; temporários sobrando: 0
+rodada 19: ok  no disco: gravação 19009; última confirmada: 19009; temporários sobrando: 0
+rodada 20: ok  no disco: gravação 20014; última confirmada: 20014; temporários sobrando: 0
+
+20 rodadas passaram, 0 falharam (pasta temporária)
