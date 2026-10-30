@@ -1,5 +1,6 @@
-Teste dos pacotes Linux do Giz Livre, 30/10/2026 15:54 UTC
-Programa: candidata-1.16.0-rc.2 (0105f8f), sem nenhuma alteração; host Ubuntu 24.04.5 LTS, Docker 29.9.2, node v22.22.0
+Teste dos pacotes Linux do Giz Livre, 30/10/2026 15:59 UTC
+Programa: candidata-1.16.0-rc.2 (0105f8f), sem nenhuma alteração. Pacotes montados no commit dfe2d2d do ramo pacote-linux.
+Host: Ubuntu 24.04.5 LTS, Docker 29.9.2, node v22.22.0, desktop-file-validate desktop-file-validate 0.27
 Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/linux/pacote/testar-pacotes.sh
 
 ================ mirror.gcr.io/library/ubuntu:22.04 ================
@@ -79,7 +80,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ a janela fechou e o servidor se encerrou sozinho
   ✓ arquivo de conexão apagado na saída
 -- conferir o quadro no disco
-  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5m21gjsm61.json (7148 bytes, permissão 600, dono prof)
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5scnfn5r10.json (7068 bytes, permissão 600, dono prof)
     conteúdo: 1 traço(s), texto(s): ['Pacote deb em mirror.gcr.io/library/ubuntu:22.04']
   ✓ o quadro no disco tem o traço e o texto
 -- desinstalar
@@ -96,7 +97,6 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
       giz-livre
     0 upgraded, 0 newly installed, 1 to remove and 0 not upgraded.
     After this operation, 6301 kB disk space will be freed.
-    (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6994 files and directories currently installed.)
     Removing giz-livre (1.16.0~rc2) ...
     Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
     (ou em $XDG_DATA_HOME/giz-livre) na pasta pessoal de cada conta. Para apagá-los, apague essa pasta.
@@ -110,7 +110,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 -- conferir que nada sobrou e que os quadros ficaram
   ✓ o pacote saiu (dpkg -s não acha giz-livre)
   ✓ nenhum arquivo giz-livre sobrou fora da pasta pessoal (nem /opt/giz-livre, /usr/bin, atalho, ícone)
-  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mvv5m21gjsm61.json 
+  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mvv5scnfn5r10.json 
 
 ---- mirror.gcr.io/library/ubuntu:22.04, pacote: usuario ----
 -- instalar
@@ -131,7 +131,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ ícone em /home/prof/.local/share/icons/hicolor/128x128/apps/giz-livre.png (PNG 128x128)
 -- abrir pelo atalho
   Exec do atalho: /home/prof/.local/bin/giz-livre
-  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 3812, "versao": "1.16.0"}
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 3816, "versao": "1.16.0"}
     processo: prof     python3.10 server.py --dados /home/prof/.local/share/giz-livre/quadros
   ✓ o server.py chamou o Chromium: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
 -- criar e salvar um quadro no Chromium sem janela
@@ -148,7 +148,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ a janela fechou e o servidor se encerrou sozinho
   ✓ arquivo de conexão apagado na saída
 -- conferir o quadro no disco
-  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5mhm398p9l.json (7164 bytes, permissão 600, dono prof)
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5ssdnwvxq7.json (7188 bytes, permissão 600, dono prof)
     conteúdo: 1 traço(s), texto(s): ['Pacote usuario em mirror.gcr.io/library/ubuntu:22.04']
   ✓ o quadro no disco tem o traço e o texto
 -- desinstalar
@@ -159,7 +159,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 -- conferir que nada sobrou e que os quadros ficaram
   ✓ fora de ~/.local/share/giz-livre, a pasta pessoal voltou a ser como era antes de instalar
   ✓ launcher, programa, atalho e ícone apagados
-  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mvv5m21gjsm61.json mvv5mhm398p9l.json 
+  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mvv5scnfn5r10.json mvv5ssdnwvxq7.json 
 
 ================ mirror.gcr.io/library/ubuntu:24.04 ================
 -- preparar o contêiner
@@ -224,7 +224,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ ícone em /usr/share/icons/hicolor/128x128/apps/giz-livre.png (PNG 128x128)
 -- abrir pelo atalho
   Exec do atalho: giz-livre
-  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 3647, "versao": "1.16.0"}
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 3646, "versao": "1.16.0"}
     processo: prof     python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros
   ✓ o server.py chamou o Chromium: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
 -- criar e salvar um quadro no Chromium sem janela
@@ -241,7 +241,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ a janela fechou e o servidor se encerrou sozinho
   ✓ arquivo de conexão apagado na saída
 -- conferir o quadro no disco
-  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5o11fp3kus.json (7044 bytes, permissão 600, dono prof)
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5ucprjqupc.json (7090 bytes, permissão 600, dono prof)
     conteúdo: 1 traço(s), texto(s): ['Pacote deb em mirror.gcr.io/library/ubuntu:24.04']
   ✓ o quadro no disco tem o traço e o texto
 -- desinstalar
@@ -258,7 +258,6 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
       giz-livre
     0 upgraded, 0 newly installed, 1 to remove and 0 not upgraded.
     After this operation, 6301 kB disk space will be freed.
-    (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 7659 files and directories currently installed.)
     Removing giz-livre (1.16.0~rc2) ...
     Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
     (ou em $XDG_DATA_HOME/giz-livre) na pasta pessoal de cada conta. Para apagá-los, apague essa pasta.
@@ -272,7 +271,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 -- conferir que nada sobrou e que os quadros ficaram
   ✓ o pacote saiu (dpkg -s não acha giz-livre)
   ✓ nenhum arquivo giz-livre sobrou fora da pasta pessoal (nem /opt/giz-livre, /usr/bin, atalho, ícone)
-  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mvv5o11fp3kus.json 
+  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mvv5ucprjqupc.json 
 
 ---- mirror.gcr.io/library/ubuntu:24.04, pacote: usuario ----
 -- instalar
@@ -293,7 +292,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ ícone em /home/prof/.local/share/icons/hicolor/128x128/apps/giz-livre.png (PNG 128x128)
 -- abrir pelo atalho
   Exec do atalho: /home/prof/.local/bin/giz-livre
-  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 4196, "versao": "1.16.0"}
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 4198, "versao": "1.16.0"}
     processo: prof     python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros
   ✓ o server.py chamou o Chromium: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
 -- criar e salvar um quadro no Chromium sem janela
@@ -310,7 +309,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ a janela fechou e o servidor se encerrou sozinho
   ✓ arquivo de conexão apagado na saída
 -- conferir o quadro no disco
-  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5ogcbuz0wo.json (7080 bytes, permissão 600, dono prof)
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5urse2dnsa.json (7133 bytes, permissão 600, dono prof)
     conteúdo: 1 traço(s), texto(s): ['Pacote usuario em mirror.gcr.io/library/ubuntu:24.04']
   ✓ o quadro no disco tem o traço e o texto
 -- desinstalar
@@ -321,7 +320,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 -- conferir que nada sobrou e que os quadros ficaram
   ✓ fora de ~/.local/share/giz-livre, a pasta pessoal voltou a ser como era antes de instalar
   ✓ launcher, programa, atalho e ícone apagados
-  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mvv5o11fp3kus.json mvv5ogcbuz0wo.json 
+  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mvv5ucprjqupc.json mvv5urse2dnsa.json 
 
 ================ mirror.gcr.io/library/buildpack-deps:bookworm ================
 -- preparar o contêiner
@@ -356,7 +355,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ desktop-file-validate (fora do contêiner, desktop-file-validate 0.27): sem erro nem aviso
 -- abrir pelo atalho
   Exec do atalho: giz-livre
-  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 138, "versao": "1.16.0"}
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 139, "versao": "1.16.0"}
     processo: prof     python3.11 server.py --dados /home/prof/.local/share/giz-livre/quadros
   ✓ o server.py chamou o Chromium: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
   (Chromium de fora do contêiner abrindo o endereço que o server.py passou)
@@ -374,7 +373,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ a janela fechou e o servidor se encerrou sozinho
   ✓ arquivo de conexão apagado na saída
 -- conferir o quadro no disco
-  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5p13ko6mdo.json (7143 bytes, permissão 600, dono prof)
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5vc4ctg0qw.json (7133 bytes, permissão 600, dono prof)
     conteúdo: 1 traço(s), texto(s): ['Pacote deb em mirror.gcr.io/library/buildpack-deps:bookworm']
   ✓ o quadro no disco tem o traço e o texto
 -- desinstalar
@@ -393,7 +392,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 -- conferir que nada sobrou e que os quadros ficaram
   ✓ o pacote saiu (dpkg -s não acha giz-livre)
   ✓ nenhum arquivo giz-livre sobrou fora da pasta pessoal (nem /opt/giz-livre, /usr/bin, atalho, ícone)
-  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mvv5p13ko6mdo.json 
+  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mvv5vc4ctg0qw.json 
 
 ---- mirror.gcr.io/library/buildpack-deps:bookworm, pacote: usuario ----
 -- instalar
@@ -415,7 +414,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ desktop-file-validate (fora do contêiner, desktop-file-validate 0.27): sem erro nem aviso
 -- abrir pelo atalho
   Exec do atalho: /home/prof/.local/bin/giz-livre
-  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 505, "versao": "1.16.0"}
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 507, "versao": "1.16.0"}
     processo: prof     python3.11 server.py --dados /home/prof/.local/share/giz-livre/quadros
   ✓ o server.py chamou o Chromium: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
   (Chromium de fora do contêiner abrindo o endereço que o server.py passou)
@@ -433,7 +432,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
   ✓ a janela fechou e o servidor se encerrou sozinho
   ✓ arquivo de conexão apagado na saída
 -- conferir o quadro no disco
-  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5pdq1y5xy6.json (7032 bytes, permissão 600, dono prof)
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mvv5vowhj6dke.json (7135 bytes, permissão 600, dono prof)
     conteúdo: 1 traço(s), texto(s): ['Pacote usuario em mirror.gcr.io/library/buildpack-deps:bookworm']
   ✓ o quadro no disco tem o traço e o texto
 -- desinstalar
@@ -444,7 +443,7 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 -- conferir que nada sobrou e que os quadros ficaram
   ✓ fora de ~/.local/share/giz-livre, a pasta pessoal voltou a ser como era antes de instalar
   ✓ launcher, programa, atalho e ícone apagados
-  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mvv5p13ko6mdo.json mvv5pdq1y5xy6.json 
+  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mvv5vc4ctg0qw.json mvv5vowhj6dke.json 
 
 ================ dependência: mirror.gcr.io/library/debian:12, sem python3 ================
     Selecting previously unselected package giz-livre.
@@ -464,8 +463,8 @@ Comandos: sh scripts/linux/montar-pacotes.sh --versao 1.16.0~rc2  e  sh tests/li
 
 ================ resumo ================
 pacotes testados:
-  bd484ccad8907be181f24f26639db4566eca71e0826e154ce818b94af291ea18  giz-livre_1.16.0~rc2_all.deb
-  b29a801145e72f064aa34068ebca9cf34c2d2b12505e6ac2944fc0a203767883  giz-livre-1.16.0-rc2-linux-usuario.tar.gz
+  077b20ff932ddc9c0237c845ee312922a0b8c6c06eac94b438e5e50b539b6574  giz-livre_1.16.0~rc2_all.deb
+  ed42a96885afc5b00ccc0f0ea06b2707ed85e0738f5816392490bac41471b48f  giz-livre-1.16.0-rc2-linux-usuario.tar.gz
 resultado:
   PASSOU  mirror.gcr.io/library/ubuntu:22.04
   PASSOU  mirror.gcr.io/library/ubuntu:24.04
