@@ -128,7 +128,10 @@ abrir)
   EXEC=$(sed -n 's/^Exec=//p' "$D" | sed 's/^"\(.*\)"$/\1/')
   rm -f /tmp/chromium-chamadas.log /tmp/chromium.log
   echo "  Exec do atalho: $EXEC"
-  su prof -s /bin/sh -c "cd $PROF && exec setsid $EXEC > /tmp/giz-launcher.log 2>&1 < /dev/null" &
+  # com tela virtual (preparar-xvfb), o launcher roda com DISPLAY, como numa sessão gráfica
+  TELA=
+  [ -f /etc/giz-teste-xvfb ] && TELA="DISPLAY=:99 "
+  su prof -s /bin/sh -c "cd $PROF && ${TELA}exec setsid $EXEC > /tmp/giz-launcher.log 2>&1 < /dev/null" &
   CON=$DADOS/quadros/.agente/conexao.json
   for _ in $(seq 1 100); do [ -f "$CON" ] && break; sleep 0.2; done
   [ -f "$CON" ] || { cat /tmp/giz-launcher.log; falha "o servidor não subiu (sem $CON)"; }
@@ -136,7 +139,7 @@ abrir)
   ok "servidor no ar: $(sed 's/"token": *"[^"]*"/"token": "…"/' "$CON")"
   echo "    processo: $(ps -o user=,args= -p "$PID")"
   for _ in $(seq 1 50); do [ -s /tmp/chromium-chamadas.log ] && break; sleep 0.2; done
-  [ -s /tmp/chromium-chamadas.log ] && ok "o server.py chamou o Chromium: $(sed 's/k=[^ ]*/k=…/' /tmp/chromium-chamadas.log | cut -d' ' -f2-)" ||
+  [ -s /tmp/chromium-chamadas.log ] && ok "o navegador foi chamado: $(sed 's/k=[^ )]*/k=…/g' /tmp/chromium-chamadas.log | cut -d' ' -f2-)" ||
     falha "o navegador não foi chamado"
   ;;
 
@@ -218,6 +221,39 @@ conferir-limpo)
   N=$(find "$DADOS/quadros" -maxdepth 1 -name '*.json' | wc -l)
   [ "$N" -gt 0 ] && ok "os quadros ficaram: $N em ~/.local/share/giz-livre/quadros: $(cd "$DADOS/quadros" && ls -- *.json | tr '\n' ' ')" ||
     falha "os quadros sumiram"
+  ;;
+
+preparar-xvfb)
+  # tela virtual: Xvfb em :99 e um navegador padrão de verdade (Chromium COM janela), escolhido pelo xdg-mime.
+  # Sai o "chromium" do PATH: o server.py não acha Chrome/Chromium/Edge/Brave e abre pelo navegador padrão
+  # (webbrowser -> xdg-open -> o .desktop padrão para http), que é o caminho de um Ubuntu só com Firefox.
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get install -y -qq --no-install-recommends xvfb xdg-utils x11-apps >/tmp/apt-xvfb.log 2>&1 ||
+    { tail -5 /tmp/apt-xvfb.log; falha "não consegui instalar o Xvfb"; }
+  rm -f /usr/local/bin/chromium
+  CHROME=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux*/chrome | head -1)
+  cat > /usr/local/bin/navegador-teste <<FIM
+#!/bin/sh
+echo "\$(date +%T) navegador-teste \$* (chamado por: \$(ps -o args= -p \$PPID | cut -c1-60))" >> /tmp/chromium-chamadas.log
+exec "$CHROME" --no-sandbox --disable-gpu --no-first-run --remote-debugging-port=9333 \\
+  --user-data-dir=/tmp/perfil-navegador-\$(id -u) --window-size=1400,900 "\$@" >> /tmp/chromium.log 2>&1
+FIM
+  chmod 755 /usr/local/bin/navegador-teste
+  printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=Navegador de teste' 'Exec=navegador-teste %u' \
+    'MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;' 'Terminal=false' \
+    > /usr/share/applications/navegador-teste.desktop
+  su prof -s /bin/sh -c 'xdg-mime default navegador-teste.desktop x-scheme-handler/http x-scheme-handler/https text/html'
+  echo "  navegador padrão da conta prof: $(su prof -s /bin/sh -c 'xdg-mime query default x-scheme-handler/http')"
+  Xvfb :99 -screen 0 1400x900x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &
+  sleep 1
+  [ -e /tmp/.X11-unix/X99 ] || { cat /tmp/xvfb.log; falha "o Xvfb não subiu"; }
+  touch /etc/giz-teste-xvfb
+  ok "tela virtual :99 (1400x900x24) no ar"
+  ;;
+
+foto-tela)
+  # captura da tela virtual inteira (xwd); o testar-xvfb.sh converte para PNG
+  DISPLAY=:99 xwd -root -silent > /tmp/tela.xwd && ok "tela capturada"
   ;;
 
 *) echo "passo desconhecido: $PASSO" >&2; exit 2 ;;

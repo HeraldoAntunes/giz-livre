@@ -3,7 +3,7 @@
 # Testa os pacotes Linux (dist/linux/, montados por scripts/linux/montar-pacotes.sh) em contêineres sem tela:
 # Ubuntu 22.04, Ubuntu 24.04 e Debian 12. Em cada um, primeiro o .deb e depois o .tar.gz para uma conta:
 #   instalar; desktop-file-validate no atalho; abrir pelo comando do atalho (launcher -> server.py -> Chromium sem
-#   janela); criar e salvar um quadro pela interface; fechar; desinstalar; conferir que nada sobrou e que os quadros ficaram.
+#   janela); criar e salvar um quadro pela interface; fechar; abrir de novo e reabrir o quadro; desinstalar; conferir que nada sobrou e que os quadros ficaram.
 # No fim, confere que o dpkg recusa o .deb num Debian 12 sem python3.
 #
 # Se o contêiner não alcança o repositório da distribuição, o dentro.sh entra no "modo sem apt": o python3 tem de vir
@@ -30,6 +30,22 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"; docker rm -f "$NOME" >/dev/null 2>&1' EXIT
 RESUMO=""
 TOTAL_FALHAS=0
+
+# modo sem apt: o Chromium daqui de fora abre o endereço (com a chave de uso único) que o server.py passou
+NAV_FORA=
+abrir_fora() {
+  NAV_FORA=
+  docker exec "$NOME" test -f /etc/giz-teste-sem-apt || return 0
+  URL=$(docker exec "$NOME" sed -n 's/.*--app=\([^ ]*\).*/\1/p' /tmp/chromium-chamadas.log | tail -1)
+  "$CHROME" --headless=new --no-sandbox --disable-gpu --remote-debugging-port=9333 \
+    --user-data-dir="$TMP/perfil-$MODO" --app="$URL" --start-maximized >/dev/null 2>&1 &
+  NAV_FORA=$!
+  echo "  (Chromium de fora do contêiner abrindo o endereço que o server.py passou)"
+}
+fechar_fora() {
+  [ -n "$NAV_FORA" ] && { kill "$NAV_FORA" 2>/dev/null; wait "$NAV_FORA" 2>/dev/null; }
+  NAV_FORA=
+}
 
 passo() {   # passo <descrição> <comando dentro.sh...>
   echo "-- $1"
@@ -80,22 +96,23 @@ for IMG in "$@"; do
       fi
     fi
     passo "abrir pelo atalho" abrir "$MODO" || { falhas=$((falhas + 1)); continue; }
-    NAV_FORA=
-    if docker exec "$NOME" test -f /etc/giz-teste-sem-apt; then
-      # modo sem apt: o Chromium daqui de fora abre o endereço (com a chave de uso único) que o server.py passou
-      URL=$(docker exec "$NOME" sed -n 's/.*--app=\([^ ]*\).*/\1/p' /tmp/chromium-chamadas.log | tail -1)
-      "$CHROME" --headless=new --no-sandbox --disable-gpu --remote-debugging-port=9333 \
-        --user-data-dir="$TMP/perfil-$MODO" --app="$URL" --start-maximized >/dev/null 2>&1 &
-      NAV_FORA=$!
-      echo "  (Chromium de fora do contêiner abrindo o endereço que o server.py passou)"
-    fi
+    abrir_fora
     echo "-- criar e salvar um quadro no Chromium sem janela"
     SAIDA=$(node tests/linux/pacote/quadro.mjs 9333 "Pacote $MODO em $IMG" 2>&1) || falhas=$((falhas + 1))
     echo "$SAIDA" | grep -v '^QUADRO '
     ID=$(echo "$SAIDA" | sed -n 's/^QUADRO //p')
-    [ -n "$NAV_FORA" ] && { kill "$NAV_FORA" 2>/dev/null; wait "$NAV_FORA" 2>/dev/null; }
+    fechar_fora
     passo "fechar" esperar-fim "$MODO" || falhas=$((falhas + 1))
     [ -n "$ID" ] && { passo "conferir o quadro no disco" conferir-quadro "$MODO" "$ID" || falhas=$((falhas + 1)); }
+    if [ -n "$ID" ]; then
+      passo "abrir de novo pelo atalho" abrir "$MODO" || falhas=$((falhas + 1))
+      abrir_fora
+      echo "-- reabrir o quadro"
+      SAIDA=$(REABRIR=$ID node tests/linux/pacote/quadro.mjs 9333 "Pacote $MODO em $IMG" 2>&1) || falhas=$((falhas + 1))
+      echo "$SAIDA" | grep -v '^QUADRO '
+      fechar_fora
+      passo "fechar" esperar-fim "$MODO" || falhas=$((falhas + 1))
+    fi
     passo "desinstalar" desinstalar "$MODO" || falhas=$((falhas + 1))
     passo "conferir que nada sobrou e que os quadros ficaram" conferir-limpo "$MODO" || falhas=$((falhas + 1))
   done
