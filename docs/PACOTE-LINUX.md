@@ -1,5 +1,8 @@
 # Pacote Linux do Giz Livre
 
+> **Versão 1.16.0:** os pacotes da versão publicada e o resultado dos testes estão em `docs/PACOTE-LINUX-1.16.0.md`.
+> Este relatório é o da candidata rc.2 e continua valendo para como os pacotes são feitos.
+
 Pacote de instalação do Giz Livre para Ubuntu e Debian, montado em 30/10/2026 a partir da candidata
 **1.16.0-rc.2** (ramo `candidata-1.16.0-rc.2`, commit `0105f8f`). Nada do programa foi alterado: este ramo
 (`pacote-linux`) só acrescenta o script de montagem, os testes e este relatório. Nenhum pacote foi publicado.
