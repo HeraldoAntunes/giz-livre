@@ -1,9 +1,14 @@
 # Arquitetura do Giz Livre
 
-Guia para quem quer entender ou modificar o código. O programa tem duas partes:
+Guia para quem quer entender ou modificar o código da 1.16.0. No Windows, o `GizLivre.exe` em `janela/` é uma
+janela Tauri 2/WebView2: inicia `python/pythonw.exe servidor/server.py` como filho, com `--pai`, e mostra a interface.
+O Python oficial embutido acompanha o pacote. A interface continua em JavaScript puro, sem build; compilar a janela
+Rust exige a ferramenta de compilação do Rust e as ferramentas C++ do Windows.
+
+O programa tem estas partes:
 
 ```
-┌────────────────────────── janela do Edge/Chrome (modo app) ──────────────────────────┐
+┌────────────────────────── janela própria Tauri/WebView2   ──────────────────────────┐
 │  app/index.html + app/style.css + app/js/*.js   (JavaScript puro, módulos ES, canvas)  │
 └───────────────▲──────────────────────────────────────────────────────────────────────┘
                 │  HTTP em 127.0.0.1 (pedidos de escrita levam o token X-Lousa)
@@ -17,7 +22,7 @@ Guia para quem quer entender ou modificar o código. O programa tem duas partes:
 ## Servidor (`server.py`)
 | Rota | O que faz |
 |---|---|
-| `GET /api/info` | versão, pasta de dados, recursos do sistema (`pptx`, `ocr`) e o **token da sessão** |
+| `GET /api/info` | sem autenticação: só app e versão; com acesso da própria conta: pasta de dados, recursos (`pptx`, `ocr`) e dados da sessão |
 | `GET /api/boards`, `GET/PUT/DELETE /api/boards/<id>` | listar (com `folder`; resumo em cache por data/tamanho), ler, gravar (atômico) e excluir (vai para a lixeira) |
 | `PUT /api/folder/<id>` | muda só a pasta do quadro (`{folder}`), sem mexer na data de edição |
 | `GET /api/lixeira`, `GET /api/lixeira/<nome>.png`, `POST /api/lixeira/restaurar` | lista os quadros excluídos e restaura um deles (id em uso → restaura com id novo; nomes validados contra path traversal) |
@@ -30,7 +35,11 @@ Guia para quem quer entender ou modificar o código. O programa tem duas partes:
 
 **Segurança:**
 - escuta só em `127.0.0.1` e valida o `Host`;
-- pedidos de escrita exigem o token e recusam `Origin`/`Sec-Fetch-Site` de outro site;
+- leituras de quadros, imagens e ajustes exigem o código da própria conta, por `X-Lousa` ou cookie;
+- o arquivo `conexao.json` no perfil da conta guarda porta, token e PID; com `--dados`, fica em `<dados>/.agente/`;
+- a chave de abertura é de uso único e troca por cookie HttpOnly/SameSite=Strict; não sai pelo `/api/info` público;
+- pedidos de escrita exigem o cabeçalho de token e recusam `Origin`/`Sec-Fetch-Site` de outro site;
+- tokens não ASCII são recusados como erro de cliente; corpo HTTP curto não chega à gravação;
 - envia CSP restritiva;
 - tem limites de tamanho por rota.
 
@@ -83,7 +92,8 @@ guarda o estado anterior no desfazer. Os caches (`WeakMap` de caixa e de `Path2D
 O arquivo do quadro contém `_rev`, inteiro gerido pelo servidor. Arquivos antigos sem esse campo começam em zero.
 `PUT /api/boards/<id>` envia a revisão esperada (`revision`); sob a trava do quadro o servidor compara, grava
 atomicamente e incrementa a revisão. Responde com `revision`; divergências retornam **412**, sem sobrescrever.
-O **409** continua reservado à sessão expirada. Mover de pasta também incrementa a revisão.
+O **409** sinaliza sessão expirada ou uma operação que não pode prosseguir, conforme a rota. Renomear ou mover
+pela galeria altera `_meta`, sem aumentar `_rev`; um salvamento da janela preserva esses metadados mais recentes.
 
 O editor mantém a última pendência de cada quadro em um `Map`, serializa tentativas e protege o fechamento enquanto
 houver trabalho não confirmado, inclusive na galeria. Conflitos suspendem a repetição automática e orientam exportar
@@ -128,19 +138,41 @@ interface, rode o servidor numa pasta de dados descartável:
 ```bash
 python server.py --sem-janela --porta 8799 --dados /tmp/giz-teste
 ```
-O driver `scripts/teste-cdp/cdp.mjs` cria perfil e porta CDP próprios e devolve código diferente de zero diante de
+Na pasta de desenvolvimento do mantenedor (não na cópia pública), o driver `scripts/teste-cdp/cdp.mjs` cria perfil e porta CDP próprios e devolve código diferente de zero diante de
 `FALHA`, exceção ou erro de JavaScript. `GIZ_TEST_URL` troca a URL nas suítes `t_v110.mjs`, `t_disciplinas.mjs` e
 `t_auditoria.mjs`; `GIZ_BROWSER` permite indicar outro executável Chromium. Usar sempre dados descartáveis.
 
-O exportador público aceita pasta vazia ou espelho reconhecido por `.giz-livre-publico` (migra automaticamente o
+Na cópia pública, os testes de ponta a ponta são os `tests/*.mjs` (abrem o Edge ou o Chrome sem janela, com perfil e
+dados descartáveis) e, para a janela própria, `tests/janela_*.mjs`. O exportador da cópia pública (`scripts/exportar_publico.py`,
+só na pasta do mantenedor) aceita pasta vazia ou espelho reconhecido por `.giz-livre-publico` (migra automaticamente o
 espelho canônico anterior). Recusa origem, ancestrais, descendentes, pastas de dados e links/junções no destino.
 `python scripts/exportar_publico.py --prever` apenas lista a sincronização prevista, sem copiar, apagar ou gerar hash.
 
 ## Empacotamento (Windows)
-`installer/build.ps1`:
-1. cria um ambiente limpo com as dependências de build fixadas por hash;
-2. gera `GizLivre.exe` (PyInstaller, sem UPX), o instalador (Inno Setup) e o zip portátil;
-3. verifica tudo no Microsoft Defender e escreve `SHA256SUMS.txt`.
+`scripts/montar_janela.py` prepara o Python embutido oficial, conferido por SHA-256, e os arquivos de servidor,
+interface e licenças. A janela é compilada em `janela/`; `--exe <caminho>` permite montar os zips com um executável já
+conferido, sem recompilar. O workflow de montagem usa `cargo build --locked` e passa esse executável ao script.
 
-**Versão:** ao mudar, atualize `app/js/version.js`, `server.py` (`VERSAO`), `installer/versao.txt`, `installer/lousa.iss`,
-`installer/build.ps1`, `installer/licenca-instalador.txt`, `README.md` e `CHANGELOG.md`.
+Saídas em `dist/janela/`:
+
+- `Instalar-GizLivre-<versão>.zip`: pasta completa com `GizLivre.exe`, `python/`, `servidor/`, licenças e
+  `instalar.txt`; o executável copia a pasta para `%LOCALAPPDATA%/Programs/Giz Livre` e cria os atalhos da conta;
+- `GizLivre-<versão>-portatil.zip`: pasta com `portatil.txt`; quadros e perfil da janela ficam ao lado do programa;
+- `SHA256SUMS.txt`: somas dos zips. Não se distribui o executável sozinho.
+
+O zip de instalação substitui o instalador antigo. A atualização pelo Sobre baixa e confere o zip; versões até a
+1.15 precisam da primeira instalação manual. Fechar a janela negocia a gravação com a página pelo título; a
+homologação do fechamento, da instalação e da atualização precisa usar o executável exato.
+
+A janela WebView2 pode abrir conexão própria com a Microsoft. Reduzir gatilhos no perfil não garante zero tráfego;
+o servidor local continua restrito a 127.0.0.1 e não envia os quadros nas consultas de atualização.
+
+Ao trazer quadros, os assets existentes são conferidos pelo hash e reparados atomicamente com a imagem válida do
+pacote. Falha de reparo é avisada, sem apagar a cópia anterior. Metadados de origem são validados, e entradas antigas
+inválidas não derrubam o índice de importações. Nomes duplicados no zip são recusados antes de gravar. PDF só aceita
+dimensões positivas e finitas, até 100000 pontos ou pixels por eixo; dimensões em pixels devem ser inteiras.
+
+**Versão:** ao mudar, sincronize `app/js/version.js`, `server.py` (`VERSAO`), `mcp/giz_livre_mcp.py`,
+`janela/Cargo.toml`, `janela/tauri.conf.json`, `CITATION.cff`, `README.md` e `CHANGELOG.md`. Os metadados legados
+`installer/versao.txt`, `installer/lousa.iss`, `installer/build.ps1` e `installer/licenca-instalador.txt` ainda são
+conferidos pelo teste de versão e também precisam acompanhar a mudança.

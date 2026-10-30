@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { shapeById } from '../app/js/shapelib.js';
+import { codigo, entrarNoNavegador } from './acesso.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CALIBRAR = process.argv.includes('--calibrar');
@@ -142,6 +143,7 @@ try {
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { pendentes.get(m.id)?.(m); pendentes.delete(m.id); } };
   await cdp('Page.enable');
+  await entrarNoNavegador(cdp, BASE, await codigo(BASE, DADOS));
   // página leve da mesma origem (o índice JSON): os módulos da biblioteca carregam sem abrir o programa inteiro
   await cdp('Page.navigate', { url: BASE + '/shapes-index.json' });
   for (let t = 0; t < 50; t++) {
@@ -194,5 +196,5 @@ if (falhas.length) {
   console.log('  ✓ nenhum SVG quebrado, nada fora da caixa, nenhum rótulo sobre traço acima de ' + LIMITE_TINTA * 100 + '%');
 }
 await espera(500);
-try { rmSync(pastaTmp, { recursive: true, force: true }); } catch {}
+try { rmSync(pastaTmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + pastaTmp); }
 process.exit(falhas.length ? 1 : 0);

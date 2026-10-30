@@ -1,10 +1,10 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
 import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, renameBoard, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
-import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, temPendente, inserirForma } from './editor.js';
+import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, temPendente, inserirForma, flush } from './editor.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
-import { renderToCanvas } from './render.js';
+import { renderToCanvas, itemValido } from './render.js';
 import { boardThumb, makeLayout, SIZES } from './pages.js';
 import { boardFromSlides, uploadAsset, isPptx, isPdf } from './importer.js';
 import { embedAssets } from './editor.js';
@@ -501,7 +501,7 @@ async function importFiles(files) {
         board.title = String(board.title || f.name.replace(/\.[^.]+$/, '')).slice(0, 200);
         // só imagens embutidas ou do próprio programa: nada de endereços externos (privacidade)
         const okSrc = s => typeof s === 'string' && (/^data:image\/(png|jpeg|gif|webp|svg\+xml)[;,]/.test(s) || /^\/assets\/[0-9a-f]{40}\.(png|jpg)$/.test(s));
-        board.items = board.items.filter(i => i && typeof i === 'object' && typeof i.type === 'string' && (i.type !== 'image' || okSrc(i.src)) && (i.src === undefined || okSrc(i.src)))
+        board.items = board.items.filter(i => itemValido(i) && (i.type !== 'image' || okSrc(i.src)) && (i.src === undefined || okSrc(i.src)))
           .map(i => ({ ...i, id: i.id || newId() }));
         // páginas: números finitos e quantidade limitada, para um arquivo malformado não travar o programa
         const L = board.layout, fin = (v, min, max) => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
@@ -594,6 +594,9 @@ async function levarQuadros() {
     const ocupado = (sim, msg = '') => { botoes.forEach(b => { b.disabled = sim; }); saida.className = 'lv-saida'; saida.textContent = msg; };
     const mostra = (html, erro = false) => { ocupado(false); saida.className = 'lv-saida' + (erro ? ' lv-erro' : ''); saida.innerHTML = html; };
     const rodar = fn => async () => { try { await fn(); } catch (e) { mostra(esc(e.message || 'Algo deu errado.'), true); } };
+    // o que não foi ou não veio inteiro: quadro danificado, imagem faltando (auditoria de 29/10/2026), com o nome
+    const listaFalhas = l => l.slice(0, 6).map(f => `${esc(f.titulo || f.id)}: ${esc(f.motivo)}`).join('; ')
+      + (l.length > 6 ? `; e mais ${l.length - 6}` : '');
     d.querySelector('[data-a="fechar"]').onclick = () => close(true);
     d.querySelector('[data-a="guardar"]').onclick = rodar(async () => {
       const nome = `Giz Livre - quadros - ${new Date().toLocaleDateString('sv')}.zip`;
@@ -609,7 +612,7 @@ async function levarQuadros() {
       const resumo = JSON.parse(r.headers.get('X-Pacote-Resumo') || '{}');
       if (alvo) await r.body.pipeTo(await alvo.createWritable());   // grava direto no arquivo, sem passar pela memória
       else download(await r.blob(), nome);
-      const falhas = resumo.falhas?.length ? `<br>${resumo.falhas.length} item(ns) não puderam ser lidos (se a pasta estiver no OneDrive, confira a internet).` : '';
+      const falhas = resumo.falhas?.length ? `<br><b>Atenção:</b> ${listaFalhas(resumo.falhas)} (se a pasta estiver no OneDrive, confira a internet).` : '';
       mostra(`<b>Pronto:</b> ${resumo.quadros} quadro(s) e ${resumo.imagens} imagem(ns) guardados em <b>${esc(alvo ? alvo.name : nome)}</b>${alvo ? '' : ' (pasta Downloads)'}.${falhas}`);
     });
     d.querySelector('[data-a="trazer"]').onclick = () => {
@@ -625,8 +628,7 @@ async function levarQuadros() {
         const partes = [j.trazidos ? `<b>${j.trazidos}</b> quadro(s) trazido(s)` : 'Nenhum quadro novo'];
         if (j.iguais) partes.push(`${j.iguais} já estavam aqui iguais`);
         if (j.copias) partes.push(`${j.copias} vieram como cópia porque tinham mudado`);
-        if (j.falhas?.length) partes.push(`${j.falhas.length} não puderam ser lidos`);
-        mostra(partes.join(', ') + '.');
+        mostra(partes.join(', ') + '.' + (j.falhas?.length ? `<br><b>Atenção:</b> ${listaFalhas(j.falhas)}.` : ''));
         refresh();
       });
       inp.click();
@@ -661,7 +663,7 @@ async function ping() {
     const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ janela: JANELA, quadro: openBoardId(), pendente: temPendente(), prefs: prefsLocais() }) });
     if (!r.ok && r.status !== 409) throw 0;
   }
-  catch { sessionLost('O programa Giz Livre foi fechado. Abra-o de novo pelo atalho e depois recarregue esta página; o que não foi salvo continua aqui.'); }
+  catch { sessionLost('O programa Giz Livre foi fechado. Abra-o de novo pelo atalho: o que não foi salvo continua nesta página e é salvo sozinho quando ele voltar.'); }
 }
 setInterval(ping, 30000);
 setTimeout(ping, 3000);   // a cópia dos ajustes chega logo, sem esperar os 30 s
@@ -671,6 +673,9 @@ addEventListener('pagehide', () => {
   if (!temSessao()) return;
   try { fetch('/api/janela-fechou', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', ...tokenHeader() }, body: JSON.stringify({ janela: JANELA }) }).catch(() => {}); } catch {}
 });
+// janela própria (GizLivre.exe, P60): antes de fechar a janela, o programa chama isto e espera o quadro terminar de
+// gravar; só então a janela some (no Edge, a pergunta "sair do site?" fazia esse papel)
+window.gizAntesDeFechar = async () => { try { return await flush(); } catch { return false; } };
 // a galeria aberta se atualiza sozinha quando outro programa (agente de IA, Giz na Tela) cria ou muda um quadro:
 // confere a lista a cada 5 s e ao voltar para a janela, e só redesenha se algo mudou e não há menu nem diálogo aberto
 const assinatura = l => l.map(b => `${b.id}:${b.updated}:${b.folder || ''}:${b.title}`).sort().join('|');

@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.15.2"
+VERSAO = "1.16.0"
 PROTOCOLOS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 CONGELADO = getattr(sys, "frozen", False)
 RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).resolve().parent.parent
@@ -61,9 +61,24 @@ class Falha(Exception):
 
 
 class Cliente:
-    def __init__(self, dados: str | None, porta: int):
+    def __init__(self, dados: str | None, porta: int | None):
         self.pastas = pastas_candidatas(dados)
-        self.porta = porta
+        self._porta = porta
+
+    @property
+    def porta(self) -> int:
+        # sem --porta: a que o Giz Livre desta conta anotou ao abrir (a segunda conta do Windows usa outra porta)
+        if self._porta:
+            return self._porta
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+        for arq in [p / ".agente" / "conexao.json" for p in self.pastas] + [base / "Giz Livre" / "conexao.json"]:
+            try:
+                porta = json.loads(arq.read_text(encoding="utf-8")).get("porta")
+            except (OSError, ValueError, AttributeError):
+                continue
+            if isinstance(porta, int):
+                return porta
+        return 8765
 
     def token(self) -> str:
         # lido a cada chamada: o professor pode desligar e religar o interruptor (o token muda)
@@ -225,7 +240,7 @@ def executar(cli: Cliente, nome: str, a: dict) -> dict:
             raise Falha("itens: lista com 1 a 50 itens, cada um com `tipo`")
         tipos = set(TIPO_ITEM.values())
         for n, i in enumerate(itens, 1):
-            if i.get("tipo") not in tipos:
+            if not isinstance(i.get("tipo"), str) or i["tipo"] not in tipos:
                 raise Falha(f"item {n}: tipo deve ser um destes: {', '.join(sorted(tipos))}")
         return cli.pedir("POST", f"quadros/{q}/itens", {"itens": itens})
     if nome == "adicionar_pagina":
@@ -253,7 +268,7 @@ def tratar(cli: Cliente, msg) -> dict | None:
     ok = lambda r: {"jsonrpc": "2.0", "id": mid, "result": r}
     if metodo == "initialize":
         pedido = params.get("protocolVersion") if isinstance(params, dict) else None
-        return ok({"protocolVersion": pedido if pedido in PROTOCOLOS else PROTOCOLOS[0],
+        return ok({"protocolVersion": pedido if isinstance(pedido, str) and pedido in PROTOCOLOS else PROTOCOLOS[0],
                    "capabilities": {"tools": {"listChanged": False}},
                    "serverInfo": {"name": "giz-livre", "title": "Giz Livre", "version": VERSAO},
                    "instructions": INSTRUCOES})
@@ -264,8 +279,9 @@ def tratar(cli: Cliente, msg) -> dict | None:
     if metodo == "tools/call":
         nome = params.get("name") if isinstance(params, dict) else None
         args = (params.get("arguments") or {}) if isinstance(params, dict) else {}
-        if nome not in NOMES or not isinstance(args, dict):
-            return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": f"ferramenta desconhecida: {nome}"}}
+        # tipos conferidos antes de consultar conjuntos: name:[] derrubava o processo (auditoria de 29/10/2026)
+        if not isinstance(nome, str) or nome not in NOMES or not isinstance(args, dict):
+            return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": f"ferramenta desconhecida: {str(nome)[:80]}"}}
         try:
             r = executar(cli, nome, args)
             return ok({"content": [{"type": "text", "text": json.dumps(r, ensure_ascii=False)}],
@@ -275,10 +291,21 @@ def tratar(cli: Cliente, msg) -> dict | None:
     return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": f"método não suportado: {metodo}"}}
 
 
+def tratar_sem_cair(cli: Cliente, msg):
+    """Um pedido estranho que escape das conferências vira erro JSON-RPC; o servidor continua atendendo os outros."""
+    try:
+        return tratar(cli, msg)
+    except Exception as e:   # noqa: BLE001 (é a última rede: o processo não pode cair)
+        mid = msg.get("id") if isinstance(msg, dict) else None
+        return {"jsonrpc": "2.0", "id": mid if isinstance(mid, (str, int)) else None,
+                "error": {"code": -32603, "message": f"erro interno: {type(e).__name__}"}}
+
+
 def main():
     ap = argparse.ArgumentParser(description="Servidor MCP do Giz Livre (stdio)")
     ap.add_argument("--dados", help="pasta dos quadros do Giz Livre (padrão: a mesma do programa)")
-    ap.add_argument("--porta", type=int, default=int(os.environ.get("GIZ_LIVRE_PORTA") or 8765))
+    ap.add_argument("--porta", type=int, default=int(os.environ.get("GIZ_LIVRE_PORTA") or 0) or None,
+                    help="padrão: a porta que o Giz Livre desta conta anotou (8765 se não achar)")
     args = ap.parse_args()
     cli = Cliente(args.dados, args.porta)
     entrada, saida = sys.stdin.buffer, sys.stdout.buffer
@@ -291,7 +318,7 @@ def main():
             responder(saida, {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "JSON inválido"}})
             continue
         lote = msg if isinstance(msg, list) else [msg]
-        respostas = [r for r in (tratar(cli, m) for m in lote) if r is not None]
+        respostas = [r for r in (tratar_sem_cair(cli, m) for m in lote) if r is not None]
         if respostas:
             responder(saida, respostas if isinstance(msg, list) else respostas[0])
 

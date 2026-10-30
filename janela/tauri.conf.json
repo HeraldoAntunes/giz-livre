@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Giz Livre",
+  "version": "1.16.0",
+  "identifier": "br.gizlivre.janela",
+  "build": {
+    "frontendDist": "web"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "publisher": "Heraldo Antunes (projeto livre)",
+    "copyright": "Copyright (c) 2026 Heraldo Antunes - Licença MIT"
+  }
+}

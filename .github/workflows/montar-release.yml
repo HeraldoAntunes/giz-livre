@@ -1,15 +1,12 @@
 # Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
-# Monta o programa e o instalador a partir do código público, nos computadores do GitHub (não no PC do mantenedor):
-# qualquer pessoa pode conferir de onde saiu cada arquivo, e é o caminho pedido por quem assina instaladores. Só roda
-# pelo botão "Run workflow", informando a tag ou o branch. Não publica nada: os arquivos ficam como artefato do
-# workflow por 14 dias, para conferir.
+# Monta os zips da janela própria em uma máquina descartável do GitHub. Não publica.
 name: Montar release
 
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Tag ou branch a montar (ex.: v1.12.0 ou main)"
+        description: "Tag ou branch a montar"
         required: true
         default: main
 
@@ -33,41 +30,66 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Inno Setup 6.7.3 (a mesma versão do build local), do site oficial, com o SHA-256 conferido
+      - name: Testar e compilar a janela com o Cargo.lock
         shell: pwsh
         run: |
-          # o Chocolatey não tem a 6.7.3; o hash é o publicado na release is-6_7_3 do jrsoftware/issrc
-          $url = 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
-          $exe = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
-          Invoke-WebRequest $url -OutFile $exe
-          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
-          if ($hash -ne '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732') { throw "SHA-256 do Inno Setup não confere: $hash" }
-          Start-Process $exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/ALLUSERS' -Wait
-          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { throw 'Inno Setup não foi instalado' }
+          $ErrorActionPreference = 'Stop'
+          $env:GIZ_PACOTE = ''
+          $env:TAURI_CONFIG = '{"bundle":{"publisher":null},"build":{"frontendDist":"../app"}}'
+          $env:CARGO_ENCODED_RUSTFLAGS = "--remap-path-prefix=$env:USERPROFILE=~" + [char]31 + "--remap-path-prefix=$env:GITHUB_WORKSPACE=."
+          cargo test --locked --release --manifest-path janela/Cargo.toml
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo build --locked --release --manifest-path janela/Cargo.toml
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
-      - name: Montar o programa, o instalador e o zip portátil
-        shell: pwsh
-        run: powershell -ExecutionPolicy Bypass -File installer\build.ps1 -CI
-
-      - name: Conferir que o programa montado abre e responde
+      - name: Montar os zips com o executável compilado, sem recompilar
         shell: pwsh
         run: |
-          $dados = Join-Path $env:RUNNER_TEMP 'dados-teste'
-          $p = Start-Process build\dist\GizLivre\GizLivre.exe -ArgumentList '--sem-janela', '--porta', '8790', '--dados', $dados -PassThru
-          $info = $null
-          foreach ($i in 1..60) {
-            try { $info = Invoke-RestMethod http://127.0.0.1:8790/api/info -TimeoutSec 2; break } catch { Start-Sleep 1 }
+          python scripts/montar_janela.py --exe janela/target/release/GizLivre.exe
+          exit $LASTEXITCODE
+
+      - name: Conferir o servidor no Python embutido do pacote
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $v = (Get-Content janela/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $zip = "dist/janela/GizLivre-$v-portatil.zip"
+          $pasta = Join-Path $env:RUNNER_TEMP 'giz-portatil'
+          Expand-Archive -LiteralPath $zip -DestinationPath $pasta
+          $prog = Join-Path $pasta 'GizLivre'
+          $dados = Join-Path $env:RUNNER_TEMP 'giz-dados-teste'
+          $env:GIZ_LIVRE_JANELA = '1'
+          $env:GIZ_LIVRE_PASTA = $prog
+          $argumentos = @(('"{0}"' -f (Join-Path $prog 'servidor/server.py')), '--sem-janela', '--porta', '8790', '--dados', ('"{0}"' -f $dados))
+          $p = Start-Process (Join-Path $prog 'python/pythonw.exe') -ArgumentList $argumentos -WindowStyle Hidden -PassThru
+          try {
+            $info = $null
+            $conexao = $null
+            foreach ($i in 1..60) {
+              try {
+                $conexao = Get-Content (Join-Path $dados '.agente/conexao.json') -Raw -ErrorAction Stop | ConvertFrom-Json
+                if ($conexao.pid -ne $p.Id) { throw 'conexão de outro processo' }
+                $info = Invoke-RestMethod "http://127.0.0.1:$($conexao.porta)/api/info" -Headers @{ 'X-Lousa' = $conexao.token } -TimeoutSec 2
+                break
+              } catch { Start-Sleep -Seconds 1 }
+            }
+            if (-not $info) { throw 'o servidor do pacote não respondeu' }
+            if ($info.versao -ne $v) { throw "versão $($info.versao), esperada $v" }
+            Invoke-RestMethod "http://127.0.0.1:$($conexao.porta)/api/sair" -Method Post -Headers @{ 'X-Lousa' = $conexao.token } -ContentType 'application/json' -Body '{}' | Out-Null
+            if (-not $p.WaitForExit(10000)) { throw 'o servidor do pacote não encerrou' }
+            "Servidor do pacote respondeu na versão $v; este passo não homologa a janela."
+          } finally {
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+            Remove-Item Env:GIZ_LIVRE_JANELA, Env:GIZ_LIVRE_PASTA -ErrorAction SilentlyContinue
           }
-          if (-not $info) { Stop-Process $p -Force; throw 'o programa montado não respondeu' }
-          "Programa respondeu: versão $($info.versao)"
-          $esperada = (Select-String -Path installer\versao.txt -Pattern "FileVersion', '([0-9.]+)'").Matches[0].Groups[1].Value
-          Invoke-RestMethod http://127.0.0.1:8790/api/sair -Method Post -Headers @{ 'X-Lousa' = $info.token } -ContentType 'application/json' -Body '{}' | Out-Null
-          if (-not $esperada.StartsWith($info.versao)) { throw "versão $($info.versao) diferente da do versao.txt ($esperada)" }
 
-      - name: Guardar os arquivos montados
+      - name: Guardar somente os zips e as somas
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: giz-livre-${{ github.run_number }}
-          path: dist/*
+          path: |
+            dist/janela/Instalar-GizLivre-*.zip
+            dist/janela/GizLivre-*-portatil.zip
+            dist/janela/SHA256SUMS.txt
           retention-days: 14
           if-no-files-found: error

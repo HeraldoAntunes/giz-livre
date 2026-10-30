@@ -5,6 +5,9 @@ let TOKEN = '', INFO = {};
 export async function initSession() {
   const r = await fetch('/api/info');
   const j = await r.json();
+  // sem o cookie de acesso (página aberta à mão no navegador, ou por outra conta do Windows), o /api/info não traz o
+  // código e nenhum quadro é lido: quem chama mostra "abra pelo atalho"
+  if (!j.token) throw new Error('sem acesso');
   TOKEN = j.token || '';
   INFO = j;
   if (j.ocr_conferido === false) conferirOcr(5);
@@ -22,10 +25,26 @@ function conferirOcr(n) {
 }
 // recursos que dependem do sistema: { pptx: 'powerpoint' | 'libreoffice' | null, ocr: bool, ocr_idioma: 'pt-BR' | outro | null, sistema }
 export const serverInfo = () => INFO;
+// 409: o código mudou, porque o servidor foi aberto de novo (queda, reabertura pelo atalho). A página pede o código
+// novo, como ao abrir, e repete o pedido uma vez: o que estava por gravar grava sozinho. Antes, só mostrava
+// "Recarregue", e recarregar descartava o que não tinha sido salvo (validação no Linux, 30/10/2026).
 export async function wfetch(url, opts = {}) {
-  const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Lousa': TOKEN } });
+  const pedir = () => fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'X-Lousa': TOKEN } });
+  let r = await pedir();
+  if (r.status === 409 && await renovarSessao()) r = await pedir();
   if (r.status === 409) sessionLost('O Giz Livre foi reaberto por outra janela ou cópia. Recarregue esta página para continuar salvando.');
   return r;
+}
+async function renovarSessao() {
+  try {
+    const j = await (await fetch('/api/info')).json();
+    if (!j.token || j.token === TOKEN) return false;
+    TOKEN = j.token;
+    Object.assign(INFO, j);
+    const b = document.getElementById('banner');
+    if (b) b.hidden = true;   // o aviso de programa fechado já não vale
+    return true;
+  } catch { return false; }
 }
 export function tokenHeader() { return { 'X-Lousa': TOKEN }; }
 // a página já recebeu o token? (antes disso, um pedido de escrita volta 409 e pareceria "sessão perdida")

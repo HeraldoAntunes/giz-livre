@@ -17,13 +17,61 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(pos)); } catch 
 const el = k => document.querySelector(BARS[k]);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// posição de fábrica da barra de desfazer/menu: no canto de cima à direita; se não couber ao lado da barra das canetas
+// (projetor de 1024×768: as duas se sobrepunham e escondiam 6 botões, entre eles as Ferramentas do professor), desce
+// para baixo do botão de voltar, à esquerda, e as barras de criar e de desenho descem junto (bateria de 29/10/2026)
+let topoCriar = 64;
+// a barra das canetas, centrada, não pode encostar na de ferramentas da direita: em tela estreita fica mais justa
+function apertaCanetas() {
+  const i = el('ink'), t = el('teach');
+  if (!i) return;
+  i.classList.remove('apertada');
+  if (pos.ink) return;
+  const larguraFerr = (t && t.offsetWidth) || 110;
+  if ((innerWidth - i.offsetWidth) / 2 < 12 + larguraFerr + 8) i.classList.add('apertada');
+}
+// a barra de ferramentas da direita (centrada na altura) é alta: em tela baixa encostava na de zoom e escondia o próprio
+// botão de recolher; sobe o que precisar, sem passar das barras de cima
+function encaixaFerramentas() {
+  const t = el('teach'), z = el('zoom');
+  if (!t || pos.teach) return;
+  t.style.top = t.style.transform = t.style.maxHeight = '';
+  if (t.hidden || !z || z.hidden) return;
+  const rt = t.getBoundingClientRect(), rz = z.getBoundingClientRect();
+  if (!rt.height || rt.bottom <= rz.top - 8 || rt.right <= rz.left || rt.left >= rz.right) return;
+  let minimo = 8;
+  for (const k of ['ink', 'menu']) {
+    const r = el(k)?.getBoundingClientRect();
+    if (r && r.width && r.right > rt.left && r.left < rt.right) minimo = Math.max(minimo, r.bottom + 8);
+  }
+  const topo = Math.max(minimo, rz.top - 8 - rt.height);
+  t.style.transform = 'none'; t.style.top = Math.round(topo) + 'px';
+  // nem no alto ela cabe (projetor de 1280×720): a barra de zoom vai para a esquerda dela, se não bater na das páginas
+  if (topo + rt.height <= rz.top - 8 || pos.zoom) return;
+  const dir = innerWidth - rt.left + 8, pg = el('pages')?.getBoundingClientRect();
+  if (pg && pg.width && rt.left - 8 - rz.width < pg.right + 8) {   // sem lugar para o zoom: a barra encurta e rola
+    t.style.maxHeight = Math.max(120, Math.round(rz.top - 8 - topo)) + 'px';
+    return;
+  }
+  z.style.right = Math.round(dir) + 'px';
+}
+function encaixaMenu() {
+  const m = el('menu'), i = el('ink');
+  topoCriar = 64;
+  if (!m || !i || pos.menu || pos.ink) return m?.classList.remove('desceu');
+  m.classList.remove('desceu');
+  const rm = m.getBoundingClientRect(), ri = i.getBoundingClientRect();
+  if (i.hidden || !ri.width || ri.right + 8 <= rm.left) return;
+  m.classList.add('desceu');
+  topoCriar = Math.round(m.getBoundingClientRect().bottom + 8);
+}
 // posição de fábrica da barra de desenho: logo abaixo da barra de criar (ou ao lado, se não couber)
 function empilhaDesenho() {
   const d = el('draw'), c = el('create');
   if (!d || !c) return;
   const aperta = (ap, duas) => { c.classList.toggle('apertada', ap); d.classList.toggle('apertada', ap); d.classList.toggle('duas-col', !!duas); };
   if (d.hidden || pos.draw) return aperta(false);
-  if (!pos.create) { c.style.top = '64px'; c.style.transform = 'none'; }
+  if (!pos.create) { c.style.top = topoCriar + 'px'; c.style.transform = 'none'; }
   d.style.transform = 'none';
   // 1.4.0: com o botão Captura as duas barras deixaram de caber empilhadas em telas de ~1000 px; antes de pôr a de
   // desenho ao lado (em cima do quadro), tenta com os botões mais baixos e, no notebook, com a
@@ -42,6 +90,9 @@ function place(k) {
   if (!b) return;
   if (!p) {
     b.classList.remove('moved'); b.style.left = b.style.top = b.style.right = b.style.bottom = b.style.transform = '';
+    if (k === 'ink') apertaCanetas();
+    if (k === 'menu') encaixaMenu();
+    if (k === 'teach') encaixaFerramentas();
     if (k === 'create' || k === 'draw') empilhaDesenho();
     return;
   }

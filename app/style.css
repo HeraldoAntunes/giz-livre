@@ -679,3 +679,11 @@ button:focus:not(:focus-visible) { outline: none; }
 .br-item small { font-size: 11px; color: var(--muted); }
 .br-dica { display: block; margin-top: 8px; color: var(--muted); }
 .br-nada { grid-column: 1 / -1; color: var(--muted); margin: 6px 0; }
+/* projetor estreito: a barra de desfazer/menu não cabe ao lado da das canetas e desce para a esquerda (bars.js) */
+.bar.top-right.desceu { right: auto; left: 12px; top: 64px; }
+/* tela estreita: a barra das canetas fica mais justa para não encostar na de ferramentas da direita (bars.js) */
+.ink.apertada { gap: 2px; padding: 0 6px 4px; }
+.ink.apertada .ib { width: 34px; }
+.ink.apertada .pen { width: 32px; }
+/* tela baixa (1024×600): a barra de ferramentas da direita rola por dentro em vez de sair da tela */
+.teachbar { max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }

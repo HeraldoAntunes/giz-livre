@@ -12,6 +12,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync, mkdirSync
 import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { codigo, entrarNoNavegador } from './acesso.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -115,6 +116,7 @@ async function iniciarEdge() {
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') erros.push('console.error: ' + m.params.args.map(a => a.value ?? a.description ?? '').join(' '));
   };
   await cdp('Runtime.enable'); await cdp('Page.enable'); await cdp('Performance.enable');
+  await entrarNoNavegador(cdp, BASE, token);
   await cdp('Emulation.setDeviceMetricsOverride', { width: LARG, height: ALT, deviceScaleFactor: 1, mobile: false });
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: BANCADA });
   // --lento imita um PC de sala modesto: processador 4 vezes mais lento e desenho sem a placa de vídeo
@@ -139,7 +141,7 @@ const PGDN = () => tecla('PageDown', 'PageDown', 34), PGUP = () => tecla('PageUp
 // ---------------- servidor ----------------
 async function iniciarServidor() {
   servidor = spawn('python', [join(RAIZ, 'server.py'), '--sem-janela', '--sem-auto-encerrar', '--porta', String(PORTA), '--dados', DADOS], { stdio: 'ignore' });
-  for (let t = 0; t < 100 && !token; t++) { try { token = (await (await fetch(BASE + '/api/info')).json()).token; } catch { await espera(100); } }
+  for (let t = 0; t < 100 && !token; t++) { try { token = await codigo(BASE, DADOS); } catch { await espera(100); } }
   if (!token) throw new Error('o servidor temporário não abriu');
 }
 const quadroArq = id => join(DADOS, id + '.json');
@@ -389,6 +391,7 @@ try {
   try { await fetch(BASE + '/api/sair', { method: 'POST', headers: { 'X-Lousa': token, 'Content-Type': 'application/json' }, body: '{}' }); } catch {}
   await espera(800);
   try { servidor?.kill(); } catch {}
-  if (!MANTER) { await espera(1500); try { rmSync(join(pastaTmp, 'perfil-edge'), { recursive: true, force: true }); rmSync(DADOS, { recursive: true, force: true }); } catch {} }
+  // a pasta temporária inteira sai no fim, também com falha (--manter para guardar)
+  if (!MANTER) { await espera(1500); try { rmSync(pastaTmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } catch { console.log('pasta temporária não apagada: ' + pastaTmp); } }
   console.log('\nResultado em', join(SAIDA, 'resultado.json'));
 }

@@ -1,6 +1,9 @@
 # Guia de uso do Giz Livre
 
 ## 1. Abrir
+
+- **Instalar:** extraia todo o `Instalar-GizLivre-<versão>.zip` e abra o `GizLivre.exe` da pasta. Confirme a
+  instalação na sua conta, sem administrador. Mantenha `python`, `servidor` e `instalar.txt` junto do executável.
 - **Instalado:** atalho **Giz Livre** na Área de Trabalho ou no Menu Iniciar.
 - **Versão portátil (zip):** descompacte e dê dois cliques em `GizLivre.exe`. Os quadros ficam na pasta `quadros`, ao lado do
   programa, e dá para levar tudo num pendrive.
@@ -10,7 +13,10 @@
 passos e o botão **Mostrar na tela**. No primeiro quadro, um tour de seis balões mostra as barras principais (dá para
 pular, rever pela ajuda ou desligar).
 
-O programa abre numa janela própria do Edge ou do Chrome e funciona sem internet. Na versão instalada, os quadros ficam em
+A partir da 1.16.0, o programa abre em janela própria Tauri/WebView2, sem depender do Edge ou do Chrome instalado.
+O Python oficial embutido vem no pacote. Se faltar WebView2, siga a orientação do programa para instalar o componente
+oficial da Microsoft. É possível trabalhar sem internet, mas o WebView2 pode abrir conexão própria com a Microsoft;
+a consulta de atualização e o download do zip usam o GitHub quando você pede. Na versão instalada, os quadros ficam em
 `Documentos\Giz Livre\quadros`. Para fazer backup ou levar para outro computador, use **Levar quadros** na galeria
 (veja a seção 5).
 
@@ -38,8 +44,9 @@ Windows Ink* no driver.
 - **Quadro livre:** tela infinita, sem bordas.
 - **Caderno A4** (em pé ou deitado): páginas prontas para imprimir ou salvar em PDF.
 - **Slides 16:9** em branco.
-- **Abrir PowerPoint ou PDF:** cada slide ou página vira uma folha travada no fundo, para escrever por cima. O PowerPoint
-  precisa estar instalado para abrir `.pptx`; PDF funciona sempre.
+- **Abrir PowerPoint ou PDF:** cada slide ou página vira uma folha travada no fundo, para escrever por cima. Para abrir
+  `.pptx`, o computador precisa do PowerPoint ou do LibreOffice (gratuito; com ele, efeitos e algumas fontes podem
+  mudar); PDF funciona sempre.
 
 ## 4. Na aula
 | Quero… | Como |
@@ -78,7 +85,8 @@ Na galeria, **Formas** abre o catálogo. Selecione uma forma na lousa para mover
 cor da seleção para recolorir. Modelos com campos vazios podem receber Texto ou escrita a caneta. A legenda interna
 faz parte da imagem SVG.
 
-**Apresentações grandes:** até 200 slides o Giz Livre roda liso em qualquer computador (testado). Acima disso, num
+**Apresentações grandes:** até 200 slides o Giz Livre rodou liso nos testes do mantenedor, inclusive com o processador 6 vezes mais lento
+(simulado). Acima disso, num
 computador modesto, o painel de páginas fica lento. Se o PowerPoint não estiver instalado e a conversão de um deck
 grande falhar, salve o deck como PDF e importe o PDF. Vídeos dos slides entram como imagem parada.
 
@@ -88,6 +96,8 @@ grande falhar, salve o deck como PDF e importe o PDF. Vídeos dos slides entram 
   e salve o `.zip` no pen drive. No outro computador, **Levar quadros** → *Trazer quadros de um arquivo*. Nada que já
   existe lá é apagado ou substituído: quadro igual é pulado e quadro que mudou entra como cópia "(trazido em dd/mm)".
   Imagens coladas e pastas vão junto; a lixeira e as preferências (estojo, barras) não vão.
+  A importação confere o conteúdo das imagens existentes e tenta reparar as corrompidas com a cópia do pacote.
+  Se não conseguir, informa a falha. Pacotes com nomes de arquivo duplicados são recusados antes de trazer conteúdo.
 - **Um quadro só:** menu `…` → *Exportar arquivo .lousa*; no outro computador, **Importar**.
 
 ## 6. Agentes de IA (experimental)
@@ -102,12 +112,15 @@ textos, notas, formas da biblioteca, fórmulas e gráficos.
 4. Abra o quadro na galeria (ele aparece com o selo *agente de IA*). As fórmulas e os gráficos são montados nessa hora.
 
 O agente não apaga nada e não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
-continuar. Tudo fica no seu computador.
+continuar. Os quadros são gravados no seu computador. O cliente de IA tem suas próprias regras de acesso à rede;
+a janela WebView2 também pode abrir conexão própria com a Microsoft.
 
 ## 7. Atualizar o Giz Livre
 No **Sobre** (galeria ou menu `…` do quadro), **Procurar versão nova**. Se houver, **Baixar e instalar**: o programa baixa o
-instalador do GitHub, confere o SHA-256, instala por cima e abre de novo. Os quadros ficam como estão. Na versão
-portátil, baixe o zip novo e troque a pasta (os quadros ficam na pasta `quadros`).
+zip de instalação do GitHub, confere o SHA-256, extrai, instala por cima e abre de novo. Os quadros ficam como estão.
+Quem está na 1.15 ou anterior instala a janela própria à mão uma vez: extraia o zip inteiro e abra o `GizLivre.exe`.
+Depois, o Sobre da janela própria reconhece o zip. Na versão portátil, guarde a pasta `quadros`, extraia o pacote
+novo inteiro e leve os quadros para a nova pasta; preserve os arquivos antigos até conferir a abertura.
 
 ## 8. Problemas comuns
 | Sintoma | Solução |

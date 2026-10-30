@@ -46,3 +46,7 @@ prototipos/**/node_modules/
 prototipos/**/*.png
 prototipos/**/target/
 prototipos/**/gen/
+
+# janela própria (Tauri): compilação e esquemas gerados
+janela/target/
+janela/gen/

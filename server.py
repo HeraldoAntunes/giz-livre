@@ -6,6 +6,7 @@ Também: converte PowerPoint em imagens (via o próprio PowerPoint, por COM) e m
 Uso:  python server.py [--porta 8765] [--sem-janela] [--dados PASTA] [--sem-auto-encerrar]
 """
 import argparse
+import http.cookies
 import base64
 import hashlib
 import json
@@ -31,8 +32,13 @@ from pathlib import Path
 WINDOWS = sys.platform == "win32"
 MAC = sys.platform == "darwin"
 CONGELADO = getattr(sys, "frozen", False)          # rodando como GizLivre.exe (PyInstaller)
+# janela própria (P60): o GizLivre.exe (Tauri) roda este arquivo no Python embutido oficial e mostra a página na janela
+# dele; GIZ_LIVRE_PASTA é a pasta do programa (onde ficam o GizLivre.exe e o portatil.txt)
+JANELA_PROPRIA = os.environ.get("GIZ_LIVRE_JANELA") == "1" and bool(os.environ.get("GIZ_LIVRE_PASTA"))
+INSTALADO = CONGELADO or JANELA_PROPRIA             # o programa montado, e não o código-fonte
 PACOTE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).resolve().parent
+RAIZ = (Path(sys.executable).resolve().parent if CONGELADO else
+        Path(os.environ["GIZ_LIVRE_PASTA"]).resolve() if JANELA_PROPRIA else Path(__file__).resolve().parent)
 APP = PACOTE / "app"
 
 
@@ -48,7 +54,7 @@ def pasta_documentos() -> Path:
 
 def pasta_dados_padrao() -> Path:
     # código-fonte ou cópia portátil (arquivo portatil.txt ao lado do exe): quadros/ ao lado do programa
-    if not CONGELADO or (RAIZ / "portatil.txt").exists():
+    if not INSTALADO or (RAIZ / "portatil.txt").exists():
         return RAIZ / "quadros"
     docs = pasta_documentos()
     nova, antiga = docs / "Giz Livre" / "quadros", docs / "Lousa Digital" / "quadros"
@@ -63,7 +69,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.15.2"
+VERSAO = "1.16.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -75,6 +81,7 @@ LIMITES = {"boards": 200 * MB, "thumbs": 5 * MB, "assets": 40 * MB, "pptx": 300 
            "agente": 1 * MB, "outros": 64 * 1024}
 TOKEN = secrets.token_hex(16)        # token da sessão: só a página servida por ESTE servidor o conhece
 TRAVA_PPTX = threading.Semaphore(1)  # conversões pesadas: uma de cada vez
+PPTX_DESCOMPACTADO_MAX = 1536 * MB      # soma declarada dos arquivos dentro de uma apresentação (checar_pptx)
 TRAVA_OCR = threading.Semaphore(2)
 TRAVA_PACOTE = threading.Lock()     # um pacote trazido de cada vez
 PORTA = 8765
@@ -86,6 +93,11 @@ TRAVA_GERAL = threading.Lock()
 def trava(bid: str) -> threading.Lock:
     with TRAVA_GERAL:
         return TRAVAS.setdefault(bid, threading.Lock())
+
+
+def token_matches(recebido: str, esperado: str) -> bool:
+    # compare_digest entre strings só aceita ASCII; entrada inválida deve dar erro HTTP.
+    return recebido.isascii() and secrets.compare_digest(recebido, esperado)
 
 
 def gravar_atomico(caminho: Path, dados: bytes) -> None:
@@ -107,16 +119,18 @@ def gravar_atomico(caminho: Path, dados: bytes) -> None:
 def limpar_temporarios(pasta: Path, idade_s: float = 120) -> int:
     """Apaga os temporários de gravar_atomico que uma queda brusca deixou (o programa morreu entre criar o .tmp e trocar
     pelo arquivo final; o arquivo final continua inteiro). Só os com mais de `idade_s`, para nunca pegar uma gravação
-    em andamento. Achado na bateria de testes de 28/10/2026 (teste C2)."""
+    em andamento. Achado na bateria de testes de 28/10/2026 (teste C2). Na pasta de cima (que, com --dados, pode ser de
+    outro programa), só o temporário do preferencias.json, o único arquivo do Giz gravado lá (auditoria de 29/10/2026)."""
     apagados, agora = 0, time.time()
-    for raiz in (pasta, pasta / "assets", pasta.parent):
+    nossos = r".+\.(json|png|jpg|txt)\.[A-Za-z0-9_]+\.tmp"
+    for raiz, padrao in ((pasta, nossos), (pasta / "assets", nossos), (pasta.parent, r"preferencias\.json\.[A-Za-z0-9_]+\.tmp")):
         try:
             candidatos = list(raiz.glob("*.tmp"))
         except OSError:
             continue
         for arq in candidatos:
             try:
-                if re.fullmatch(r".+\.(json|png|jpg|txt)\.[A-Za-z0-9_]+\.tmp", arq.name) and agora - arq.stat().st_mtime > idade_s:
+                if re.fullmatch(padrao, arq.name) and agora - arq.stat().st_mtime > idade_s:
                     arq.unlink()
                     apagados += 1
             except OSError:
@@ -206,6 +220,34 @@ def listar_quadros() -> list:
     return lista
 
 
+# Pedidos que mudam algo (gravar quadro, imagem, pasta...) em andamento: ao sair, o servidor espera por eles. A janela
+# própria sai logo depois de a página mandar o quadro, e o servidor sai junto (--pai); antes, a gravação que já tinha
+# chegado era cortada no meio (auditoria de 29/10/2026, rodada 2).
+EM_ANDAMENTO = 0
+TRAVA_ANDAMENTO = threading.Lock()
+
+
+def em_andamento(metodo):
+    def envolto(self, *a, **kw):
+        global EM_ANDAMENTO
+        with TRAVA_ANDAMENTO:
+            EM_ANDAMENTO += 1
+        try:
+            return metodo(self, *a, **kw)
+        finally:
+            with TRAVA_ANDAMENTO:
+                EM_ANDAMENTO -= 1
+    return envolto
+
+
+def esperar_gravacoes(limite_s: float = 15) -> int:
+    """Espera os pedidos que mudam algo terminarem (no máximo `limite_s`). Devolve quantos ainda faltavam."""
+    fim = time.time() + limite_s
+    while EM_ANDAMENTO and time.time() < fim:
+        time.sleep(0.05)
+    return EM_ANDAMENTO
+
+
 class Servidor(ThreadingHTTPServer):
     # A galeria pede dezenas de arquivos de uma vez; com a fila padrão (5), num PC lento os excedentes eram recusados.
     request_queue_size = 64
@@ -222,8 +264,10 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(404)
         return None
 
+    CACHE = "no-store"   # as imagens guardadas (nome = hash do conteúdo) usam cache longo; o resto, nenhum
+
     def end_headers(self):
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", self.CACHE)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
@@ -267,10 +311,36 @@ class Handler(SimpleHTTPRequestHandler):
                 (origem and origem not in (f"http://127.0.0.1:{PORTA}", f"http://localhost:{PORTA}")):
             self._json({"erro": "pedido de outra origem recusado"}, 403)
             return False
-        if not secrets.compare_digest(self.headers.get("X-Lousa", ""), TOKEN):
+        if not token_matches(self.headers.get("X-Lousa", ""), TOKEN):
             self._json({"erro": "sessão expirada: recarregue a página do Giz Livre"}, 409)
             return False
         return True
+
+    def _leitura_ok(self) -> bool:
+        """Quadros, imagens e ajustes só para a própria conta: o código vem no cabeçalho X-Lousa (Giz na Tela, MCP,
+        página) ou no cookie que a página ganhou com a chave de abertura (imagens e miniaturas, que não levam
+        cabeçalho). Até a 1.15, qualquer programa do computador lia os quadros, até de outra conta do Windows."""
+        if self._tem_acesso():
+            return True
+        self._json({"erro": "sem acesso: abra o Giz Livre pelo atalho desta conta"}, 401)
+        return False
+
+    def _mesma_origem(self) -> bool:
+        sfs = self.headers.get("Sec-Fetch-Site")
+        origem = self.headers.get("Origin")
+        return not ((sfs and sfs not in ("same-origin", "none")) or
+                    (origem and origem not in (f"http://127.0.0.1:{PORTA}", f"http://localhost:{PORTA}")))
+
+    def _tem_acesso(self) -> bool:
+        if token_matches(self.headers.get("X-Lousa", ""), TOKEN):
+            return True
+        biscoito = http.cookies.SimpleCookie()
+        try:
+            biscoito.load(self.headers.get("Cookie", ""))
+        except http.cookies.CookieError:
+            return False
+        m = biscoito.get(f"giz{PORTA}")
+        return bool(m and token_matches(m.value, TOKEN))
 
     def _canal_ok(self, rota: str) -> bool:
         # o token de agente não vale nas rotas da página: pedido com X-Agente fora de /api/agente/ é recusado
@@ -289,7 +359,7 @@ class Handler(SimpleHTTPRequestHandler):
         if not cfg:
             return self._json({"erro": "Agentes de IA desligados no Giz Livre. Para usar, o professor liga "
                                        "\"Permitir agentes de IA\" no menu do Giz Livre."}, 403)
-        if not secrets.compare_digest(self.headers.get("X-Agente", ""), cfg["token"]):
+        if not token_matches(self.headers.get("X-Agente", ""), cfg["token"]):
             return self._json({"erro": "token de agente inválido (o interruptor foi desligado e ligado de novo?)"}, 401)
         partes = rota[len("/api/agente/"):].split("/")
         consulta = urllib.parse.parse_qs(self.path.partition("?")[2])
@@ -419,7 +489,11 @@ class Handler(SimpleHTTPRequestHandler):
         if n < 0 or n > LIMITES.get(rota, LIMITES["outros"]):
             self._json({"erro": "tamanho do envio inválido"}, 413)
             return None
-        return self.rfile.read(n)
+        corpo = self.rfile.read(n)
+        if len(corpo) != n:
+            self._json({"erro": "O envio foi interrompido; nada foi gravado."}, 400)
+            return None
+        return corpo
 
     def _enviar_pacote(self):
         tmp = tempfile.gettempdir()
@@ -490,6 +564,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if rota.startswith("/api/agente/"):
             return self._agente("GET", rota)
+        if rota == "/api/info" and not self._tem_acesso():
+            # pública: só diz que é o Giz Livre e qual versão (outra conta, o Giz na Tela antes de achar o arquivo de
+            # conexão, uma segunda abertura); dados, pasta e código só para quem já tem acesso
+            return self._json({"versao": VERSAO, "app": "giz-livre"})
+        if (rota.startswith("/api/") or rota.startswith("/assets/") or rota.startswith("/thumbs/")) and not self._leitura_ok():
+            return
         if rota == "/api/agentes":   # painel do interruptor na página (o token de agente nunca vai para a página)
             if not self._escrita_ok():
                 return
@@ -550,8 +630,12 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", TIPOS[nome.rsplit(".", 1)[1]])
             self.send_header("Content-Length", str(len(corpo)))
-            self.send_header("Cache-Control", "max-age=31536000, immutable")
-            SimpleHTTPRequestHandler.end_headers(self)
+            # os mesmos cabeçalhos de proteção das outras respostas (auditoria de 29/10/2026), com o cache longo
+            self.CACHE = "max-age=31536000, immutable"
+            try:
+                self.end_headers()
+            finally:
+                del self.CACHE
             self.wfile.write(corpo)
             return
         if rota.startswith("/thumbs/"):
@@ -722,9 +806,34 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/api/agente/"):
             return self._agente("POST", self._rota())
+        if self.path.split("?")[0] == "/api/sessao":
+            # a página troca a chave de abertura (que veio no endereço da janela, de uso único) pelo código e por um
+            # cookie só desta porta; quem não abriu a janela não tem chave
+            if not self._mesma_origem():
+                return self._json({"erro": "pedido de outra origem recusado"}, 403)
+            corpo = self._corpo() or b"{}"
+            try:
+                chave = json.loads(corpo.decode("utf-8")).get("k")
+            except (ValueError, AttributeError):
+                chave = None
+            if not (isinstance(chave, str) and usar_chave(chave)):
+                return self._json({"erro": "chave de abertura inválida ou já usada: abra o Giz Livre pelo atalho"}, 401)
+            corpo = json.dumps({"token": TOKEN}).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(corpo)))
+            self.send_header("Set-Cookie", f"giz{PORTA}={TOKEN}; Path=/; HttpOnly; SameSite=Strict")
+            self.end_headers()
+            self.wfile.write(corpo)
+            return
         if not self._escrita_ok():
             return
         rota = self._rota()
+        if rota == "/api/chave":   # chave de abertura nova (testes, segunda abertura): só para quem já tem o código
+            return self._json({"k": nova_chave()})
+        if rota == "/api/abrir-janela":   # o atalho foi aberto de novo nesta conta: outra janela do mesmo programa
+            threading.Thread(target=abrir_janela, args=(f"http://127.0.0.1:{PORTA}/",), daemon=True).start()
+            return self._json({"ok": True})
         if rota == "/api/ping":
             # {janela, quadro}: o quadro aberto em cada janela, para o agente não gravar num quadro que está na tela
             corpo = self._corpo()
@@ -895,21 +1004,23 @@ class Handler(SimpleHTTPRequestHandler):
                 raise ValueError("nome inválido")
         except Exception as e:
             return self._json({"erro": str(e)}, 400)
-        origem = LIXEIRA / f"{nome}.json"
-        if origem.resolve().parent != LIXEIRA.resolve() or not origem.is_file():
-            return self._json({"erro": "não está na lixeira"}, 404)
-        bid = novo = m.group(1)
-        with TRAVA_GERAL:   # escolhe o id e reserva a trava antes de mover
-            while (DADOS / f"{novo}.json").exists() or (DADOS / f"{novo}.png").exists():
-                novo = f"{bid[:55]}-{secrets.token_hex(4)}"
-        with trava(novo):
-            if (DADOS / f"{novo}.json").exists():
-                return self._json({"erro": "conflito; tente de novo"}, 409)
-            shutil.move(str(origem), str(DADOS / f"{novo}.json"))
-            mini = LIXEIRA / f"{nome}.png"
-            if mini.is_file():
-                shutil.move(str(mini), str(DADOS / f"{novo}.png"))
-        return self._json({"ok": True, "id": novo, "renomeado": novo != bid})
+        # Só um pedido pode consumir esta origem da lixeira; o segundo recebe um erro recuperável.
+        with trava("lixeira:" + nome):
+            origem = LIXEIRA / f"{nome}.json"
+            if origem.resolve().parent != LIXEIRA.resolve() or not origem.is_file():
+                return self._json({"erro": "não está na lixeira"}, 404)
+            bid = novo = m.group(1)
+            with TRAVA_GERAL:   # escolhe o id e reserva a trava antes de mover
+                while (DADOS / f"{novo}.json").exists() or (DADOS / f"{novo}.png").exists():
+                    novo = f"{bid[:55]}-{secrets.token_hex(4)}"
+            with trava(novo):
+                if (DADOS / f"{novo}.json").exists():
+                    return self._json({"erro": "conflito; tente de novo"}, 409)
+                shutil.move(str(origem), str(DADOS / f"{novo}.json"))
+                mini = LIXEIRA / f"{nome}.png"
+                if mini.is_file():
+                    shutil.move(str(mini), str(DADOS / f"{novo}.png"))
+            return self._json({"ok": True, "id": novo, "renomeado": novo != bid})
 
 
 # ---------------- agentes de IA (servidor MCP em mcp/giz_livre_mcp.py) ----------------
@@ -1541,7 +1652,8 @@ def guardar_asset(dados: bytes) -> str:
     pasta = DADOS / "assets"
     pasta.mkdir(exist_ok=True)
     arq = pasta / nome
-    if arq.exists():
+    # O nome identifica o conteúdo esperado, mas um arquivo local pode ter sido corrompido.
+    if arq.is_file() and hashlib.sha1(arq.read_bytes()).hexdigest() == nome[:40]:
         try:
             os.utime(arq)
         except OSError:
@@ -1619,14 +1731,43 @@ def novo_id_quadro() -> str:
             return bid
 
 
+def _num(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+def item_valido(it) -> bool:
+    """Item vindo de fora (pacote de outro PC) com geometria que o desenho consegue usar: números finitos onde o
+    desenho lê. Um traço com pts=null derrubava o desenho do quadro (auditoria de 29/10/2026). As mesmas regras estão
+    em itemValido(), no app/js/render.js."""
+    def nums(p, passo, minimo):
+        return isinstance(p, list) and len(p) >= minimo and len(p) % passo == 0 and all(_num(v) for v in p)
+    if not isinstance(it, dict) or not isinstance(it.get("type"), str):
+        return False
+    t = it["type"]
+    if t == "stroke":
+        return nums(it.get("pts"), 3, 3) and _num(it.get("width")) and it["width"] > 0
+    if t == "shape":
+        return _num(it.get("width")) and (nums(it.get("pts"), 2, 4) if it.get("kind") == "polygon"
+                                          else all(_num(it.get(k)) for k in ("x1", "y1", "x2", "y2")))
+    if t == "text":
+        return all(_num(it.get(k)) for k in ("x", "y", "w"))
+    return all(_num(it.get(k)) for k in ("x", "y", "w", "h"))
+
+
 def quadro_do_pacote(dados: bytes, bid: str = "") -> dict:
     """Valida um quadro vindo de um pacote (que pode ser de outra pessoa) como o PUT valida, e tira imagens de fora."""
     board = json.loads(dados.decode("utf-8"), parse_constant=lambda c: (_ for _ in ()).throw(ValueError("número inválido")))
     if not isinstance(board, dict) or not isinstance(board.get("items"), list):
         raise ValueError("quadro inválido")
+    if "trazido_de" in board:
+        origem = board["trazido_de"]
+        if not (isinstance(origem, dict) and isinstance(origem.get("id"), str)
+                and isinstance(origem.get("impressao"), str)):
+            # só um metadado (de onde o quadro veio): sai ele, e a aula vem, como com os itens danificados
+            del board["trazido_de"]
     itens = []
     for n, it in enumerate(board["items"]):
-        if not isinstance(it, dict) or not isinstance(it.get("type"), str):
+        if not item_valido(it):
             continue
         if "src" in it and not (isinstance(it["src"], str) and SRC_OK.match(it["src"])):
             continue   # privacidade: nada de imagem com endereço externo (a importação de .lousa faz o mesmo)
@@ -1681,7 +1822,7 @@ def tamanho_estimado_pacote() -> int:
 
 def montar_pacote(destino) -> dict:
     """Grava em `destino` (arquivo aberto) o zip com todos os quadros, miniaturas e as imagens que eles usam."""
-    lista, falhas, usados = [], [], set()
+    lista, falhas, usados = [], [], {}   # usados: imagem -> quadros que a usam
     with zipfile.ZipFile(destino, "w") as z:
         for arq in sorted(DADOS.glob("*.json")):
             bid = arq.stem
@@ -1702,18 +1843,27 @@ def montar_pacote(destino) -> dict:
             z.writestr(f"quadros/{bid}.json", dados, zipfile.ZIP_DEFLATED)
             if png:
                 z.writestr(f"quadros/{bid}.png", png, zipfile.ZIP_STORED)
-            usados.update(re.findall(r"[0-9a-f]{40}\.(?:png|jpg)", dados.decode("utf-8", "ignore")))
+            for nome in set(re.findall(r"[0-9a-f]{40}\.(?:png|jpg)", dados.decode("utf-8", "ignore"))):
+                usados.setdefault(nome, []).append(bid)
             lista.append({"id": bid, "title": str(board.get("title") or "Sem título")[:200],
                           "folder": nome_pasta(board.get("folder")), "impressao": impressao_quadro(board)})
-        imagens = 0
+        imagens, faltando = 0, {}
         for nome in sorted(usados):
             a = DADOS / "assets" / nome
-            if ASSET_OK.match(nome) and a.is_file():
-                try:
-                    z.write(a, f"assets/{nome}", zipfile.ZIP_STORED)   # PNG e JPG já vêm comprimidos
-                    imagens += 1
-                except OSError:
-                    falhas.append({"id": nome, "motivo": "não consegui ler a imagem"})
+            if not (ASSET_OK.match(nome) and a.is_file()):
+                # o quadro aponta para uma imagem que não está na pasta (auditoria de 29/10/2026: antes, o resumo
+                # dizia sucesso): o quadro vai assim mesmo, e a falta aparece no resumo, por quadro
+                for bid in usados[nome]:
+                    faltando[bid] = faltando.get(bid, 0) + 1
+                continue
+            try:
+                z.write(a, f"assets/{nome}", zipfile.ZIP_STORED)   # PNG e JPG já vêm comprimidos
+                imagens += 1
+            except OSError:
+                falhas.append({"id": nome, "motivo": "não consegui ler a imagem"})
+        titulos = {q["id"]: q["title"] for q in lista}
+        for bid, n in sorted(faltando.items()):
+            falhas.append({"id": bid, "titulo": titulos.get(bid, bid), "motivo": f"falta(m) {n} imagem(ns) deste quadro na pasta do Giz Livre: ele foi sem ela(s)"})
         z.writestr("manifesto.json", json.dumps({
             "formato": FORMATO_PACOTE, "programa": "Giz Livre", "versao": VERSAO,
             "criado": time.strftime("%Y-%m-%dT%H:%M:%S"), "quadros": lista}, ensure_ascii=False, indent=1), zipfile.ZIP_DEFLATED)
@@ -1730,6 +1880,8 @@ def trazer_pacote(arquivo) -> dict:
         infos = z.infolist()
         if len(infos) > MAX_ARQUIVOS_PACOTE or sum(i.file_size for i in infos) > LIMITE_DESCOMPRIMIDO:
             raise ValueError("O pacote é grande demais ou está danificado; nada foi trazido.")
+        if len({i.filename for i in infos}) != len(infos):
+            raise ValueError("O pacote contém nomes de arquivo duplicados; nada foi trazido.")
         porNome = {i.filename: i for i in infos}
 
         def ler(info, limite):
@@ -1777,8 +1929,9 @@ def trazer_pacote(arquivo) -> dict:
         for arq in DADOS.glob("*.json"):
             try:
                 t = json.loads(arq.read_text(encoding="utf-8")).get("trazido_de")
-                if isinstance(t, dict):
-                    origens.add((t.get("id"), t.get("impressao")))
+                # Arquivos de versões antigas podem ter recebido metadados sem validação.
+                if isinstance(t, dict) and isinstance(t.get("id"), str) and isinstance(t.get("impressao"), str):
+                    origens.add((t["id"], t["impressao"]))
             except (OSError, ValueError, AttributeError):
                 pass
         hoje = time.strftime("%d/%m")
@@ -1795,6 +1948,15 @@ def trazer_pacote(arquivo) -> dict:
             except (ValueError, UnicodeDecodeError, zipfile.BadZipFile):
                 r["falhas"].append({"id": bid, "motivo": "quadro danificado"})
                 continue
+            fora = len(json.loads(dados.decode("utf-8")).get("items") or []) - len(board["items"])
+            if fora > 0:
+                r["falhas"].append({"id": bid, "titulo": board["title"], "motivo": f"{fora} item(ns) danificado(s) ou com "
+                                    "imagem de fora da internet ficaram de fora; o resto do quadro veio"})
+            # imagens que o quadro usa e que nem vieram no pacote nem já estavam aqui: o quadro vem, e a falta é avisada
+            refs = set(re.findall(r"[0-9a-f]{40}\.(?:png|jpg)", dados.decode("utf-8", "ignore")))
+            sem = [n for n in refs if not (DADOS / "assets" / n).is_file()]
+            if sem:
+                r["falhas"].append({"id": bid, "titulo": board.get("title") or bid, "motivo": f"falta(m) {len(sem)} imagem(ns) deste quadro no pacote: ele veio sem ela(s)"})
             png = None
             mini = porNome.get(f"quadros/{bid}.png")
             if mini:
@@ -1910,6 +2072,14 @@ def checar_pptx(conteudo: bytes) -> str:
     try:
         with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
             nomes = [n.lower() for n in z.namelist()]
+            # zip-bomba (auditoria de 29/10/2026): o conversor descompacta tudo. Uma apresentação de verdade é quase
+            # toda imagem já comprimida; nas 400 do PC do professor a maior razão foi 20x (só texto, poucos MB) e o maior
+            # total, 205 MB. Recusa acima de 1,5 GB, ou acima de 100 MB com mais de 50x o tamanho do arquivo
+            infos = z.infolist()
+            total = sum(i.file_size for i in infos)
+            if len(infos) > 20000 or total > PPTX_DESCOMPACTADO_MAX or (total > 100 * MB and total > 50 * len(conteudo)):
+                raise ValueError("Esta apresentação descompactada ficaria grande demais (arquivo danificado ou "
+                                 "preparado para travar o computador). Salve de novo no PowerPoint e importe outra vez.")
 
             def ler(nome: str) -> bytes:
                 if z.getinfo(nome).file_size > 2 * 1024 * 1024:
@@ -2247,6 +2417,20 @@ def info_ocr() -> dict:
 # ---------------- PDF a partir de imagens JPEG (uma por página) ----------------
 def montar_pdf(paginas: list) -> bytes:
     """paginas: [{w, h (pontos), jpeg (dataURL), pw, ph (pixels)}]"""
+    dimensoes = []
+    for pg in paginas:
+        try:
+            valores = [pg[k] for k in ("w", "h", "pw", "ph")]
+            if any(isinstance(v, bool) for v in valores):
+                raise ValueError
+            w, h, pw, ph = map(float, valores)
+            if not all(math.isfinite(v) and 0 < v <= 100000 for v in (w, h, pw, ph)):
+                raise ValueError
+            if not pw.is_integer() or not ph.is_integer():
+                raise ValueError
+        except (KeyError, TypeError, ValueError, OverflowError):
+            raise ValueError("dimensões de página inválidas: devem ser positivas e finitas, até 100000; pixels inteiros")
+        dimensoes.append((w, h, int(pw), int(ph)))
     objs: list[bytes] = []
 
     def novo(conteudo: bytes) -> int:
@@ -2256,9 +2440,8 @@ def montar_pdf(paginas: list) -> bytes:
     kids = []
     novo(b"")  # 1: catálogo (preenchido no fim)
     novo(b"")  # 2: árvore de páginas
-    for i, pg in enumerate(paginas):
+    for pg, (w, h, pw, ph) in zip(paginas, dimensoes):
         jpg = base64.b64decode(pg["jpeg"].split(",", 1)[1])
-        w, h, pw, ph = float(pg["w"]), float(pg["h"]), int(pg["pw"]), int(pg["ph"])
         img = novo(b"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB "
                    b"/BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n" % (pw, ph, len(jpg)) + jpg + b"\nendstream")
         cmd = b"q %.2f 0 0 %.2f 0 0 cm /Im0 Do Q" % (w, h)
@@ -2386,7 +2569,9 @@ def baixar_https(url: str, limite: int, timeout: int = 30, aceita: str = "applic
 
 def pode_instalar_sozinho() -> bool:
     # a versão instalada se atualiza sozinha; a portátil e a do código-fonte só mostram a página de downloads
-    return sys.platform == "win32" and CONGELADO and not (RAIZ / "portatil.txt").exists()
+    # janela própria (P60): o Instalar-GizLivre-<versão>.exe é o próprio GizLivre.exe com o programa dentro, e aceita
+    # as mesmas opções do instalador do Inno (/SILENT /reabrir=1 /LOG=...)
+    return sys.platform == "win32" and INSTALADO and not (RAIZ / "portatil.txt").exists()
 
 
 def notas_da_release(corpo) -> str:
@@ -2403,8 +2588,12 @@ def info_atualizacao(release: dict | None = None) -> dict:
     va, vu = versao_tupla(VERSAO), versao_tupla(ultima)
     if not vu:
         raise ValueError("o GitHub respondeu sem um número de versão reconhecível")
-    nome = f"Instalar-GizLivre-{ultima}.exe"
     anexos = {a.get("name"): a.get("browser_download_url") for a in release.get("assets") or [] if isinstance(a, dict)}
+    # janela própria (P60): a versão nova vem no zip de instalação (o exe com o programa dentro levava alerta no
+    # VirusTotal); a 1.x do PyInstaller continua procurando o .exe e, sem ele, mostra a página de downloads
+    nome = f"Instalar-GizLivre-{ultima}.exe"
+    if JANELA_PROPRIA and f"Instalar-GizLivre-{ultima}.zip" in anexos:
+        nome = f"Instalar-GizLivre-{ultima}.zip"
     pagina = release.get("html_url") if str(release.get("html_url") or "").startswith("https://github.com/") \
         else "https://github.com/HeraldoAntunes/giz-livre/releases/latest"
     nova = vu > va
@@ -2433,8 +2622,11 @@ def instalar_atualizacao() -> dict:
     if hashlib.sha256(dados).hexdigest() != esperado:
         raise ValueError("o arquivo baixado não confere com o SHA-256 publicado; nada foi instalado")
     pasta = Path(tempfile.mkdtemp(prefix="gizlivre-atualizacao-"))
-    exe = pasta / nome
-    exe.write_bytes(dados)
+    if nome.endswith(".zip"):
+        exe = extrair_instalador(dados, pasta)
+    else:
+        exe = pasta / nome
+        exe.write_bytes(dados)
     # registro do instalador ao lado da pasta dos quadros (Documentos\Giz Livre): se a instalação não terminar, fica o
     # rastro do que aconteceu (no notebook do professor, em 22/10/2026, ela parou em "Instalando" sem deixar pista)
     log = DADOS.parent / "atualizacao.log"
@@ -2450,6 +2642,27 @@ def instalar_atualizacao() -> dict:
                      creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
                      close_fds=True)
     return {"ok": True, "versao": info["ultima"], "log": str(log)}
+
+
+def extrair_instalador(dados: bytes, pasta: Path) -> Path:
+    """Abre o zip de instalação (já conferido pelo SHA-256) em `pasta` e devolve o GizLivre.exe da pasta de dentro.
+    Recusa caminho que sai da pasta e zip grande demais."""
+    import io
+    raiz = pasta.resolve()
+    raiz.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(io.BytesIO(dados)) as z:
+        infos = z.infolist()
+        if len(infos) > 20000 or sum(i.file_size for i in infos) > 600 * MB:
+            raise ValueError("o zip da versão nova é grande demais; nada foi instalado")
+        for i in infos:
+            alvo = (raiz / i.filename).resolve()
+            if alvo != raiz and raiz not in alvo.parents:
+                raise ValueError("o zip da versão nova tem um caminho inválido; nada foi instalado")
+        z.extractall(raiz)
+    exes = sorted(raiz.glob("*/GizLivre.exe")) or sorted(raiz.glob("GizLivre.exe"))
+    if not exes:
+        raise ValueError("o zip da versão nova não traz o GizLivre.exe; nada foi instalado")
+    return exes[0]
 
 
 def resposta_publica(info: dict) -> dict:
@@ -2510,6 +2723,78 @@ def pasta_perfil(navegador: str) -> Path:
     return base / "Giz Livre" / f"navegador-{navegador}"
 
 
+# ---- acesso por conta do Windows (29/10/2026) ----
+# A janela abre com uma chave de uso único no endereço (?k=), que a página troca pelo código e por um cookie; outros
+# programas da MESMA conta (Giz na Tela, MCP, uma segunda abertura) leem o código no arquivo de conexão, que fica no
+# perfil da conta: outra conta do Windows não consegue ler. Nenhuma rota de dados responde sem o código.
+CHAVES: dict = {}                    # chave de abertura -> validade
+TRAVA_CHAVES = threading.Lock()
+DADOS_ESCOLHIDOS = False             # --dados na linha de comando (testes): o arquivo de conexão vai junto dos dados
+
+
+def nova_chave(validade_s: float = 180) -> str:
+    k = secrets.token_urlsafe(24)
+    with TRAVA_CHAVES:
+        agora = time.time()
+        for velha in [c for c, t in CHAVES.items() if t < agora]:
+            CHAVES.pop(velha, None)
+        CHAVES[k] = agora + validade_s
+    return k
+
+
+def usar_chave(k: str) -> bool:
+    with TRAVA_CHAVES:
+        t = CHAVES.pop(k, None)
+    return bool(t and t >= time.time())
+
+
+def arquivo_conexao() -> Path:
+    """Onde ficam porta e código desta conta: %LOCALAPPDATA%\\Giz Livre\\conexao.json (não viaja com perfil móvel);
+    com --dados, <dados>\\.agente\\conexao.json."""
+    if DADOS_ESCOLHIDOS:
+        return DADOS / ".agente" / "conexao.json"
+    base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    return base / "Giz Livre" / "conexao.json"
+
+
+def gravar_conexao() -> None:
+    try:
+        arq = arquivo_conexao()
+        arq.parent.mkdir(parents=True, exist_ok=True)
+        gravar_atomico(arq, json.dumps({"porta": PORTA, "token": TOKEN, "pid": os.getpid(), "versao": VERSAO}).encode("utf-8"))
+    except OSError as e:
+        registrar(e)
+
+
+def apagar_conexao() -> None:
+    try:
+        arq = arquivo_conexao()
+        if json.loads(arq.read_text(encoding="utf-8")).get("pid") == os.getpid():
+            arq.unlink()
+    except (OSError, ValueError):
+        pass
+
+
+def ler_conexao():
+    try:
+        d = json.loads(arquivo_conexao().read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) and isinstance(d.get("porta"), int) and isinstance(d.get("token"), str) else None
+    except (OSError, ValueError):
+        return None
+
+
+def info_com_codigo(porta: int, token: str):
+    """/api/info completo de um Giz Livre desta conta (o código confere); None se não for desta conta."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{porta}/api/info", headers={"Host": f"127.0.0.1:{porta}", "X-Lousa": token})
+        with urllib.request.urlopen(req, timeout=1) as r:
+            d = json.loads(r.read().decode("utf-8"))
+        return d if isinstance(d, dict) and "dados" in d else None
+    except Exception:
+        return None
+
+
 NAVEGADOR = None                     # "edge", "chrome" ou "outro": quem mostra a janela do Giz Livre
 NAVEGADOR_PERFIL = None              # pasta do perfil próprio em uso (None: perfil do usuário)
 
@@ -2519,6 +2804,14 @@ def abrir_janela(url: str, evitar=(), proprio=None) -> None:
     `evitar`: navegadores a pular (o que acabou de cair), se houver outro. `proprio`: usar o perfil só do Giz Livre
     (padrão: no Windows, se já houver cópia dos ajustes ou se o navegador já caiu)."""
     global NAVEGADOR, NAVEGADOR_PERFIL
+    if JANELA_PROPRIA:
+        # a janela é do GizLivre.exe: abri-lo de novo pede a ele outra janela (ele só deixa uma cópia aberta)
+        try:
+            subprocess.Popen([str(RAIZ / "GizLivre.exe"), "--nova-janela"], close_fds=True)
+        except OSError as e:
+            registrar(e)
+        return
+    url = url.split("?")[0].rstrip("/") + "/?k=" + nova_chave()   # chave de uso único: a página troca pelo código
     if proprio is None:
         proprio = WINDOWS and (PERFIL_PROPRIO or arquivo_prefs().exists())
     if WINDOWS:
@@ -2576,6 +2869,22 @@ def ultima_falha(navegador: str) -> float:
 
 
 AVISO_JANELA = ""                    # recado para a próxima janela que abrir (entregue uma vez só)
+
+
+def aviso_instalacao_para_todos(ler=None) -> str:
+    """Atualizou pela janela própria (só da conta) e há uma 1.x do Inno instalada para todos os usuários (Arquivos de
+    Programas): ela continua lá, com atalho próprio. A janela avisa uma vez (auditoria de 29/10/2026)."""
+    def do_registro():
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+                            r"\{6F1B6C2E-4D7A-4E2B-9B8D-3A5C1E7F0A21}_is1") as k:
+            return str(winreg.QueryValueEx(k, "DisplayVersion")[0])
+    try:
+        v = (ler or do_registro)()
+    except OSError:
+        return ""
+    return (f"Há também o Giz Livre {v} instalado para todos os usuários, em Arquivos de Programas; o atalho dele abre "
+            "a versão antiga. Para tirá-lo, use Aplicativos instalados com uma conta de administrador (os quadros ficam).")
 
 
 def tomar_aviso() -> str:
@@ -2814,6 +3123,17 @@ def fechar_janelas_antigas(velhas: list, espera_s: float = 25) -> None:
         registrar(e)
 
 
+def fechar_janelas_do_edge(velhas: list) -> None:
+    """Janela própria: as janelas do Edge marcadas como Giz Livre são da versão antiga (a nova não usa o Edge)."""
+    try:
+        import ctypes
+        for h in velhas:
+            ctypes.windll.user32.PostMessageW(h, 0x0010, 0, 0)   # WM_CLOSE: fecha só aquela janela do Edge
+        diario(f"fechadas {len(velhas)} janelas do Edge da versão antiga")
+    except Exception as e:
+        registrar(e)
+
+
 def janelas_abertas() -> list:
     try:
         return _com_aumid()[2]() if WINDOWS else []
@@ -2856,9 +3176,36 @@ def vigiar_inatividade(srv, limite_s: int, passo: float = 15, dormir=time.sleep,
             return
 
 
+def sair_com_o_pai(srv, pid: int) -> None:
+    """Janela própria: o servidor é processo filho do GizLivre.exe. Se a janela sair de qualquer jeito (fechada,
+    derrubada, morta pelo Gerenciador de Tarefas), o servidor sai junto e não fica órfão segurando a porta."""
+    vivo = None
+    if WINDOWS:
+        try:
+            import ctypes
+            k = ctypes.windll.kernel32
+            k.OpenProcess.restype = ctypes.c_void_p
+            h = k.OpenProcess(0x00100000, False, pid)   # SYNCHRONIZE
+            if h:
+                k.WaitForSingleObject(ctypes.c_void_p(h), 0xFFFFFFFF)
+                vivo = False
+        except Exception as e:
+            registrar(e)
+        if vivo is None:
+            return   # no Windows, os.kill(pid, 0) ENCERRA o processo: sem o aviso do sistema, não vigia
+    while vivo is None:
+        try:
+            os.kill(pid, 0)
+            time.sleep(2)
+        except OSError:
+            vivo = False
+    diario(f"encerrado: a janela do programa (PID {pid}) saiu")
+    srv.shutdown()
+
+
 def aviso(msg: str) -> None:
     # o executável não tem console: mostra uma janela de aviso
-    if CONGELADO:
+    if INSTALADO:
         try:
             import ctypes
             ctypes.windll.user32.MessageBoxW(None, msg, "Giz Livre", 0x30)
@@ -2869,34 +3216,56 @@ def aviso(msg: str) -> None:
 
 
 def main():
-    global DADOS, LIXEIRA, PORTA, AUTO_ENCERRAR
+    global DADOS, LIXEIRA, PORTA, AUTO_ENCERRAR, DADOS_ESCOLHIDOS, AVISO_JANELA
     ap = argparse.ArgumentParser()
     ap.add_argument("--porta", type=int, default=8765)
     ap.add_argument("--sem-janela", action="store_true")
     ap.add_argument("--dados", help="pasta dos quadros (padrão: quadros/ ao lado do server.py)")
     ap.add_argument("--sem-auto-encerrar", action="store_true")
     ap.add_argument("--depois-de-atualizar", action="store_true", help="aberto pelo instalador da atualização")
+    ap.add_argument("--pai", type=int, help="PID da janela própria (GizLivre.exe): o servidor sai quando ela sair")
     args = ap.parse_args()
     if args.dados:
         DADOS = Path(args.dados).resolve()
         LIXEIRA = DADOS / "lixeira"
+        DADOS_ESCOLHIDOS = True
     DADOS.mkdir(parents=True, exist_ok=True)
     LIXEIRA.mkdir(exist_ok=True)
     PORTA = args.porta
     url = f"http://127.0.0.1:{PORTA}/"
 
-    atual = info_rodando(PORTA)
-    if atual is not None:
-        if atual.get("dados") == str(DADOS):      # mesma cópia já no ar: só abre outra janela
-            if not args.sem_janela:
-                abrir_janela(url)
-            return
-        if not pedir_saida(PORTA, atual):           # outra cópia (ex.: instalada e portátil) ou versão antiga: troca
-            aviso(f"A porta {PORTA} está ocupada por outro programa. Feche-o e abra o Giz Livre de novo.")
-            return 1
-        if info_rodando(PORTA) is not None:
-            aviso(f"A porta {PORTA} está ocupada por outro programa. Feche-o e abra o Giz Livre de novo.")
-            return 1
+    # um Giz Livre desta conta já aberto? (o código do arquivo de conexão confere): só abre outra janela nele
+    con = ler_conexao()
+    minha = info_com_codigo(con["porta"], con["token"]) if con else None
+    if minha is not None and minha.get("dados") == str(DADOS) and args.pai:
+        # janela própria: quem responde é um servidor antigo desta conta (a versão de antes, ou um que ficou órfão);
+        # a janela nova é quem manda agora: pede para ele sair e assume
+        pedir_saida(con["porta"], {"token": con["token"]})
+        minha = None
+    if minha is not None and minha.get("dados") == str(DADOS):
+        if not args.sem_janela:
+            try:
+                import urllib.request
+                urllib.request.urlopen(urllib.request.Request(
+                    f"http://127.0.0.1:{con['porta']}/api/abrir-janela", data=b"{}", method="POST",
+                    headers={"Host": f"127.0.0.1:{con['porta']}", "X-Lousa": con["token"],
+                             "Content-Type": "application/json"}), timeout=3).read()
+            except Exception as e:
+                registrar(e)
+        return
+    if minha is not None and con["porta"] == PORTA:
+        # outra cópia desta conta (instalada e portátil) na mesma porta: pede para sair e assume
+        pedir_saida(PORTA, {"token": con["token"]})
+    # porta ocupada por outra conta do Windows, por uma versão antiga ou por outro programa: nunca derruba quem está
+    # lá (antes, a segunda conta fechava o Giz Livre da primeira); usa a próxima porta livre
+    for p in range(PORTA, PORTA + 10):
+        if info_rodando(p) is None:
+            PORTA = p
+            break
+    else:
+        aviso(f"As portas {PORTA} a {PORTA + 9} estão ocupadas. Feche algum programa e abra o Giz Livre de novo.")
+        return 1
+    url = f"http://127.0.0.1:{PORTA}/"
 
     srv = Servidor(("127.0.0.1", PORTA), Handler)
     threading.Thread(target=coletar_assets_orfaos, daemon=True).start()
@@ -2916,6 +3285,17 @@ def main():
         AUTO_ENCERRAR = True
         threading.Thread(target=vigiar_inatividade, args=(srv, 3 * 60),
                          kwargs={"reabrir": Reabridor(url)}, daemon=True).start()
+    if args.pai:
+        threading.Thread(target=sair_com_o_pai, args=(srv, args.pai), daemon=True).start()
+    if JANELA_PROPRIA and args.depois_de_atualizar and WINDOWS:
+        # atualização da 1.x (Edge) para a janela própria: as janelas do Edge da versão antiga ficaram abertas, sem
+        # servidor; saem quando a janela nova já está na tela
+        # (só na pasta de quadros normal: com --dados, que a atualização nunca usa, é teste e as janelas são de outro)
+        velhas = janelas_abertas() if not DADOS_ESCOLHIDOS else []
+        if velhas:
+            threading.Timer(8, fechar_janelas_do_edge, args=(velhas,)).start()
+        AVISO_JANELA = aviso_instalacao_para_todos()
+    gravar_conexao()
     diario(f"aberto: Giz Livre {VERSAO}, porta {PORTA}" + (" (depois de atualizar)" if args.depois_de_atualizar else ""))
     try:
         srv.serve_forever()
@@ -2924,6 +3304,15 @@ def main():
     except BaseException as e:
         diario(f"encerrado por erro: {type(e).__name__}: {e}")
         raise
+    finally:
+        faltam = esperar_gravacoes()
+        if faltam:
+            diario(f"saindo com {faltam} gravação(ões) ainda em andamento depois de 15 s")
+        apagar_conexao()
+
+
+for _nome in ("do_PUT", "do_POST", "do_DELETE"):
+    setattr(Handler, _nome, em_andamento(getattr(Handler, _nome)))
 
 
 if __name__ == "__main__":

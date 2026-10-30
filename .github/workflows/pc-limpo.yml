@@ -1,0 +1,197 @@
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# PC limpo: testa os zips exatos de uma montagem ou release, com SHA-256, sem recompilar o programa.
+# Instalação e migração usam pastas de teste. Atualizar pelo Sobre com o GitHub real continua sendo uma etapa separada.
+name: PC limpo
+
+on:
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: "Versão interna dos zips a testar"
+        required: true
+      anterior:
+        description: "Versão anterior para o teste de migração (1.15.2)"
+        required: true
+        default: "1.15.2"
+      montagem:
+        description: "ID da execução Montar release; vazio para baixar os zips da release"
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pc-limpo:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SAIDA: ${{ github.workspace }}/pc-limpo-${{ matrix.os }}
+      REPO: ${{ github.repository }}
+      VERSAO: ${{ inputs.versao }}
+      ANTERIOR: ${{ inputs.anterior }}
+      BUILD_RUN: ${{ inputs.montagem }}
+      PACOTES: ${{ runner.temp }}/giz-pacotes
+      ANTIGA_DIR: ${{ runner.temp }}/giz-anterior
+      INST_EXTRAIDO: ${{ runner.temp }}/giz-instalacao
+      PORT_EXTRAIDO: ${{ runner.temp }}/giz-portatil
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Baixar e conferir os zips exatos, sem compilar
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:VERSAO -notmatch '^\d+\.\d+\.\d+$') { throw 'versão inválida' }
+          if ($env:ANTERIOR -ne '1.15.2') { throw 'o teste de migração atual aceita somente a 1.15.2 como anterior' }
+          New-Item -ItemType Directory -Force $env:PACOTES, $env:SAIDA, $env:ANTIGA_DIR | Out-Null
+          if ($env:BUILD_RUN) {
+            if ($env:BUILD_RUN -notmatch '^\d+$') { throw 'ID da montagem inválido' }
+            $numero = gh run view $env:BUILD_RUN --repo $env:REPO --json number --jq .number
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            gh run download $env:BUILD_RUN --repo $env:REPO --name "giz-livre-$numero" --dir $env:PACOTES
+          } else {
+            gh release download "v$env:VERSAO" --repo $env:REPO -p "Instalar-GizLivre-$env:VERSAO.zip" -p "GizLivre-$env:VERSAO-portatil.zip" -p SHA256SUMS.txt -D $env:PACOTES
+          }
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          gh release download "v$env:ANTERIOR" --repo $env:REPO -p "GizLivre-$env:ANTERIOR-portatil.zip" -p SHA256SUMS.txt -D $env:ANTIGA_DIR
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          function Conferir($pasta, $nome) {
+            $linha = @(Get-Content (Join-Path $pasta 'SHA256SUMS.txt') | Where-Object { $_ -match ('^[0-9a-fA-F]{64}\s+\*?' + [regex]::Escape($nome) + '$') })
+            if ($linha.Count -ne 1) { throw "sem uma soma única para $nome" }
+            $esperado = ($linha[0] -split '\s+')[0].ToLowerInvariant()
+            $atual = (Get-FileHash (Join-Path $pasta $nome) -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($atual -ne $esperado) { throw "SHA-256 não confere: $nome" }
+            "$atual  $nome" | Tee-Object -Append -FilePath "$env:SAIDA/SHA256-conferidos.txt"
+          }
+          Conferir $env:PACOTES "Instalar-GizLivre-$env:VERSAO.zip"
+          Conferir $env:PACOTES "GizLivre-$env:VERSAO-portatil.zip"
+          Conferir $env:ANTIGA_DIR "GizLivre-$env:ANTERIOR-portatil.zip"
+          Expand-Archive -LiteralPath "$env:PACOTES/Instalar-GizLivre-$env:VERSAO.zip" -DestinationPath $env:INST_EXTRAIDO
+          Expand-Archive -LiteralPath "$env:PACOTES/GizLivre-$env:VERSAO-portatil.zip" -DestinationPath $env:PORT_EXTRAIDO
+          $prog = Join-Path $env:INST_EXTRAIDO "GizLivre-$env:VERSAO"
+          $portatil = Join-Path $env:PORT_EXTRAIDO 'GizLivre'
+          foreach ($pasta in $prog, $portatil) {
+            foreach ($nome in 'GizLivre.exe', 'python/python.exe', 'python/pythonw.exe', 'servidor/server.py') {
+              if (-not (Test-Path (Join-Path $pasta $nome))) { throw "pacote incompleto: $nome" }
+            }
+          }
+          "GIZ_INSTALADOR=$(Join-Path $prog 'GizLivre.exe')" | Add-Content $env:GITHUB_ENV
+          "GIZ_PORTATIL=$portatil" | Add-Content $env:GITHUB_ENV
+
+      - name: Instalação, registro, atualização local e desinstalação
+        shell: pwsh
+        run: |
+          node tests/instalacao_propria.mjs $env:PACOTES | Tee-Object -FilePath "$env:SAIDA/instalacao.txt"
+          exit $LASTEXITCODE
+
+      - name: Migração da versão anterior, preservando quadro e imagem
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not $env:GIZ_INSTALADOR) { throw 'sem o pacote conferido' }
+          $env:GIZ_VERSAO_NOVA = $env:VERSAO
+          node tests/atualizar_da_1_15.mjs "$env:ANTIGA_DIR/GizLivre-$env:ANTERIOR-portatil.zip" $env:GIZ_INSTALADOR | Tee-Object -FilePath "$env:SAIDA/migracao.txt"
+          exit $LASTEXITCODE
+
+      - name: Sem internet, no servidor e Python embutido do portátil
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not $env:GIZ_PORTATIL) { throw 'sem o portátil conferido' }
+          $env:GIZ_PYTHON_C4 = Join-Path $env:GIZ_PORTATIL 'python/python.exe'
+          $env:GIZ_LIVRE_JANELA = '1'
+          $env:GIZ_LIVRE_PASTA = $env:GIZ_PORTATIL
+          node tests/bateria/c4_sem_internet.mjs (Join-Path $env:GIZ_PORTATIL 'servidor/server.py') | Tee-Object -FilePath "$env:SAIDA/c4.txt"
+          exit $LASTEXITCODE
+
+      - name: Escola pública (projetor e máquina 6x mais lenta)
+        if: always()
+        shell: pwsh
+        run: |
+          $falhou = 0
+          foreach ($t in '1024x768', '1024x600', '1280x720', '1366x768') {
+            $env:GIZ_TELA = $t
+            node tests/bateria/escola.mjs "$env:SAIDA\escola-$t" | Tee-Object -FilePath "$env:SAIDA\escola-$t.txt"
+            if ($LASTEXITCODE) { $falhou = 1 }
+          }
+          exit $falhou
+
+      - name: Instalador por um usuário sem administrador
+        if: always()
+        shell: pwsh
+        run: |
+          # usuário comum só desta máquina descartável: instala em silêncio e confere que não pediu administrador
+          $senha = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ }) + '!a1'
+          $seg = ConvertTo-SecureString $senha -AsPlainText -Force
+          New-LocalUser -Name professor -Password $seg -AccountNeverExpires | Out-Null
+          Set-Content "$env:RUNNER_TEMP\senha-professor.txt" $senha   # para o passo das duas contas (máquina descartável)
+          $cred = New-Object System.Management.Automation.PSCredential ('professor', $seg)
+          $d = Join-Path $env:RUNNER_TEMP 'semadmin'; New-Item -ItemType Directory -Force $d | Out-Null
+          if (-not $env:GIZ_INSTALADOR) { throw 'sem o pacote conferido' }
+          $origem = Split-Path $env:GIZ_INSTALADOR
+          Copy-Item -LiteralPath $origem -Destination (Join-Path $d 'programa') -Recurse
+          icacls $d /grant 'professor:(OI)(CI)RX' | Out-Null
+          $p = Start-Process (Join-Path $d 'programa/GizLivre.exe') -ArgumentList '--instalar' -Credential $cred -LoadUserProfile -WindowStyle Hidden -PassThru -Wait
+          $exe = "C:\Users\professor\AppData\Local\Programs\Giz Livre\GizLivre.exe"
+          $ok = ($p.ExitCode -eq 0) -and (Test-Path $exe)
+          "usuário sem administrador: saída $($p.ExitCode), programa instalado em $exe : $ok" | Tee-Object -FilePath "$env:SAIDA\sem-admin.txt"
+          if (-not $ok) { exit 1 }
+
+      - name: Duas contas do Windows no mesmo PC (troca rápida de usuário)
+        if: always()
+        shell: pwsh
+        run: |
+          # conta A: a do GitHub; conta B: "professor" (criada no passo anterior). Cada uma abre o Giz Livre do código
+          # deste repositório sem --dados, como no uso real. A segunda não pode derrubar a primeira nem ler os
+          # quadros dela, e o arquivo de conexão de uma não pode ser lido pela outra.
+          $py = (Get-Command python).Source
+          icacls $env:GITHUB_WORKSPACE /grant 'professor:(OI)(CI)RX' /T /Q | Out-Null
+          icacls (Split-Path (Split-Path $py)) /grant 'professor:(OI)(CI)RX' /T /Q | Out-Null
+          $a = Start-Process $py -ArgumentList "`"$env:GITHUB_WORKSPACE\server.py`"", '--sem-janela' -PassThru
+          $conA = "$env:LOCALAPPDATA\Giz Livre\conexao.json"
+          for ($i = 0; $i -lt 50 -and -not (Test-Path $conA); $i++) { Start-Sleep -Milliseconds 300 }
+          $ca = Get-Content $conA -Raw | ConvertFrom-Json
+          Invoke-RestMethod -Method Put -Uri "http://127.0.0.1:$($ca.porta)/api/boards/contaA1" -Headers @{ 'X-Lousa' = $ca.token } -ContentType 'application/json' -Body '{"board":{"title":"Só da conta A","items":[]},"revision":0}' | Out-Null
+          $senha = Get-Content "$env:RUNNER_TEMP\senha-professor.txt" -ErrorAction SilentlyContinue
+          if (-not $senha) { throw 'sem a conta professor (o passo anterior falhou)' }
+          $cred = New-Object System.Management.Automation.PSCredential ('professor', (ConvertTo-SecureString $senha -AsPlainText -Force))
+          $b = Start-Process $py -ArgumentList "`"$env:GITHUB_WORKSPACE\server.py`"", '--sem-janela' -Credential $cred -LoadUserProfile -PassThru
+          $conB = 'C:\Users\professor\AppData\Local\Giz Livre\conexao.json'
+          for ($i = 0; $i -lt 60 -and -not (Test-Path $conB); $i++) { Start-Sleep -Milliseconds 500 }
+          $cb = Get-Content $conB -Raw | ConvertFrom-Json
+          $r = @()
+          $r += "conta A na porta $($ca.porta), conta B na porta $($cb.porta)"
+          $ok1 = $cb.porta -ne $ca.porta -and -not $a.HasExited
+          $r += "segunda conta em outra porta e a primeira continua aberta: $ok1"
+          $lido = try { Invoke-RestMethod "http://127.0.0.1:$($ca.porta)/api/boards" -Headers @{ 'X-Lousa' = $cb.token }; 'LEU' } catch { $_.Exception.Response.StatusCode.value__ }
+          $ok2 = $lido -eq 401
+          $r += "conta B tentando ler os quadros da conta A: $lido (tem de ser 401): $ok2"
+          # a conta B tenta abrir o arquivo de conexão da conta A
+          $tenta = Start-Process powershell -ArgumentList '-NoProfile', '-Command', "try { Get-Content '$conA' -ErrorAction Stop | Out-Null; exit 1 } catch { exit 0 }" -Credential $cred -LoadUserProfile -PassThru -Wait
+          $ok3 = $tenta.ExitCode -eq 0
+          $r += "conta B não consegue ler o arquivo de conexão da conta A: $ok3"
+          $r | Tee-Object -FilePath "$env:SAIDA\duas-contas.txt"
+          Stop-Process -Id $a.Id, $b.Id -Force -ErrorAction SilentlyContinue
+          if (-not ($ok1 -and $ok2 -and $ok3)) { exit 1 }
+
+      - name: Guardar relatório e capturas
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pc-limpo-${{ matrix.os }}
+          path: ${{ env.SAIDA }}
+          retention-days: 30

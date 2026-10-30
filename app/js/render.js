@@ -398,6 +398,21 @@ export function imagesReady(items, dark = darkBg) {
 }
 
 // ---------- geometria ----------
+// item vindo de fora (arquivo .lousa, pacote de outro PC) com geometria que o desenho consegue usar: números finitos
+// onde o bbox e o desenho leem. Um traço com pts=null derrubava o desenho do quadro (auditoria de 29/10/2026). As
+// mesmas regras estão em item_valido(), no server.py.
+const num = v => typeof v === 'number' && Number.isFinite(v);
+const nums = (p, passo, min) => Array.isArray(p) && p.length >= min && p.length % passo === 0 && p.every(num);
+export function itemValido(it) {
+  if (!it || typeof it !== 'object' || typeof it.type !== 'string') return false;
+  switch (it.type) {
+    case 'stroke': return nums(it.pts, 3, 3) && num(it.width) && it.width > 0;
+    case 'shape': return num(it.width) && (it.kind === 'polygon' ? nums(it.pts, 2, 4) : [it.x1, it.y1, it.x2, it.y2].every(num));
+    case 'text': return [it.x, it.y, it.w].every(num);
+    default: return [it.x, it.y, it.w, it.h].every(num);
+  }
+}
+
 const bboxCache = new WeakMap();
 export function bbox(it) {
   let b = bboxCache.get(it);

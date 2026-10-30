@@ -13,6 +13,7 @@
 // por commit(items, layout?), que alimenta o desfazer. `action` guarda o gesto em andamento (draw, erase, lasso…).
 // window.__lousa expõe S/pending/action só para testes automatizados.
 import * as R from './render.js';
+import { atrasoDeGravacao } from './salvar.js';
 import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo, wfetch } from './api.js';
 import { ICON, penIcon } from './icons.js';
 import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc } from './ui.js';
@@ -126,7 +127,7 @@ let penPress = PRESSAO_INICIAL, ocrAvisado = false;   // pressão dos traços (p
 const pointers = new Map();
 let cv, ctx, ov, octx, W = 0, H = 0, dpr = 1;
 let raf = 0, needStatic = false, needOverlay = false;
-let saveTimer = 0, saving = false, savePending = false;
+let saveTimer = 0, saving = false, savePending = false, pendenteDesde = null;   // pendenteDesde: 1ª mudança não gravada
 let dirtyVer = 0, savedVer = 0, retryTimer = 0, thumbTimer = 0;
 const failedSnaps = new Map(); // última edição não confirmada de CADA quadro
 let onBack = () => {};
@@ -240,7 +241,7 @@ export function initEditor() {
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { flush(); resetInput(); } });
   addEventListener('pagehide', emergencySave);
-  addEventListener('beforeunload', e => { if (hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
+  addEventListener('beforeunload', e => { if (!window.gizFechando && hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
   addEventListener('blur', resetInput);
   ov.addEventListener('lostpointercapture', e => { if (pointers.has(e.pointerId)) onUp(e); });
   fillIcons($('board'));
@@ -1553,7 +1554,9 @@ function scheduleSave() {
   $('bStatus').textContent = 'Editando…';
   $('bStatus').classList.remove('err');
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(doSave, 500);
+  // pausa de 500 ms, mas no máximo 3 s desde a primeira mudança não gravada (salvar.js, auditoria GL-M1)
+  if (pendenteDesde === null) pendenteDesde = Date.now();
+  saveTimer = setTimeout(doSave, atrasoDeGravacao(Date.now(), pendenteDesde));
 }
 
 const snapshot = () => ({ id: S.id, state: S, ver: dirtyVer, board: { ...S.board, items: S.items, view: { ...S.view } } });
@@ -1640,7 +1643,7 @@ function syncSaveError() {
 }
 
 async function doSave() {
-  clearTimeout(saveTimer); saveTimer = 0;
+  clearTimeout(saveTimer); saveTimer = 0; pendenteDesde = null;
   if (!S) return;
   if (saving) { savePending = true; return; }
   const previous = failedSnaps.get(S.id);
@@ -3013,13 +3016,15 @@ function itemsShift(items, fromY, dy) {
 }
 
 function insertPageAfter(i, extra = []) {
+  // o mesmo limite da importação e do PDF (auditoria de 29/10/2026, GL-M2): a 501ª página não abriria em outro PC
+  if (S.board.layout.count >= PG.MAX_PAGINAS) { toast(`Este quadro já tem ${PG.MAX_PAGINAS} páginas, o máximo. Comece um quadro novo.`, 6000); return false; }
   const L = S.board.layout, step = L.h + L.gap, cut = PG.pageRect(L, i).y + L.h + L.gap / 2;
   const items = itemsShift(S.items, cut, step);
   commit([...items, ...extra.map(it => R.transformItem(it, 0, 0))], { ...L, count: L.count + 1 });
   goToPage(i + 1, present);
   refreshPanel();
 }
-function addBlankAfter() { insertPageAfter(curPage()); toast('Página em branco inserida'); }
+function addBlankAfter() { if (insertPageAfter(curPage()) !== false) toast('Página em branco inserida'); }
 
 function duplicatePage(i) {
   const L = S.board.layout, step = L.h + L.gap;
@@ -3095,6 +3100,7 @@ async function importSlidesIntoBoard(file) {
       items = itemsShift(items, cut, srcs.length * (L.h + L.gap));
       L = { ...L, count: L.count + srcs.length };
     }
+    if (L.count > PG.MAX_PAGINAS) throw new Error(`Com estes slides o quadro passaria de ${PG.MAX_PAGINAS} páginas, o máximo. Use um quadro novo para eles.`);
     commit([...items, ...slideItems(L, srcs, start, sizes, videos)], L);
     goToPage(start);
     toast(`${srcs.length} página(s) importada(s)`);
