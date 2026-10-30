@@ -1,0 +1,34 @@
+Giz Livre no Linux (pacote experimental, sem suporte oficial)
+==============================================================
+
+O que precisa
+- Python 3.10 ou mais novo (só a biblioteca padrão; não instala nada com pip).
+- Um navegador. Com Chrome, Chromium, Edge ou Brave o programa abre numa janela própria;
+  sem eles, abre no navegador padrão (Firefox, por exemplo).
+- Opcional: LibreOffice, para abrir apresentações (.pptx, .odp).
+
+Como usar
+1. Descompacte:          tar xzf giz-livre-VERSAO-linux.tar.gz
+2. Entre na pasta:       cd giz-livre-VERSAO-linux
+3. Abra:                 ./giz-livre.sh
+4. Opcional, atalho no menu de aplicativos:   ./criar-atalho.sh
+
+O que o pacote instala
+- Nada fora desta pasta, a não ser que você rode ./criar-atalho.sh. Esse script cria só:
+    ~/.local/share/applications/giz-livre.desktop
+    ~/.local/share/icons/hicolor/scalable/apps/giz-livre.svg
+  Para tirar:  ./criar-atalho.sh --remover
+
+Onde ficam os seus dados
+- Quadros:   ~/.local/share/giz-livre/quadros/   (ou em $XDG_DATA_HOME/giz-livre/quadros/)
+- Registro:  ~/.local/share/giz-livre/giz-livre.log
+- Ajustes:   ~/.local/share/giz-livre/preferencias.json
+- Para usar outra pasta:  GIZ_LIVRE_DADOS=/caminho/quadros ./giz-livre.sh   ou   ./giz-livre.sh --dados /caminho
+- Backup: copie a pasta ~/.local/share/giz-livre inteira, ou use "Levar quadros" na galeria.
+
+Para desinstalar
+- ./criar-atalho.sh --remover (se criou o atalho) e apague esta pasta.
+- Os quadros continuam em ~/.local/share/giz-livre até você apagar essa pasta.
+
+O que foi testado e o que não foi: docs/LINUX.md, nesta mesma pasta.
+Projeto independente e voluntário, sem garantia de qualquer tipo (licença MIT, arquivo LICENSE).
