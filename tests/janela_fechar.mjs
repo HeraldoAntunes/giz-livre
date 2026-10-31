@@ -38,7 +38,7 @@ async function sessao(id) {
   const pag = await ate(async () => { try { return (await (await fetch(`http://127.0.0.1:${DEPURA}/json/list`)).json()).find(p => p.type === 'page' && p.url.startsWith('http://127.0.0.1:')); } catch { return null; } }, 40000);
   const ws = new WebSocket(pag.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
   let n = 0; const pend = new Map(), dialogos = [];
-  ws.onmessage = e => { const m = JSON.parse(e.data); if (m.method === 'Page.javascriptDialogOpening') dialogos.push(m.params.message); pend.get(m.id)?.(m); };
+  ws.onmessage = e => { const m = JSON.parse(e.data); if (m.method === 'Page.javascriptDialogOpening') dialogos.push(m.params.message); { const f = pend.get(m.id); if (typeof f === 'function') f(m); } };
   const cdp = (method, params = {}) => new Promise(r => { const i = ++n; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const avaliar = async e => (await cdp('Runtime.evaluate', { expression: e, awaitPromise: true, returnByValue: true })).result?.result?.value;
   await cdp('Page.enable');

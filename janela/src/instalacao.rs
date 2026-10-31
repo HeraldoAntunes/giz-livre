@@ -246,6 +246,15 @@ thread_local! {
     static QUEDA: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     // a reserva "presa" na limpeza (arquivo aberto por outro programa, que nem a pasta temporária aceita)
     static RESERVA_PRESA: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    // pasta temporária trocada só nesta thread: mudar o TMP valia para o processo inteiro, e os testes que rodavam ao
+    // mesmo tempo criavam as pastas deles num lugar que o outro teste apagava (o vermelho do Actions na 1.16.0)
+    static TEMPORARIA: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+/// A pasta temporária do sistema (onde vai o que ficou preso na troca).
+fn pasta_temporaria() -> PathBuf {
+    #[cfg(test)]
+    if let Some(p) = TEMPORARIA.with(|t| t.borrow().clone()) { return p; }
+    std::env::temp_dir()
 }
 fn mover(de: &Path, para: &Path) -> io::Result<()> {
     #[cfg(test)]
@@ -305,7 +314,7 @@ fn desfazer(programa: &Path, introduzidos: &[String]) -> io::Result<()> {
 /// saía com a reserva pela metade, e a retomada seguinte a tomava por troca parada e misturava as versões (auditoria
 /// da rc.3, 30/10/2026).
 fn limpar(programa: &Path, nomes: &[&str]) -> bool {
-    let lugares = [std::env::temp_dir(), programa.parent().map(Path::to_path_buf).unwrap_or_default()];
+    let lugares = [pasta_temporaria(), programa.parent().map(Path::to_path_buf).unwrap_or_default()];
     for nome in nomes {
         #[cfg(test)]
         if *nome == RESERVA && RESERVA_PRESA.with(|p| p.get()) { continue; }
@@ -662,7 +671,7 @@ fn nome_de_sobra(lugar: &Path, nome: &str) -> PathBuf {
 /// Onde pôr o que está preso: a pasta temporária e, se ela falhar (outro volume, sem permissão), a pasta de programas
 /// da conta, que fica no mesmo volume da instalação (auditoria de 29/10/2026, rodada 2).
 fn lugares_de_sobra(destino: &Destino) -> Vec<PathBuf> {
-    let mut l = vec![std::env::temp_dir()];
+    let mut l = vec![pasta_temporaria()];
     if let Some(p) = destino.programa.parent() { l.push(p.to_path_buf()); }
     l
 }
@@ -980,10 +989,9 @@ mod testes {
         fs::write(d.menu.join(ATALHO), b"x").unwrap();
         registrar(&d, &d.exe()).unwrap();
         // a temporária num lugar onde nada pode ser posto (simula outro volume sem permissão): o exe não sai
-        let antes = std::env::var_os("TMP");
-        std::env::set_var("TMP", d.programa.join("nao-existe").join("de-jeito-nenhum"));
+        TEMPORARIA.with(|t| *t.borrow_mut() = Some(d.programa.join("nao-existe").join("de-jeito-nenhum")));
         let r = desinstalar(&d, &d.exe(), true);
-        match antes { Some(v) => std::env::set_var("TMP", v), None => std::env::remove_var("TMP") }
+        TEMPORARIA.with(|t| *t.borrow_mut() = None);
         if r.is_err() {
             // não deu para tirar o programa: então nada pode ter sido mexido
             assert!(ler_texto(HKCU, &d.chave, "DisplayVersion").is_some(), "o registro saiu e o programa ficou");
@@ -1011,6 +1019,15 @@ mod testes {
         assert!(!mais_nova("1.16.0", "1.16.0"));
         assert!(!mais_nova("1.15.2", "1.16.0"));
         assert!(mais_nova("1.16.0", "versão estranha"));
+    }
+
+    // só a chave deste teste: apagar a "Software\GizLivreTeste" inteira levava junto as dos testes que rodavam ao
+    // mesmo tempo (instala_por_cima_do_inno_e_desinstala falhava com 16 threads); a mãe sai quando ficar vazia
+    fn apagar_chave_de_teste(d: &Destino) {
+        apagar_chave(HKCU, &d.chave);
+        #[link(name = "advapi32")]
+        extern "system" { fn RegDeleteKeyW(chave: isize, sub: *const u16) -> i32; }
+        unsafe { RegDeleteKeyW(HKCU, largo(r"Software\GizLivreTeste").as_ptr()) };   // falha se ainda tem filhas
     }
 
     fn destino_de_teste(nome: &str) -> Destino {
@@ -1089,7 +1106,7 @@ mod testes {
         assert!(!d.menu.join(ATALHO).exists());
         let sobrou: Vec<_> = fs::read_dir(&d.programa).unwrap().flatten().map(|e| e.file_name()).collect();
         assert_eq!(sobrou, vec![std::ffi::OsString::from("meu-quadro.lousa")]);
-        apagar_chave(HKCU, r"Software\GizLivreTeste");
+        apagar_chave_de_teste(&d);
         let _ = fs::remove_dir_all(base);
     }
 
@@ -1131,6 +1148,20 @@ mod testes {
 
     // antivírus ou indexador segurando por um instante um arquivo recém-copiado: a troca espera e tenta de novo, em vez
     // de desistir no primeiro "acesso negado" (os testes da troca falharam assim no GitHub Actions da 1.16.0)
+    // a troca da pasta temporária num teste não pode valer para os que rodam ao mesmo tempo (antes, com set_var do
+    // TMP, valia para o processo inteiro)
+    #[test]
+    fn trocar_a_temporaria_num_teste_nao_vaza_para_os_outros() {
+        let real = pasta_temporaria();
+        let la = std::thread::spawn(|| {
+            TEMPORARIA.with(|t| *t.borrow_mut() = Some(PathBuf::from("Z:/nao-existe")));
+            pasta_temporaria()
+        }).join().unwrap();
+        assert_eq!(la, PathBuf::from("Z:/nao-existe"));
+        assert_eq!(pasta_temporaria(), real);
+        assert_eq!(real, std::env::temp_dir());
+    }
+
     #[test]
     fn mover_espera_arquivo_preso_por_um_instante() {
         simular(0, false);
@@ -1182,7 +1213,7 @@ mod testes {
         assert_eq!(fs::read_to_string(d.programa.join("servidor/server.py")).unwrap(), "srv novo");
         assert_eq!(fs::read(d.exe()).unwrap(), b"exe novo");
         assert!(!d.programa.join(PREPARO).exists() && !d.programa.join(RESERVA).exists());
-        apagar_chave(HKCU, r"Software\GizLivreTeste");
+        apagar_chave_de_teste(&d);
         let _ = fs::remove_dir_all(base);
     }
 
@@ -1219,7 +1250,7 @@ mod testes {
         assert_eq!(ler_diario(&d.programa).map(|(f, _)| f).as_deref(), Some(FASE_CONCLUIDA));
         recuperar_troca_parada(&d.programa).unwrap();
         continua_a_nova(&d);
-        apagar_chave(HKCU, r"Software\GizLivreTeste");
+        apagar_chave_de_teste(&d);
         let _ = fs::remove_dir_all(base);
     }
 
@@ -1316,7 +1347,7 @@ mod testes {
         gravar_fase(&d.programa, FASE_CONCLUIDA, &[]).unwrap();
         recuperar_troca_parada(&d.programa).unwrap();
         continua_a_nova(&d);
-        apagar_chave(HKCU, r"Software\GizLivreTeste");
+        apagar_chave_de_teste(&d);
         let _ = fs::remove_dir_all(base);
     }
 

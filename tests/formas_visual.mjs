@@ -141,7 +141,7 @@ try {
   if (!alvo) throw new Error('o Edge não abriu a porta de depuração');
   ws = new WebSocket(alvo.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
-  ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { pendentes.get(m.id)?.(m); pendentes.delete(m.id); } };
+  ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { { const f = pendentes.get(m.id); if (typeof f === 'function') f(m); } pendentes.delete(m.id); } };
   await cdp('Page.enable');
   await entrarNoNavegador(cdp, BASE, await codigo(BASE, DADOS));
   // página leve da mesma origem (o índice JSON): os módulos da biblioteca carregam sem abrir o programa inteiro

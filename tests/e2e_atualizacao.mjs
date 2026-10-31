@@ -81,7 +81,7 @@ try {
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
-    if (m.id) { pendentes.get(m.id)?.(m); pendentes.delete(m.id); return; }
+    if (m.id) { { const f = pendentes.get(m.id); if (typeof f === 'function') f(m); } pendentes.delete(m.id); return; }
     if (m.method === 'Runtime.exceptionThrown') errosConsole.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text);
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errosConsole.push(m.params.args.map(a => a.value ?? a.description ?? '').join(' '));
     if (m.method === 'Fetch.requestPaused') {

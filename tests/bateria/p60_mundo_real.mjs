@@ -40,7 +40,7 @@ const minimizar = pid => janelaDaLousa(pid, '[void][W.U]::ShowWindow($h, 6)');  
 const restaurar = pid => janelaDaLousa(pid, '[void][W.U]::ShowWindow($h, 9)');      // SW_RESTORE
 async function cdpDe(pag) {
   const ws = new WebSocket(pag.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
-  let n = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); pend.get(m.id)?.(m); };
+  let n = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); { const f = pend.get(m.id); if (typeof f === 'function') f(m); } };
   const cdp = (method, params = {}) => new Promise(r => { const id = ++n; pend.set(id, r); ws.send(JSON.stringify({ id, method, params })); });
   const avaliar = async e => (await cdp('Runtime.evaluate', { expression: e, awaitPromise: true, returnByValue: true })).result?.result?.value;
   return { ws, cdp, avaliar };

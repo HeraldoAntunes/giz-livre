@@ -42,7 +42,7 @@ try {
     '--no-default-browser-check', '--window-size=1400,1000', 'about:blank'], { stdio: 'ignore' });
   let alvo; for (let t = 0; t < 100 && !alvo; t++) { try { alvo = (await (await fetch(`http://127.0.0.1:${pc}/json/list`)).json()).find(x => x.type === 'page'); } catch { await espera(150); } }
   ws = new WebSocket(alvo.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
-  ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { pend.get(m.id)?.(m); pend.delete(m.id); } };
+  ws.onmessage = ev => { const m = JSON.parse(ev.data); if (m.id) { { const f = pend.get(m.id); if (typeof f === 'function') f(m); } pend.delete(m.id); } };
   await cdp('Page.enable'); await cdp('Runtime.enable');
   await entrarNoNavegador(cdp, BASE, token);
   await cdp('Page.navigate', { url: BASE + '/' });

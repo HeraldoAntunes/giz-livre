@@ -102,7 +102,7 @@ try {
   // 3) traço logo antes de fechar: fica salvo; fechar a janela fecha o servidor
   await api('/api/boards/p60quadro', { method: 'PUT', body: JSON.stringify({ board: { title: 'P60', items: [] }, revision: 0 }) });
   const ws = new WebSocket(pag.webSocketDebuggerUrl); await new Promise(r => ws.onopen = r);
-  let n = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); pend.get(m.id)?.(m); };
+  let n = 0; const pend = new Map(); ws.onmessage = e => { const m = JSON.parse(e.data); { const f = pend.get(m.id); if (typeof f === 'function') f(m); } };
   const cdp = (method, params = {}) => new Promise(r => { const id = ++n; pend.set(id, r); ws.send(JSON.stringify({ id, method, params })); });
   const avaliar = async e => (await cdp('Runtime.evaluate', { expression: e, awaitPromise: true, returnByValue: true })).result?.result?.value;
   for (let i = 0; i < 12; i++) { await avaliar(`[...document.querySelectorAll('button')].find(b => ['Começar','Pular'].includes(b.textContent.trim()) && b.offsetParent)?.click()`); await espera(300); }

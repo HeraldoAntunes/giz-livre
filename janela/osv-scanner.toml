@@ -1,0 +1,25 @@
+# Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
+# Avisos do OSV (lidos também pelo OpenSSF Scorecard) que não se aplicam ao programa distribuído: todas estas crates
+# só entram na compilação para Linux, pela gtk 0.18 e pelo D-Bus que o Tauri 2 usa lá. O GizLivre.exe do Windows não
+# as leva (`cargo tree -i <crate> --target x86_64-pc-windows-msvc` não acha nenhuma). Sair delas depende do Tauri:
+# conferir a cada atualização dele e tirar daqui o que deixar de valer.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"   # glib < 0.20 (GHSA-wrw7-89jp-8q8g): VariantStrIter; só Linux, pela gtk 0.18; o Giz não usa
+reason = "Só na compilação para Linux (gtk 0.18 do Tauri 2); o exe do Windows não leva o glib, e o Giz não usa VariantStrIter."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"   # proc-macro-error sem manutenção: macro de compilação do glib-macros
+reason = "Sem manutenção, sem falha conhecida; só macro de compilação do glib (Linux), não vai no programa."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"   # zvariant sem manutenção: D-Bus do tauri-plugin-single-instance no Linux
+reason = "Sem manutenção, sem falha conhecida; só no Linux (D-Bus do tauri-plugin-single-instance)."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"   # zbus_names sem manutenção
+reason = "Sem manutenção, sem falha conhecida; só no Linux (D-Bus do tauri-plugin-single-instance)."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"   # zvariant_derive sem manutenção
+reason = "Sem manutenção, sem falha conhecida; macro de compilação do zvariant, só no Linux."
