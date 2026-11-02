@@ -17,7 +17,18 @@ from pathlib import Path
 from unittest.mock import patch
 
 os.environ["GIZ_SEM_DIARIO"] = "1"   # o diário (giz-livre.log) não vai para a pasta real de quadros
+
+
+def sem_marca(png: bytes) -> bytes:
+    """A miniatura sem o pedaço com a impressão do conteúdo que o servidor põe nela (para comparar a imagem)."""
+    import re
+    return re.sub(rb"[\x00-\xff]{4}tEXtgiz-conteudo\x00[0-9a-f]{64}[\x00-\xff]{4}", b"", png)
 ROOT = Path(__file__).resolve().parent.parent
+# a rodada usa uma %TEMP% própria, herdada pelos servidores que os testes abrem: o script do reconhecedor de escrita,
+# deixado quando o teste mata o servidor, e o resto saem no fim (antes, cada rodada deixava pastas lousa-ocr-*)
+RODADA = tempfile.mkdtemp(prefix="giz-rodada-py-")
+os.environ["TEMP"] = os.environ["TMP"] = tempfile.tempdir = RODADA
+__import__("atexit").register(shutil.rmtree, RODADA, ignore_errors=True)
 sys.dont_write_bytecode = True
 
 
@@ -961,6 +972,15 @@ class AtualizacaoTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("servidor_atu", ROOT / "server.py")
         cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
 
+    def setUp(self):
+        # instalar_atualizacao baixa para uma pasta nova da %TEMP% (gizlivre-atualizacao-*): nos testes ela fica dentro
+        # de uma temporária do próprio teste, que sai no fim (antes, cada rodada deixava duas na %TEMP%)
+        pasta = tempfile.TemporaryDirectory(prefix="giz-atu-teste-", ignore_cleanup_errors=True)
+        self.addCleanup(pasta.cleanup)
+        tempdir = patch.object(tempfile, "tempdir", pasta.name)
+        tempdir.start()
+        self.addCleanup(tempdir.stop)
+
     @unittest.skipUnless(sys.platform == "win32", "janelas do Windows")
     def test_depois_de_atualizar_fecha_so_as_janelas_antigas(self):
         import ctypes
@@ -1132,6 +1152,33 @@ class ReconhecedorEscritaTests(unittest.TestCase):
     def setUpClass(cls):
         spec = importlib.util.spec_from_file_location("servidor_ocr", ROOT / "server.py")
         cls.srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(cls.srv)
+
+    def test_powershell_roda_sem_script_em_arquivo(self):
+        # o script ia numa pasta lousa-ocr-* da %TEMP%, que ficava para trás quando o programa era fechado no meio
+        # da detecção (uma por abertura); agora vai no próprio comando, e os traços pela entrada padrão
+        import base64
+        s, vistos = self.srv, []
+
+        def roda(cmd, **kw):
+            vistos.append((cmd, kw.get("input")))
+            saida = '{"nomes":["Microsoft"]}' if len(vistos) == 1 else '{"palavras":[["oi"]]}'
+            return subprocess.CompletedProcess(cmd, 0, saida.encode(), b"")
+        with patch.object(s, "WINDOWS", True), patch.object(s.subprocess, "run", side_effect=roda), \
+                patch.object(s.tempfile, "TemporaryDirectory", side_effect=AssertionError("pasta temporária")):
+            self.assertEqual(s.listar_reconhecedores(), ["Microsoft"])
+            self.assertEqual(s.reconhecer_escrita([[1, 2, 3, 4]]), [["oi"]])
+        for (cmd, _), script in zip(vistos, (s.SCRIPT_RECONHECEDORES, s.SCRIPT_OCR)):
+            self.assertNotIn("-File", cmd)
+            self.assertEqual(base64.b64decode(cmd[cmd.index("-EncodedCommand") + 1]).decode("utf-16-le"), script)
+        self.assertEqual(json.loads(vistos[1][1]), {"strokes": [[1.0, 2.0, 3.0, 4.0]]})
+
+    @unittest.skipUnless(sys.platform == "win32", "reconhecedor do Windows")
+    def test_reconhecedores_de_verdade_sem_sobra_na_temp(self):
+        s = self.srv
+        antes = set(os.listdir(tempfile.gettempdir()))
+        nomes = s.listar_reconhecedores()
+        self.assertIsInstance(nomes, list)
+        self.assertEqual({n for n in set(os.listdir(tempfile.gettempdir())) - antes if n.startswith("lousa-ocr-")}, set())
 
     def _info(self, windows, nomes=None, falha=None):
         s = self.srv
@@ -1480,7 +1527,7 @@ class PacoteTests(unittest.TestCase):
         # revisão 1, como um quadro criado aqui: na 0, um PUT de criação no mesmo id gravava por cima
         self.assertEqual((b["title"], b["folder"], b["_rev"], b["updated"]), ("Aula 1", "Hidráulica", 1, 1000))
         self.assertEqual((self.srv.DADOS / "assets" / nome).read_bytes(), self.PNG)
-        self.assertEqual((self.srv.DADOS / "aula1.png").read_bytes(), self.PNG)
+        self.assertEqual(sem_marca((self.srv.DADOS / "aula1.png").read_bytes()), self.PNG)
 
     def pacote_com_imagem(self):
         import hashlib
@@ -2213,7 +2260,7 @@ class RestauracaoPublicacaoTests(unittest.TestCase):
                 destino = self.s.DADOS / (self.bid + ".json")
                 bytes_publicados = destino.read_bytes()
                 self.assertEqual(json.loads(bytes_publicados)["items"], publicado["items"])
-                self.assertEqual((self.s.DADOS / (self.bid + ".png")).read_bytes(), png_publicado)
+                self.assertEqual(sem_marca((self.s.DADOS / (self.bid + ".png")).read_bytes()), png_publicado)
             finally:
                 self.liberar.set()
             resposta = futuro.result(timeout=20)
@@ -2222,7 +2269,7 @@ class RestauracaoPublicacaoTests(unittest.TestCase):
                          "a restauração sobrescreveu o quadro publicado enquanto aguardava a trava; "
                          f"publicacao={publicacao[0]}, restauracao={resposta[0]}, "
                          f"origem_na_lixeira={self.origem.exists()}")
-        self.assertEqual((self.s.DADOS / (self.bid + ".png")).read_bytes(), png_publicado,
+        self.assertEqual(sem_marca((self.s.DADOS / (self.bid + ".png")).read_bytes()), png_publicado,
                          "a miniatura recém-publicada deve ficar intacta")
         if resposta[0] == 200:
             self.assertNotEqual(resposta[1].get("id"), self.bid, "sucesso precisa usar outro id")
@@ -2237,7 +2284,7 @@ class RestauracaoPublicacaoTests(unittest.TestCase):
             # O conflito é recuperável: uma nova tentativa conserva os dois conteúdos.
             self.assertNotEqual(self.conferir_restaurado(self.restaurar()), self.bid)
         self.assertEqual(destino.read_bytes(), bytes_publicados)
-        self.assertEqual((self.s.DADOS / (self.bid + ".png")).read_bytes(), png_publicado)
+        self.assertEqual(sem_marca((self.s.DADOS / (self.bid + ".png")).read_bytes()), png_publicado)
         self.assertEqual(len(list(self.s.DADOS.glob("*.json"))), 2)
 
     def test_restauracao_nao_sobrescreve_criacao_publicada_durante_a_pausa(self):
@@ -2407,7 +2454,10 @@ class FalhaDeDisco:
 
 def sha(caminho: Path):
     import hashlib
-    return hashlib.sha256(caminho.read_bytes()).hexdigest() if caminho.is_file() else None
+    if not caminho.is_file():
+        return None
+    dados = caminho.read_bytes()
+    return hashlib.sha256(sem_marca(dados) if caminho.suffix == ".png" else dados).hexdigest()
 
 
 class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
@@ -2518,10 +2568,10 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
             esperado = self.P1 if status == 200 else self.P0
             if status != 200:
                 self.assertEqual(status, 500)
-            self.assertEqual((d / "q.png").read_bytes(), esperado)
+            self.assertEqual(sem_marca((d / "q.png").read_bytes()), esperado)
             self.assertEqual((d / "q.json").read_bytes(), self.J0)
             self.assertEqual(self.pedir("PUT", "/api/thumbs/q", corpo)[0], 200)
-            self.assertEqual((d / "q.png").read_bytes(), self.P1)
+            self.assertEqual(sem_marca((d / "q.png").read_bytes()), self.P1)
         self.casos(rodar)
 
     def test_excluir_quadro_com_miniatura(self):
@@ -2726,7 +2776,7 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         erro = OSError(13, "em uso (simulado)")
         with patch.object(self.s, "registrar") as reg, patch.object(Path, "unlink", side_effect=erro), \
                 FalhaDeDisco(1, True):
-            self.assertFalse(self.s.gravar_miniatura("q", self.P1))
+            self.assertFalse(self.s.gravar_miniatura("q", self.P1, {"items": []}))
             self.assertEqual(self.s.limpar_miniaturas_soltas(), 0)
         registrados = [c.args[0] for c in reg.call_args_list]
         self.assertGreaterEqual(sum(e is erro for e in registrados), 2, registrados)
@@ -2740,6 +2790,142 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         self.assertEqual((status, corpo["id"], corpo["renomeado"]), (200, "q", False))
         self.assertEqual((d / "q.json").read_bytes(), self.J0)
         self.assertFalse((d / "q.png").exists())   # a avulsa não vira a prévia do quadro restaurado
+
+    @staticmethod
+    def png_de_verdade(texto: str) -> bytes:
+        """PNG inteira de 1x1 (com IEND), diferente para cada texto: só as inteiras ganham a marca do conteúdo."""
+        import zlib
+
+        def pedaco(tipo, dados):
+            return len(dados).to_bytes(4, "big") + tipo + dados + zlib.crc32(tipo + dados).to_bytes(4, "big")
+        return (bytes.fromhex("89504e470d0a1a0a") + pedaco(b"IHDR", bytes.fromhex("00000001000000010802000000"))
+                + pedaco(b"tEXt", b"Comment" + bytes(1) + texto.encode()) + pedaco(b"IDAT", zlib.compress(bytes(4)))
+                + pedaco(b"IEND", b""))
+
+    R0, R1 = png_de_verdade.__func__("antes"), png_de_verdade.__func__("depois")
+
+    # provas da 1.16.1 (ramo provas-1.16.1), B2 e C2: a regra pela hora do arquivo, com 2 s de folga, deixava passar a
+    # miniatura velha gravada menos de 2 s antes do quadro novo e a órfã de outro quadro no mesmo id (P62)
+    def thumb_da_galeria(self, bid="q"):
+        return next(b for b in self.s.listar_quadros() if b["id"] == bid)["thumb"]
+
+    def mandar_miniatura(self, png, bid="q"):
+        corpo = {"thumb": "data:image/png;base64," + __import__("base64").b64encode(png).decode()}
+        self.assertEqual(self.pedir("PUT", f"/api/thumbs/{bid}", corpo)[0], 200)
+
+    def salvar(self, texto, rev, criar=False, png=None, bid="q"):
+        pacote = {"board": {"title": "Q", "items": [{"id": "a", "type": "text", "x": 1, "y": 2, "text": texto}]},
+                  "revision": rev}
+        if criar:
+            pacote["criar"] = True
+        if png:
+            pacote["thumb"] = "data:image/png;base64," + __import__("base64").b64encode(png).decode()
+        status, corpo = self.pedir("PUT", f"/api/boards/{bid}", pacote)
+        self.assertEqual(status, 200, corpo)
+        return corpo["revision"]
+
+    def test_miniatura_de_um_segundo_antes_nao_aparece_depois_da_queda(self):
+        # caminho da página: o quadro salvo logo depois da miniatura, e o programa cai antes da miniatura seguinte
+        self.novo_lugar()
+        rev = self.salvar("antes", 0, criar=True)
+        self.mandar_miniatura(self.R0)
+        self.assertTrue(self.thumb_da_galeria())
+        self.salvar("depois", rev)
+        self.assertFalse(self.thumb_da_galeria())
+        self.assertEqual(self.pedir("GET", "/thumbs/q.png", None)[0], 404)
+        self.mandar_miniatura(self.R1)   # a página fez outra ao fechar o quadro
+        self.assertTrue(self.thumb_da_galeria())
+
+    def test_miniatura_velha_no_mesmo_pedido_nao_aparece_depois_da_queda(self):
+        self.novo_lugar()
+        rev = self.salvar("antes", 0, criar=True, png=self.R0)
+        with patch.object(self.s, "gravar_miniatura"):   # o programa morre entre gravar o quadro e a miniatura
+            self.salvar("depois", rev, png=self.R1)
+        self.assertFalse(self.thumb_da_galeria())
+
+    def test_orfa_de_outro_quadro_nao_vira_a_previa_do_restaurado(self):
+        d = self.novo_lugar()
+        self.salvar("o quadro que foi excluído", 0, criar=True)
+        self.mandar_miniatura(self.R1)
+        orfa = (d / "q.png").read_bytes()
+        nome = "q_20261102-090000"
+        (d / "lixeira" / f"{nome}.json").write_text(json.dumps(
+            {"title": "Antigo", "items": [], "_rev": 3, "updated": int(time.time() * 1000) - 3600_000}))
+        (d / "q.json").unlink()   # a órfã: o quadro saiu, a miniatura não (o apagar falhou)
+        with patch.object(Path, "unlink", side_effect=OSError(13, "em uso (simulado)")):
+            status, corpo = self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})
+        self.assertEqual((status, corpo["id"]), (200, "q"))
+        self.assertEqual((d / "q.png").read_bytes(), orfa)   # ficou no disco, mas não é deste quadro
+        self.assertFalse(self.thumb_da_galeria())
+
+    def test_trazido_sem_miniatura_nao_herda_orfa_que_nao_sai(self):
+        d = self.novo_lugar()
+        self.salvar("outro conteúdo", 0, criar=True)
+        self.mandar_miniatura(self.R1)
+        (d / "q.json").unlink()
+        with patch.object(Path, "unlink", side_effect=OSError(13, "em uso (simulado)")):
+            self.trazer(d)
+        self.assertFalse(self.thumb_da_galeria())
+
+    def test_orfa_sem_marca_que_nao_sai_desvia_a_restauracao_para_outro_id(self):
+        # a P6 da nuvem: órfã de antes da 1.16.2 (sem a marca), que a regra da hora deixaria passar
+        d = self.novo_lugar()
+        (d / "q.png").write_bytes(self.R1)
+        nome = "q_20261102-090000"
+        (d / "lixeira" / f"{nome}.json").write_text(json.dumps(
+            {"title": "Antigo", "items": [], "_rev": 3, "updated": int(time.time() * 1000) - 3600_000}))
+        with patch.object(Path, "unlink", side_effect=OSError(13, "em uso (simulado)")):
+            status, corpo = self.pedir("POST", "/api/lixeira/restaurar", {"nome": nome})
+        self.assertEqual((status, corpo["renomeado"]), (200, True))
+        self.assertFalse(self.thumb_da_galeria(corpo["id"]))
+        self.assertFalse((d / "q.json").exists())   # a órfã continua sem quadro: a limpeza da abertura a tira depois
+
+    def test_orfa_sem_marca_que_nao_sai_faz_o_trazido_ir_como_copia(self):
+        d = self.novo_lugar()
+        (d / "q.png").write_bytes(self.R1)
+        with patch.object(Path, "unlink", side_effect=OSError(13, "em uso (simulado)")):
+            import io
+            import zipfile
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("manifesto.json", json.dumps({"formato": 1}))
+                z.writestr("quadros/q.json", json.dumps({"title": "Do outro PC", "items": []}))
+            buf.seek(0)
+            r = self.s.trazer_pacote(buf)
+        self.assertEqual((r["trazidos"], r["copias"]), (0, 1))
+        self.assertFalse((d / "q.json").exists())
+        copia = next(b for b in self.s.listar_quadros() if b["title"].startswith("Do outro PC"))
+        self.assertFalse(copia["thumb"])
+
+    def test_renomear_e_mudar_de_pasta_nao_escondem_a_miniatura(self):
+        self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        self.mandar_miniatura(self.R0)
+        self.assertEqual(self.pedir("PUT", "/api/folder/q", {"title": "Outro nome", "folder": "Aulas"})[0], 200)
+        self.assertTrue(self.thumb_da_galeria())
+
+    def test_miniatura_de_versao_anterior_segue_a_regra_da_hora(self):
+        d = self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        (d / "q.png").write_bytes(self.R0)   # sem a impressão do conteúdo, como as de antes da 1.16.2
+        self.assertTrue(self.thumb_da_galeria())
+        self.envelhecer(d / "q.png", 30)
+        self.assertFalse(self.thumb_da_galeria())
+
+    def test_miniatura_de_pacote_do_outro_pc_vale_aqui(self):
+        import io
+        import zipfile
+        d = self.novo_lugar()
+        quadro = {"title": "Do outro PC", "items": []}
+        marcada = self.s.marcar_miniatura(self.R1, self.s.impressao_conteudo(quadro))
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as z:
+            z.writestr("manifesto.json", json.dumps({"formato": 1}))
+            z.writestr("quadros/q.json", json.dumps(quadro))
+            z.writestr("quadros/q.png", marcada)
+        buf.seek(0)
+        self.assertEqual(self.s.trazer_pacote(buf)["trazidos"], 1)
+        self.assertTrue(self.thumb_da_galeria())
 
     def test_trazer_pacote_com_miniatura(self):
         import io

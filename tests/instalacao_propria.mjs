@@ -10,6 +10,7 @@ import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdi
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pastaTemporaria } from './temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = process.argv[2] || join(RAIZ, 'dist', 'janela');
@@ -19,7 +20,7 @@ const INST = readdirSync(DIST).find(n => /^Instalar-GizLivre-[\d.]+\.(exe|zip)$/
 const INSTALADOR = process.env.GIZ_INSTALADOR || join(DIST, INST);
 const PORT = readdirSync(DIST).find(n => /-portatil\.zip$/.test(n));
 const VERSAO = INST.match(/Instalar-GizLivre-([\d.]+)\./)[1];
-const tmp = mkdtempSync(join(tmpdir(), 'giz-inst-'));
+const tmp = pastaTemporaria('giz-inst-');
 // nenhuma caixa na tela do professor: as mensagens do programa vão para este arquivo (GIZ_SEM_CAIXAS)
 const CAIXAS = join(tmp, 'caixas.txt'); process.env.GIZ_SEM_CAIXAS = CAIXAS;
 const PROG = join(tmp, 'Programs', 'Giz Livre'), EXE = join(PROG, 'GizLivre.exe');

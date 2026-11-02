@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codigo, entrarNoNavegador } from './acesso.mjs';
+import { pastaTemporaria } from './temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 // GIZ_NAVEGADOR=<caminho>: outro navegador Chromium (ex.: o Chrome, num PC em que o Edge está caindo)
@@ -30,7 +31,7 @@ function portaLivre() {
   return new Promise(res => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 }
 
-const pastaTmp = mkdtempSync(join(tmpdir(), 'giz-e2e-atu-'));
+const pastaTmp = pastaTemporaria('giz-e2e-atu-');
 const DADOS = join(pastaTmp, 'dados');
 mkdirSync(DADOS);
 const PORTA = await portaLivre();

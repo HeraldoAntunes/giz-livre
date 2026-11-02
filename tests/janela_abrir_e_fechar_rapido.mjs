@@ -9,9 +9,10 @@ import { spawn, execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pastaTemporaria } from './temporario.mjs';
 
 const PROG = process.argv[2], RODADAS = Number(process.argv[3] || 12), EXE = join(PROG, 'GizLivre.exe');
-const tmp = mkdtempSync(join(tmpdir(), 'giz-rapido-')), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
+const tmp = pastaTemporaria('giz-rapido-'), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
 // nenhuma caixa na tela do professor: as mensagens do programa vão para este arquivo (GIZ_SEM_CAIXAS)
 const CAIXAS = join(tmp, 'caixas.txt'); process.env.GIZ_SEM_CAIXAS = CAIXAS;
 const LOG = join(process.env.LOCALAPPDATA, 'Giz Livre', 'janela.log');

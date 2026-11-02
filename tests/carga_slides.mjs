@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codigo, entrarNoNavegador } from './acesso.mjs';
+import { pastaTemporaria, pastaDeEvidencia } from './temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -20,6 +21,7 @@ const opc = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null
 const DECKS = args.flatMap((a, i) => args[i - 1] === '--deck' ? [a] : []);
 const TAMANHOS = (opc('--tamanhos') || '50,100,200,400').split(',').map(Number);
 const VISIVEL = args.includes('--visivel'), MANTER = args.includes('--manter'), LENTO = args.includes('--lento');
+if (MANTER) process.env.GIZ_MANTER = '1';   // a limpeza de temporario.mjs também guarda
 const LARG = 1920, ALT = 1080;
 const EDGE = ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
@@ -31,9 +33,9 @@ function portaLivre() {
   return new Promise(res => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 }
 
-const pastaTmp = mkdtempSync(join(tmpdir(), 'giz-carga-'));
-const DADOS = join(pastaTmp, 'dados'), SAIDA = join(pastaTmp, 'saida');
-mkdirSync(DADOS); mkdirSync(SAIDA);
+const pastaTmp = pastaTemporaria('giz-carga-');
+const DADOS = join(pastaTmp, 'dados'), SAIDA = pastaDeEvidencia('carga_slides');
+mkdirSync(DADOS);
 const PORTA = await portaLivre();
 const BASE = `http://127.0.0.1:${PORTA}`;
 const R = { inicio: new Date().toISOString(), porta: PORTA, janela: VISIVEL ? 'visível' : 'sem janela (headless)', lento: LENTO, tela: `${LARG}x${ALT}`, importacoes: [], quadros: [] };

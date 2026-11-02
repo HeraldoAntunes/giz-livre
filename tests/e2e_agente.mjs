@@ -12,9 +12,11 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codigo, entrarNoNavegador } from './acesso.mjs';
+import { pastaTemporaria, pastaDeEvidencia } from './temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MANTER = process.argv.includes('--manter');
+if (MANTER) process.env.GIZ_MANTER = '1';   // a limpeza de temporario.mjs também guarda
 const VISIVEL = process.argv.includes('--visivel');
 const EDGE = ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
@@ -35,10 +37,10 @@ function portaLivre() {
 }
 
 // ---------------- servidor do Giz Livre ----------------
-const pastaTmp = mkdtempSync(join(tmpdir(), 'giz-e2e-'));
+const pastaTmp = pastaTemporaria('giz-e2e-');
 const DADOS = join(pastaTmp, 'dados');
-const SAIDA = join(pastaTmp, 'saida');
-mkdirSync(DADOS); mkdirSync(SAIDA);
+const SAIDA = pastaDeEvidencia('e2e_agente');   // capturas e relatório, no projeto
+mkdirSync(DADOS);
 const PORTA = await portaLivre();
 const BASE = `http://127.0.0.1:${PORTA}`;
 let servidor, mcp, edge, tokenPagina;

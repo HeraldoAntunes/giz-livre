@@ -9,6 +9,7 @@ import { mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { codigo, entrarNoNavegador } from '../acesso.mjs';
+import { pastaTemporaria } from '../temporario.mjs';
 
 const [PORTA, ESPERADA] = [process.argv[2] || '8765', process.argv[3]];
 const BASE = `http://127.0.0.1:${PORTA}`;
@@ -29,7 +30,7 @@ try {
   const antes = await info();
   if (!conferir('Giz Livre instalado no ar', !!antes)) throw new Error('nada na porta ' + PORTA);
   console.log(`  versão antes: ${antes.versao}`);
-  const tmp = mkdtempSync(join(tmpdir(), 'giz-a2-')), pc = await portaLivre();
+  const tmp = pastaTemporaria('giz-a2-'), pc = await portaLivre();
   nav = spawn(NAV, ['--headless=new', `--remote-debugging-port=${pc}`, `--user-data-dir=${join(tmp, 'perfil')}`, '--no-first-run',
     '--no-default-browser-check', '--window-size=1400,1000', 'about:blank'], { stdio: 'ignore' });
   let alvo; for (let t = 0; t < 100 && !alvo; t++) { try { alvo = (await (await fetch(`http://127.0.0.1:${pc}/json/list`)).json()).find(x => x.type === 'page'); } catch { await espera(150); } }

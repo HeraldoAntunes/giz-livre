@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.16.2 (02/11/2026)
+Correções.
+- **Miniatura sempre do desenho certo:** se o programa caísse poucos segundos depois de salvar, a galeria ainda podia
+  mostrar a miniatura de antes; e uma miniatura que o antivírus não deixou apagar podia virar a prévia de outro
+  quadro. Agora cada miniatura sabe de qual desenho ela é, e só aparece se for do desenho atual (renomear ou mudar
+  de pasta não a esconde). Uma nova é feita ao fechar o quadro.
+- **Sem sobras na pasta temporária:** o programa deixava uma pasta pequena na pasta temporária do Windows sempre que
+  era fechado logo depois de aberto; agora não deixa.
+
 ## 1.16.1 (30/10/2026)
 Correções.
 - **Quadro trazido protegido:** um quadro trazido de outro computador (ou excluído e restaurado depois) podia, num

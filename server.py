@@ -27,6 +27,7 @@ import unicodedata
 import urllib.parse
 import webbrowser
 import zipfile
+import zlib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -70,7 +71,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.16.1"
+VERSAO = "1.16.2"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -122,7 +123,8 @@ def id_publicavel(candidatos):
             with trava(bid):
                 if id_ocupado(bid):
                     continue
-                apagar_ou_registrar(DADOS / f"{bid}.png")   # avulsa de antes: não vira a prévia do quadro novo
+                if not avulsa_resolvida(DADOS / f"{bid}.png"):
+                    continue   # a avulsa não sai e viraria a prévia do quadro novo: vai para o candidato seguinte
                 yield bid
                 return
         finally:
@@ -162,29 +164,85 @@ def apagar_ou_registrar(arq: Path) -> bool:
         return False
 
 
-TOLERANCIA_MINIATURA = 2.0   # s: um pendrive em FAT32 guarda a hora do arquivo de 2 em 2 s
-
-
-def miniatura_vale(bid: str, atualizado_ms) -> bool:
-    """A miniatura só vale se não for mais velha que o conteúdo do quadro ("updated", que renomear ou mudar de pasta
-    não mexe). A página grava o quadro e só uns segundos depois a miniatura: uma queda no meio deixava a prévia de
-    antes na galeria. A que não vale não aparece, e a página faz outra ao fechar o quadro."""
+def avulsa_resolvida(arq: Path) -> bool:
+    """Tira a miniatura avulsa de um id que vai receber outro quadro. Se ela não sair (antivírus segurando) e não
+    tiver a marca do conteúdo (de antes da 1.16.2, ou ilegível), o id não serve: pela regra da hora, ela viraria a
+    prévia do quadro novo (provas da 1.16.1, P6). A marcada pode ficar: é de outro conteúdo e não aparece."""
+    if apagar_ou_registrar(arq) or not arq.exists():
+        return True
     try:
-        quando = (DADOS / f"{bid}.png").stat().st_mtime
+        return bool(MARCA_LIDA.search(arq.read_bytes()))
     except OSError:
         return False
-    return quando >= numero(atualizado_ms) / 1000 - TOLERANCIA_MINIATURA
 
 
-def gravar_miniatura(bid: str, png: bytes) -> bool:
+TOLERANCIA_MINIATURA = 2.0   # s: um pendrive em FAT32 guarda a hora do arquivo de 2 em 2 s
+# o que muda sem a prévia mudar: renomear, mudar de pasta, salvar sem mexer no desenho
+FORA_DA_PREVIA = ("title", "folder", "_meta", "_rev", "updated", "view")
+MARCA_MINIATURA = b"giz-conteudo"
+MARCA_LIDA = re.compile(rb"tEXt" + MARCA_MINIATURA + rb"\x00([0-9a-f]{64})")
+MARCA_ANTIGA = re.compile(rb"[\x00-\xff]{4}tEXt" + MARCA_MINIATURA + rb"\x00[0-9a-f]{64}[\x00-\xff]{4}")
+MARCAS: dict[str, tuple] = {}   # id -> (mtime_ns, tamanho, impressão lida da PNG): a galeria não relê as que não mudaram
+
+
+def impressao_conteudo(board: dict) -> str:
+    """SHA-256 do que aparece na prévia do quadro (tudo menos FORA_DA_PREVIA)."""
+    b = {k: v for k, v in board.items() if k not in FORA_DA_PREVIA}
+    return hashlib.sha256(json.dumps(b, sort_keys=True, ensure_ascii=False, allow_nan=False,
+                                     separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def marcar_miniatura(png: bytes, impressao: str) -> bytes:
+    """A PNG com a impressão do conteúdo de que ela é a prévia, num pedaço de texto (tEXt) antes do IEND; o
+    navegador ignora o pedaço. Uma marca anterior sai. O que não termina num IEND (não é PNG inteira) ganha a marca no
+    fim, para valer a mesma regra."""
+    png = MARCA_ANTIGA.sub(b"", png)
+    dados = MARCA_MINIATURA + b"\x00" + impressao.encode("ascii")
+    pedaco = len(dados).to_bytes(4, "big") + b"tEXt" + dados + zlib.crc32(b"tEXt" + dados).to_bytes(4, "big")
+    fim = len(png) - 12   # o IEND: 4 bytes de tamanho (zero), o tipo e 4 de CRC
+    if png[:8] == b"\x89PNG\r\n\x1a\n" and fim >= 8 and png[fim:fim + 8] == b"\x00\x00\x00\x00IEND":
+        return png[:fim] + pedaco + png[fim:]
+    return png + pedaco
+
+
+def marca_da_miniatura(bid: str, st) -> str | None:
+    chave = (st.st_mtime_ns, st.st_size)
+    guardada = MARCAS.get(bid)
+    if guardada and guardada[:2] == chave:
+        return guardada[2]
+    achadas = MARCA_LIDA.findall((DADOS / f"{bid}.png").read_bytes())
+    marca = achadas[-1].decode("ascii") if achadas else None
+    with TRAVA_GERAL:
+        MARCAS[bid] = (*chave, marca)
+    return marca
+
+
+def miniatura_vale(bid: str, resumo: dict) -> bool:
+    """A miniatura só aparece se for do conteúdo de agora: a impressão gravada nela tem de bater com a do quadro.
+    Antes valia a hora do arquivo, com 2 s de folga, e passavam a velha gravada logo antes de uma queda e a órfã de
+    outro quadro no mesmo id (provas da 1.16.1, B2 e C2). A miniatura sem marca (de antes da 1.16.2) segue a regra da
+    hora até a página fazer outra ao fechar o quadro."""
+    try:
+        st = (DADOS / f"{bid}.png").stat()
+        marca = marca_da_miniatura(bid, st)
+    except OSError:
+        return False
+    if marca:
+        return marca == resumo.get("_conteudo")
+    return st.st_mtime >= numero(resumo.get("updated")) / 1000 - TOLERANCIA_MINIATURA
+
+
+def gravar_miniatura(bid: str, png: bytes, board: dict | None = None) -> bool:
     """Grava a miniatura de um quadro que acabou de ser gravado. Ela é só a prévia da galeria (a página faz outra ao
     fechar o quadro): se falhar, o quadro continua gravado e o pedido não vira erro, que faria a página tentar de novo
     com a revisão velha e cair num falso conflito. A de antes sai, para a galeria não mostrar outro conteúdo."""
     alvo = DADOS / f"{bid}.png"
     try:
-        gravar_atomico(alvo, png)
+        if board is None:   # quem chama sem o quadro: o que está gravado
+            board = json.loads((DADOS / f"{bid}.json").read_text(encoding="utf-8"))
+        gravar_atomico(alvo, marcar_miniatura(png, impressao_conteudo(board)))
         return True
-    except OSError as e:
+    except (OSError, ValueError) as e:
         registrar(e)
         apagar_ou_registrar(alvo)
         return False
@@ -276,7 +334,7 @@ def resumo_quadro(arq: Path) -> dict:
         b = json.load(f)
     r = {"id": arq.stem, "title": b.get("title") or "Sem título",
          "updated": numero(b.get("updated")) or st.st_mtime * 1000,
-         "mode": (b.get("layout") or {}).get("mode", "free")}
+         "mode": (b.get("layout") or {}).get("mode", "free"), "_conteudo": impressao_conteudo(b)}
     pasta = nome_pasta(b.get("folder"))
     if pasta:
         r["folder"] = pasta
@@ -322,7 +380,7 @@ def listar_quadros() -> list:
             # confere a cada listagem, fora do resumo guardado, para a galeria não pedir imagem que não existe nem
             # mostrar a de um conteúdo anterior
             r = resumo_quadro(arq)
-            lista.append({**r, "thumb": miniatura_vale(arq.stem, r["updated"])})
+            lista.append({**{k: v for k, v in r.items() if k != "_conteudo"}, "thumb": miniatura_vale(arq.stem, r)})
             vistos.add(arq.stem)
         except Exception:
             continue
@@ -756,7 +814,7 @@ class Handler(SimpleHTTPRequestHandler):
             bid = nome[:-4] if nome.endswith(".png") else ""
             arq = DADOS / f"{bid}.png"
             try:
-                vale = ID_OK.match(bid) and miniatura_vale(bid, resumo_quadro(DADOS / f"{bid}.json")["updated"])
+                vale = ID_OK.match(bid) and miniatura_vale(bid, resumo_quadro(DADOS / f"{bid}.json"))
             except (OSError, ValueError):
                 vale = False
             if not vale:
@@ -810,7 +868,8 @@ class Handler(SimpleHTTPRequestHandler):
                 with trava(bid):   # conferido sob a trava: um excluir no meio deixaria a miniatura solta
                     if not (DADOS / f"{bid}.json").exists():
                         return self._json({"erro": "quadro não existe"}, 404)
-                    gravar_atomico(DADOS / f"{bid}.png", png)
+                    board = json.loads((DADOS / f"{bid}.json").read_text(encoding="utf-8"))
+                    gravar_atomico(DADOS / f"{bid}.png", marcar_miniatura(png, impressao_conteudo(board)))
             except OSError as e:
                 registrar(e)
                 return self._json({"erro": "não consegui gravar a miniatura"}, 500)
@@ -925,7 +984,7 @@ class Handler(SimpleHTTPRequestHandler):
                 registrar(e)
                 return self._json({"erro": "não consegui gravar; o quadro continua como estava"}, 500)
             if png:
-                gravar_miniatura(bid, png)
+                gravar_miniatura(bid, png, board)
         return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"], "title": board["title"],
                            "folder": board.get("folder", ""), "meta": board.get("_meta", 0)})
 
@@ -2122,15 +2181,15 @@ def trazer_pacote(arquivo) -> dict:
                             r["iguais"] += 1
                             continue
                         destino = None   # mesmo id, conteúdo diferente: vira cópia
+                    elif not avulsa_resolvida(DADOS / f"{bid}.png"):
+                        destino = None   # uma avulsa que não sai viraria a prévia deste quadro: vai como cópia
                     else:
                         destino = bid
                         if titulo in titulos:
                             board["title"] = titulo[:200 - len(" (trazido)")] + " (trazido)"
                         gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
                         if png:
-                            gravar_miniatura(bid, png)
-                        else:   # uma avulsa de antes não vira a prévia deste quadro
-                            apagar_ou_registrar(DADOS / f"{bid}.png")
+                            gravar_miniatura(bid, png, board)
                 if destino is None and (bid, original) in origens:
                     r["iguais"] += 1
                     continue
@@ -2142,7 +2201,7 @@ def trazer_pacote(arquivo) -> dict:
                     with id_publicavel(ids_de_quadro()) as novo:
                         gravar_atomico(DADOS / f"{novo}.json", json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
                         if png:
-                            gravar_miniatura(novo, png)
+                            gravar_miniatura(novo, png, board)
                     r["copias"] += 1
                 else:
                     r["trazidos"] += 1
@@ -2436,7 +2495,6 @@ def converter_pptx_em(conteudo: bytes, ext: str, info: dict, largura: int) -> di
 
 # ---------------- escrita à mão → texto (reconhecedor do Windows, offline) ----------------
 SCRIPT_OCR = r"""
-param([string]$entrada)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 [void][Windows.UI.Input.Inking.InkStrokeContainer, Windows.UI.Input.Inking, ContentType=WindowsRuntime]
@@ -2444,7 +2502,7 @@ Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
   $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
 function Await($op, [Type]$tipo) { $t = $asTask.MakeGenericMethod($tipo).Invoke($null, @($op)); [void]$t.Wait(-1); $t.Result }
-$dados = Get-Content -Raw -Encoding UTF8 $entrada | ConvertFrom-Json
+$dados = [Console]::In.ReadToEnd() | ConvertFrom-Json
 $builder = New-Object Windows.UI.Input.Inking.InkStrokeBuilder
 $cont = New-Object Windows.UI.Input.Inking.InkStrokeContainer
 foreach ($tr in $dados.strokes) {
@@ -2467,22 +2525,27 @@ ConvertTo-Json -Compress -Depth 4 @{ palavras = $saida }
 """
 
 
+def rodar_powershell(script: str, timeout: int, entrada: bytes | None = None):
+    """Roda o script no próprio comando (-EncodedCommand), sem arquivo: o .ps1 numa pasta lousa-ocr-* da %TEMP%
+    ficava para trás quando o programa era fechado no meio (uma por abertura, pela detecção do reconhecedor)."""
+    codificado = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
+    return subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                           "-EncodedCommand", codificado], input=entrada, capture_output=True, timeout=timeout,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
 def reconhecer_escrita(strokes: list) -> list:
     if not WINDOWS:
         raise ValueError("A conversão de escrita em texto usa o reconhecedor do Windows e não existe neste sistema.")
-    with tempfile.TemporaryDirectory(prefix="lousa-ocr-") as tmp:
-        entrada = Path(tmp) / "tracos.json"
-        entrada.write_text(json.dumps({"strokes": [[round(float(v), 1) for v in tr] for tr in strokes]}), encoding="utf-8")
-        script = Path(tmp) / "ocr.ps1"
-        script.write_text(SCRIPT_OCR, encoding="utf-8-sig")
-        r = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), str(entrada)],
-                           capture_output=True, timeout=60, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        saida = r.stdout.decode("utf-8", "replace").strip()
-        if r.returncode != 0 or not saida:
-            raise RuntimeError(r.stderr.decode("utf-8", "replace").strip()[-300:])
-        palavras = json.loads(saida.splitlines()[-1]).get("palavras") or []
-        # o ConvertTo-Json do PowerShell 5 achata listas de um item: normaliza para [[...], ...]
-        return [p if isinstance(p, list) else [p] for p in palavras]
+    # os traços vão pela entrada padrão: só números, em ASCII
+    tracos = json.dumps({"strokes": [[round(float(v), 1) for v in tr] for tr in strokes]}).encode("ascii")
+    r = rodar_powershell(SCRIPT_OCR, 60, tracos)
+    saida = r.stdout.decode("utf-8", "replace").strip()
+    if r.returncode != 0 or not saida:
+        raise RuntimeError(r.stderr.decode("utf-8", "replace").strip()[-300:])
+    palavras = json.loads(saida.splitlines()[-1]).get("palavras") or []
+    # o ConvertTo-Json do PowerShell 5 achata listas de um item: normaliza para [[...], ...]
+    return [p if isinstance(p, list) else [p] for p in palavras]
 
 
 # Há reconhecedor instalado? De qual idioma? Confere uma vez por execução, em segundo plano (o PowerShell leva ~1 s),
@@ -2502,11 +2565,7 @@ TRAVA_DETECCAO = threading.Lock()
 
 def listar_reconhecedores() -> list:
     """Nomes dos reconhecedores de escrita do Windows (vazio se não houver nenhum)."""
-    with tempfile.TemporaryDirectory(prefix="lousa-ocr-") as tmp:
-        script = Path(tmp) / "reconhecedores.ps1"
-        script.write_text(SCRIPT_RECONHECEDORES, encoding="utf-8-sig")
-        r = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                           capture_output=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    r = rodar_powershell(SCRIPT_RECONHECEDORES, 30)
     saida = r.stdout.decode("utf-8", "replace").strip()
     if r.returncode != 0 or not saida:
         return []   # sem WinRT de escrita ou sem PowerShell: para o programa, dá no mesmo que não ter reconhecedor

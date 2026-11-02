@@ -11,9 +11,10 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codigo, entrarNoNavegador } from '../acesso.mjs';
+import { pastaTemporaria } from '../temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const tmp = mkdtempSync(join(tmpdir(), 'giz-escola-')), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
+const tmp = pastaTemporaria('giz-escola-'), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
 const SAIDA = process.argv[2] || join(tmp, 'saida'); mkdirSync(SAIDA, { recursive: true });
 const NAV = [process.env.GIZ_NAVEGADOR, 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(c => c && existsSync(c));

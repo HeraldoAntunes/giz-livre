@@ -8,11 +8,12 @@ import { spawn, execFileSync } from 'node:child_process';
 import { mkdtempSync, existsSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pastaTemporaria } from './temporario.mjs';
 
 const PROG = process.argv[2];
 if (!PROG || !existsSync(join(PROG, 'GizLivre.exe'))) { console.log('uso: node tests/janela_servidor_cai.mjs <pasta com GizLivre.exe>'); process.exit(2); }
 const EXE = join(PROG, 'GizLivre.exe');
-const tmp = mkdtempSync(join(tmpdir(), 'giz-cai-')), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
+const tmp = pastaTemporaria('giz-cai-'), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
 // nenhuma caixa na tela do professor: as mensagens do programa vão para este arquivo (GIZ_SEM_CAIXAS)
 const CAIXAS = join(tmp, 'caixas.txt'); process.env.GIZ_SEM_CAIXAS = CAIXAS;
 const CON = join(DADOS, '.agente', 'conexao.json'), PERFIL = join(tmp, 'perfil');

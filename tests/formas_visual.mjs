@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { shapeById } from '../app/js/shapelib.js';
 import { codigo, entrarNoNavegador } from './acesso.mjs';
+import { pastaTemporaria } from './temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CALIBRAR = process.argv.includes('--calibrar');
@@ -111,7 +112,7 @@ async function inspecionar({ limiteMin }) {
 
 // ---------------- servidor, Edge e protocolo de depuração ----------------
 const inicio = Date.now();
-const pastaTmp = mkdtempSync(join(tmpdir(), 'giz-formas-'));
+const pastaTmp = pastaTemporaria('giz-formas-');
 const DADOS = join(pastaTmp, 'dados'); mkdirSync(DADOS);
 const PORTA = await portaLivre(), BASE = `http://127.0.0.1:${PORTA}`;
 let servidor, edge, ws, nCdp = 0, falhas = [], avisos = [], resultado;

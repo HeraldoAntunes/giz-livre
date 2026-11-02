@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { codigo, entrarNoNavegador } from '../acesso.mjs';
+import { pastaTemporaria } from '../temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MIN = Number(process.argv[2] || 15);
@@ -21,7 +22,7 @@ let ok = 0, falhas = 0;
 const conferir = (n, c, d = '') => { c ? ok++ : falhas++; console.log(`  ${c ? '✓' : '✗'} ${n}${!c && d ? ': ' + d : ''}`); return c; };
 const portaLivre = () => new Promise(res => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 
-const tmp = mkdtempSync(join(tmpdir(), 'giz-c3-')), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
+const tmp = pastaTemporaria('giz-c3-'), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
 const PORTA = await portaLivre(), BASE = `http://127.0.0.1:${PORTA}`;
 let srv, nav, ws, n = 0;
 const pend = new Map();

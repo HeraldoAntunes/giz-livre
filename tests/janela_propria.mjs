@@ -16,17 +16,18 @@ import { spawn, execFileSync } from 'node:child_process';
 import { mkdtempSync, existsSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pastaTemporaria, apagarAoSair } from './temporario.mjs';
 
 const PROG = process.argv[2], VEZES = Number(process.argv[3] || 20);
 if (!PROG || !existsSync(join(PROG, 'GizLivre.exe'))) { console.log('uso: node tests/janela_propria.mjs <pasta com GizLivre.exe>'); process.exit(2); }
 const EXE = join(PROG, 'GizLivre.exe');
-const tmp = mkdtempSync(join(tmpdir(), 'giz-p60-')), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
+const tmp = pastaTemporaria('giz-p60-'), DADOS = join(tmp, 'quadros'); mkdirSync(DADOS);
 // nenhuma caixa na tela do professor: as mensagens do programa vão para este arquivo (GIZ_SEM_CAIXAS)
 const CAIXAS = join(tmp, 'caixas.txt'); process.env.GIZ_SEM_CAIXAS = CAIXAS;
 const CON = join(DADOS, '.agente', 'conexao.json');
 // perfil do WebView2 só dos testes (nunca o do professor, %LOCALAPPDATA%\Giz Livre\janela); fica entre uma rodada e outra,
 // para a medição de rede ver o caso do perfil já usado
-const PERFIL = join(tmpdir(), 'giz-p60-perfil-teste');
+const PERFIL = apagarAoSair(join(tmpdir(), 'giz-p60-perfil-teste'));
 const PORTA = 8800 + Math.floor(Math.random() * 90), DEPURA = 9400 + Math.floor(Math.random() * 90);
 const espera = ms => new Promise(r => setTimeout(r, ms));
 let ok = 0, falhas = 0;

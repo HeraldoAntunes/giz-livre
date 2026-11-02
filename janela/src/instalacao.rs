@@ -968,6 +968,27 @@ fn criar_atalho(lnk: &Path, exe: &Path, pasta: &Path) -> io::Result<()> {
 mod testes {
     use super::*;
 
+    // o que cada teste cria (pastas e chaves do registro) sai quando a thread dele termina, também quando ele falha:
+    // o destrutor do thread_local roda depois do pânico (antes, só o fim de cada teste apagava, e a %TEMP% enchia)
+    struct CriadoPeloTeste(std::cell::RefCell<(Vec<PathBuf>, Vec<String>)>);
+    impl Drop for CriadoPeloTeste {
+        fn drop(&mut self) {
+            let (pastas, chaves) = &*self.0.borrow();
+            for p in pastas { let _ = fs::remove_dir_all(p); }
+            for c in chaves { apagar_chave(HKCU, c); }
+            if !chaves.is_empty() { apagar_mae_das_chaves(); }
+        }
+    }
+    thread_local! {
+        static CRIADO: CriadoPeloTeste = CriadoPeloTeste(std::cell::RefCell::new((Vec::new(), Vec::new())));
+    }
+    fn apagar_ao_terminar(pasta: &Path) { CRIADO.with(|c| c.0.borrow_mut().0.push(pasta.to_path_buf())); }
+    fn apagar_mae_das_chaves() {
+        #[link(name = "advapi32")]
+        extern "system" { fn RegDeleteKeyW(chave: isize, sub: *const u16) -> i32; }
+        unsafe { RegDeleteKeyW(HKCU, largo(r"Software\GizLivreTeste").as_ptr()) };   // falha se ainda tem filhas
+    }
+
     #[test]
     fn avisa_da_instalacao_para_todos_so_quando_existe() {
         assert!(aviso_para_todos(None).is_none());
@@ -989,9 +1010,9 @@ mod testes {
         fs::write(d.menu.join(ATALHO), b"x").unwrap();
         registrar(&d, &d.exe()).unwrap();
         // a temporária num lugar onde nada pode ser posto (simula outro volume sem permissão): o exe não sai
-        TEMPORARIA.with(|t| *t.borrow_mut() = Some(d.programa.join("nao-existe").join("de-jeito-nenhum")));
+        let antes = TEMPORARIA.with(|t| t.replace(Some(d.programa.join("nao-existe").join("de-jeito-nenhum"))));
         let r = desinstalar(&d, &d.exe(), true);
-        TEMPORARIA.with(|t| *t.borrow_mut() = None);
+        TEMPORARIA.with(|t| *t.borrow_mut() = antes);
         if r.is_err() {
             // não deu para tirar o programa: então nada pode ter sido mexido
             assert!(ler_texto(HKCU, &d.chave, "DisplayVersion").is_some(), "o registro saiu e o programa ficou");
@@ -1025,20 +1046,19 @@ mod testes {
     // mesmo tempo (instala_por_cima_do_inno_e_desinstala falhava com 16 threads); a mãe sai quando ficar vazia
     fn apagar_chave_de_teste(d: &Destino) {
         apagar_chave(HKCU, &d.chave);
-        #[link(name = "advapi32")]
-        extern "system" { fn RegDeleteKeyW(chave: isize, sub: *const u16) -> i32; }
-        unsafe { RegDeleteKeyW(HKCU, largo(r"Software\GizLivreTeste").as_ptr()) };   // falha se ainda tem filhas
+        apagar_mae_das_chaves();
     }
 
     fn destino_de_teste(nome: &str) -> Destino {
         let base = std::env::temp_dir().join(format!("gizlivre-teste-instalacao-{nome}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
-        Destino {
-            programa: base.join("Programs").join("Giz Livre"),
-            menu: base.join("Menu"),
-            area: base.join("Area"),
-            chave: format!(r"Software\GizLivreTeste\{nome}-{}", std::process::id()),
-        }
+        apagar_ao_terminar(&base);
+        // as sobras presas da troca (GizLivre-antigo-*) vão para dentro da pasta do teste, não para a %TEMP%
+        let _ = fs::create_dir_all(base.join("temp"));
+        TEMPORARIA.with(|t| *t.borrow_mut() = Some(base.join("temp")));
+        let chave = format!(r"Software\GizLivreTeste\{nome}-{}", std::process::id());
+        CRIADO.with(|c| c.0.borrow_mut().1.push(chave.clone()));
+        Destino { programa: base.join("Programs").join("Giz Livre"), menu: base.join("Menu"), area: base.join("Area"), chave }
     }
 
     fn pacote_de_teste(conteudo: &[u8]) -> Vec<u8> {
@@ -1167,6 +1187,7 @@ mod testes {
         simular(0, false);
         let base = std::env::temp_dir().join(format!("gizlivre-teste-preso-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
+        apagar_ao_terminar(&base);
         fs::create_dir_all(base.join("de")).unwrap();
         fs::write(base.join("de/pythonw.exe"), "py").unwrap();
         let preso = trava(&base.join("de/pythonw.exe"));

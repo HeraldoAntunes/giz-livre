@@ -4,10 +4,12 @@ Propriedades: o quadro do pacote ou vira um quadro válido ou é recusado com er
 todo id aceito pelo servidor dá um arquivo dentro da pasta de quadros.
 Uso: python tests/fuzz_entradas.py [n]  (sem dependências: sorteia n entradas; padrão 20000)
      com o atheris instalado (pip install atheris), roda o fuzzer guiado por cobertura do atheris."""
+import atexit
 import importlib.util
 import json
 import os
 import random
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -18,6 +20,7 @@ spec = importlib.util.spec_from_file_location("servidor_fuzz", RAIZ / "server.py
 S = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(S)
 S.DADOS = Path(tempfile.mkdtemp(prefix="giz-fuzz-"))
+atexit.register(shutil.rmtree, S.DADOS, ignore_errors=True)   # a pasta sai no fim, também se uma propriedade quebrar
 BASE = os.path.realpath(S.DADOS)
 
 

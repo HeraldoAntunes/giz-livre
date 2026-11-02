@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pastaTemporaria } from './temporario.mjs';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ZIP_ANTIGA = process.argv[2] || join(RAIZ, 'build', 'cache', 'v1.15.2', 'GizLivre-1.15.2-portatil.zip');
@@ -20,7 +21,7 @@ const DIST = join(RAIZ, 'dist', 'janela');
 const NOVA = process.argv[3] || join(DIST, readdirSync(DIST).find(n => /^Instalar-GizLivre-[\d.]+\.exe$/.test(n)));
 // o GizLivre.exe de uma pasta de instalação extraída não traz a versão no nome: vem de GIZ_VERSAO_NOVA
 const VERSAO_NOVA = process.env.GIZ_VERSAO_NOVA || NOVA.match(/Instalar-GizLivre-([\d.]+)\.exe$/)[1];
-const tmp = mkdtempSync(join(tmpdir(), 'giz-a2-'));
+const tmp = pastaTemporaria('giz-a2-');
 // nenhuma caixa na tela do professor: as mensagens do programa vão para este arquivo (GIZ_SEM_CAIXAS)
 const CAIXAS = join(tmp, 'caixas.txt'); process.env.GIZ_SEM_CAIXAS = CAIXAS;
 const PROG = join(tmp, 'Programs', 'Giz Livre'), DADOS = join(tmp, 'quadros'), LOG = join(tmp, 'atualizacao.log');
