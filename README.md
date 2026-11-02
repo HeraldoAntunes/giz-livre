@@ -7,7 +7,8 @@ Feita por um professor para as próprias aulas: quadro infinito, caderno A4, sli
 folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem internet.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/feito%20em-JavaScript%20e%20Python-555" alt="Feito em JavaScript e Python">
+  <img src="https://img.shields.io/badge/feito%20em-JavaScript-f1e05a?logo=javascript&logoColor=black" alt="Feito em JavaScript">
+  <img src="https://img.shields.io/badge/feito%20em-Python-3572A5?logo=python&logoColor=white" alt="Feito em Python">
   <a href="#sistemas"><img src="https://img.shields.io/badge/testado%20no-Windows%2011-0078D6" alt="Testado no Windows 11"></a>
   <img src="https://img.shields.io/badge/internet-n%C3%A3o%20precisa-2b8a3e" alt="Não precisa de internet">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue" alt="Licença MIT"></a>
