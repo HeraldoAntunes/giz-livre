@@ -1,0 +1,236 @@
+Giz Livre 1.16.0 (tag v1.16.0, commit 8e6badd77d96ecdeae7fbceb0136f9d8f1f2a2b8): saídas das provas, 30/10/2026
+Ubuntu 24.04.5 LTS, x86_64; Python 3.13.17 e 3.10.20
+
+(1ª execução de concorrencia_lixeira.py 30, Python 3.13.17, saída não guardada por inteiro: 28 de 30 rodadas; falharam a 3 e a 11, "pacote-N aparece 0 vezes no disco".)
+== python tests/prova_gravacao.py (1ª de 3, Python 3.13.17) ==
+Prova de gravação do Giz Livre
+Data: 2026-10-30 20:44:26 +0000
+Python 3.13.17 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39
+SHA-256 c346fbd8a28ee7330fd47f073571959fb4ea1ffe8bd13b037d6e3c99537e9634  server.py
+SHA-256 7b6cd3b85e751c5dae989d4bb263ee3cb347239a20cbe12cac3de5b5c20bc687  tests/test_server.py
+SHA-256 283ce23b5d744b428ae33667a925d7c81a8d271ed72a6225cf78418139935694  tests/prova_gravacao.py
+Testes: 20; falhas: 0; erros: 0; pulados: 0
+Falhas de disco injetadas (uma operação ou daí em diante), cada uma conferida pelos bytes: 54
+Resultado: PASSOU
+
+test_409_de_sessao_diz_que_e_de_sessao (tests.test_server.RestauracaoConcorrenteTests.test_409_de_sessao_diz_que_e_de_sessao) ... ok
+test_duas_restauracoes_da_mesma_origem_respondem_sem_perder_dados (tests.test_server.RestauracaoConcorrenteTests.test_duas_restauracoes_da_mesma_origem_respondem_sem_perder_dados) ... ok
+test_duas_versoes_do_mesmo_quadro_restauradas_juntas_ganham_ids_diferentes (tests.test_server.RestauracaoConcorrenteTests.test_duas_versoes_do_mesmo_quadro_restauradas_juntas_ganham_ids_diferentes) ... ok
+test_fora_do_windows_a_pasta_da_conta_segue_o_xdg (tests.test_server.RestauracaoConcorrenteTests.test_fora_do_windows_a_pasta_da_conta_segue_o_xdg) ... ok
+test_quadro_que_nao_sai_da_lixeira_devolve_a_miniatura_e_a_nova_tentativa_traz_os_dois (tests.test_server.RestauracaoConcorrenteTests.test_quadro_que_nao_sai_da_lixeira_devolve_a_miniatura_e_a_nova_tentativa_traz_os_dois) ... ok
+test_controle_duas_restauracoes_da_mesma_origem_tem_um_sucesso_e_uma_recusa (tests.test_server.RestauracaoPublicacaoTests.test_controle_duas_restauracoes_da_mesma_origem_tem_um_sucesso_e_uma_recusa) ... ok
+test_controle_restauracao_sem_concorrencia_preserva_quadro_e_miniatura (tests.test_server.RestauracaoPublicacaoTests.test_controle_restauracao_sem_concorrencia_preserva_quadro_e_miniatura) ... ok
+test_restauracao_nao_sobrescreve_criacao_publicada_durante_a_pausa (tests.test_server.RestauracaoPublicacaoTests.test_restauracao_nao_sobrescreve_criacao_publicada_durante_a_pausa) ... ok
+test_restauracao_nao_sobrescreve_pacote_publicado_durante_a_pausa (tests.test_server.RestauracaoPublicacaoTests.test_restauracao_nao_sobrescreve_pacote_publicado_durante_a_pausa) ... ok
+test_agente_e_copia_na_importacao_passam_pelo_contrato (tests.test_server.IdPublicavelTests.test_agente_e_copia_na_importacao_passam_pelo_contrato) ... ok
+test_id_publicado_por_outro_no_meio_passa_ao_candidato_seguinte (tests.test_server.IdPublicavelTests.test_id_publicado_por_outro_no_meio_passa_ao_candidato_seguinte) ... ok
+test_excluir_quadro_com_miniatura (tests.test_server.GravacaoComFalhaDeDiscoTests.test_excluir_quadro_com_miniatura) ... ok
+test_miniatura_que_chega_depois_de_excluir_nao_fica_solta (tests.test_server.GravacaoComFalhaDeDiscoTests.test_miniatura_que_chega_depois_de_excluir_nao_fica_solta) ... ok
+test_morte_entre_mover_o_quadro_e_a_miniatura_nao_deixa_miniatura_solta (tests.test_server.GravacaoComFalhaDeDiscoTests.test_morte_entre_mover_o_quadro_e_a_miniatura_nao_deixa_miniatura_solta) ... ok
+test_restaurar_nunca_deixa_o_quadro_nos_dois_lugares (tests.test_server.GravacaoComFalhaDeDiscoTests.test_restaurar_nunca_deixa_o_quadro_nos_dois_lugares) ... ok
+test_restaurar_quadro_com_miniatura (tests.test_server.GravacaoComFalhaDeDiscoTests.test_restaurar_quadro_com_miniatura) ... ok
+test_salvar_quadro_com_miniatura (tests.test_server.GravacaoComFalhaDeDiscoTests.test_salvar_quadro_com_miniatura) ... ok
+test_salvar_so_a_miniatura (tests.test_server.GravacaoComFalhaDeDiscoTests.test_salvar_so_a_miniatura) ... ok
+test_trazer_pacote_com_miniatura (tests.test_server.GravacaoComFalhaDeDiscoTests.test_trazer_pacote_com_miniatura) ... ok
+test_trazer_quadro_sem_miniatura_nao_herda_uma_avulsa (tests.test_server.GravacaoComFalhaDeDiscoTests.test_trazer_quadro_sem_miniatura_nao_herda_uma_avulsa) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 1.380s
+
+OK
+
+== resumo das 6 execuções da prova ==
+prova-3.10.20-1: Python 3.10.20 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39 Testes: 20; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.10.20-2: Python 3.10.20 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39 Testes: 20; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.10.20-3: Python 3.10.20 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39 Testes: 20; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.13.17-1: Python 3.13.17 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39 Testes: 20; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.13.17-2: Python 3.13.17 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39 Testes: 20; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.13.17-3: Python 3.13.17 em Linux-6.18.44-fc-v185-x86_64-with-glibc2.39 Testes: 20; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+
+== python -m unittest tests.test_server.GravacaoComFalhaDeDiscoTests (6 execuções) ==
+falhadisco-3.10.20-1: Ran 9 tests in 0.477s OK
+falhadisco-3.10.20-2: Ran 9 tests in 0.474s OK
+falhadisco-3.10.20-3: Ran 9 tests in 0.453s OK
+falhadisco-3.13.17-1: Ran 9 tests in 0.376s OK
+falhadisco-3.13.17-2: Ran 9 tests in 0.381s OK
+falhadisco-3.13.17-3: Ran 9 tests in 0.411s OK
+
+== python tests/provas/concorrencia_lixeira.py 30 (Python 3.13.17, 2ª execução) ==
+rodada  1: ok  dono de alvo1: lixo-1-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  2: ok  dono de alvo2: lixo-2-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  3: ok  dono de alvo3: lixo-3-1; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  4: ok  dono de alvo4: criado-4-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada  5: ok  dono de alvo5: lixo-5-1; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  6: ok  dono de alvo6: lixo-6-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  7: ok  dono de alvo7: lixo-7-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  8: ok  dono de alvo8: lixo-8-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  9: ok  dono de alvo9: criado-9-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 10: ok  dono de alvo10: lixo-10-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 11: ok  dono de alvo11: lixo-11-1; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 12: ok  dono de alvo12: criado-12-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 13: ok  dono de alvo13: criado-13-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 14: ok  dono de alvo14: criado-14-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 15: ok  dono de alvo15: lixo-15-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 16: ok  dono de alvo16: lixo-16-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 17: ok  dono de alvo17: lixo-17-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 18: FALHOU  dono de alvo18: criado-18-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 10
+rodada 19: ok  dono de alvo19: criado-19-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 20: ok  dono de alvo20: criado-20-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 21: ok  dono de alvo21: lixo-21-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 22: ok  dono de alvo22: criado-22-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 23: ok  dono de alvo23: criado-23-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 24: ok  dono de alvo24: lixo-24-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 25: ok  dono de alvo25: criado-25-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 26: ok  dono de alvo26: lixo-26-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 27: ok  dono de alvo27: criado-27-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 28: ok  dono de alvo28: lixo-28-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 29: ok  dono de alvo29: criado-29-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 30: ok  dono de alvo30: lixo-30-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+
+  ✗ rodada 18: pacote-18-1 aparece 0 vezes no disco
+29 de 30 rodadas sem perda nem sobrescrita (cada rodada: 4 restaurações + 1 repetida, 3 criações e 2 pacotes no mesmo id, 4 criações de carga)
+SHA-256 server.py: c346fbd8a28ee7330fd47f073571959fb4ea1ffe8bd13b037d6e3c99537e9634
+
+== concorrencia_lixeira.py 30 (Python 3.10.20) ==
+rodada  1: ok  dono de alvo1: lixo-1-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  2: FALHOU  dono de alvo2: criado-2-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 10
+rodada  3: ok  dono de alvo3: criado-3-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada  4: ok  dono de alvo4: lixo-4-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  5: ok  dono de alvo5: lixo-5-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  6: ok  dono de alvo6: criado-6-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada  7: ok  dono de alvo7: lixo-7-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  8: ok  dono de alvo8: lixo-8-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada  9: ok  dono de alvo9: criado-9-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 10: ok  dono de alvo10: criado-10-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 11: ok  dono de alvo11: criado-11-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 12: ok  dono de alvo12: lixo-12-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 13: ok  dono de alvo13: lixo-13-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 14: ok  dono de alvo14: lixo-14-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 15: ok  dono de alvo15: criado-15-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 16: ok  dono de alvo16: lixo-16-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 17: ok  dono de alvo17: lixo-17-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 18: ok  dono de alvo18: lixo-18-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 19: ok  dono de alvo19: lixo-19-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 20: ok  dono de alvo20: lixo-20-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 21: ok  dono de alvo21: criado-21-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 22: ok  dono de alvo22: lixo-22-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 23: ok  dono de alvo23: criado-23-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 24: ok  dono de alvo24: criado-24-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 25: ok  dono de alvo25: criado-25-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 26: ok  dono de alvo26: criado-26-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 27: ok  dono de alvo27: lixo-27-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 28: ok  dono de alvo28: criado-28-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 11
+rodada 29: ok  dono de alvo29: lixo-29-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+rodada 30: ok  dono de alvo30: lixo-30-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 10
+
+  ✗ rodada 2: pacote-2-0 aparece 0 vezes no disco
+29 de 30 rodadas sem perda nem sobrescrita (cada rodada: 4 restaurações + 1 repetida, 3 criações e 2 pacotes no mesmo id, 4 criações de carga)
+SHA-256 server.py: c346fbd8a28ee7330fd47f073571959fb4ea1ffe8bd13b037d6e3c99537e9634
+
+== concorrencia_lixeira.py 50 --sem-pacote (Python 3.13.17) ==
+rodada  1: ok  dono de alvo1: criado-1-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada  2: ok  dono de alvo2: criado-2-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada  3: ok  dono de alvo3: lixo-3-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada  4: ok  dono de alvo4: criado-4-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada  5: ok  dono de alvo5: criado-5-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada  6: ok  dono de alvo6: criado-6-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada  7: ok  dono de alvo7: lixo-7-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada  8: ok  dono de alvo8: criado-8-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada  9: ok  dono de alvo9: criado-9-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 10: ok  dono de alvo10: criado-10-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 11: ok  dono de alvo11: lixo-11-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 12: ok  dono de alvo12: lixo-12-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 13: ok  dono de alvo13: criado-13-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 14: ok  dono de alvo14: lixo-14-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 15: ok  dono de alvo15: criado-15-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 16: ok  dono de alvo16: criado-16-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 17: ok  dono de alvo17: criado-17-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 18: ok  dono de alvo18: criado-18-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 19: ok  dono de alvo19: criado-19-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 20: ok  dono de alvo20: criado-20-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 21: ok  dono de alvo21: criado-21-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 22: ok  dono de alvo22: criado-22-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 23: ok  dono de alvo23: lixo-23-1; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 24: ok  dono de alvo24: criado-24-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 25: ok  dono de alvo25: criado-25-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 26: ok  dono de alvo26: criado-26-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 27: ok  dono de alvo27: lixo-27-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 28: ok  dono de alvo28: criado-28-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 29: ok  dono de alvo29: lixo-29-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 30: ok  dono de alvo30: lixo-30-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 31: ok  dono de alvo31: criado-31-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 32: ok  dono de alvo32: lixo-32-1; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 33: ok  dono de alvo33: lixo-33-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 34: ok  dono de alvo34: lixo-34-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 35: ok  dono de alvo35: lixo-35-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 36: ok  dono de alvo36: lixo-36-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 37: ok  dono de alvo37: criado-37-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 38: ok  dono de alvo38: lixo-38-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 39: ok  dono de alvo39: lixo-39-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 40: ok  dono de alvo40: lixo-40-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 41: ok  dono de alvo41: criado-41-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 42: ok  dono de alvo42: lixo-42-2; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 43: ok  dono de alvo43: criado-43-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 44: ok  dono de alvo44: criado-44-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 45: ok  dono de alvo45: lixo-45-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 46: ok  dono de alvo46: criado-46-0; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 47: ok  dono de alvo47: lixo-47-3; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+rodada 48: ok  dono de alvo48: criado-48-2; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 49: ok  dono de alvo49: criado-49-1; restaurados 4/4 (renomeados 4); criações no alvo com 200: 1; quadros no disco: 9
+rodada 50: ok  dono de alvo50: lixo-50-0; restaurados 4/4 (renomeados 3); criações no alvo com 200: 0; quadros no disco: 8
+
+50 de 50 rodadas sem perda nem sobrescrita (cada rodada: 4 restaurações + 1 repetida, 3 criações e 0 pacotes no mesmo id, 4 criações de carga)
+SHA-256 server.py: c346fbd8a28ee7330fd47f073571959fb4ea1ffe8bd13b037d6e3c99537e9634
+
+== python tests/provas/repro_revisao_zero.py ==
+A1. POST /api/pacote com o quadro trazido1: (200, {'trazidos': 1, 'iguais': 0, 'copias': 0, 'imagens': 0, 'falhas': []})
+    no disco: "_rev" = 0 | texto = aula importada (não pode sumir)
+A2. PUT /api/boards/trazido1 com revision 0 e outro conteúdo: (200, {'ok': True, 'updated': 1793393371187, 'revision': 1, 'title': 'outro quadro', 'folder': '', 'meta': 0})
+    no disco: texto = outro quadro | na lixeira: []
+    => DEFEITO: o quadro importado foi sobrescrito e não está em lugar nenhum
+B1. trazido2 importado e excluído: 200 {'ok': True, 'lixeira': 'trazido2_20261030-204931'}
+B2. restaurado: (200, {'ok': True, 'id': 'trazido2', 'renomeado': False})
+B3. PUT revision 0 no mesmo id: (200, {'ok': True, 'updated': 1793393371196, 'revision': 1, 'title': 'outro quadro', 'folder': '', 'meta': 0})
+    no disco: texto = outro quadro
+    => DEFEITO: o quadro restaurado foi sobrescrito
+C.  controle, quadro com _rev 1 e PUT revision 0: 412 (412 esperado)
+
+RESULTADO: defeito reproduzido
+
+== python tests/provas/miniatura.py ==
+
+P1. Queda entre o quadro e a miniatura no mesmo PUT
+  SIM  JSON novo com PNG velha depois de queda entre as duas gravações
+       resposta do PUT: conexão cortada (RemoteDisconnected); reaberto: quadro 'depois', miniatura VELHA; a limpeza da abertura não mexe nela (o JSON existe)
+
+P2. Caminho da página: quadro salvo, servidor morre antes do PUT /api/thumbs
+  SIM  JSON novo com PNG velha quando a queda vem antes do PUT da miniatura
+       PUT do quadro: 200; reaberto: quadro 'depois', miniatura VELHA. Some quando a página abrir e fechar o quadro de novo
+
+P3. gravar_miniatura: falha ao gravar a nova e falha do unlink da velha
+  SIM  PNG velha fica com o JSON novo se o unlink da limpeza falhar
+       gravar_miniatura devolveu False; quadro 'depois', miniatura VELHA; o PUT responde 200 mesmo assim
+  SIM  (controle) com o unlink funcionando, a velha sai
+       miniatura nenhuma
+
+P4. Excluir: mover a miniatura falha e o unlink também (mover_miniatura)
+  SIM  PNG órfã na galeria depois de excluir
+       galeria: q1.json não existe, q1.png existe; id_ocupado('q1') = True (o id fica preso: restaurar q1 ganha um id novo)
+  SIM  o id ocupado pela órfã desvia a publicação para outro id
+       id_publicavel escolheu 'q1-livre'
+
+P5. Limpeza da abertura (limpar_miniaturas_soltas) com falha do unlink
+  SIM  a órfã continua depois da limpeza com unlink falhando
+       limpar_miniaturas_soltas devolveu 0; q1.png continua (o erro é engolido, sem registro)
+  SIM  (controle) na abertura seguinte, com o unlink funcionando, ela sai
+       devolveu 1
+
+Resumo (SIM = o comportamento descrito acontece):
+  SIM  JSON novo com PNG velha depois de queda entre as duas gravações
+  SIM  JSON novo com PNG velha quando a queda vem antes do PUT da miniatura
+  SIM  PNG velha fica com o JSON novo se o unlink da limpeza falhar
+  SIM  (controle) com o unlink funcionando, a velha sai
+  SIM  PNG órfã na galeria depois de excluir
+  SIM  o id ocupado pela órfã desvia a publicação para outro id
+  SIM  a órfã continua depois da limpeza com unlink falhando
+  SIM  (controle) na abertura seguinte, com o unlink funcionando, ela sai
