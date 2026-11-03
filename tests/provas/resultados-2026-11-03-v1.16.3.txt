@@ -1,0 +1,261 @@
+Giz Livre 1.16.3 (tag v1.16.3, commit 58939db3b0d1f60259072d87bd1a0ff2d9d6b7de): saídas das provas, 03/11/2026
+Ubuntu 24.04.5 LTS, x86_64; Python 3.13.17 e 3.10.20; Node 22.22.0; Chromium 153.0.8010.12 (Playwright 1.63.0, sem janela)
+
+== node tests/provas/apresentacao.mjs (1.16.3, servidor em Python 3.13.17) ==
+Giz Livre 1.16.3 (<repositório>), Chromium 153.0.8010.12, 12 slides
+
+T1. Traço feito na apresentação chega ao disco a tempo
+  PASSOU  T1a: parado no slide, o traço chega ao disco em até 3,5 s
+         555 ms
+  PASSOU  T1b: trocando de slide sem parar, o traço chega ao disco em até 3,5 s
+         645 ms, 4 trocas no meio
+  (medido) gravações do quadro (PUT /api/boards/t1) na T1: 2, para 2 traços e ~7 trocas de slide
+
+T2. O programa cai na apresentação com a vista pendente
+  PASSOU  T2a: depois da queda, o traço feito na apresentação está no disco
+  (medido) slide na tela na hora da queda: 8; slide da vista no disco: 3 (gravada com o traço: 3)
+  PASSOU  T2b: só a posição se perde (a vista no disco é a da última gravação, não a da tela)
+  PASSOU  T2c: reaberto, o quadro tem o traço
+         slide em que reabriu: 3
+  (medido) traço feito 300 ms antes da queda: perdido (a gravação espera 500 ms de pausa)
+
+T3. Duas janelas: A apresenta com a vista pendente, B escreve
+  PASSOU  T3 (A sai da apresentação): o traço de B continua no disco, sem sobrescrita
+         revisão antes de B: 1, no fim: 2; status de B depois de escrever: "Salvo"; PUTs de A: 412; status de A: "Este quadro mudou em outra janela. Exporte sua edição como .lousa antes de recarregar."
+  (medido) A escreve depois: traços no disco 1 (1 = o de A não foi gravado); status de A: "Editando…"
+  PASSOU  T3 (A fecha a janela): o traço de B continua no disco, sem sobrescrita
+         revisão antes de B: 1, no fim: 2; status de B depois de escrever: "Salvo"; PUTs de A: nenhum; status de A: "(fechada)"
+
+T4. Imagem que falha: nova tentativa
+  PASSOU  T4a: uma imagem falhando sempre: poucos pedidos em 45 s (espaçados 0,5/2/8/30 s)
+         5 pedidos, em 0.0 s, 0.6 s, 2.6 s, 10.7 s, 40.7 s
+  PASSOU  T4b: sem laço: a página fica quase parada enquanto espera
+         0.07 s de CPU da página em 45 s
+  PASSOU  T4c: quando a imagem volta a vir, o slide aparece sozinho, sem fechar o quadro
+         25694 ms (a espera já estava em 30 s)
+  PASSOU  T4d: todas as 12 imagens falhando: pedidos limitados em 45 s
+         4 pedidos, 1 imagens pedidas, no máximo 4 por imagem
+  (medido) servidor reaberto (código novo): slide 11, nunca mostrado antes, não apareceu em 45 s; pedidos de imagem depois: 4, respostas: 401; aviso de recarregar: sim
+
+11 passaram, 0 falharam
+
+== node tests/provas/apresentacao.mjs --so T1,T2,T3 (1.16.3, servidor em Python 3.10.20) ==
+Giz Livre 1.16.3 (<repositório>), Chromium 153.0.8010.12, 12 slides
+
+T1. Traço feito na apresentação chega ao disco a tempo
+  PASSOU  T1a: parado no slide, o traço chega ao disco em até 3,5 s
+         505 ms
+  PASSOU  T1b: trocando de slide sem parar, o traço chega ao disco em até 3,5 s
+         634 ms, 4 trocas no meio
+  (medido) gravações do quadro (PUT /api/boards/t1) na T1: 2, para 2 traços e ~7 trocas de slide
+
+T2. O programa cai na apresentação com a vista pendente
+  PASSOU  T2a: depois da queda, o traço feito na apresentação está no disco
+  (medido) slide na tela na hora da queda: 8; slide da vista no disco: 3 (gravada com o traço: 3)
+  PASSOU  T2b: só a posição se perde (a vista no disco é a da última gravação, não a da tela)
+  PASSOU  T2c: reaberto, o quadro tem o traço
+         slide em que reabriu: 3
+  (medido) traço feito 300 ms antes da queda: perdido (a gravação espera 500 ms de pausa)
+
+T3. Duas janelas: A apresenta com a vista pendente, B escreve
+  PASSOU  T3 (A sai da apresentação): o traço de B continua no disco, sem sobrescrita
+         revisão antes de B: 1, no fim: 2; status de B depois de escrever: "Salvo"; PUTs de A: 412; status de A: "Este quadro mudou em outra janela. Exporte sua edição como .lousa antes de recarregar."
+  (medido) A escreve depois: traços no disco 1 (1 = o de A não foi gravado); status de A: "Editando…"
+  PASSOU  T3 (A fecha a janela): o traço de B continua no disco, sem sobrescrita
+         revisão antes de B: 1, no fim: 2; status de B depois de escrever: "Salvo"; PUTs de A: nenhum; status de A: "(fechada)"
+
+7 passaram, 0 falharam
+
+== node tests/provas/apresentacao.mjs --raiz <cópia da tag v1.16.2> (comparação) ==
+Giz Livre 1.16.2 (<cópia da tag v1.16.2>), Chromium 153.0.8010.12, 12 slides
+
+T1. Traço feito na apresentação chega ao disco a tempo
+  PASSOU  T1a: parado no slide, o traço chega ao disco em até 3,5 s
+         556 ms
+  PASSOU  T1b: trocando de slide sem parar, o traço chega ao disco em até 3,5 s
+         643 ms, 4 trocas no meio
+  (medido) gravações do quadro (PUT /api/boards/t1) na T1: 2, para 2 traços e ~7 trocas de slide
+
+T2. O programa cai na apresentação com a vista pendente
+  PASSOU  T2a: depois da queda, o traço feito na apresentação está no disco
+  (medido) slide na tela na hora da queda: 8; slide da vista no disco: 8 (gravada com o traço: 3)
+  FALHOU  T2b: só a posição se perde (a vista no disco é a da última gravação, não a da tela)
+  PASSOU  T2c: reaberto, o quadro tem o traço
+         slide em que reabriu: 8
+  (medido) traço feito 300 ms antes da queda: perdido (a gravação espera 500 ms de pausa)
+
+T3. Duas janelas: A apresenta com a vista pendente, B escreve
+  FALHOU  T3 (A sai da apresentação): o traço de B continua no disco, sem sobrescrita
+         revisão antes de B: 3, no fim: 4; status de B depois de escrever: "Editando…"; PUTs de A: 200, 200, 200; status de A: "Salvo"
+  (medido) A escreve depois: traços no disco 1 (1 = o de A não foi gravado); status de A: "Salvo"
+  FALHOU  T3 (A fecha a janela): o traço de B continua no disco, sem sobrescrita
+         revisão antes de B: 3, no fim: 3; status de B depois de escrever: "Editando…"; PUTs de A: 200, 200; status de A: "(fechada)"
+
+T4. Imagem que falha: nova tentativa
+  FALHOU  T4a: uma imagem falhando sempre: poucos pedidos em 45 s (espaçados 0,5/2/8/30 s)
+         1 pedidos, em 0.0 s
+  PASSOU  T4b: sem laço: a página fica quase parada enquanto espera
+         0.07 s de CPU da página em 45 s
+  FALHOU  T4c: quando a imagem volta a vir, o slide aparece sozinho, sem fechar o quadro
+         null ms (a espera já estava em 30 s)
+  PASSOU  T4d: todas as 12 imagens falhando: pedidos limitados em 45 s
+         1 pedidos, 1 imagens pedidas, no máximo 1 por imagem
+  (medido) servidor reaberto (código novo): slide 11, nunca mostrado antes, não apareceu em 45 s; pedidos de imagem depois: 0, respostas: ; aviso de recarregar: sim
+
+6 passaram, 5 falharam
+
+== resumo das 6 execuções de tests/prova_gravacao.py ==
+prova-3.10.20-1: Python 3.10.20 em Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 Testes: 38; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.10.20-2: Python 3.10.20 em Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 Testes: 38; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.10.20-3: Python 3.10.20 em Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 Testes: 38; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.13.17-1: Python 3.13.17 em Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 Testes: 38; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.13.17-2: Python 3.13.17 em Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 Testes: 38; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+prova-3.13.17-3: Python 3.13.17 em Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 Testes: 38; falhas: 0; erros: 0; pulados: 0 Resultado: PASSOU 
+
+== python -m unittest tests.test_server.GravacaoComFalhaDeDiscoTests (6 execuções) ==
+falhadisco-3.10.20-1: Ran 27 tests in 1.158s OK (expected failures=2)
+falhadisco-3.10.20-2: Ran 27 tests in 1.099s OK (expected failures=2)
+falhadisco-3.10.20-3: Ran 27 tests in 1.108s OK (expected failures=2)
+falhadisco-3.13.17-1: Ran 27 tests in 0.926s OK (expected failures=2)
+falhadisco-3.13.17-2: Ran 27 tests in 0.898s OK (expected failures=2)
+falhadisco-3.13.17-3: Ran 27 tests in 1.017s OK (expected failures=2)
+
+== python -m unittest tests/test_server.py (completo) ==
+Ran 151 tests in 13.134s
+
+OK (skipped=6, expected failures=2)
+
+== node tests/testes.mjs ==
+128 testes passaram, 0 falharam
+
+== python tests/provas/repro_revisao_zero.py ==
+A1. POST /api/pacote com o quadro trazido1: (200, {'trazidos': 1, 'iguais': 0, 'copias': 0, 'imagens': 0, 'falhas': []})
+    no disco: "_rev" = 1 | texto = aula importada (não pode sumir)
+A2. PUT /api/boards/trazido1 com revision 0 e outro conteúdo: (412, {'erro': 'quadro alterado em outra janela', 'revision': 1})
+    no disco: texto = aula importada (não pode sumir) | na lixeira: []
+B1. trazido2 importado e excluído: 200 {'ok': True, 'lixeira': 'trazido2_20261103-185734'}
+B2. restaurado: (200, {'ok': True, 'id': 'trazido2', 'renomeado': False})
+B3. PUT revision 0 no mesmo id: (412, {'erro': 'quadro alterado em outra janela', 'revision': 1})
+    no disco: texto = aula restaurada (não pode sumir)
+C.  controle, quadro com _rev 1 e PUT revision 0: 412 (412 esperado)
+D1. quadro antigo com _rev 0; PUT de criação como a página da 1.16.1 manda ("criar": true): (412, {'erro': 'já existe um quadro com este id', 'revision': 0})
+D2. o mesmo quadro, PUT revision 0 sem "criar" (é como a página salva a primeira edição dele): 200 | no disco: primeira edição (aceito de propósito: é a edição do quadro aberto)
+
+RESULTADO: não reproduzido
+
+== concorrencia_lixeira.py 90 --criar ==
+
+90 de 90 rodadas sem perda nem sobrescrita com criar: true (cada rodada: 4 restaurações + 1 repetida, 3 criações e 2 pacotes no mesmo id, 4 criações de carga)
+SHA-256 server.py: 4d32151ef67de8f9064c33b7d279194bbb46c64b40a4b4215029c2acd8f3df30
+exit=0
+
+== concorrencia_lixeira.py 90 ==
+
+90 de 90 rodadas sem perda nem sobrescrita (cada rodada: 4 restaurações + 1 repetida, 3 criações e 2 pacotes no mesmo id, 4 criações de carga)
+SHA-256 server.py: 4d32151ef67de8f9064c33b7d279194bbb46c64b40a4b4215029c2acd8f3df30
+exit=0
+
+== python tests/provas/miniatura.py ==
+Defeito B (queda entre o quadro e a miniatura)
+  PASSOU  P1 (3 s): queda entre o quadro e a miniatura no mesmo PUT; a velha não aparece
+         resposta do PUT: conexão cortada (RemoteDisconnected); reaberto: quadro 'depois', no disco miniatura VELHA; galeria thumb=False; /thumbs/q1.png -> 404 -
+  PASSOU  P2 (3 s): queda antes do PUT /api/thumbs (caminho da página); a velha não aparece
+         PUT do quadro: 200; reaberto: quadro 'depois', no disco miniatura VELHA; galeria thumb=False; /thumbs/q1.png -> 404 -
+  PASSOU  P1 (1 s): queda entre o quadro e a miniatura no mesmo PUT; a velha não aparece
+         resposta do PUT: conexão cortada (RemoteDisconnected); reaberto: quadro 'depois', no disco miniatura VELHA; galeria thumb=False; /thumbs/q1.png -> 404 -
+  PASSOU  P2 (1 s): queda antes do PUT /api/thumbs (caminho da página); a velha não aparece
+         PUT do quadro: 200; reaberto: quadro 'depois', no disco miniatura VELHA; galeria thumb=False; /thumbs/q1.png -> 404 -
+
+Defeito C (apagar que falha)
+  PASSOU  P3: gravar e apagar a miniatura falham; o erro do apagar vai ao log e a velha não aparece
+         gravar_miniatura -> False; no disco miniatura VELHA; galeria thumb=False; registrado: ['OSError: [Errno 28] disco cheio (injetado)', "PermissionError: [Errno 13] unlink recusado (injetado): '<tmp>/p3/q1.png'"]
+  PASSOU  P4: excluir com mover e apagar falhando; o erro vai ao log e o id não fica preso
+         órfã q1.png no disco: sim; id_ocupado('q1') = False; id_publicavel escolheu 'q1'; registrado: ["PermissionError: [Errno 13] arquivo em uso (injetado): '<tmp>/p4/q1.png'", "PermissionError: [Errno 13] unlink recusado (injetado): '<tmp>/p4/q1.png'"]
+  PASSOU  P5: a limpeza da abertura com apagar falhando registra o erro; na abertura seguinte a órfã sai
+         com falha: devolveu 0, órfã continua; registrado: ["PermissionError: [Errno 13] unlink recusado (injetado): '<tmp>/p5/q1.png'"]; depois, sem falha: devolveu 1
+  PASSOU  P6 (órfã sem marca): restaurar no id da órfã; ela não vira a prévia
+         restaurar -> 200, id devolvido 'q1-e499e7b9'; galeria thumb=False; /thumbs/q1-e499e7b9.png -> 404; registrado: 2 erro(s)
+  PASSOU  P6 (órfã com marca): restaurar no id da órfã; ela não vira a prévia
+         restaurar -> 200, id devolvido 'q1'; galeria thumb=False; /thumbs/q1.png -> 404; registrado: 1 erro(s)
+  PASSOU  P6 (pacote): quadro trazido no id da órfã sem marca; ela não vira a prévia
+         resumo: {'trazidos': 0, 'iguais': 0, 'copias': 1, 'imagens': 0, 'falhas': []}; quadros: ['mw11vjz7mebio']; com a órfã à mostra: nenhum
+
+Resumo:
+  PASSOU  P1 (3 s): queda entre o quadro e a miniatura no mesmo PUT; a velha não aparece
+  PASSOU  P2 (3 s): queda antes do PUT /api/thumbs (caminho da página); a velha não aparece
+  PASSOU  P1 (1 s): queda entre o quadro e a miniatura no mesmo PUT; a velha não aparece
+  PASSOU  P2 (1 s): queda antes do PUT /api/thumbs (caminho da página); a velha não aparece
+  PASSOU  P3: gravar e apagar a miniatura falham; o erro do apagar vai ao log e a velha não aparece
+  PASSOU  P4: excluir com mover e apagar falhando; o erro vai ao log e o id não fica preso
+  PASSOU  P5: a limpeza da abertura com apagar falhando registra o erro; na abertura seguinte a órfã sai
+  PASSOU  P6 (órfã sem marca): restaurar no id da órfã; ela não vira a prévia
+  PASSOU  P6 (órfã com marca): restaurar no id da órfã; ela não vira a prévia
+  PASSOU  P6 (pacote): quadro trazido no id da órfã sem marca; ela não vira a prévia
+
+10 passaram, 0 falharam
+
+== python tests/provas/marca_miniatura.py ==
+
+M1. Marca forjada com a impressão de um conteúdo futuro
+  PASSOU  M1 (pedaço tEXt antes do IEND): a forjada não faz a imagem valer para o conteúdo futuro
+         PUT /api/thumbs -> 200; logo depois: galeria=True, /thumbs 200 FORJADAr; com o conteúdo futuro: galeria=False, /thumbs 404 -; marcas no arquivo: 1, a última é a do servidor
+  PASSOU  M1 (depois do IEND): a forjada não faz a imagem valer para o conteúdo futuro
+         PUT /api/thumbs -> 200; logo depois: galeria=True, /thumbs 200 FORJADAr; com o conteúdo futuro: galeria=False, /thumbs 404 -; marcas no arquivo: 1, a última é a do servidor
+  PASSOU  M1 (sem os 4 bytes de CRC depois (fim do arquivo)): a forjada não faz a imagem valer para o conteúdo futuro
+         PUT /api/thumbs -> 200; logo depois: galeria=True, /thumbs 200 FORJADAr; com o conteúdo futuro: galeria=False, /thumbs 404 -; marcas no arquivo: 2, a última é a do servidor
+  PASSOU  M1 (duas forjadas): a forjada não faz a imagem valer para o conteúdo futuro
+         PUT /api/thumbs -> 200; logo depois: galeria=True, /thumbs 200 FORJADAr; com o conteúdo futuro: galeria=False, /thumbs 404 -; marcas no arquivo: 1, a última é a do servidor
+  PASSOU  M1 (dentro do texto de outro tEXt): a forjada não faz a imagem valer para o conteúdo futuro
+         PUT /api/thumbs -> 200; logo depois: galeria=True, /thumbs 200 FORJADAr; com o conteúdo futuro: galeria=False, /thumbs 404 -; marcas no arquivo: 1, a última é a do servidor
+  PASSOU  M1 (no começo de um arquivo que não é PNG): a forjada não faz a imagem valer para o conteúdo futuro
+         PUT /api/thumbs -> 200; logo depois: galeria=True, /thumbs 200 FORJADA; com o conteúdo futuro: galeria=False, /thumbs 404 -; marcas no arquivo: 2, a última é a do servidor
+
+M2. PNG sem o pedaço (de antes da 1.16.2), deixada no disco
+  PASSOU  M2 (3 s): miniatura sem marca de um conteúdo anterior não aparece
+         galeria=False, /thumbs 404 - (sem marca vale a regra da hora, com 2.0 s de folga)
+  FALHOU  M2 (1 s): miniatura sem marca de um conteúdo anterior não aparece
+         galeria=True, /thumbs 200 SEM-MARCA (sem marca vale a regra da hora, com 2.0 s de folga)
+
+M3. Renomear, mudar de pasta, salvar só o nome ou só a vista
+  PASSOU  M3 (renomear pela galeria (PUT /api/folder title)): a miniatura continua
+         pedido -> 200; galeria=True, /thumbs 200 PREVIA
+  PASSOU  M3 (mudar de pasta (PUT /api/folder folder)): a miniatura continua
+         pedido -> 200; galeria=True, /thumbs 200 PREVIA
+  PASSOU  M3 (salvar só o título (PUT /api/boards)): a miniatura continua
+         pedido -> 200; galeria=True, /thumbs 200 PREVIA
+  PASSOU  M3 (salvar só a vista (zoom e posição)): a miniatura continua
+         pedido -> 200; galeria=True, /thumbs 200 PREVIA
+  (observação) quadro criado com "novo": true e aberto: ao tirar o campo, a miniatura some até a página mandar outra (4 s depois de salvar): galeria=False, /thumbs 404
+
+M5. Miniatura de um conteúdo anterior que chega depois de um salvamento mais novo
+  FALHOU  M5: a imagem do conteúdo 1 não aparece como prévia do conteúdo 2
+         PUT /api/thumbs -> 200; galeria=True, /thumbs 200 DO-CONTEUDO-1. A página manda outra 4 s depois do salvamento do conteúdo 2; se o programa cair antes, esta fica
+
+M4. Pacote de outro PC com o mesmo conteúdo
+  PASSOU  M4 (trazido para um PC sem o quadro): a miniatura vale
+         resumo {'trazidos': 1, 'iguais': 0, 'copias': 0, 'imagens': 0, 'falhas': []}; galeria=True, /thumbs 200 DO-OUTRO-PC
+  PASSOU  M4 (trazido de novo, iguais): a miniatura continua
+         resumo {'trazidos': 0, 'iguais': 1, 'copias': 0, 'imagens': 0, 'falhas': []}; galeria=True, /thumbs 200 DO-OUTRO-PC
+  PASSOU  M4 (mesmo id com outro conteúdo, vira cópia): a miniatura da cópia vale
+         resumo {'trazidos': 0, 'iguais': 0, 'copias': 1, 'imagens': 0, 'falhas': []}; cópia mw11vlfemicg9: galeria=True, /thumbs 200 DO-OUTRO-PC
+
+Resumo:
+  PASSOU  M1 (pedaço tEXt antes do IEND): a forjada não faz a imagem valer para o conteúdo futuro
+  PASSOU  M1 (depois do IEND): a forjada não faz a imagem valer para o conteúdo futuro
+  PASSOU  M1 (sem os 4 bytes de CRC depois (fim do arquivo)): a forjada não faz a imagem valer para o conteúdo futuro
+  PASSOU  M1 (duas forjadas): a forjada não faz a imagem valer para o conteúdo futuro
+  PASSOU  M1 (dentro do texto de outro tEXt): a forjada não faz a imagem valer para o conteúdo futuro
+  PASSOU  M1 (no começo de um arquivo que não é PNG): a forjada não faz a imagem valer para o conteúdo futuro
+  PASSOU  M2 (3 s): miniatura sem marca de um conteúdo anterior não aparece
+  FALHOU  M2 (1 s): miniatura sem marca de um conteúdo anterior não aparece
+  PASSOU  M3 (renomear pela galeria (PUT /api/folder title)): a miniatura continua
+  PASSOU  M3 (mudar de pasta (PUT /api/folder folder)): a miniatura continua
+  PASSOU  M3 (salvar só o título (PUT /api/boards)): a miniatura continua
+  PASSOU  M3 (salvar só a vista (zoom e posição)): a miniatura continua
+  FALHOU  M5: a imagem do conteúdo 1 não aparece como prévia do conteúdo 2
+  PASSOU  M4 (trazido para um PC sem o quadro): a miniatura vale
+  PASSOU  M4 (trazido de novo, iguais): a miniatura continua
+  PASSOU  M4 (mesmo id com outro conteúdo, vira cópia): a miniatura da cópia vale
+
+14 passaram, 2 falharam
+SHA-256 server.py: 4d32151ef67de8f9064c33b7d279194bbb46c64b40a4b4215029c2acd8f3df30
