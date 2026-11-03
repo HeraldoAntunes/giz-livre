@@ -30,23 +30,25 @@ programa é o mesmo.
 | Defeito | Antes | Depois |
 |---|---|---|
 | 1. Arquivos em `/opt` | 197 erros `dir-or-file-in-opt` | `/opt` mantido. Os 197 agora aparecem como `O:` (cobertos pelo override `/usr/share/lintian/overrides/giz-livre`), com o motivo escrito no arquivo: programa autocontido, fora da distribuição, no lugar que o FHS reserva para isso |
-| 2. `Maintainer` sem e-mail | `Heraldo Antunes (Giz Livre)`: 1 erro `malformed-contact` | `Heraldo Antunes <PREENCHER-EMAIL-DO-MANTENEDOR>`. **Falta a escolha do professor.** O e-mail não foi inventado nem completado. Até lá o `lintian` continua dando 1 `malformed-contact` e, por causa do changelog novo, 35 `bogus-mail-host-in-debian-changelog` (o mesmo marcador em cada uma das 35 entradas). Os dois somem quando o e-mail for preenchido |
+| 2. `Maintainer` sem e-mail | `Heraldo Antunes (Giz Livre)`: 1 erro `malformed-contact` | Primeiro ficou o marcador `PREENCHER-EMAIL-DO-MANTENEDOR`, sem inventar e-mail. Depois o professor escolheu: `Heraldo Antunes <73407236+HeraldoAntunes@users.noreply.github.com>`, o endereço privado do GitHub, o mesmo dos commits. O `lintian` não acusa mais nada no contato |
 | 3. Sem changelog no pacote | 1 erro `no-changelog` | `/usr/share/doc/giz-livre/changelog.gz`, gerado do `CHANGELOG.md` no formato do Debian por `scripts/linux/changelog_debian.py` (35 versões, da 1.0.0 à 1.16.3). O `lintian` não acusa mais nem a falta nem erro de formato |
 | 4. Ícone num tamanho só | só `128x128` | `48x48`, `64x64`, `128x128` e `256x256` (PNG) e `scalable` (o `app/icon.svg`), no `.deb` e no `.tar.gz`. O de 128 continua sendo o `docs/img/icone.png`; os outros foram desenhados a partir do `app/icon.svg`, que é o mesmo desenho, e estão em `scripts/linux/icones/` |
 | 5. Aviso de Python só com `apt` | "No Ubuntu ou Debian: sudo apt install python3" | O `instalar.sh`, o launcher e o `LEIA-ME.txt` dão o comando de cada uma: `sudo apt install python3` (Ubuntu e Debian), `sudo dnf install python3` (Fedora), `sudo zypper install python3` (openSUSE) e `sudo pacman -S python` (Arch) |
 | 6. LibreOffice não sugerido | fora do `Suggests` | `Suggests: ..., libreoffice-impress`, e a descrição do pacote, o `LEIA-ME.txt` e o fim do `instalar.sh` (quando não acha o LibreOffice) dizem que ele serve para trazer arquivos do PowerPoint |
 | 7. Dois avisos sem efeito | `maintainer-script-empty [postrm]` e `no-manual-page` | Só registrados, como pedido. Continuam iguais (motivos no defeito 7, abaixo) |
 
-`lintian` (2.117, `--info --pedantic --display-experimental --show-overrides`), antes e depois:
+`lintian` (2.117, `--info --pedantic --display-experimental --show-overrides`) em três momentos: antes das
+correções, com as correções e o marcador no e-mail, e com o e-mail escolhido:
 
-| Tipo e etiqueta | Antes | Depois |
-|---|---|---|
-| E: `dir-or-file-in-opt` | 197 | 0 (197 cobertos pelo override, `O:`) |
-| E: `malformed-contact` | 1 | 1 (marcador do e-mail) |
-| E: `no-changelog` | 1 | 0 |
-| E: `bogus-mail-host-in-debian-changelog` | 0 | 35 (marcador do e-mail, no changelog novo) |
-| W: `maintainer-script-empty` | 1 | 1 |
-| W: `no-manual-page` | 1 | 1 |
+| Tipo e etiqueta | Antes | Com o marcador | Com o e-mail escolhido |
+|---|---|---|---|
+| E: `dir-or-file-in-opt` | 197 | 0 (197 cobertos pelo override, `O:`) | 0 (197 cobertos pelo override, `O:`) |
+| E: `malformed-contact` | 1 | 1 (marcador do e-mail) | 0 |
+| E: `no-changelog` | 1 | 0 | 0 |
+| E: `bogus-mail-host-in-debian-changelog` | 0 | 35 (marcador do e-mail, no changelog novo) | 0 |
+| W: `maintainer-script-empty` | 1 | 1 | 1 |
+| W: `no-manual-page` | 1 | 1 | 1 |
+| **Total** | **199 erros, 2 avisos** | **36 erros, 2 avisos** | **0 erros, 2 avisos** (saída 0) |
 
 Testes depois das correções:
 
@@ -65,18 +67,31 @@ Saídas: `tests/linux/pacote/lintian-1.16.3-corrigido-2026-11-03.txt`,
 `tests/linux/pacote/resultados-ubuntu-24.04-corrigido-2026-11-03.txt` e
 `tests/linux/pacote/resultados-fedora-corrigido-2026-11-03.txt`.
 
-Pacotes corrigidos e testados (montei duas vezes e os bytes saíram iguais):
+Pacotes testados nesta tabela, ainda com o marcador no e-mail:
 
 ```
 982ab042c3504956bf4a1ed17ae60ce71eca0d6fb1acd9f53c446567e4d42cb4  giz-livre_1.16.3_all.deb
 a9d1c09d482a3656094020db8e243a5e9ec0e0a4c39b13ba98553df456c7c8d4  giz-livre-1.16.3-linux-usuario.tar.gz
 ```
 
+**Pacotes finais, com o e-mail escolhido** (montei duas vezes e os bytes saíram iguais):
+
+```
+15f7cb2340e6c1f83e6b56543d77a7d12cb2d0908e7790ed13bb399aa8815433  giz-livre_1.16.3_all.deb
+dffcd5754f122b1872b282bd7ffffd71ed5d5856d32013ea181fbd53ca1b2df3  giz-livre-1.16.3-linux-usuario.tar.gz
+```
+
+Dos pacotes testados para os finais, só mudaram o campo `Maintainer` e o e-mail no changelog do `.deb`. O `.tar.gz`
+tem os mesmos arquivos; o SHA-256 dele mudou só porque os arquivos levam a data do último commit do empacotamento.
+Conferência do `.deb` final no Ubuntu 24.04: instalou com o `apt`, o `dpkg` mostra o `Maintainer` novo, o launcher
+subiu o servidor (`/api/info` respondeu 1.16.3) e a remoção avisou que os quadros não foram apagados. Saída do
+`lintian` final: `tests/linux/pacote/lintian-1.16.3-mantenedor-2026-11-03.txt`.
+
 O `.deb` passou de 1,50 MB para 1,53 MB (ícones e changelog), e o `.tar.gz` de 1,88 MB para 1,90 MB.
 
-**Falta a escolha do professor:** o e-mail do campo `Maintainer`. Quando ele escolher, basta montar com
-`sh scripts/linux/montar-pacotes.sh --mantenedor "Heraldo Antunes <email>"`, ou trocar o marcador no
-`scripts/linux/montar-pacotes.sh`. Os 36 erros que sobraram no `lintian` somem com isso.
+**E-mail do `Maintainer`:** a gestão passou o e-mail pessoal do professor. Como ele iria para o script de
+montagem, para este relatório e para o histórico do Git, perguntei antes, e o professor preferiu o endereço privado
+do GitHub, que é o dos commits dele. Para trocar depois: `--mantenedor "Nome <email>"` no `montar-pacotes.sh`.
 
 Outra mudança: montar os pacotes agora também precisa do `python3`, que gera o changelog. Ele já era necessário para
 rodar o programa.
