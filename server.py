@@ -71,7 +71,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.16.3"
+VERSAO = "1.17.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -178,7 +178,7 @@ def avulsa_resolvida(arq: Path) -> bool:
 
 TOLERANCIA_MINIATURA = 2.0   # s: um pendrive em FAT32 guarda a hora do arquivo de 2 em 2 s
 # o que muda sem a prévia mudar: renomear, mudar de pasta, salvar sem mexer no desenho
-FORA_DA_PREVIA = ("title", "folder", "_meta", "_rev", "updated", "view")
+FORA_DA_PREVIA = ("title", "folder", "_meta", "_rev", "updated", "view", "novo", "marcadores")   # "novo": marca da criação (P63)
 MARCA_MINIATURA = b"giz-conteudo"
 MARCA_LIDA = re.compile(rb"tEXt" + MARCA_MINIATURA + rb"\x00([0-9a-f]{64})")
 MARCA_ANTIGA = re.compile(rb"[\x00-\xff]{4}tEXt" + MARCA_MINIATURA + rb"\x00[0-9a-f]{64}[\x00-\xff]{4}")
@@ -324,6 +324,132 @@ def numero(v) -> float:
     return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else 0
 
 
+# ---- marcadores (P65): um ponto do quadro guardado com nome e grupo, como a fita de um livro ----
+# Moram dentro do próprio quadro (campo "marcadores"), então acompanham renomear, mudar de pasta, a lixeira e o pacote
+# de Levar quadros. Só mudam por /api/marcadores, sob a trava do quadro: o salvamento do editor mantém os do arquivo
+# (uma janela aberta antes não desfaz o que a galeria mudou). Os grupos (nome, cor, ordem) ficam num arquivo à parte.
+MARCADOR_ID = re.compile(r"^[A-Za-z0-9_-]{1,40}\Z")
+COR_OK = re.compile(r"^#[0-9a-fA-F]{6}\Z")
+MINI_OK = re.compile(r"^/assets/[0-9a-f]{40}\.(png|jpg)\Z")
+MAX_MARCADORES = 500
+GRUPOS_MARCADORES = "marcadores.grupos"   # não é .json: a galeria trata todo .json da pasta como quadro
+
+
+def _numero_finito(v) -> bool:
+    return type(v) in (int, float) and math.isfinite(v)
+
+
+def limpar_marcador(m) -> dict | None:
+    """O marcador como o programa grava, ou None se estiver danificado (vem do editor, da galeria ou de um pacote)."""
+    if not isinstance(m, dict) or not isinstance(m.get("id"), str) or not MARCADOR_ID.match(m["id"]):
+        return None
+    if not all(_numero_finito(m.get(k)) for k in ("cx", "cy", "w")) or m["w"] <= 0:
+        return None
+    r = {"id": m["id"], "nome": str(m.get("nome") or "Marcador").strip()[:120] or "Marcador",
+         "cx": m["cx"], "cy": m["cy"], "w": m["w"]}
+    if isinstance(m.get("grupo"), str) and MARCADOR_ID.match(m["grupo"]):
+        r["grupo"] = m["grupo"]
+        r["grupoNome"] = str(m.get("grupoNome") or "").strip()[:60]
+    if isinstance(m.get("cor"), str) and COR_OK.match(m["cor"]):
+        r["cor"] = m["cor"].lower()
+    if type(m.get("pagina")) is int and 0 < m["pagina"] <= 10000:
+        r["pagina"] = m["pagina"]
+    for k in ("ordem", "criado"):
+        if _numero_finito(m.get(k)):
+            r[k] = m[k]
+    if isinstance(m.get("mini"), str) and MINI_OK.match(m["mini"]):
+        r["mini"] = m["mini"]
+    return r
+
+
+def limpar_marcadores(lista) -> list:
+    if not isinstance(lista, list):
+        return []
+    vistos, out = set(), []
+    for m in lista[:MAX_MARCADORES]:
+        c = limpar_marcador(m)
+        if c and c["id"] not in vistos:
+            vistos.add(c["id"])
+            out.append(c)
+    return out
+
+
+def ler_grupos() -> list:
+    try:
+        g = json.loads((DADOS / GRUPOS_MARCADORES).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return limpar_grupos(g)
+
+
+def limpar_grupos(g) -> list:
+    out, vistos = [], set()
+    for x in (g if isinstance(g, list) else [])[:200]:
+        if isinstance(x, dict) and isinstance(x.get("id"), str) and MARCADOR_ID.match(x["id"]) and x["id"] not in vistos:
+            vistos.add(x["id"])
+            item = {"id": x["id"], "nome": str(x.get("nome") or "Grupo").strip()[:60] or "Grupo",
+                    "cor": x["cor"].lower() if isinstance(x.get("cor"), str) and COR_OK.match(x["cor"]) else "#0f6cbd"}
+            if _numero_finito(x.get("ordem")):
+                item["ordem"] = x["ordem"]
+            out.append(item)
+    return out
+
+
+def listar_marcadores() -> dict:
+    """Todos os marcadores de todos os quadros da galeria (não os da lixeira), com o quadro de cada um, e os grupos.
+    Um grupo que só existe nos marcadores (veio de outro computador) aparece com o nome e a cor deles."""
+    marcadores = []
+    for q in listar_quadros():
+        r = RESUMOS.get(q["id"])
+        for m in (r[2].get("_marcadores") if r else None) or []:
+            marcadores.append({**m, "quadro": q["id"], "titulo": q["title"], **({"pasta": q["folder"]} if q.get("folder") else {})})
+    grupos = ler_grupos()
+    conhecidos = {g["id"] for g in grupos}
+    for m in marcadores:
+        if m.get("grupo") and m["grupo"] not in conhecidos:
+            conhecidos.add(m["grupo"])
+            grupos.append({"id": m["grupo"], "nome": m.get("grupoNome") or "Grupo", "cor": m.get("cor") or "#0f6cbd"})
+    marcadores.sort(key=lambda m: (m.get("ordem", 0), m.get("criado", 0)))
+    return {"grupos": grupos, "marcadores": marcadores}
+
+
+def mudar_marcadores(pedido: dict) -> dict:
+    """Lote vindo do editor ou da galeria: {"novos": [{"quadro", "marcador"}], "alterar": [{"quadro", "id", ...campos}],
+    "apagar": [{"quadro", "id"}], "grupos": [...]} (grupos: a lista inteira, quando muda). Cada quadro é lido e gravado
+    sob a trava dele, sem mexer na revisão nem na data de edição."""
+    por_quadro: dict = {}
+    for chave in ("novos", "alterar", "apagar"):
+        for x in pedido.get(chave) or []:
+            if not isinstance(x, dict) or not isinstance(x.get("quadro"), str) or not ID_OK.match(x["quadro"]):
+                raise ValueError("quadro inválido")
+            por_quadro.setdefault(x["quadro"], []).append((chave, x))
+    if "grupos" in pedido:
+        gravar_atomico(DADOS / GRUPOS_MARCADORES, json.dumps(limpar_grupos(pedido["grupos"]), ensure_ascii=False).encode("utf-8"))
+    for bid, ops in por_quadro.items():
+        arq = DADOS / f"{bid}.json"
+        with trava(bid):
+            if not arq.exists():
+                continue   # o quadro saiu (lixeira) enquanto a galeria mexia: nada a fazer
+            board = json.loads(arq.read_text(encoding="utf-8"))
+            lista = limpar_marcadores(board.get("marcadores"))
+            for chave, x in ops:
+                if chave == "novos":
+                    m = limpar_marcador(x.get("marcador"))
+                    if m and all(o["id"] != m["id"] for o in lista):
+                        lista.append(m)
+                elif chave == "apagar":
+                    lista = [o for o in lista if o["id"] != x.get("id")]
+                else:
+                    for i, o in enumerate(lista):
+                        if o["id"] == x.get("id"):
+                            novo = limpar_marcador({**o, **{k: v for k, v in x.items() if k not in ("quadro", "id")}})
+                            if novo:
+                                lista[i] = novo
+            board["marcadores"] = lista[:MAX_MARCADORES]
+            gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+    return listar_marcadores()
+
+
 def resumo_quadro(arq: Path) -> dict:
     st = arq.stat()
     chave = (st.st_mtime_ns, st.st_size)
@@ -334,7 +460,8 @@ def resumo_quadro(arq: Path) -> dict:
         b = json.load(f)
     r = {"id": arq.stem, "title": b.get("title") or "Sem título",
          "updated": numero(b.get("updated")) or st.st_mtime * 1000,
-         "mode": (b.get("layout") or {}).get("mode", "free"), "_conteudo": impressao_conteudo(b)}
+         "mode": (b.get("layout") or {}).get("mode", "free"), "_conteudo": impressao_conteudo(b),
+         "_marcadores": limpar_marcadores(b.get("marcadores"))}
     pasta = nome_pasta(b.get("folder"))
     if pasta:
         r["folder"] = pasta
@@ -380,7 +507,7 @@ def listar_quadros() -> list:
             # confere a cada listagem, fora do resumo guardado, para a galeria não pedir imagem que não existe nem
             # mostrar a de um conteúdo anterior
             r = resumo_quadro(arq)
-            lista.append({**{k: v for k, v in r.items() if k != "_conteudo"}, "thumb": miniatura_vale(arq.stem, r)})
+            lista.append({**{k: v for k, v in r.items() if not k.startswith("_")}, "thumb": miniatura_vale(arq.stem, r)})
             vistos.add(arq.stem)
         except Exception:
             continue
@@ -749,6 +876,8 @@ class Handler(SimpleHTTPRequestHandler):
                                "niveis": NIVEIS, "registro": ultimas_linhas_registro()})
         if rota == "/api/boards":
             return self._json(listar_quadros())
+        if rota == "/api/marcadores":   # todos os marcadores, de todos os quadros, e os grupos (P65)
+            return self._json(listar_marcadores())
         if rota == "/api/info":
             marcar_contato()
             return self._json({"versao": VERSAO, "dados": str(DADOS), "token": TOKEN, "sistema": sys.platform,
@@ -861,14 +990,20 @@ class Handler(SimpleHTTPRequestHandler):
             if corpo is None:
                 return
             try:
-                thumb = json.loads(corpo.decode("utf-8")).get("thumb") or ""
+                pedido = json.loads(corpo.decode("utf-8"))
+                thumb = pedido.get("thumb") or ""
                 if not thumb.startswith("data:image/png;base64,"):
                     raise ValueError("miniatura inválida")
                 png = base64.b64decode(thumb.split(",", 1)[1], validate=True)
+                revisao = pedido.get("revision")
                 with trava(bid):   # conferido sob a trava: um excluir no meio deixaria a miniatura solta
                     if not (DADOS / f"{bid}.json").exists():
                         return self._json({"erro": "quadro não existe"}, 404)
                     board = json.loads((DADOS / f"{bid}.json").read_text(encoding="utf-8"))
+                    # a página diz de qual revisão é o desenho: se outra já foi gravada, a miniatura atrasada viraria
+                    # a prévia do conteúdo novo (provas da 1.16.2, B3; P63). Sem a revisão (página antiga), como antes
+                    if type(revisao) is int and board.get("_rev", 0) != revisao:
+                        return self._json({"erro": "miniatura de uma revisão anterior", "revision": board.get("_rev", 0)}, 412)
                     gravar_atomico(DADOS / f"{bid}.png", marcar_miniatura(png, impressao_conteudo(board)))
             except OSError as e:
                 registrar(e)
@@ -976,6 +1111,13 @@ class Handler(SimpleHTTPRequestHandler):
                 else:
                     board.pop("folder", None)
                 board["_meta"] = meta
+            # marcadores: só /api/marcadores muda; o editor manda a cópia que tinha ao abrir, e a do arquivo fica (P65)
+            if arq.exists():
+                board["marcadores"] = limpar_marcadores(atual.get("marcadores"))
+            else:
+                board["marcadores"] = limpar_marcadores(board.get("marcadores"))
+            if not board["marcadores"]:
+                board.pop("marcadores")
             board["_rev"] = revision + 1
             dados = json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8")
             try:
@@ -986,7 +1128,7 @@ class Handler(SimpleHTTPRequestHandler):
             if png:
                 gravar_miniatura(bid, png, board)
         return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"], "title": board["title"],
-                           "folder": board.get("folder", ""), "meta": board.get("_meta", 0)})
+                           "folder": board.get("folder", ""), "meta": board.get("_meta", 0), "marcadores": board.get("marcadores", [])})
 
     def do_POST(self):
         if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):
@@ -1016,6 +1158,8 @@ class Handler(SimpleHTTPRequestHandler):
         if not self._escrita_ok():
             return
         rota = self._rota()
+        if rota == "/api/sessao/conferir":   # a página confere se o código ainda vale (imagem que falhou; provas da 1.16.3, D2)
+            return self._json({"ok": True})
         if rota == "/api/chave":   # chave de abertura nova (testes, segunda abertura): só para quem já tem o código
             return self._json({"k": nova_chave()})
         if rota == "/api/abrir-janela":   # o atalho foi aberto de novo nesta conta: outra janela do mesmo programa
@@ -1137,6 +1281,20 @@ class Handler(SimpleHTTPRequestHandler):
                 TRAVA_OCR.release()
         if rota == "/api/lixeira/restaurar":
             return self._restaurar()
+        if rota == "/api/marcadores":   # criar, renomear, mudar de grupo, reordenar e apagar marcadores (P65)
+            corpo = self._corpo()
+            if corpo is None:
+                return
+            try:
+                pedido = json.loads(corpo.decode("utf-8"))
+                if not isinstance(pedido, dict):
+                    raise ValueError("pedido inválido")
+                return self._json(mudar_marcadores(pedido))
+            except OSError as e:
+                registrar(e)
+                return self._json({"erro": "não consegui gravar os marcadores"}, 500)
+            except Exception as e:
+                return self._json({"erro": str(e)}, 400)
         if rota == "/api/pdf":
             corpo = self._corpo("pdf")
             if corpo is None:
@@ -1948,6 +2106,9 @@ def item_valido(it) -> bool:
                                           else all(_num(it.get(k)) for k in ("x1", "y1", "x2", "y2")))
     if t == "text":
         return all(_num(it.get(k)) for k in ("x", "y", "w"))
+    if t == "notaprof":   # nota do professor (P64 i): invisível, só o texto e a posição da página
+        return (isinstance(it.get("texto"), str) and len(it["texto"]) <= 20000
+                and all(_num(it.get(k)) for k in ("x", "y", "w", "h")))
     return all(_num(it.get(k)) for k in ("x", "y", "w", "h"))
 
 
@@ -1975,6 +2136,8 @@ def quadro_do_pacote(dados: bytes, bid: str = "") -> dict:
             it["id"] = "ag" + hashlib.sha1(f"{bid}:{n}".encode("utf-8")).hexdigest()[:10]
         itens.append(it)
     board["items"] = itens
+    if "marcadores" in board:   # de outro computador: só o que tem formato de marcador (P65)
+        board["marcadores"] = limpar_marcadores(board["marcadores"])
     L = board.get("layout")
     if L is not None:
         def fin(v, a, b):

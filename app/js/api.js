@@ -17,7 +17,7 @@ export async function initSession() {
 function conferirOcr(n) {
   setTimeout(async () => {
     try {
-      const j = await (await fetch('/api/info')).json();
+      const j = await (await fetch('/api/info', { signal: AbortSignal.timeout(5000) })).json();   // servidor subindo: não fica pendurado
       Object.assign(INFO, { ocr: j.ocr, ocr_idioma: j.ocr_idioma, ocr_conferido: j.ocr_conferido });
       if (j.ocr_conferido === false && n > 1) conferirOcr(n - 1);
     } catch {}
@@ -45,13 +45,18 @@ async function deSessao(r) {
   try { return (await r.clone().json()).sessao === true; } catch { return false; }
 }
 let renovando = null;
+// quem precisa saber que o código foi renovado (o editor pede de novo as imagens que falharam), venha a renovação de
+// qualquer pedido: a do aviso periódico ao servidor chegava antes e a das imagens ficava sem efeito (D2)
+const aoRenovar = [];
+export const quandoRenovarSessao = fn => aoRenovar.push(fn);
 function renovarSessao(antigo) {
   renovando ||= (async () => {
     try {
-      const j = await (await fetch('/api/info')).json();
+      const j = await (await fetch('/api/info', { signal: AbortSignal.timeout(5000) })).json();   // servidor subindo: não fica pendurado
       if (!j.token || j.token === antigo) return false;
       TOKEN = j.token;
       Object.assign(INFO, j);
+      for (const fn of aoRenovar) try { fn(); } catch {}
       const b = document.getElementById('banner');
       if (b) b.hidden = true;   // o aviso de programa fechado já não vale
       return true;
@@ -109,9 +114,31 @@ export async function saveBoard(id, board, thumb, criar = false) {
   return result;
 }
 
-export async function saveThumb(id, thumb) {
+// a sessão ainda vale? Com o código trocado (servidor reaberto), o wfetch renova; devolve se o código mudou e se vale
+export async function conferirSessao() {
+  const antes = TOKEN;
+  try {
+    const r = await wfetch('/api/sessao/conferir', { method: 'POST', signal: AbortSignal.timeout(5000) });
+    return { ok: r.ok, renovada: r.ok && TOKEN !== antes };
+  } catch { return { ok: false, renovada: false }; }
+}
+
+// marcadores (P65): todos os de todos os quadros, com os grupos; e o lote que cria, muda e apaga (devolve a lista nova)
+export async function listarMarcadores() {
+  const r = await wfetch('/api/marcadores');
+  if (!r.ok) throw new Error('Não consegui ler os marcadores');
+  return r.json();
+}
+export async function mudarMarcadores(pedido) {
+  const r = await wfetch('/api/marcadores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro || 'Não consegui gravar o marcador');
+  return r.json();
+}
+
+// revision: a revisão gravada que o desenho mostra; o servidor recusa (412) se outra já tiver sido gravada (P63)
+export async function saveThumb(id, thumb, revision) {
   const r = await wfetch('/api/thumbs/' + id, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ thumb }),
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ thumb, revision }),
   });
   if (!r.ok) throw new Error('Falha ao salvar miniatura');
 }

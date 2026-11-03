@@ -619,9 +619,19 @@ console.log('Enquadrar slide, lupa e aviso do desfazer (pages.js, editor.js)');
     igual(aviso.includes("cfg.avisoDesfazer === 'curto'") && aviso.includes("cfg.avisoDesfazer === 'normal'"), true, 'os dois níveis');
     igual(ed.includes("toast('Último item apagado"), false, 'Backspace sem seleção também sem aviso de fábrica');
   });
-  teste('botões novos existem na página (espessura, formas, enquadrar, − e + da lupa)', () => {
-    for (const id of ['ppWidth', 'ppShape', 'pgFit']) igual(html.includes(`id="${id}"`), true, id);
+  teste('botões novos existem na página (formas em grupos, enquadrar, − e + da lupa)', () => {
+    for (const id of ['ppSetas', 'ppFormas', 'ppCotas', 'pgFit']) igual(html.includes(`id="${id}"`), true, id);
     igual((html.match(/class="lupactl"/g) || []).length, 2, 'controle da lupa no modo normal e na apresentação');
+  });
+  // retorno da aula de 03/11/2026 (P64 d, e, g)
+  teste('apresentação: folha em branco à vista com a tecla certa, cor e espessura num botão só, formas em três grupos', () => {
+    const blank = html.match(/<button[^>]*id="ppBlank"[^>]*>.*?<\/button>/)?.[0] || '';
+    igual(/\(N\)/.test(blank), true, 'a dica do botão diz N (B é a tela preta)');
+    igual(/<b>Folha<\/b>/.test(blank), true, 'o botão tem texto visível');
+    igual(html.includes('id="ppWidth"'), false, 'sem botão de espessura separado');
+    const pop = ed.slice(ed.indexOf('function presentColorPop('), ed.indexOf('// formas sempre à mão'));
+    igual(pop.includes('data-w=') && pop.includes('data-c=') && pop.includes('data-op='), true, 'cor, espessura e intensidade na mesma janelinha');
+    igual(/ppSetas: \[.*'arrow'.*\], ppFormas: \[.*'rect'.*\], ppCotas: \['cota'\]/.test(ed), true, 'setas, formas e cotas');
   });
 }
 
@@ -747,6 +757,136 @@ console.log('\nEncaixe, esquadro e calculadora');
     igual(E.giroPreso(0.3, 0), 0.3, 'livre');
     perto(E.escalaEncaixada(100, 50, 1.3, 40), 1.2, 1e-9, '165 vai para 160');
     igual(E.escalaEncaixada(100, 50, 0.1, 40, 20), 0.1, 'a linha mais perto é a do próprio canto: não encolhe até sumir');
+  });
+
+  // retorno da aula de 03/11/2026 (P64 c): era 15% da tela por toque em qualquer zoom
+  const V = await mod('vista.js');
+  teste('setas: passo pequeno, menor com o quadro ampliado, Shift maior', () => {
+    perto(V.passoDaSeta(1920, 1080, 1), 1080 * 0.06, 1e-9, 'zoom 1: 6% da tela');
+    if (!(V.passoDaSeta(1920, 1080, 1) < 0.15 * 1080 / 2)) throw new Error('o passo tem de ser bem menor que os 15% de antes');
+    if (!(V.passoDaSeta(1920, 1080, 4) < V.passoDaSeta(1920, 1080, 1))) throw new Error('ampliado, o passo diminui');
+    perto(V.passoDaSeta(1920, 1080, 4), 1080 * 0.06 / 2, 1e-9, 'zoom 4: metade');
+    perto(V.passoDaSeta(1920, 1080, 0.5), 1080 * 0.06, 1e-9, 'afastado: não aumenta');
+    if (!(V.passoDaSeta(1920, 1080, 1, true) > V.passoDaSeta(1920, 1080, 1))) throw new Error('Shift: passo maior');
+  });
+
+  // P61 C: Ctrl+V cola onde a caneta tocou por último; ponto fora da tela: centro (null)
+  teste('colar: no último ponto tocado, se ele ainda está na tela', () => {
+    const v = { x: -100, y: -50, zoom: 2 };
+    igual(JSON.stringify(V.pontoDeColar({ x: 300, y: 200 }, v, 1600, 900)), '{"x":300,"y":200}', 'na tela');
+    igual(V.pontoDeColar({ x: 2000, y: 200 }, v, 1600, 900), null, 'rolou: o ponto saiu da tela');
+    igual(V.pontoDeColar({ x: 845, y: 200 }, v, 1600, 900), null, 'na borda, sem folga para a imagem');
+    igual(V.pontoDeColar(null, v, 1600, 900), null, 'nada tocado ainda');
+  });
+
+  // P61 A: esconder até a aula e revelar um de cada vez, na ordem em que foram escondidos
+  const RV = await mod('revelar.js');
+  teste('esconder e revelar: na ordem, um por vez, e o item volta sem o campo', () => {
+    const it = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    let q = RV.esconder(it, new Set(['c', 'a']));
+    igual(q.map(i => i.revelar ?? '-').join(), '1,-,2', 'a ordem do quadro');
+    q = RV.esconder(q, new Set(['b']));
+    igual(q.find(i => i.id === 'b').revelar, 3, 'escondido depois vai para o fim da fila');
+    igual(RV.quantosEscondidos(q), 3, 'três esperando');
+    let r = RV.revelarProximo(q); igual(r.id, 'a', 'o primeiro escondido sai primeiro');
+    igual('revelar' in r.items.find(i => i.id === 'a'), false, 'sem o campo depois de revelado');
+    r = RV.revelarProximo(r.items); igual(r.id, 'c', 'depois o segundo');
+    igual(RV.revelarProximo(RV.revelarProximo(r.items).items), null, 'nada mais');
+  });
+
+  // P64 i: notas do professor, uma por página, como item invisível que acompanha a página
+  const NT = await mod('notas.js'), PGn = await mod('pages.js'), Rn = await mod('render.js');
+  teste('notas do professor: uma por página, trocar, apagar e seguir a página', () => {
+    const L = PGn.makeLayout('s169', 3);
+    let n = 0; const novo = () => 'n' + (++n);
+    let it = NT.comNota([{ id: 's', type: 'stroke', pts: [0, 0, 1], width: 2 }], L, 1, 'Lembrar do exemplo', novo);
+    igual(NT.textoDaPagina(it, L, 1), 'Lembrar do exemplo', 'a nota da página 2');
+    igual(NT.textoDaPagina(it, L, 0), '', 'a página 1 sem nota');
+    it = NT.comNota(it, L, 1, 'Outra frase', novo);
+    igual(it.filter(NT.ehNota).length, 1, 'trocar não cria uma segunda nota');
+    igual(it.find(NT.ehNota).id, 'n1', 'trocar mantém o id');
+    igual(NT.paginasComNota(it, L).join(), '1', 'páginas com nota');
+    // inserir uma página antes: a nota desce junto (o editor move os itens pela posição, como em itemsShift)
+    const passo = L.h + L.gap, desce = it.map(i => { const b = Rn.bbox(i); return b.y + b.h / 2 > L.h + L.gap / 2 ? Rn.transformItem(i, 0, passo) : i; });
+    igual(NT.textoDaPagina(desce, { ...L, count: 4 }, 2), 'Outra frase', 'a nota foi com a página');
+    igual(Rn.itemValido(it.find(NT.ehNota)), true, 'o item da nota é válido para o desenho e a importação');
+    it = NT.comNota(it, L, 1, '   ', novo);
+    igual(it.filter(NT.ehNota).length, 0, 'texto vazio apaga a nota');
+    igual(it.length, 1, 'o resto do quadro fica');
+    igual(NT.comNota([], L, 0, 'x'.repeat(30000), novo)[0].texto.length, NT.MAX_TEXTO, 'texto limitado');
+  });
+  teste('notas do professor: o que a janela das notas recebe e quando ela abre', () => {
+    const L = PGn.makeLayout('s169', 2);
+    const it = NT.comNota(NT.comNota([], L, 0, 'um', () => 'a'), L, 1, 'dois', () => 'b');
+    const m = NT.mensagemDaPagina('q1', it, L, 0);
+    igual(JSON.stringify(m), JSON.stringify({ quadro: 'q1', pagina: 1, total: 2, texto: 'um', proxima: 'dois' }), 'página 1');
+    igual(NT.mensagemDaPagina('q1', it, L, 1).proxima, null, 'na última, sem próxima');
+    igual(NT.abrirNotasAoApresentar(true, true), 'janela', 'duas telas (Estender): abre a janela das notas');
+    igual(NT.abrirNotasAoApresentar(true, false), 'aviso', 'uma tela ou Duplicar: só o aviso');
+    igual(NT.abrirNotasAoApresentar(false, true), 'nada', 'sem notas: nada');
+    let desenhou = false;
+    const espiao = new Proxy({}, { get: (t, k) => (typeof k === 'string' ? () => { desenhou = true; } : undefined), set: () => { desenhou = true; return true; } });
+    Rn.drawItem(espiao, it[0]);
+    igual(desenhou, false, 'a nota não é desenhada (fora da projeção, do PDF e da miniatura)');
+  });
+
+  // P61 B: roteiro de prints, as imagens em ordem de leitura, e a vista que enquadra cada uma com folga
+  const PR = await mod('paradas.js');
+  teste('paradas: imagens em ordem de leitura (linha por linha, da esquerda para a direita)', () => {
+    const im = (id, x, y, extra = {}) => ({ id, type: 'image', x, y, w: 200, h: 100, ...extra });
+    const lista = PR.paradas([im('c', 900, 20), im('a', 0, 0), im('d', 0, 500), im('b', 500, 30), { id: 't', type: 'text', x: 0, y: 0 },
+      im('pdf', 0, 0, { locked: true }), im('r', 0, 0, { camada: 'rascunho' })]);
+    igual(lista.map(i => i.id).join(), 'a,b,c,d', 'ordem de leitura, sem texto, página de PDF nem rascunho');
+  });
+  teste('paradas: a vista enquadra a imagem no centro, com folga', () => {
+    const v = PR.vistaDaCaixa({ x: 1000, y: 2000, w: 400, h: 200 }, 1600, 900);
+    perto((1000 + 200) * v.zoom + v.x, 800, 1e-9, 'centro x'); perto((2000 + 100) * v.zoom + v.y, 450, 1e-9, 'centro y');
+    if (!(400 * v.zoom <= 1600 * 0.7 + 1e-9 && 200 * v.zoom <= 900 * 0.7 + 1e-9)) throw new Error('sem folga');
+  });
+
+  // P65: marcadores (o ponto em coordenadas do quadro, o mesmo enquadramento em outra tela, arrastar)
+  const MKS = await mod('marcadores.js');
+  teste('marcadores: o ponto da vista volta igual, e numa tela maior com a mesma largura vista', () => {
+    const v = { x: -300, y: -1200, zoom: 1.5 }, p = MKS.pontoDaVista(v, 1600, 900);
+    const de = MKS.vistaDoMarcador(p, 1600, 900);
+    perto(de.x, v.x, 1e-9, 'x'); perto(de.y, v.y, 1e-9, 'y'); perto(de.zoom, v.zoom, 1e-9, 'zoom');
+    const proj = MKS.vistaDoMarcador(p, 1920, 1080);
+    perto(1920 / proj.zoom, p.w, 1e-9, 'projetor: a mesma largura do quadro na tela');
+    perto(p.cx * proj.zoom + proj.x, 960, 1e-9, 'e o mesmo centro');
+  });
+  teste('marcadores: arrastar põe antes do alvo, no grupo de destino, e renumera a ordem', () => {
+    const g = [{ id: 'g1', nome: 'Termo', cor: '#c50f1f' }];
+    const ms = [{ quadro: 'a', id: '1', grupo: 'g1', ordem: 1 }, { quadro: 'a', id: '2', grupo: 'g1', ordem: 2 }, { quadro: 'b', id: '3', ordem: 1 }];
+    const alt = MKS.soltar(ms, ms[2], 'g1', ms[1], g);
+    igual(alt.map(x => x.id).join(), '1,3,2', 'antes do 2');
+    igual(alt.map(x => x.ordem).join(), '1,2,3', 'ordem renumerada');
+    igual(JSON.stringify(alt.find(x => x.id === '3')), '{"quadro":"b","id":"3","ordem":2,"grupo":"g1","grupoNome":"Termo","cor":"#c50f1f"}', 'leva o grupo');
+    igual(MKS.soltar(ms, ms[0], null, null, g).find(x => x.id === '1').grupo, '', 'para Sem grupo');
+    igual(MKS.doGrupo(ms, null, g).map(m => m.id).join(), '3', 'sem grupo');
+  });
+  teste('marcadores: fitinhas na altura do ponto e nome sugerido', () => {
+    igual(MKS.alturaDasFitas([{ cy: 0 }, { cy: 50 }, { cy: 100 }], null).join(), '0,0.5,1', 'proporcional');
+    igual(MKS.nomeSugerido(12, 0), 'Página 12', 'caderno ou slides'); igual(MKS.nomeSugerido(null, 2), 'Marcador 3', 'quadro infinito');
+  });
+
+  // P64 f e g: marca-texto com intensidade e traço reto com Shift; cota com chamadas nas pontas
+  const MT = await mod('marcatexto.js');
+  teste('marca-texto: intensidade gravada no traço, presa entre 0,1 e 0,8; sem ela, a de sempre', () => {
+    const c1 = ctxFalso(); R.drawStroke(c1, { type: 'stroke', tool: 'highlighter', color: '#ff0', width: 20, op: 0.6, pts: [0, 0, 0.5, 50, 0, 0.5] });
+    perto(c1.globalAlpha, 0.6, 1e-9, 'op 0,6');
+    const c2 = ctxFalso(); R.drawStroke(c2, { type: 'stroke', tool: 'highlighter', color: '#ff0', width: 20, pts: [0, 0, 0.5, 50, 0, 0.5] });
+    perto(c2.globalAlpha, 0.38, 1e-9, 'traço antigo, sem op');
+    igual(MT.opacidade(5), 0.8, 'acima do limite'); igual(MT.opacidade('x'), 0.38, 'valor estranho');
+  });
+  teste('marca-texto com Shift: só o começo e o ponto atual', () => {
+    igual(MT.reto([0, 0, 1, 5, 7, 1, 10, 2, 1, 20, 0, 1]).join(), '0,0,1,20,0,1', 'reto');
+    igual(MT.reto([0, 0, 1, 9, 9, 1]).join(), '0,0,1,9,9,1', 'dois pontos ficam');
+  });
+  teste('cota: seta dupla com um traço de chamada em cada ponta', () => {
+    const linhas = []; const c = ctxFalso(); c.moveTo = (x, y) => linhas.push(['m', x, y]); c.lineTo = (x, y) => linhas.push(['l', x, y]);
+    R.drawItem(c, { id: 'c', type: 'shape', kind: 'arrow', both: true, cota: true, x1: 0, y1: 0, x2: 100, y2: 0, color: '#000', width: 2 });
+    const verticais = linhas.filter(([t, x]) => t === 'm' && (x === 0 || x === 100)).length;
+    if (verticais < 2) throw new Error('faltam as chamadas nas duas pontas: ' + JSON.stringify(linhas));
   });
 
   const Q = await mod('esquadro.js');

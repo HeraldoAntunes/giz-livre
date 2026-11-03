@@ -1596,6 +1596,17 @@ class PacoteTests(unittest.TestCase):
         self.assertEqual(r["trazidos"], 1)
         self.assertIn("2 item(ns)", r["falhas"][0]["motivo"])      # e o que ficou de fora é avisado
 
+    def test_notas_do_professor_vao_e_voltam_no_pacote(self):
+        # P64 i: a nota do professor é um item invisível ('notaprof'); com texto que não é texto, fica de fora
+        nota = {"id": "n1", "type": "notaprof", "x": 0, "y": 1, "w": 1, "h": 1, "texto": "Lembrar do exemplo"}
+        self.quadro("aula1", "Aula 1", [nota, {"id": "n2", "type": "notaprof", "x": 0, "y": 1, "w": 1, "h": 1, "texto": ["x"]},
+                                         {"id": "n3", "type": "notaprof", "x": 0, "y": 1, "w": 1, "h": 1, "texto": "x" * 20001}])
+        f, _ = self.pacote()
+        self.usar(Path(self.temp.name) / "pc2")
+        self.srv.trazer_pacote(f)
+        b = json.loads((self.srv.DADOS / "aula1.json").read_text(encoding="utf-8"))
+        self.assertEqual(b["items"], [nota])
+
     def test_metadado_de_origem_invalido_nao_contamina_importacoes(self):
         import io, zipfile
         def pacote(bid, **extra):
@@ -2906,17 +2917,95 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
 
     # provas da 1.16.2 (ramo provas-1.16.2), B3: o servidor marca a PNG com o conteúdo gravado na hora em que ela
     # chega; a miniatura desenhada do conteúdo 1 que chega depois do salvamento do conteúdo 2 vira a prévia do 2.
-    # Para a 1.17 (P63): a página manda a revisão que desenhou e o servidor só marca se bater. Falham hoje.
-    @unittest.expectedFailure
+    # ---- marcadores (P65) ----
+    MK = {"id": "mk1", "nome": "Lei de Hess", "cx": 640.0, "cy": 360.0, "w": 1280.0, "grupo": "g1", "grupoNome": "Termoquímica",
+          "cor": "#C50F1F", "pagina": 2, "criado": 1793880000000}
+
+    def marcadores(self):
+        status, corpo = self.pedir("GET", "/api/marcadores", None)
+        self.assertEqual(status, 200, corpo)
+        return corpo
+
+    def test_marcador_criado_aparece_na_lista_com_o_quadro(self):
+        self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        status, corpo = self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": self.MK}]})
+        self.assertEqual(status, 200, corpo)
+        m = self.marcadores()["marcadores"]
+        self.assertEqual([(x["id"], x["quadro"], x["titulo"], x["cor"]) for x in m], [("mk1", "q", "Q", "#c50f1f")])
+        self.assertEqual(self.marcadores()["grupos"], [{"id": "g1", "nome": "Termoquímica", "cor": "#c50f1f"}])   # de outro PC
+
+    def test_salvar_o_quadro_aberto_nao_desfaz_o_que_a_galeria_mudou(self):
+        # o editor abriu o quadro com o marcador antigo; a galeria renomeia; o editor salva a cópia que tinha
+        self.novo_lugar()
+        rev = self.salvar("x", 0, criar=True)
+        self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": self.MK}]})
+        self.pedir("POST", "/api/marcadores", {"alterar": [{"quadro": "q", "id": "mk1", "nome": "Nome novo", "grupo": "g2", "grupoNome": "Prova"}]})
+        pacote = {"board": {"title": "Q", "items": [{"id": "a", "type": "text", "x": 1, "y": 2, "text": "y"}], "marcadores": [self.MK]},
+                  "revision": rev}
+        status, corpo = self.pedir("PUT", "/api/boards/q", pacote)
+        self.assertEqual(status, 200, corpo)
+        self.assertEqual([(m["nome"], m["grupo"]) for m in corpo["marcadores"]], [("Nome novo", "g2")])   # o editor recebe de volta
+        self.assertEqual(self.marcadores()["marcadores"][0]["nome"], "Nome novo")
+        # e apagar pela galeria também não volta com o salvamento seguinte
+        self.pedir("POST", "/api/marcadores", {"apagar": [{"quadro": "q", "id": "mk1"}]})
+        pacote["revision"] = corpo["revision"]
+        status, corpo = self.pedir("PUT", "/api/boards/q", pacote)
+        self.assertEqual((status, self.marcadores()["marcadores"]), (200, []))
+
+    def test_marcador_danificado_fica_de_fora(self):
+        self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        ruins = [{"id": "../x", "cx": 1, "cy": 1, "w": 1}, {"id": "ok2", "cx": "1", "cy": 1, "w": 1}, {"id": "ok3", "cx": 1, "cy": 1, "w": 0},
+                 {**self.MK, "id": "mk2", "mini": "https://exemplo.com/x.png", "cor": "red"}]
+        self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": m} for m in ruins]})
+        m = self.marcadores()["marcadores"]
+        self.assertEqual([x["id"] for x in m], ["mk2"])
+        self.assertNotIn("mini", m[0]); self.assertNotIn("cor", m[0])   # imagem de fora e cor estranha não entram
+
+    def test_marcador_vai_junto_para_a_lixeira_e_volta(self):
+        self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": self.MK}]})
+        status, corpo = self.pedir("DELETE", "/api/boards/q", None)
+        self.assertEqual(status, 200, corpo)
+        self.assertEqual(self.marcadores()["marcadores"], [])
+        self.assertEqual(self.pedir("POST", "/api/lixeira/restaurar", {"nome": corpo["lixeira"]})[0], 200)
+        self.assertEqual([m["id"] for m in self.marcadores()["marcadores"]], ["mk1"])
+
+    def test_marcar_nao_esconde_a_miniatura_nem_muda_a_revisao(self):
+        self.novo_lugar()
+        rev = self.salvar("x", 0, criar=True)
+        self.mandar_miniatura(self.R0)
+        self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": self.MK}]})
+        self.assertTrue(self.thumb_da_galeria())
+        self.assertEqual(self.salvar("y", rev), rev + 1)   # a janela aberta salva sem conflito
+
+    def test_grupos_gravados_e_ordem(self):
+        self.novo_lugar()
+        g = [{"id": "g1", "nome": "Termoquímica", "cor": "#C50F1F", "ordem": 2}, {"id": "g2", "nome": "Prova", "ordem": 1},
+             {"id": "../x", "nome": "ruim"}]
+        self.assertEqual(self.pedir("POST", "/api/marcadores", {"grupos": g})[0], 200)
+        self.assertEqual(self.marcadores()["grupos"], [{"id": "g1", "nome": "Termoquímica", "cor": "#c50f1f", "ordem": 2},
+                                                       {"id": "g2", "nome": "Prova", "cor": "#0f6cbd", "ordem": 1}])
+        self.assertNotIn("marcadores", [q["id"] for q in self.s.listar_quadros()])   # o arquivo dos grupos não vira quadro
+
+    def test_pacote_de_outro_pc_traz_so_marcadores_validos(self):
+        b = self.s.quadro_do_pacote(json.dumps({"title": "Q", "items": [], "marcadores": [self.MK, {"id": "x"}, "lixo"]}).encode(), "q")
+        self.assertEqual([m["id"] for m in b["marcadores"]], ["mk1"])
+
+    # Na 1.17 (P63): a página manda a revisão que desenhou e o servidor só marca se bater (412 se não).
     def test_miniatura_de_revisao_anterior_nao_vira_previa_da_seguinte(self):
         self.novo_lugar()
         rev1 = self.salvar("conteúdo 1", 0, criar=True)
         self.salvar("conteúdo 2", rev1)
         corpo = {"thumb": "data:image/png;base64," + __import__("base64").b64encode(self.R0).decode(), "revision": rev1}
-        self.pedir("PUT", "/api/thumbs/q", corpo)   # a do conteúdo 1, atrasada
+        self.assertEqual(self.pedir("PUT", "/api/thumbs/q", corpo)[0], 412)   # a do conteúdo 1, atrasada
         self.assertFalse(self.thumb_da_galeria())
+        corpo["revision"] = rev1 + 1   # a do conteúdo 2 vale
+        self.assertEqual(self.pedir("PUT", "/api/thumbs/q", corpo)[0], 200)
+        self.assertTrue(self.thumb_da_galeria())
 
-    @unittest.expectedFailure
     def test_marca_novo_da_criacao_nao_muda_a_impressao(self):
         # a página manda "novo": true ao criar e o editor tira ao abrir: a miniatura da criação sumia por ~4 s
         quadro = {"title": "Q", "items": [{"id": "a", "type": "text", "x": 1, "y": 2, "text": "x"}]}

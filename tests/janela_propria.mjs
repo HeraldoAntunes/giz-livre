@@ -36,6 +36,9 @@ const ps = cmd => execFileSync('powershell', ['-NoProfile', '-Command', cmd], { 
 const vivo = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 async function ate(f, ms, passo = 200) { const fim = Date.now() + ms; while (Date.now() < fim) { const v = await f(); if (v) return v; await espera(passo); } return null; }
 const conexao = () => { try { return JSON.parse(readFileSync(CON, 'utf8')); } catch { return null; } };
+// o arquivo de conexão do servidor desta janela (filho dela): na VM lenta (rc3-170), o da abertura anterior ainda
+// estava lá quando a nova abriu, e o teste media o servidor errado (pid que já tinha saído, "pai 0", "dois servidores")
+const conexaoDe = pid => () => { const x = conexao(); return x && Number(ps(`(Get-CimInstance Win32_Process -Filter "ProcessId=${x.pid}").ParentProcessId`) || 0) === pid ? x : null; };
 const paginas = async () => { try { return (await (await fetch(`http://127.0.0.1:${DEPURA}/json/list`)).json()).filter(x => x.type === 'page'); } catch { return []; } };
 const api = (rota, op = {}) => fetch(`http://127.0.0.1:${conexao().porta}${rota}`, { ...op, headers: { 'X-Lousa': conexao().token, 'Content-Type': 'application/json', ...(op.headers || {}) } });
 
@@ -72,11 +75,11 @@ try {
     await ate(async () => (await paginas()).some(p => p.url.startsWith('http://127.0.0.1:')), 40000);
     await espera(3000);
     fecharJanelas(prog.pid);
-    await ate(() => !vivo(prog.pid), 15000);
+    await ate(() => !vivo(prog.pid) && !existsSync(CON), 15000);   // e o servidor dela também saiu
   }
   const perfilUsado = usado();
   prog = abrir();
-  const c = await ate(conexao, 40000);
+  const c = await ate(conexaoDe(prog.pid), 40000);
   conferir('o servidor subiu no Python embutido e gravou o arquivo de conexão', !!c, CON);
   const pag = await ate(async () => (await paginas()).find(p => p.url.startsWith(`http://127.0.0.1:${c.porta}/`) && !p.url.includes('?k=')), 30000);
   conferir('a janela mostra a página do programa (a chave de abertura já saiu do endereço)', !!pag && !pag.url.includes('?k='), pag?.url);
@@ -92,6 +95,15 @@ try {
   const temWarsaw = existsSync('C:/Program Files/Topaz OFD/Warsaw') || existsSync('C:/Program Files (x86)/Topaz OFD/Warsaw');
   console.log(`    ${wv.length} processos do WebView2; Warsaw instalado neste PC: ${temWarsaw ? 'sim' : 'não'}`);
   conferir('o módulo do Warsaw (wslbdhm64.dll) não está em nenhum processo da janela', !warsaw, warsaw);
+
+  // 2a) o bloqueio de nomes da internet (SEM_REDE, janela/src/main.rs) chegou ao WebView2? Na rc3-170 o processo
+  // principal conectou no edge.microsoft.com. A linha vai para o registro: mostra também se a variável
+  // WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS deste teste (porta de depuração) somou ou trocou os argumentos do programa
+  const linhaWv = wv.length ? ps(`@(${wv.join(',')}) | ForEach-Object { (Get-CimInstance Win32_Process -Filter "ProcessId=$_").CommandLine } | Where-Object { $_ -notmatch '--type=' } | Select-Object -First 1`) : '';
+  console.log(`    WebView2 principal: ${linhaWv.replace(/\s+/g, ' ').slice(0, 900)}`);
+  conferir('o WebView2 recebeu o bloqueio de nomes da internet (host-resolver-rules)', /host-resolver-rules=.?MAP \* ~NOTFOUND/.test(linhaWv));
+  const versaoWv = ps(`(Get-ChildItem 'C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application' -Directory -ErrorAction SilentlyContinue | Where-Object Name -match '^\\d' | ForEach-Object Name) -join ' '`);
+  console.log(`    versão do runtime WebView2: ${versaoWv || '?'}`);
 
   // 2b) rede: 30 s olhando as conexões de todos os processos do programa, pelo PID
   console.log(`    perfil do WebView2 já usado antes desta abertura (Local State com info_cache): ${perfilUsado ? 'sim' : 'não'}`);
@@ -124,7 +136,7 @@ try {
 
   // 4) segunda abertura: outra janela no mesmo programa, sem segundo servidor
   prog = abrir();
-  const c2 = await ate(conexao, 40000);
+  const c2 = await ate(conexaoDe(prog.pid), 40000);
   const pag2 = await ate(async () => (await paginas()).find(p => p.url.startsWith('http://127.0.0.1:') && !p.url.includes('?k=')), 30000);
   // a janela abre na página de espera e só depois vai para a lousa: lê quando a lousa já carregou
   conferir('os dados da página sobrevivem a fechar e abrir (localStorage)', !!await ate(async () => { try { return await avaliarEm(pag2, `document.readyState === 'complete' && localStorage.getItem('p60_teste')`) === '42'; } catch { return false; } }, 10000));

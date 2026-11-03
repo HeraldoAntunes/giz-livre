@@ -368,6 +368,16 @@ label.tb-line { flex-wrap: nowrap; align-items: flex-start; } label.tb-line inpu
 .pthumb.on { border-color: var(--accent); }
 .pthumb .pcanvas { width: 100%; display: block; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .pthumb span { position: absolute; left: 4px; bottom: 4px; font-size: 11px; background: rgba(0,0,0,.55); color: #fff; border-radius: 4px; padding: 0 5px; }
+/* notas do professor (P64 i): o painel ao lado das páginas e a janela das notas na tela do professor */
+.notaspanel { left: auto; right: 16px; width: 300px; top: auto; height: 300px; }
+.notaspanel textarea { flex: 1; margin: 8px; resize: none; font: 15px/1.45 "Segoe UI", sans-serif; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.notaspanel .tb-note { padding: 0 10px 8px; }
+#notasJanela { position: fixed; inset: 0; display: flex; flex-direction: column; background: #1b1b1b; color: #f3f3f3; font-family: "Segoe UI", sans-serif; }
+#notasJanela[hidden] { display: none; }
+#notasJanela header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #2b2b2b; font-size: 20px; }
+#notasJanela header span { flex: 1; color: #bdbdbd; font-size: 15px; }
+.nj-texto { flex: 1; overflow-y: auto; padding: 24px 32px; font-size: 30px; line-height: 1.45; white-space: pre-wrap; }
+.nj-prox { padding: 12px 32px 20px; border-top: 1px solid #3a3a3a; color: #bdbdbd; font-size: 18px; white-space: pre-wrap; max-height: 25vh; overflow-y: auto; }
 /* apresentação e modo aula */
 .presentbar { left: 50%; bottom: 14px; transform: translateX(-50%); opacity: .7; transition: opacity .2s; }
 .presentbar .pglabel { font-size: 14px; color: #242424; }
@@ -606,12 +616,51 @@ button:focus:not(:focus-visible) { outline: none; }
 /* lupa: − 3x + ao lado do botão; espessura e formas na apresentação; aviso ao desfazer */
 .lupactl { display: inline-flex; align-items: center; gap: 2px; }
 .lupactl[hidden] { display: none; }
+/* roteiro de paradas na barra de zoom (P61 B) */
+.paradas { display: flex; align-items: center; }
+.paradas[hidden] { display: none; }
+.paradas b { font-size: 13px; font-weight: 600; min-width: 64px; text-align: center; white-space: nowrap; }
 .lupactl .ib { font-size: 20px; font-weight: 600; }
 .lupactl b { min-width: 34px; text-align: center; font-size: 14px; }
-.ib .ppw { display: block; border-radius: 50%; background: #333; }
-#ppWidth { position: relative; }   /* anel tracejado: não confundir com as bolinhas das canetas */
-#ppWidth::after { content: ''; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px;
-  border: 1.5px dashed #8a8886; border-radius: 50%; box-sizing: border-box; pointer-events: none; }
+/* botão com texto na barra da apresentação (Folha em branco, P64 d) */
+.ib.txt { width: auto; padding: 0 8px; display: flex; gap: 4px; align-items: center; }
+.ib.txt b { font-size: 13px; font-weight: 600; }
+
+/* marcadores (P65): fitinhas de livro na borda direita, na cor do grupo */
+#fitas { position: absolute; right: 0; top: 64px; bottom: 80px; width: 30px; z-index: 8; pointer-events: none; }   /* acima das barras: a da direita ocupa a borda */
+#fitas[hidden], #board.present #fitas { display: none; }
+#fitas .fita { position: absolute; right: 0; width: 22px; height: 46px; padding: 0; border: 0; border-radius: 5px 0 0 5px;
+  background: var(--c, var(--accent)); box-shadow: -1px 1px 3px rgba(0,0,0,.28); pointer-events: auto; cursor: pointer;
+  transform: translateY(-50%); transition: width .15s ease; }
+#fitas .fita::after { content: ''; position: absolute; left: 0; bottom: -7px; border-left: 11px solid var(--c, var(--accent));
+  border-right: 11px solid var(--c, var(--accent)); border-bottom: 7px solid transparent; transition: border-width .15s ease; }
+#fitas .fita:hover, #fitas .fita:focus-visible { width: 30px; }
+#fitas .fita:hover::after, #fitas .fita:focus-visible::after { border-left-width: 15px; border-right-width: 15px; }
+#fitas .fita-dica { display: none; position: absolute; right: 38px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+  background: #242424; color: #fff; font-size: 12px; padding: 5px 9px; border-radius: 6px; pointer-events: none; }
+#fitas .fita:hover .fita-dica, #fitas .fita:focus-visible .fita-dica { display: block; }
+#fitas .fita.brilho { animation: fita-brilho .9s ease-out 1; }
+@keyframes fita-brilho { 0% { box-shadow: 0 0 0 0 rgba(15,108,189,.0); width: 22px; } 30% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 35%, transparent); width: 32px; }
+  100% { box-shadow: -1px 1px 3px rgba(0,0,0,.28); width: 22px; } }
+@media (prefers-reduced-motion: reduce) { #fitas .fita.brilho { animation: none; } }
+/* cartão de marcar */
+.mk-cartao { width: 290px; }
+.mk-cartao h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.mk-cartao h4 svg { width: 18px; height: 18px; color: var(--accent); }
+.mk-nome, .mk-novo { width: 100%; border: 1px solid #c7c7c7; border-bottom: 2px solid var(--accent); border-radius: 6px; padding: 7px 9px; font: inherit; }
+.mk-novo { width: 150px; padding: 4px 8px; }
+.mk-rot { font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
+.mk-grupos { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px 4px 6px;
+  font-size: 12px; background: #fff; }
+.mk-chip i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.mk-chip svg { width: 14px; height: 14px; }
+.mk-chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.mk-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.mk-acoes kbd { font-size: 11px; border: 1px solid rgba(255,255,255,.6); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.mk-lista button { display: flex; align-items: center; gap: 8px; }
+.mk-lista button i { width: 10px; height: 18px; border-radius: 2px; flex: none; }
+.mk-lista button small { margin-left: auto; color: var(--muted); }
 .widths.wd-g { gap: 8px; }
 .widths.wd-g .wd { width: 48px; height: 48px; }
 .ppshapes { min-width: 210px; }

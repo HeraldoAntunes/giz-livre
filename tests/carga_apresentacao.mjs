@@ -100,7 +100,9 @@ try {
       g.fillStyle = 'rgb(' + [(i * 37 + 20) % 256, (i * 91 + 60) % 256, (i * 53 + 100) % 256].join(',') + ')';   // = cor(i)
       g.fillRect(${LARG / 2 - 120}, ${ALT / 2 - 120}, 240, 240);   // a marca do slide, lida no centro da tela
       const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-      const r = await fetch('/api/assets', { method: 'POST', headers: { 'X-Lousa': ${JSON.stringify(token)}, 'Content-Type': 'image/png' }, body: blob });
+      let r;   // o envio às vezes falha de passagem ("Failed to fetch") com o servidor ocupado: tenta de novo
+      for (let t = 0; t < 3 && !r; t++) { try { r = await fetch('/api/assets', { method: 'POST', headers: { 'X-Lousa': ${JSON.stringify(token)}, 'Content-Type': 'image/png' }, body: blob }); } catch { await new Promise(s => setTimeout(s, 500)); } }
+      if (!r) throw new Error('não deu para enviar o slide ' + (i + 1));
       out.push({ src: (await r.json()).url, kb: Math.round(blob.size / 1024) });
     }
     return out; })()`);

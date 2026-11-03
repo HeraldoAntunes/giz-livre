@@ -14,7 +14,13 @@
 // window.__lousa expõe S/pending/action só para testes automatizados.
 import * as R from './render.js';
 import { atrasoDeGravacao } from './salvar.js';
-import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo, wfetch } from './api.js';
+import { passoDaSeta, pontoDeColar } from './vista.js';
+import { INTENSIDADES, OPACIDADE_PADRAO, opacidade, reto } from './marcatexto.js';
+import { esconder, revelarProximo, revelarItem, quantosEscondidos } from './revelar.js';
+import { paradas, vistaDaCaixa } from './paradas.js';
+import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHeader, serverInfo, wfetch, listarMarcadores, mudarMarcadores, loadBoard, conferirSessao, quandoRenovarSessao } from './api.js';
+import * as MK from './marcadores.js';
+import * as NT from './notas.js';
 import { ICON, penIcon } from './icons.js';
 import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc } from './ui.js';
 import { VERSION } from './version.js';
@@ -158,8 +164,12 @@ const toScreen = (wx, wy) => ({ x: wx * S.view.zoom + S.view.x, y: wy * S.view.z
 const byId = id => S.items.find(i => i.id === id);
 // camada de rascunho (versão simples): o que se escreve com o modo ligado ganha camada 'rascunho';
 // com o rascunho oculto, esses itens não aparecem, não são tocados, apagados nem exportados (continuam salvos)
-let noRascunho = false;
-const oculto = it => it.camada === 'rascunho' && !!S?.board.rascunhoOculto;
+let noRascunho = false, imagemNoRascunho = false;
+let ultimoToque = null;   // último ponto do quadro tocado pela caneta (ou mouse, ou dedo), para o Ctrl+V (P61 C)
+// escondido até a aula (campo `revelar`, P61 A): fora do quadro até ser revelado, como o rascunho oculto
+// a nota do professor (P64 i) também: nunca aparece no quadro, só no painel Notas e na janela das notas
+const oculto = it => it.revelar != null || NT.ehNota(it) || (it.camada === 'rascunho' && !!S?.board.rascunhoOculto);
+let verEscondidos = false;   // contorno tracejado dos escondidos, só para preparar (desliga ao apresentar)
 const visiveis = () => S.items.filter(i => !oculto(i));
 const isPen = t => t.startsWith('pen');
 const isHl = t => t === 'highlighter' || /^hl\d$/.test(t);   // marca-texto principal e os extras (hl2, hl3)
@@ -169,6 +179,8 @@ export function initEditor() {
   cv = $('cv'); ctx = cv.getContext('2d');
   ov = $('ov'); octx = ov.getContext('2d', { desynchronized: true }); // baixa latência para o traço ao vivo
   R.setImageLoadHandler(() => requestRender());
+  R.setImageErrorHandler(() => vigiarSessao());
+  quandoRenovarSessao(() => R.tentarImagensDeNovo());   // código novo: as imagens que falharam vão de novo já
   addEventListener('resize', resize);
 
   ov.addEventListener('pointerdown', onDown);
@@ -213,7 +225,8 @@ export function initEditor() {
   $('zLabel').onclick = () => zoomAt(W / 2, H / 2, 1);
   $('zFit').onclick = fitView;
   $('zLens').onclick = () => toggleZoomLens();
-  $('imgFile').addEventListener('change', async e => { await insertFiles([...e.target.files]); e.target.value = ''; });
+  // imagemNoRascunho: o botão Imagem da barra do rascunho abriu o seletor (P64 h)
+  $('imgFile').addEventListener('change', async e => { const r = imagemNoRascunho; imagemNoRascunho = false; await insertFiles([...e.target.files], undefined, r); e.target.value = ''; });
 
   const te = $('textEdit');
   te.addEventListener('blur', commitText);
@@ -250,6 +263,7 @@ export function initEditor() {
 
 export function openBoard(id, board, back) {
   onBack = back;
+  notasPagina = -1; notaPendente = false;   // o painel Notas lê de novo no quadro novo
   const pending = failedSnaps.get(id);
   if (pending) board = pending.board;
   board.background = { color: '#ffffff', pattern: 'none', ...(board.background || {}) };
@@ -258,9 +272,10 @@ export function openBoard(id, board, back) {
   // limpeza: textos vazios deixados por versões antigas
   const items = (Array.isArray(board.items) ? board.items : []).filter(i => !(i.type === 'text' && !String(i.text || '').trim()));
   S = { id, board, items, view };
+  itensGravados = pending ? null : items;   // o conteúdo que está no disco (D1: reconciliar um conflito só de vista)
   dirtyVer = pending?.ver || 0; savedVer = pending ? -1 : 0;
   if (pending) pending.state = S;
-  undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null; noRascunho = false;
+  undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null; noRascunho = false; paradaAtual = -1;
   stopPlotAnim(); spotOff();
   $('bTitle').value = board.title === 'Sem título' ? '' : board.title;
   $('bTitle').title = board.title;
@@ -547,6 +562,7 @@ function drawOverlay() {
   octx.setTransform(dpr, 0, 0, dpr, 0, 0);
   octx.clearRect(0, 0, W, H);
   octx.setTransform(dpr * v.zoom, 0, 0, dpr * v.zoom, dpr * v.x, dpr * v.y);
+  if (verEscondidos && !present) contornoDosEscondidos();
   if (ruler) drawRuler();
   drawInstruments();
   drawPlotAnim();
@@ -733,6 +749,8 @@ function drawRuler() {
 
 // ================= barra de ferramentas =================
 function syncToolbar() {
+  syncRevelar();
+  syncFitas();
   document.querySelectorAll('#inkbar [data-tool]').forEach(b => {
     const t = b.dataset.tool;
     b.classList.toggle('active', t === tool);
@@ -903,13 +921,16 @@ function penPop(anchor, t) {
     <div class="swatches" style="margin-top:6px">${recent.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="Usada há pouco: ${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}
       <label class="sw custom" title="Outra cor…"><input type="color" id="pCustom" value="${c.color}">+</label></div>
     <h4>Espessura</h4><div class="widths">${widths.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${w}"><i style="width:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;height:${Math.min(26, w * (hl ? .6 : 1.6) + 3)}px;background:${c.color === '#ffffff' ? '#ccc' : c.color}"></i></button>`).join('')}</div>
-    ${hl ? `<label class="row"><input type="checkbox" id="pHlPrev" ${cfg.hlPrevia ? 'checked' : ''}> Mostrar a área que será marcada antes de pintar</label>` : ''}
+    ${hl ? `<h4>Intensidade</h4><div class="seg intens">${INTENSIDADES.map(([v, n]) => `<button data-op="${v}" class="${v === opacidade(c.op) ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <small class="tb-nota">Segure Shift enquanto marca para um traço reto.</small>
+      <label class="row"><input type="checkbox" id="pHlPrev" ${cfg.hlPrevia ? 'checked' : ''}> Mostrar a área que será marcada antes de pintar</label>` : ''}
     ${hl ? '' : `<h4>Estilo</h4><div class="seg estilos">${styles.map(([k, n]) => `<button data-s="${k}" class="${k === st ? 'on' : ''}">${n}</button>`).join('')}</div>
       ${st === 'calligraphy' || st === 'marker' ? `<div class="row"><small>${st === 'marker' ? 'Ângulo da ponta' : 'Ângulo da pena'}</small><input type="range" id="pNib" min="0" max="90" value="${c.nib ?? (st === 'marker' ? 30 : 45)}"><small id="pNibV">${c.nib ?? (st === 'marker' ? 30 : 45)}°</small></div>` : ''}
       <label class="row"><input type="checkbox" id="pArrow" ${c.arrow ? 'checked' : ''}> Ponta de seta no fim do traço</label>`}
     <h4>Ponteiro da caneta na tela</h4><div class="seg cursors">${CURSORS.map(([k, n, svg]) => `<button data-k="${k}" class="${k === (cfg.tablet.cursor || 'ponta') ? 'on' : ''}" title="${n}">${svg}<small>${n}</small></button>`).join('')}</div>
     <label class="row"><input type="checkbox" id="pCurDraw" ${cfg.tablet.cursorDraw !== false ? 'checked' : ''}> Manter o ponteiro visível enquanto escreve</label>
     <label class="row"><input type="checkbox" id="pCurMouse" ${cfg.tablet.mouseCursor !== false ? 'checked' : ''}> Usar este ponteiro também com o mouse</label>
+    <label class="row"><input type="checkbox" id="pColarCentro" ${cfg.colarCentro ? 'checked' : ''}> Ctrl+V cola no centro da tela (e não onde a caneta tocou por último)</label>
     <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn" id="pReset" title="Volta a cor, a espessura e o estilo de fábrica desta caneta, e o ponteiro da tela">Restaurar padrão</button></div>`,
     p => {
       const reopen = () => { saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); };
@@ -918,11 +939,13 @@ function penPop(anchor, t) {
       p.querySelector('#pCustom').onchange = e => setColor(e.target.value);
       p.querySelectorAll('[data-w]').forEach(x => x.onclick = () => { c.width = +x.dataset.w; saveCfg(); p.querySelectorAll('[data-w]').forEach(y => y.classList.toggle('on', y === x)); drawPrev(); });
       p.querySelectorAll('[data-s]').forEach(x => x.onclick = () => { c.style = x.dataset.s; reopen(); });
+      p.querySelectorAll('[data-op]').forEach(x => x.onclick = () => { c.op = +x.dataset.op; saveCfg(); p.querySelectorAll('[data-op]').forEach(y => y.classList.toggle('on', y === x)); drawPrev(); });
       const nibEl = p.querySelector('#pNib');
       if (nibEl) nibEl.oninput = () => { c.nib = +nibEl.value; p.querySelector('#pNibV').textContent = c.nib + '°'; saveCfg(); drawPrev(); };
       p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { cfg.tablet.cursor = x.dataset.k; saveCfg(); p.querySelectorAll('[data-k]').forEach(y => y.classList.toggle('on', y === x)); });
       p.querySelector('#pCurDraw').onchange = e => { cfg.tablet.cursorDraw = e.target.checked; saveCfg(); };
       p.querySelector('#pCurMouse').onchange = e => { cfg.tablet.mouseCursor = e.target.checked; saveCfg(); };
+      p.querySelector('#pColarCentro').onchange = e => { cfg.colarCentro = e.target.checked; saveCfg(); };
       p.querySelector('#pReset').onclick = () => {
         cfg.tools[t] = structuredClone(DEFAULT_TOOLS[t]); cfg.tablet.cursor = 'ponta'; cfg.tablet.cursorDraw = true;
         saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); toast('Caneta de volta ao padrão');
@@ -938,7 +961,7 @@ function penPop(anchor, t) {
         g.fillRect(0, 0, cv.width, cv.height);
         const pts = [];
         for (let i = 0; i <= 60; i++) { const u = i / 60; pts.push(14 + u * 272, 34 - Math.sin(u * Math.PI * 2) * 16, hl ? 0.5 : 0.25 + 0.6 * Math.sin(u * Math.PI)); }
-        const s = { type: 'stroke', tool: hl ? 'highlighter' : 'pen', color: c.color, width: c.width, pts, pr: !hl, taper: !hl, arrow: !hl && c.arrow };
+        const s = { type: 'stroke', tool: hl ? 'highlighter' : 'pen', color: c.color, width: c.width, pts, pr: !hl, taper: !hl, arrow: !hl && c.arrow, op: hl ? c.op : undefined };
         if (!hl && st !== 'normal') { s.style = st; s.nib = c.nib ?? (st === 'marker' ? 30 : 45); }
         R.withDarkBackground(R.isDark(S.board.background.color), () => R.drawStroke(g, s));
       }
@@ -1006,6 +1029,7 @@ function montaRascBar() {
     const min = bar.querySelector('.bar-min');
     bar.innerHTML = `<span class="rb-tit">Rascunho <small id="rbN"></small></span>
       <button class="cb" data-r="escrever" title="Ligado: o que for escrito vai para o rascunho (moldura laranja)">${ICON.pen}<small>Escrever</small></button>
+      <button class="cb" data-r="imagem" title="Põe uma imagem no rascunho (some junto quando o rascunho é ocultado)">${ICON.image}<small>Imagem</small></button>
       <button class="cb" data-r="ver" title="Esconder ou mostrar todo o rascunho">${ICON.layers}<small id="rbVer">Ocultar</small></button>
       <button class="cb" data-r="passar" title="O rascunho passa a fazer parte do quadro">${ICON.restore}<small>Passar p/ quadro</small></button>
       <button class="cb rb-limpar" data-r="apagar" title="Apaga TODO o rascunho de uma vez (pede confirmação; Ctrl+Z desfaz). Para apagar só um pedaço, use a borracha">${ICON.trash}<small>Limpar rascunho</small></button>
@@ -1028,6 +1052,7 @@ function montaRascBar() {
       commit(S.items.map(i => { if (i.camada !== 'rascunho') return i; const { camada, ...r } = i; return r; }));
       S.board.rascunhoOculto = false; syncToolbar(); requestRender(); toast('O rascunho passou a fazer parte do quadro');
     };
+    bar.querySelector('[data-r="imagem"]').onclick = () => { imagemNoRascunho = true; $('imgFile').click(); };
     bar.querySelector('[data-r="apagar"]').onclick = () => limparRascunho();
     bar.querySelector('[data-r="x"]').onclick = () => { cfg.rascBar = false; saveCfg(); montaRascBar(); syncToolbar(); };
   }
@@ -1242,9 +1267,10 @@ function notePop(anchor) {
 
 // formas desenhadas arrastando; as variantes de linha/seta viram kind + {both, dash}
 const DRAW_KINDS = [['line', 'Linha'], ['lined', 'Linha tracejada'], ['arrow', 'Seta'], ['arrow2', 'Seta dupla'], ['arrowd', 'Seta tracejada'],
-  ['rect', 'Retângulo'], ['ellipse', 'Elipse'], ['triangle', 'Triângulo']];
+  ['rect', 'Retângulo'], ['ellipse', 'Elipse'], ['triangle', 'Triângulo'], ['cota', 'Cota']];
 const SHAPE_COLORS = ['#000000', '#e81224', '#0078d4', '#16c60c', '#f7630c', '#886ce4', '#7a7574', '#ffffff'];
-const KIND_OF = { lined: { kind: 'line', dash: true }, arrow2: { kind: 'arrow', both: true }, arrowd: { kind: 'arrow', dash: true } };
+const KIND_OF = { lined: { kind: 'line', dash: true }, arrow2: { kind: 'arrow', both: true }, arrowd: { kind: 'arrow', dash: true },
+  cota: { kind: 'arrow', both: true, cota: true } };
 const isLineKind = k => ['line', 'arrow'].includes(KIND_OF[k]?.kind || k);
 
 // disciplina de cada forma (para a busca mostrar de onde vem)
@@ -1430,12 +1456,13 @@ function alternaLegendas(ids) {
 async function clearBoard() {
   const pages = PG.isPages(S.board) && S.board.layout.count > 1;
   if (!S.items.length && !pages) return toast('O quadro já está limpo');
-  const locked = S.items.filter(i => i.locked);
+  // as notas do professor (P64 i) ficam como o PDF/slides: só "Tudo" as apaga
+  const locked = S.items.filter(i => i.locked || NT.ehNota(i));
   let modo = 'escrita';
   if (locked.length || pages) {
     const ops = [];
     const pg = pages ? curPage() : -1;
-    const daPagina = pages ? S.items.filter(i => !i.locked && PG.pageOf(S.board.layout, i) === pg) : [];
+    const daPagina = pages ? S.items.filter(i => !i.locked && !NT.ehNota(i) && PG.pageOf(S.board.layout, i) === pg) : [];
     if (daPagina.length) ops.push(['pagina', `Só o que foi escrito na página ${pg + 1} (a que está na tela)`]);
     if (locked.length < S.items.length) ops.push(['escrita', locked.length ? 'Só o que foi escrito (o PDF/slides ficam)' : 'Só o que foi escrito (as páginas ficam)']);
     ops.push(['tudo', 'Tudo, inclusive PDF/slides e páginas extras', true]);
@@ -1445,7 +1472,7 @@ async function clearBoard() {
   clearSel();
   if (modo === 'pagina') {
     const pg = curPage(), L = S.board.layout;
-    commit(S.items.filter(i => i.locked || PG.pageOf(L, i) !== pg));
+    commit(S.items.filter(i => i.locked || NT.ehNota(i) || PG.pageOf(L, i) !== pg));
     return toast(`Página ${pg + 1} limpa. Ctrl+Z desfaz.`);
   }
   if (modo === 'tudo' && PG.isPages(S.board)) { commit([], { ...S.board.layout, count: 1 }); goToPage(0, present); refreshPanel(); updatePageBar(); }
@@ -1494,7 +1521,7 @@ function currentInk() {
 function commit(items, layout) {
   if (noRascunho && !S.board.rascunhoOculto) {
     const antes = new Set(S.items.map(i => i.id));
-    items = items.map(i => antes.has(i.id) || i.camada === 'rascunho' ? i : { ...i, camada: 'rascunho' });
+    items = items.map(i => antes.has(i.id) || i.camada === 'rascunho' || NT.ehNota(i) ? i : { ...i, camada: 'rascunho' });
   }
   undoStack.push(histEntry());
   if (undoStack.length > 400) undoStack.shift();
@@ -1519,6 +1546,7 @@ function changedSemHistorico() {
 function changed() {
   for (const id of [...sel]) if (!byId(id)) sel.delete(id);
   updatePageBar();
+  syncRevelar();
   refreshPanel();
   updateUndo();
   requestRender();
@@ -1568,7 +1596,10 @@ function scheduleThumb(id) {
 }
 async function saveThumbNow() {
   if (!S) return;
-  const id = S.id, board = { ...S.board, items: S.items };
+  // a miniatura é do conteúdo já gravado e vai com a revisão dele: com mudança por gravar, espera a gravação; uma
+  // miniatura atrasada de uma revisão anterior é recusada pelo servidor (provas da 1.16.2, B3; P63)
+  if (dirtyVer !== savedVer || saving) { scheduleThumb(S.id); return; }
+  const id = S.id, rev = S.board._rev || 0, ver = dirtyVer, board = { ...S.board, items: visiveis() };   // sem o escondido nem o rascunho oculto
   const v = S.view, tela = { x: -v.x / v.zoom, y: -v.y / v.zoom, w: W / v.zoom, h: H / v.zoom };
   // enquadra o que está desenhado na parte visível (um rabisco perdido longe não encolhe a prévia)
   let box = null;
@@ -1582,7 +1613,11 @@ async function saveThumbNow() {
     const pad = 30 / v.zoom, w = Math.max(box.x1 - box.x0 + 2 * pad, tela.w / 4), h = Math.max(box.y1 - box.y0 + 2 * pad, tela.h / 4);
     box = { x: (box.x0 + box.x1) / 2 - w / 2, y: (box.y0 + box.y1) / 2 - h / 2, w, h };
   }
-  try { const c = await PG.boardThumb(board, 480, 270, box); await saveThumb(id, c.toDataURL('image/png')); } catch {}
+  try {
+    const c = await PG.boardThumb(board, 480, 270, box);
+    if (S?.id === id && dirtyVer !== ver) { scheduleThumb(id); return; }   // mudou enquanto desenhava
+    await saveThumb(id, c.toDataURL('image/png'), rev);
+  } catch {}
 }
 
 async function retryFailed() {
@@ -1600,13 +1635,50 @@ async function retryFailed() {
   if ([...failedSnaps.values()].some(f => !f.conflict)) retryTimer = setTimeout(retryFailed, 4000);
 }
 
+let itensGravados = null;   // os itens da última gravação bem-sucedida (ou do quadro como abriu)
+// D1: traz o quadro do disco (com o que a outra janela gravou) e mantém a vista desta janela; a vista vai na próxima
+// gravação, já na revisão nova. Só quando esta janela não tem conteúdo por gravar (quem chama confere)
+async function reconciliar(snap) {
+  try {
+    const fresh = await loadBoard(snap.id);
+    if (S !== snap.state || S.items !== itensGravados) return false;   // escreveu algo enquanto buscava: conflito de verdade
+    const vista = { ...S.view };
+    S.board = { ...fresh, view: vista };
+    S.items = Array.isArray(fresh.items) ? fresh.items : [];
+    itensGravados = S.items;
+    undoStack = []; redoStack = []; sel = new Set();   // o desfazer apontava para o quadro de antes
+    failedSnaps.delete(snap.id);
+    syncSaveError(); updateUndo(); updatePageBar(); syncToolbar(); requestRender();
+    vistaPendente = true; scheduleSave();
+    toast('O quadro foi atualizado com o que a outra janela gravou', 4000);
+    return true;
+  } catch { return false; }
+}
+// D2: uma imagem falhou; pode ser o código da sessão trocado (servidor reaberto). Confere: se renovou, pede as imagens
+// de novo já; se ainda não vale, confere de 2 em 2 s por até 2 minutos (a janela do programa entrega o cookie novo)
+let vigiandoSessao = false;
+async function vigiarSessao() {
+  if (vigiandoSessao) return;
+  vigiandoSessao = true;
+  try {
+    for (let k = 0; k < 60; k++) {
+      const s = await conferirSessao();
+      if (s.ok) return;   // vale (renovada agora ou por outro pedido, que já pediu as imagens de novo); senão, a falha é outra
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  } finally { vigiandoSessao = false; }
+}
+
 async function writeSnapshot(snap) {
   saving = true;
   const st = $('bStatus');
   if (S === snap.state) st.textContent = 'Salvando…';
   try {
-    await saveBoard(snap.id, snap.board, null);
+    const res = await saveBoard(snap.id, snap.board, null);
     snap.state.board._rev = snap.board._rev;
+    if (S === snap.state) itensGravados = snap.board.items;
+    // marcadores: os do arquivo (a galeria pode ter mudado com o quadro aberto; P65)
+    if (Array.isArray(res?.marcadores)) { snap.state.board.marcadores = res.marcadores; if (S === snap.state) syncFitas(); }
     if (snap.board._meta && snap.board._meta !== snap.state.board._meta) {   // renomeado/movido pela galeria
       Object.assign(snap.state.board, { _meta: snap.board._meta, title: snap.board.title });
       if (snap.board.folder) snap.state.board.folder = snap.board.folder; else delete snap.state.board.folder;
@@ -1623,6 +1695,9 @@ async function writeSnapshot(snap) {
     syncSaveError();
     scheduleThumb(snap.id);
   } catch (e) {
+    // conflito só de vista: esta janela não mudou o conteúdo desde a última gravação (só apresentou), e a outra gravou.
+    // Recarrega o quadro do disco e grava a vista de novo, em vez de parar de gravar (provas da 1.16.3, D1)
+    if (e.conflict && S === snap.state && itensGravados && snap.board.items === itensGravados && await reconciliar(snap)) return;
     snap.conflict = !!e.conflict;
     if (S === snap.state) { st.textContent = e.conflict ? e.message : 'Erro ao salvar — tentando de novo'; st.classList.add('err'); }
     if (e.conflict) toast(e.message, 12000);
@@ -1658,6 +1733,7 @@ async function doSave() {
 
 export async function flush() {
   if (editing) commitText();
+  gravarNotaJa();
   if (saveTimer || savePending || vistaPendente) await doSave();
   while (saving) await new Promise(r => setTimeout(r, 50));
   if (failedSnaps.size) await retryFailed();
@@ -1822,6 +1898,7 @@ function onDown(e) {
   const touchPans = e.pointerType === 'touch' && (tt === 'pan' || (tt === 'auto' && penSeen));
   const pan = e.button === 1 || (e.button === 2 && !barrel) || spaceDown || touchPans || (barrel && cfg.tablet.barrel === 'pan')
     || (tool === 'hand' && !eraserBtn);   // ferramenta mão: arrasta a lousa com a caneta ou o botão esquerdo
+  if (!pan) ultimoToque = { x: P.x, y: P.y };   // Ctrl+V cola aqui (P61 C)
   if (pan) {
     action = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y, id: e.pointerId };
     setCursor('panning');
@@ -1872,6 +1949,7 @@ function onDown(e) {
       pts: [P.x, P.y, P.p],
     };
     if (c.arrow && isPen(t)) stroke.arrow = true;
+    if (isHl(t) && opacidade(c.op) !== OPACIDADE_PADRAO) stroke.op = opacidade(c.op);   // intensidade do marca-texto (P64 f)
     if (isPen(t) && c.style && c.style !== 'normal') { stroke.style = c.style; stroke.pr = true; if (c.style === 'calligraphy' || c.style === 'marker') stroke.nib = c.nib ?? (c.style === 'marker' ? 30 : 45); }
     if (stroke.pr && cfg.tablet.taper) stroke.taper = true;
     if (cfg.tablet.beautify && isPen(t)) beautifyIfMovedOn(P.x, P.y);
@@ -2016,6 +2094,9 @@ function onMove(e) {
         action.lastT = ce.timeStamp; action.lastF = f;
         s.pts.push(x, y, pp);
       }
+      // marca-texto com Shift: reto, do ponto de partida até onde a caneta está (P64 f)
+      if (s.tool === 'highlighter' && e.shiftKey) action.reto = true;
+      if (action.reto) s.pts = reto(s.pts);
       action.pred = null;
       // previsão só sem estabilizador (prever o ponto cru contra a tinta filtrada causaria saltos)
       if (action.snap == null && !cfg.tablet.stab && !cfg.tablet.lazy && e.pointerType !== 'mouse' && e.getPredictedEvents) {
@@ -2140,6 +2221,7 @@ function onUp(e) {
         }
         if (cfg.tablet.smoothUp && s.pts.length >= 12) s = { ...s, pts: smoothPts(s.pts, 1.6 / S.view.zoom, 2) };
       }
+      if (a.reto) s = { ...s, pts: reto(s.pts) };
       clearTimeout(a.holdTimer);
       // ao soltar: todo traço vira forma; ao segurar: só o que ficou parado no fim
       if (cfg.inkShape && s.tool === 'pen' && a.snap == null && !s.arrow && (cfg.inkShapeModo !== 'segurar' || a.holdShape)) {
@@ -2375,6 +2457,10 @@ function clearSel() { if (sel.size) { sel = new Set(); requestRender(false); } }
 function selAction(k, btn) {
   const ids = sel;
   if (k === 'delete') { commit(S.items.filter(i => !ids.has(i.id))); sel = new Set(); }
+  else if (k === 'esconder') {
+    const n = ids.size; commit(esconder(S.items, ids)); sel = new Set();
+    toast(`${n === 1 ? 'Escondido' : n + ' itens escondidos'} até a aula: o botão Revelar mostra um de cada vez (R na apresentação)`);
+  }
   else if (k === 'duplicate') duplicateSel();
   else if (k === 'group') groupSel();
   else if (k === 'ungroup') ungroupSel();
@@ -2563,7 +2649,8 @@ function commitText() {
 }
 
 // ================= imagens e colar =================
-async function insertFiles(files, at) {
+// rascunho: as imagens entram na camada do rascunho, mesmo com "Escrever" desligado (P64 h)
+async function insertFiles(files, at, rascunho = false, canto = false) {
   const target = S;
   if (!target) return;
   let pos = at || toWorld(W / 2, H / 2);
@@ -2578,27 +2665,31 @@ async function insertFiles(files, at) {
       let src = im.src;
       try { src = await uploadAsset(im.src); } catch (e) { console.warn('Imagem guardada dentro do quadro (o envio para a pasta de imagens falhou):', e); }
       if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 6000);
-      added.push({ id: newId(), type: 'image', x: pos.x - w / 2, y: pos.y - h / 2, w, h, src });
+      // canto: o ponto é o canto de cima, à esquerda (colar onde a caneta tocou); senão, o centro da imagem
+      added.push({ id: newId(), type: 'image', x: canto ? pos.x : pos.x - w / 2, y: canto ? pos.y : pos.y - h / 2, w, h, src, ...(rascunho ? { camada: 'rascunho' } : {}) });
       pos = { x: pos.x + 30 / z, y: pos.y + 30 / z };
     } catch (e) { toast(e.message); }
   }
   if (!added.length) return;
+  if (rascunho && S.board.rascunhoOculto) S.board.rascunhoOculto = false;   // pôr no rascunho escondido confunde
   commit([...S.items, ...added]);
   sel = new Set(added.map(i => i.id));
   setTool('select');
 }
 
 async function onPaste(e) {
-  if (!isOpen() || editing || e.target.tagName === 'INPUT') return;
+  if (!isOpen() || editing || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/'));
-  if (files.length) { e.preventDefault(); return insertFiles(files); }
+  // imagem e texto colados vão para onde a caneta tocou por último, se o ponto ainda está na tela (P61 C)
+  const toque = cfg.colarCentro ? null : pontoDeColar(ultimoToque, S.view, W, H);
+  if (files.length) { e.preventDefault(); return insertFiles(files, toque, false, !!toque); }
   const txt = e.clipboardData?.getData('text/plain');
   if (clipboard?.length && !txt) { e.preventDefault(); return pasteItems(clipboard); }
-  if (txt) { e.preventDefault(); textoNoCentro(txt); }
+  if (txt) { e.preventDefault(); textoNoCentro(txt, toque); }
 }
 // texto no meio da tela, selecionado para mover (colar texto, resultado da calculadora)
-function textoNoCentro(txt) {
-  const c = toWorld(W / 2, H / 2), z = S.view.zoom;
+function textoNoCentro(txt, at = null) {
+  const c = at || toWorld(W / 2, H / 2), z = S.view.zoom;
   const it = { id: newId(), type: 'text', x: c.x, y: c.y, w: 10, text: txt, color: textColor(), size: 24 / z };
   const meas = document.createElement('canvas').getContext('2d');
   meas.font = `${it.size}px "Segoe UI", sans-serif`;
@@ -2632,6 +2723,7 @@ function onKey(e) {
   else if (ctrl && k === 'g') { e.preventDefault(); if (e.shiftKey) ungroupSel(); else groupSel(); }
   else if (ctrl && k === 'a') { e.preventDefault(); sel = new Set(S.items.filter(i => !i.locked && !oculto(i)).map(i => i.id)); setTool('select'); }
   else if (ctrl && k === '0') { e.preventDefault(); fitView(); }
+  else if (ctrl && k === 'm') { e.preventDefault(); abrirMarcar(present ? $('ppMarcar') : $('tMarcar')); }   // marcar este ponto (P65)
   else if (ctrl && (k === '=' || k === '+')) { e.preventDefault(); zoomAt(W / 2, H / 2, S.view.zoom * 1.25); }
   else if (ctrl && k === '-') { e.preventDefault(); zoomAt(W / 2, H / 2, S.view.zoom / 1.25); }
   else if (ctrl && k === 's') { e.preventDefault(); doSave(); }
@@ -2664,7 +2756,7 @@ function onKey(e) {
   // setas sem seleção: deslocam a lousa (Shift = passo maior); no modo apresentação continuam passando a página
   else if (!present && !sel.size && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
     e.preventDefault();
-    const passo = (e.shiftKey ? 0.5 : 0.15) * Math.min(W, H);
+    const passo = passoDaSeta(W, H, S.view.zoom, e.shiftKey);
     S.view.x += e.key === 'ArrowLeft' ? passo : e.key === 'ArrowRight' ? -passo : 0;
     S.view.y += e.key === 'ArrowUp' ? passo : e.key === 'ArrowDown' ? -passo : 0;
     viewChanged();
@@ -2678,6 +2770,7 @@ function onKey(e) {
   else if (k === 'l') setTool('lasso');
   else if (k === 'v') setTool('select');
   else if (k === 't') setTool('text');
+  else if (present && k === 'r') revelar();   // na apresentação, R revela o próximo escondido (fora dela, a régua)
   else if (k === 'r') toggleRuler();
   else if (k === 'k') setTool('laser');
   else if (k === 'm') setTool('hand');
@@ -3011,11 +3104,87 @@ function updatePageBar() {
   if (!bar) return;
   const on = !!S && PG.isPages(S.board);
   bar.hidden = !on;
-  if (!on) return;
+  if (!on) { if (!$('notasPanel').hidden) toggleNotasPanel(false); return; }
   const n = S.board.layout.count, c = curPage() + 1;
   $('pgLabel').textContent = `Página ${c} de ${n}`;
   $('ppLabel').textContent = `${c} / ${n}`;
   if (!$('pagesPanel').hidden) markPanel();
+  syncNotasPanel();
+  if (notasCanal) enviarNotas();
+}
+
+// ================= notas do professor (P64 i) =================
+// Painel Notas: a nota da página que está na tela, gravada como item invisível (notas.js). Na apresentação com a tela
+// estendida (Win + P, Estender), a janela das notas (#/notas/<quadro>) fica na tela do professor e recebe a página
+// atual por BroadcastChannel; com uma tela só (ou Duplicar), os alunos veriam as notas: só o aviso.
+let notasPagina = -1, notaPendente = false, notasTimer = 0, notasCanal = null, notasUltima = '';
+function toggleNotasPanel(show = $('notasPanel').hidden) {
+  if (!show) gravarNotaJa();
+  $('notasPanel').hidden = !show;
+  notasPagina = -1;
+  if (show) { syncNotasPanel(); $('notasTexto').focus(); }
+}
+function syncNotasPanel() {
+  if ($('notasPanel').hidden || !S || !PG.isPages(S.board)) return;
+  const i = curPage(), L = S.board.layout;
+  if (i === notasPagina && (notaPendente || document.activeElement === $('notasTexto'))) return;   // não apaga o que está sendo escrito
+  gravarNotaJa();
+  notasPagina = i;
+  $('notasTitulo').textContent = `Notas da página ${i + 1}`;
+  $('notasTexto').value = NT.textoDaPagina(S.items, L, i);
+  const n = NT.paginasComNota(S.items, L).length;
+  $('notasDica').textContent = n ? `${n} ${n === 1 ? 'página com nota' : 'páginas com nota'} neste quadro` : 'Nenhuma página com nota ainda';
+}
+function gravarNotaJa() {
+  clearTimeout(notasTimer); notasTimer = 0;
+  if (!notaPendente) return;
+  notaPendente = false;
+  if (!S || !PG.isPages(S.board) || notasPagina < 0 || notasPagina >= S.board.layout.count) return;
+  const L = S.board.layout, texto = $('notasTexto').value;
+  if (texto !== NT.textoDaPagina(S.items, L, notasPagina)) commit(NT.comNota(S.items, L, notasPagina, texto, newId));
+}
+function canalNotas() {
+  if (!notasCanal && typeof BroadcastChannel === 'function') {
+    notasCanal = new BroadcastChannel(NT.CANAL);
+    notasCanal.onmessage = e => {
+      const d = e.data || {};
+      if (!S || d.quadro !== S.id) return;
+      if (d.pedir) enviarNotas(true);
+      else if (present && (d.ir === 1 || d.ir === -1)) goToPage(curPage() + d.ir, true);   // passar o slide pela janela das notas
+    };
+  }
+  return notasCanal;
+}
+function enviarNotas(forcar = false) {
+  if (!S || !PG.isPages(S.board)) return;
+  const m = { ...NT.mensagemDaPagina(S.id, S.items, S.board.layout, curPage()), titulo: S.board.title || '', apresentando: present };
+  const chave = JSON.stringify(m);
+  if (!forcar && chave === notasUltima) return;
+  notasUltima = chave;
+  canalNotas()?.postMessage(m);
+}
+const temNotas = () => !!S && S.items.some(NT.ehNota);
+// tela estendida (Win + P, Estender); __gizTelasTeste é o gancho dos testes sem janela (uma ou duas telas)
+const telaEstendida = () => (typeof window.__gizTelasTeste === 'boolean' ? window.__gizTelasTeste : !!screen.isExtended);
+// Saiu da apresentação (Esc, Sair, fim da tela cheia): a janela das notas fecha (no navegador, ela mesma, pelo canal) e,
+// na janela própria, o programa fecha as notas e devolve a lousa à tela principal, no tamanho de antes, pela marca no
+// título (o mesmo aviso do fechar: sem ponte de comandos). Se as notas não fecharem, elas mostram que a apresentação
+// terminou.
+function fimDaApresentacao() {
+  if (!S) return;
+  if (notasCanal) notasCanal.postMessage({ quadro: S.id, fim: true });
+  const t = document.title;
+  document.title = NT.MARCA_FIM;
+  setTimeout(() => { if (document.title === NT.MARCA_FIM) document.title = t; }, 300);
+}
+function abrirJanelaNotas(pediu = false) {
+  const o = pediu ? (telaEstendida() ? 'janela' : 'aviso') : NT.abrirNotasAoApresentar(temNotas(), telaEstendida());
+  if (o === 'aviso') return toast(NT.AVISO_UMA_TELA, 7000);
+  if (o !== 'janela') return;
+  canalNotas();
+  // na janela própria (Windows), o programa cria esta janela na tela principal e leva a apresentação para a outra
+  window.open(`/#/notas/${encodeURIComponent(S.id)}`, 'gizNotas', 'popup,width=900,height=640');
+  setTimeout(() => enviarNotas(true), 400);
 }
 
 function itemsShift(items, fromY, dy) {
@@ -3196,7 +3365,7 @@ async function desenharMiniaturas() {
         const sig = assinaturaPagina(i), guardada = thumbCache.get(i);
         let c = guardada?.sig === sig ? guardada.canvas : null;
         if (!c) {
-          c = await PG.renderPage({ ...S.board, items: S.items }, i, 150 / S.board.layout.w);
+          c = await PG.renderPage({ ...S.board, items: visiveis() }, i, 150 / S.board.layout.w);   // sem o escondido até a aula
           c.className = 'pcanvas';
           if (S !== alvo) break;
           thumbCache.set(i, { sig, canvas: c });
@@ -3270,17 +3439,26 @@ addEventListener('keydown', e => {
 }, true);
 
 function setPresent(on) {
+  const saiu = present && !on;
   present = !!on;
   zoomLens = null;
   const b = $('board');
   b.classList.toggle('present', present);
   $('presentbar').hidden = !present;
+  syncFitas();   // fitinhas dos marcadores: escondidas da turma na apresentação, de volta ao sair
   if (present) {
+    verEscondidos = false; syncRevelar();   // o contorno dos escondidos nunca vai para a projeção
+    syncFitas();
     togglePagesPanel(false);
+    toggleNotasPanel(false);
+    $('ppNotas').hidden = !temNotas();
+    if (PG.isPages(S.board)) abrirJanelaNotas();   // antes da tela cheia, ainda no toque do professor (window.open)
     document.documentElement.requestFullscreen?.().catch(() => {});
     setTimeout(() => { resize(); if (PG.isPages(S.board)) goToPage(curPage(), true); syncPresentBar(); }, 250);
   } else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   if (!present) setTimeout(() => { if (S) { resize(); if (PG.isPages(S.board)) goToPage(curPage()); } }, 250);
+  if (notasCanal) enviarNotas(true);   // a janela das notas sabe que a apresentação acabou
+  if (saiu) fimDaApresentacao();
 }
 // lupa de apresentação (como no PowerPoint): um retângulo segue o ponteiro; o toque amplia aquela área
 let zoomLens = null;   // { modo: 'escolher' | 'ampliado', w: largura do retângulo em px de tela, antes: vista anterior }
@@ -3349,27 +3527,189 @@ function drawZoomLens() {
   g.restore();
 }
 
-// cor da caneta atual sem sair da apresentação (as formas usam a cor da caneta)
-function presentColorPop(anchor) {
-  const t = isPen(tool) ? tool : (cfg.lastPen || 'pen0'), c = cfg.tools[t];
-  showPop(anchor, `<div class="swatches">${PALETTE.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => { c.color = x.dataset.c; saveCfg(); if (tool !== 'shape') setTool(t); syncPresentBar(); hidePop(); });
-  }, 'above');
-}
-// espessura na apresentação: vale para a caneta (e as formas, que usam a caneta) ou para o marca-texto ativo
+// cor e espessura juntas na apresentação (antes, dois botões; P64 e): valem para a caneta (e as formas, que usam a
+// caneta) ou para o marca-texto ativo, que também escolhe a intensidade
 function larguraAlvo() { return isPen(tool) || isHl(tool) ? tool : (cfg.lastPen || 'pen0'); }
-function presentWidthPop(anchor) {
-  const t = larguraAlvo(), c = cfg.tools[t], list = isHl(t) ? HL_WIDTHS : PEN_WIDTHS, cor = inkShown(c.color) === '#ffffff' ? '#ccc' : inkShown(c.color);
-  const bola = w => Math.round(Math.min(34, 4 + w * (isHl(t) ? 0.33 : 2.4)));
-  showPop(anchor, `<h4>Espessura${isHl(t) ? ' do marca-texto' : ''} <small>([ e ] também mudam)</small></h4>
-    <div class="widths wd-g">${list.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${String(w).replace('.', ',')} px"><i style="width:${bola(w)}px;height:${bola(w)}px;background:${cor}"></i></button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-w]').forEach(x => x.onclick = () => { c.width = +x.dataset.w; saveCfg(); syncPresentBar(); requestRender(false); hidePop(); });
+function presentColorPop(anchor) {
+  const t = larguraAlvo(), c = cfg.tools[t], hl = isHl(t), pal = hl ? HL_PALETTE : PALETTE, list = hl ? HL_WIDTHS : PEN_WIDTHS;
+  const cor = inkShown(c.color) === '#ffffff' ? '#ccc' : inkShown(c.color), bola = w => Math.round(Math.min(34, 4 + w * (hl ? 0.33 : 2.4)));
+  showPop(anchor, `<h4>Cor${hl ? ' do marca-texto' : ''}</h4>
+    <div class="swatches">${pal.map(x => `<button class="sw${x === c.color ? ' on' : ''}" data-c="${x}" style="background:${x}" title="${corNome(x)}" aria-label="${corNome(x)}"></button>`).join('')}</div>
+    <h4>Espessura <small>([ e ] também mudam)</small></h4>
+    <div class="widths wd-g">${list.map(w => `<button class="wd${w === c.width ? ' on' : ''}" data-w="${w}" title="${String(w).replace('.', ',')} px"><i style="width:${bola(w)}px;height:${bola(w)}px;background:${cor}"></i></button>`).join('')}</div>
+    ${hl ? `<h4>Intensidade <small>(Shift: traço reto)</small></h4><div class="seg intens">${INTENSIDADES.map(([v, n]) => `<button data-op="${v}" class="${v === opacidade(c.op) ? 'on' : ''}">${n}</button>`).join('')}</div>` : ''}`, p => {
+    const marca = (sel, x) => p.querySelectorAll(sel).forEach(y => y.classList.toggle('on', y === x));
+    p.querySelectorAll('[data-c]').forEach(x => x.onclick = () => { c.color = x.dataset.c; saveCfg(); if (tool !== 'shape') setTool(t); syncPresentBar(); marca('[data-c]', x); });
+    p.querySelectorAll('[data-w]').forEach(x => x.onclick = () => { c.width = +x.dataset.w; saveCfg(); syncPresentBar(); requestRender(false); marca('[data-w]', x); });
+    p.querySelectorAll('[data-op]').forEach(x => x.onclick = () => { c.op = +x.dataset.op; saveCfg(); marca('[data-op]', x); });
   }, 'above');
 }
-// formas na apresentação: as mesmas da barra Desenho; o botão mostra a última usada
-function presentShapePop(anchor) {
-  showPop(anchor, `<div class="menu ppshapes">${DRAW_KINDS.map(([k, n]) => `<button data-k="${k}" class="${tool === 'shape' && shapeKind === k ? 'on' : ''}">${ICON[k]} ${n}</button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { shapeKind = x.dataset.k; setTool('shape'); syncPresentBar(); hidePop(); });
+// revelar na hora (P61 A): um toque mostra o próximo escondido, na ordem em que foram escondidos; Ctrl+Z desfaz
+function revelar() {
+  if (!S) return;
+  const r = revelarProximo(S.items);
+  if (!r) return toast('Nada escondido para revelar');
+  commit(r.items);
+}
+function syncRevelar() {
+  const n = S ? quantosEscondidos(S.items) : 0;
+  if (!n) verEscondidos = false;
+  for (const id of ['tRevelar', 'ppRevelar']) {
+    const b = $(id);
+    if (!b) continue;
+    b.hidden = !n;
+    b.querySelector('b').textContent = `Revelar (${n})`;
+  }
+  const v = $('tRevelarVer');
+  if (v) { v.hidden = !n; v.classList.toggle('on', verEscondidos); }
+  syncParadas();
+}
+// roteiro de paradas (P61 B): ◀ ▶ levam a vista, com animação, à imagem anterior ou seguinte em ordem de leitura;
+// chegar a uma escondida até a aula a revela (uma tecla só para conduzir a aula)
+let paradaAtual = -1;
+function irParada(passo) {
+  if (!S) return;
+  const lista = paradas(S.items);
+  if (!lista.length) return;
+  const base = paradaAtual < 0 || paradaAtual >= lista.length ? (passo > 0 ? -1 : lista.length) : paradaAtual;
+  paradaAtual = Math.max(0, Math.min(lista.length - 1, base + passo));
+  const it = lista[paradaAtual];
+  if (it.revelar != null) commit(revelarItem(S.items, it.id));
+  animarVista(vistaDaCaixa(R.bbox(it), W, H));
+  syncParadas();
+}
+function syncParadas() {
+  const box = $('zParadas');
+  if (!box) return;
+  const n = S ? paradas(S.items).length : 0;
+  box.hidden = !n;
+  if (n) $('zParLbl').textContent = paradaAtual >= 0 && paradaAtual < n ? `Parada ${paradaAtual + 1} de ${n}` : `Parada (${n})`;
+}
+
+// ================= marcadores (P65): fitinhas de livro na borda, cartão de marcar e voo até o ponto =================
+let gruposMarcadores = [];   // os grupos de todos os quadros (vêm do servidor ao abrir o cartão)
+const marcadoresDoQuadro = () => S?.board.marcadores || [];
+function syncFitas() {
+  const box = $('fitas');
+  if (!box) return;
+  const ms = marcadoresDoQuadro();
+  box.hidden = !S || !ms.length || present;   // na apresentação, a turma vê a tela: fitinhas escondidas
+  if (box.hidden) { box.innerHTML = ''; return; }
+  // a altura conta o quadro inteiro: as páginas todas, ou tudo o que está desenhado no quadro infinito
+  const L = S.board.layout, caixa = PG.isPages(S.board) ? { y: 0, h: L.count * (L.h + L.gap) - L.gap } : R.unionBox(S.items);
+  const alt = MK.alturaDasFitas(ms, caixa);
+  box.innerHTML = ms.map((m, i) => `<button class="fita" data-mk="${esc(m.id)}" style="top:${(6 + alt[i] * 82).toFixed(2)}%;--c:${esc(m.cor || '#0f6cbd')}"
+    aria-label="${esc(m.nome)}"><span class="fita-dica">${esc(m.nome)}${m.grupoNome ? ' · ' + esc(m.grupoNome) : ''}</span></button>`).join('');
+  box.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => voarAoMarcador(b.dataset.mk));
+}
+function voarAoMarcador(id) {
+  const m = marcadoresDoQuadro().find(x => x.id === id);
+  if (!m) return;
+  animarVista(MK.vistaDoMarcador(m, W, H), MK.VOO_MS);
+  const f = $('fitas').querySelector(`[data-mk="${CSS.escape(id)}"]`);
+  if (f) { f.classList.remove('brilho'); void f.offsetWidth; f.classList.add('brilho'); }
+}
+// aberto pela galeria (aba Marcadores): o quadro inteiro primeiro e, logo depois, o voo até o ponto
+export function irParaMarcador(id) {
+  if (!S) return;
+  const m = marcadoresDoQuadro().find(x => x.id === id);
+  if (!m) return toast('Este marcador não está mais neste quadro');
+  const caixa = R.unionBox([...S.items, { type: 'shape', kind: 'rect', x1: m.cx - m.w / 2, y1: m.cy, x2: m.cx + m.w / 2, y2: m.cy, width: 0 }]);
+  if (caixa) { S.view = vistaDaCaixa(caixa, W, H, 0.06); viewChanged(); }
+  setTimeout(() => voarAoMarcador(id), 120);
+}
+function marcadoresRecebidos(lista) {
+  if (!S || !Array.isArray(lista)) return;
+  S.board.marcadores = lista;
+  syncFitas();
+}
+// cartão de marcar: nome sugerido, grupos em bolinhas de cor, Enter confirma
+async function abrirMarcar(anchor) {
+  if (!S) return;
+  try { gruposMarcadores = (await listarMarcadores()).grupos; } catch {}
+  const pagina = PG.isPages(S.board) ? curPage() + 1 : null, ms = marcadoresDoQuadro();
+  const ultimo = cfg.ultimoGrupoMarcador;
+  let grupo = gruposMarcadores.find(g => g.id === ultimo) || null;
+  showPop(anchor, `<div class="mk-cartao"><h4>${ICON.fita} Novo marcador</h4>
+    <input class="mk-nome" maxlength="120" value="${esc(MK.nomeSugerido(pagina, ms.length))}" aria-label="Nome do marcador">
+    <div class="mk-rot">Grupo</div><div class="mk-grupos"></div>
+    <div class="mk-rot">${pagina ? `Página ${pagina} · ` : ''}o enquadramento de agora fica guardado</div>
+    <div class="mk-acoes"><button class="btn" data-a="nao">Cancelar</button><button class="btn primary" data-a="ok">Marcar <kbd>Enter</kbd></button></div></div>`, p => {
+    const nome = p.querySelector('.mk-nome'), lugar = p.querySelector('.mk-grupos');
+    const desenhaGrupos = () => {
+      lugar.innerHTML = gruposMarcadores.map(g => `<button class="mk-chip${grupo?.id === g.id ? ' on' : ''}" data-g="${esc(g.id)}"><i style="background:${esc(g.cor)}"></i>${esc(g.nome)}</button>`).join('')
+        + `<button class="mk-chip" data-g="+">${ICON.plus} Novo grupo</button>`;
+      lugar.querySelectorAll('[data-g]').forEach(b => b.onclick = () => {
+        if (b.dataset.g !== '+') { grupo = grupo?.id === b.dataset.g ? null : gruposMarcadores.find(g => g.id === b.dataset.g); return desenhaGrupos(); }
+        b.outerHTML = `<input class="mk-novo" maxlength="60" placeholder="Nome do grupo" aria-label="Nome do grupo novo">`;
+        const ent = lugar.querySelector('.mk-novo'); ent.focus();
+        ent.onkeydown = e => {
+          if (e.key !== 'Enter' || !ent.value.trim()) return;
+          e.preventDefault(); e.stopPropagation();
+          grupo = { id: 'g' + newId(), nome: ent.value.trim().slice(0, 60), cor: MK.CORES_GRUPO[gruposMarcadores.length % MK.CORES_GRUPO.length], ordem: gruposMarcadores.length + 1 };
+          gruposMarcadores = [...gruposMarcadores, grupo]; desenhaGrupos(); nome.focus();
+        };
+      });
+    };
+    desenhaGrupos();
+    nome.focus(); nome.select();
+    const confirmar = () => criarMarcador(nome.value, grupo, pagina);
+    nome.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); confirmar(); } };
+    p.querySelector('[data-a="ok"]').onclick = confirmar;
+    p.querySelector('[data-a="nao"]').onclick = () => hidePop();
+  }, present ? 'above' : undefined);
+}
+async function criarMarcador(nome, grupo, pagina) {
+  const quadro = S.id, ponto = MK.pontoDaVista(S.view, W, H), agora = Date.now();
+  const m = { id: 'mk' + newId(), nome: (nome || '').trim() || 'Marcador', ...ponto, criado: agora, ordem: agora, ...(pagina ? { pagina } : {}),
+    ...(grupo ? { grupo: grupo.id, grupoNome: grupo.nome, cor: grupo.cor } : {}) };
+  hidePop();
+  try {
+    // miniatura do ponto (240 x 135), guardada como imagem comum: não incha o quadro
+    const h = ponto.w * H / W, c = R.renderToCanvas({ ...S.board, items: visiveis() }, { fit: { w: 240, h: 135 }, pad: 0, box: { x: ponto.cx - ponto.w / 2, y: ponto.cy - h / 2, w: ponto.w, h } });
+    m.mini = await uploadAsset((await c).toDataURL('image/png'));
+  } catch {}
+  try {
+    if (grupo) cfg.ultimoGrupoMarcador = grupo.id, saveCfg();
+    const novoGrupo = grupo && !gruposMarcadores.slice(0, -1).some(g => g.id === grupo.id) ? { grupos: gruposMarcadores } : {};
+    const r = await mudarMarcadores({ novos: [{ quadro, marcador: m }], ...novoGrupo });
+    if (S?.id === quadro) marcadoresRecebidos(r.marcadores.filter(x => x.quadro === quadro).map(({ quadro: _q, titulo: _t, pasta: _p, ...x }) => x));
+    toast(`Marcado: ${m.nome}`);
+  } catch (e) { toast(e.message); }
+}
+// na apresentação: a lista dos marcadores deste quadro, para pular até um (as fitinhas ficam escondidas da turma)
+function listaDeMarcadores(anchor) {
+  const ms = marcadoresDoQuadro();
+  if (!ms.length) return toast('Este quadro não tem marcadores. Marcar (Ctrl+M) guarda o ponto de agora.');
+  showPop(anchor, `<div class="menu mk-lista">${ms.map(m => `<button data-mk="${esc(m.id)}"><i style="background:${esc(m.cor || '#0f6cbd')}"></i>${esc(m.nome)}${m.pagina ? `<small>pág. ${m.pagina}</small>` : ''}</button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { hidePop(); voarAoMarcador(b.dataset.mk); });
+  }, 'above');
+}
+
+// só para o professor preparar: onde estão os escondidos, em tracejado fraco (nunca na apresentação)
+function contornoDosEscondidos() {
+  octx.save();
+  octx.strokeStyle = 'rgba(15,108,189,.55)'; octx.lineWidth = 1.5 / S.view.zoom; octx.setLineDash([6 / S.view.zoom, 5 / S.view.zoom]);
+  for (const it of S.items) if (it.revelar != null) { const b = R.bbox(it); octx.strokeRect(b.x, b.y, b.w, b.h); }
+  octx.restore();
+}
+
+// formas sempre à mão na apresentação, em três grupos com botão próprio (antes, um botão só com a última usada;
+// P64 g): o toque usa a última forma do grupo; tocar de novo com ela ativa abre as outras do grupo
+const GRUPOS_FORMAS = { ppSetas: ['arrow', 'arrow2', 'arrowd'], ppFormas: ['rect', 'ellipse', 'triangle', 'line', 'lined'], ppCotas: ['cota'] };
+const nomeForma = k => DRAW_KINDS.find(d => d[0] === k)?.[1] || k;
+function grupoDaForma(id) { const g = GRUPOS_FORMAS[id], k = cfg.formaDoGrupo?.[id]; return g.includes(k) ? k : g[0]; }
+function presentShapeGroup(id) {
+  const g = GRUPOS_FORMAS[id], atual = grupoDaForma(id);
+  if (tool === 'shape' && shapeKind === atual && g.length > 1) return presentShapePop($(id), id);
+  shapeKind = atual; setTool('shape'); syncPresentBar();
+}
+function presentShapePop(anchor, id) {
+  showPop(anchor, `<div class="menu ppshapes">${GRUPOS_FORMAS[id].map(k => `<button data-k="${k}" class="${tool === 'shape' && shapeKind === k ? 'on' : ''}">${ICON[k]} ${nomeForma(k)}</button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => {
+      shapeKind = x.dataset.k; cfg.formaDoGrupo = { ...cfg.formaDoGrupo, [id]: shapeKind }; saveCfg();
+      setTool('shape'); syncPresentBar(); hidePop();
+    });
   }, 'above');
 }
 
@@ -3386,16 +3726,14 @@ function syncPresentBar() {
   });
   const c = $('ppColor')?.querySelector('i');
   if (c) c.style.setProperty('--c', inkShown(currentInk().color));
-  const wt = cfg.tools[larguraAlvo()], wi = $('ppWidth')?.querySelector('i');
-  if (wi && wt) {
-    const d = Math.round(Math.min(20, 3 + wt.width * (isHl(larguraAlvo()) ? 0.18 : 1.4)));
-    wi.style.width = wi.style.height = d + 'px';
-    wi.style.background = inkShown(wt.color) === '#ffffff' ? '#8a8886' : inkShown(wt.color);
-  }
-  const fs = $('ppShape');
-  if (fs) {
-    if (fs.dataset.k !== shapeKind) { fs.dataset.k = shapeKind; fs.innerHTML = ICON[shapeKind] || ICON.arrow; }
-    fs.classList.toggle('active', tool === 'shape');
+  // a bolinha da cor mostra também a espessura (cor e espessura no mesmo botão, P64 e)
+  const wt = cfg.tools[larguraAlvo()];
+  if (c && wt) { const d = Math.round(Math.min(28, 15 + wt.width * (isHl(larguraAlvo()) ? 0.12 : 1.1))); c.style.width = c.style.height = d + 'px'; }
+  for (const id of Object.keys(GRUPOS_FORMAS)) {
+    const b = $(id), k = grupoDaForma(id);
+    if (!b) continue;
+    if (b.dataset.k !== k) { b.dataset.k = k; b.querySelector('.ic').innerHTML = ICON[k] || ICON.arrow; }
+    b.classList.toggle('active', tool === 'shape' && GRUPOS_FORMAS[id].includes(shapeKind));
   }
   document.querySelectorAll('.lupactl').forEach(x => { x.hidden = !zoomLens; x.querySelector('b').textContent = String(lupaX()).replace('.', ',') + 'x'; });
   $('ppInkShape')?.classList.toggle('on', !!cfg.inkShape);
@@ -3409,6 +3747,11 @@ function initPagesUI() {
   $('pgPrev').onclick = () => goToPage(curPage() - 1);
   $('pgNext').onclick = () => goToPage(curPage() + 1);
   $('pgAdd').onclick = () => addPageEnd();
+  $('pgNotas').onclick = () => toggleNotasPanel();
+  $('notasFechar').onclick = () => toggleNotasPanel(false);
+  $('notasTexto').oninput = () => { notaPendente = true; clearTimeout(notasTimer); notasTimer = setTimeout(gravarNotaJa, 700); };
+  $('notasTexto').onblur = () => gravarNotaJa();
+  $('ppNotas').onclick = () => abrirJanelaNotas(true);
   $('pgMore').onclick = () => pageMenu($('pgMore'));
   $('pgAll').onclick = () => togglePagesPanel($('pagesPanel').hidden);
   $('ppClose').onclick = () => togglePagesPanel(false);
@@ -3422,8 +3765,15 @@ function initPagesUI() {
   $('ppExit').onclick = () => setPresent(false);
   $('ppUndo').onclick = undo;
   $('ppColor').onclick = () => presentColorPop($('ppColor'));
-  $('ppWidth').onclick = () => presentWidthPop($('ppWidth'));
-  $('ppShape').onclick = () => presentShapePop($('ppShape'));
+  $('ppRevelar').onclick = () => revelar();
+  $('tRevelar').onclick = () => revelar();
+  $('tMarcar').onclick = () => abrirMarcar($('tMarcar'));
+  $('ppMarcar').onclick = () => abrirMarcar($('ppMarcar'));
+  $('ppMarcadores').onclick = () => listaDeMarcadores($('ppMarcadores'));
+  $('zParAnt').onclick = () => irParada(-1);
+  $('zParProx').onclick = () => irParada(1);
+  $('tRevelarVer').onclick = () => { verEscondidos = !verEscondidos; syncRevelar(); requestRender(false); };
+  for (const id of Object.keys(GRUPOS_FORMAS)) $(id).onclick = () => presentShapeGroup(id);
   $('pgFit').onclick = () => enquadrarSlide();
   document.querySelectorAll('.lupactl [data-lupa]').forEach(x => x.onclick = () => mudarLupa(+x.dataset.lupa));
   $('ppInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta vira forma: ligado (traço quase reto vira reta)' : 'Tinta vira forma: desligado (desenho livre)'); };

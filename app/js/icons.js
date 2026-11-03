@@ -46,6 +46,7 @@ export const ICON = {
   lined: s('<path d="M5 19L19 5" stroke-dasharray="3 3"/>'),
   arrow2: s('<path d="M5 19L19 5M11 5h8v8M13 19H5v-8"/>'),
   arrowd: s('<path d="M5 19L19 5" stroke-dasharray="3 3"/><path d="M11 5h8v8"/>'),
+  cota: s('<path d="M4 7v10M20 7v10M5 12h14M8 9l-3 3 3 3M16 9l3 3-3 3"/>'),   // seta dupla com chamadas (P64 g)
   lock: s('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   unlock: s('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.8"/>'),
   // ferramentas do professor: caixa de ferramentas (desenhos menores não se reconheciam no tamanho da barra)
@@ -59,6 +60,10 @@ export const ICON = {
   folder: s('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'),
   expand: s('<path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/><path d="M9 12h6"/>'),
   play: s('<path d="M7 5l12 7-12 7z"/>'),
+  fita: s('<path d="M7 3h10v18l-5-4-5 4z"/>'),   // marcador, como fita de livro (P65)
+  lista: s('<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>'),
+  eye: s('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeOff: s('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>'),   // esconder até a aula (P61 A)
   fontAa: s('<path d="M3 19l5-13 5 13M4.8 14.5h6.4"/><path d="M20 19v-5.5a2.5 2.5 0 00-5 0M20 16.5c-2.8-.4-5 .3-5 1.7 0 1.6 3.5 1.6 5-.7"/>'),
   inkText: s('<path d="M3 9c1.5-3 3-3 3.5-1s1 3 2.5 1 2-3 3-1"/><path d="M13 13l3 3-3 3" stroke-width="1.4"/><path d="M15 9h6M18 9v9"/>'),
   lupa: s('<circle cx="10" cy="9" r="5.5"/><path d="M14 13l4 4"/><path d="M3 21h18" stroke-dasharray="2 2"/>'),

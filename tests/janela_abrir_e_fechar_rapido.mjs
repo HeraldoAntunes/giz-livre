@@ -55,7 +55,13 @@ try {
   const p = spawn(EXE, ['--dados', DADOS, '--porta', '8440'], { stdio: 'ignore', detached: true, env: { ...process.env, GIZ_JANELA_DADOS: join(tmp, 'perfil') } });
   const con = await ate(() => { try { return JSON.parse(readFileSync(join(DADOS, '.agente', 'conexao.json'), 'utf8')); } catch { return null; } }, 30000, 200);
   conferir('a abertura normal seguinte funciona', !!con && vivo(p.pid));
-  postar(p.pid, 'Tauri Window'); await ate(() => !vivo(p.pid), 15000, 200);
+  // fecha pelo X só depois de a janela existir: o servidor responde antes, e o fechar mandado cedo não achava janela
+  // nenhuma e deixava o programa aberto, o que derrubava os testes seguintes (bateria da 1.16.2)
+  await ate(() => janelas(p.pid).includes('Tauri Window'), 30000, 100);
+  postar(p.pid, 'Tauri Window');
+  const fechou = await ate(() => !vivo(p.pid), 15000, 200);
+  conferir('a abertura normal fecha pelo X', !!fechou);
+  if (vivo(p.pid)) try { process.kill(p.pid); } catch {}
 } catch (e) { falhas++; console.log('  ✗ parou: ' + e.message); }
 { const c = existsSync(CAIXAS) ? readFileSync(CAIXAS, 'utf8').trim() : ''; conferir('nenhuma mensagem de erro do programa (caixa)', !c, c.slice(0, 300)); }
 console.log(`\n${ok} conferências passaram, ${falhas} falharam`);
