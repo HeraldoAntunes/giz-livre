@@ -18,8 +18,8 @@ RAIZ=$(cd "$LINUX/../.." && pwd)
 cd "$RAIZ"
 
 VERSAO=
-# o e-mail do mantenedor é escolha do professor: o marcador fica até ele decidir (não inventar nem completar)
-MANTENEDOR="Heraldo Antunes <PREENCHER-EMAIL-DO-MANTENEDOR>"
+# e-mail do mantenedor escolhido pelo professor (03/11/2026): o endereço privado do GitHub, o mesmo dos commits
+MANTENEDOR="Heraldo Antunes <73407236+HeraldoAntunes@users.noreply.github.com>"
 while [ $# -gt 0 ]; do
   case "$1" in
     --versao) VERSAO=$2; shift 2 ;;
