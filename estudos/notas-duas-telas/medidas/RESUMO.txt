@@ -1,0 +1,287 @@
+== wayland-open-popup-liberado.txt
+  sessão: wayland DISPLAY=None WAYLAND=wl-estudo modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 none', '1920x1080+1920+0 none']; principal: -
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  janela notas: posição [0, 0] tamanho [1892, 1089] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 14 (primeira: {'ms': 902, 'msg': {'slide': 3, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 1840x1000
+    BroadcastChannel existe: recebidas 17 (primeira: {'ms': 150, 'msg': {'slide': 3, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': True}
+== wayland-open-sem-gesto.txt
+  sessão: wayland DISPLAY=None WAYLAND=wl-estudo modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 none', '1920x1080+1920+0 none']; principal: -
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== wayland-rust-cheia-gtk.txt
+  sessão: wayland DISPLAY=None WAYLAND=wl-estudo modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 none', '1920x1080+1920+0 none']; principal: -
+  rust: {'cheia_gtk': {'monitor_gdk': 1, 'monitores_gdk': 2}}
+  janela notas: posição [0, 0] tamanho [1892, 1089] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+1920+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 271, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== wayland-rust-sem-tela-cheia.txt
+  sessão: wayland DISPLAY=None WAYLAND=wl-estudo modo=rust tela cheia pedida=False
+  monitores (Tauri): ['1920x1080+0+0 none', '1920x1080+1920+0 none']; principal: -
+  janela notas: posição [0, 0] tamanho [1892, 1089] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [0, 0] tamanho [1892, 1089] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 300, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== wayland-rust.txt
+  sessão: wayland DISPLAY=None WAYLAND=wl-estudo modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 none', '1920x1080+1920+0 none']; principal: -
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  janela notas: posição [0, 0] tamanho [1892, 1089] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 244, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== wayland-sozinha.txt
+  sessão: wayland DISPLAY=None WAYLAND=wl-estudo modo=sozinha tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 none', '1920x1080+1920+0 none']; principal: -
+  janela apresentacao: posição [0, 0] tamanho [852, 539] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 26,23; janela 800x450
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== x11-openbox-open-clique.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela apresentacao: posição [1920, 0] tamanho [1920, 1080] tela atual 1920x1080+1920+0 tela cheia True
+  janela notas: posição [40, 40] tamanho [1842, 1025] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1920,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 7 (primeira: {'ms': 3057, 'msg': {'slide': 10, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'clique': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}, 'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 288, 'msg': {'slide': 10, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': True}
+== x11-openbox-open-popup-liberado.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela notas: posição [40, 40] tamanho [1842, 1025] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [1920, 0] tamanho [1920, 1080] tela atual 1920x1080+1920+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1920,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 14 (primeira: {'ms': 902, 'msg': {'slide': 3, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 17 (primeira: {'ms': 135, 'msg': {'slide': 3, 'tipo': 'slide'}}); evento storage recebido 17 vez(es)
+    window.opener: {'tem': True}
+== x11-openbox-open-sem-gesto.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [1920, 0] tamanho [1920, 1080] tela atual 1920x1080+1920+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1920,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== x11-openbox-rust-cheia-gtk.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  rust: {'cheia_gtk': {'monitor_gdk': 0, 'monitores_gdk': 2}}
+  janela notas: posição [40, 40] tamanho [1842, 1025] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [1920, 0] tamanho [1920, 1080] tela atual 1920x1080+1920+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 305, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 303, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-openbox-rust-sem-tela-cheia.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=False
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [1960, 40] tamanho [1842, 1025] tela atual 1920x1080+1920+0 tela cheia False
+  janela notas: posição [40, 40] tamanho [1842, 1025] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 305, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 315, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-openbox-rust.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela notas: posição [40, 40] tamanho [1842, 1025] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [1920, 0] tamanho [1920, 1080] tela atual 1920x1080+1920+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1920,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 291, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-openbox-sozinha.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=sozinha tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [2479, 302] tamanho [802, 475] tela atual 1920x1080+1920+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 2479,302; janela 800x450
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== x11-openbox-uma-tela.txt
+  sessão: None DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['3840x1080+0+0 DUMMY0']; principal: 3840x1080+0+0
+  janela apresentacao: posição [0, 0] tamanho [3840, 1080] tela atual 3840x1080+0+0 tela cheia True
+  janela notas: posição [40, 40] tamanho [3762, 1025] tela atual 3840x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 3840x1080; screenX/Y 0,0; janela 3840x1080
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 3840x1080; screenX/Y 40,40; janela 3760x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 269, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-sem-wm-open-clique.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela notas: posição [40, 40] tamanho [1840, 1000] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [1960, 40] tamanho [1840, 1000] tela atual 1920x1080+1920+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 7 (primeira: {'ms': 3017, 'msg': {'slide': 10, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'clique': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}, 'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 151, 'msg': {'slide': 10, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': True}
+== x11-sem-wm-open-popup-liberado.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela apresentacao: posição [1960, 40] tamanho [1840, 1000] tela atual 1920x1080+1920+0 tela cheia True
+  janela notas: posição [40, 40] tamanho [1840, 1000] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 14 (primeira: {'ms': 902, 'msg': {'slide': 3, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 159, 'msg': {'slide': 3, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': True}
+== x11-sem-wm-open-sem-gesto.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [1960, 40] tamanho [1840, 1000] tela atual 1920x1080+1920+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== x11-sem-wm-rust-cheia-gtk.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  rust: {'cheia_gtk': {'monitor_gdk': 0, 'monitores_gdk': 2}}
+  janela apresentacao: posição [1920, 0] tamanho [1840, 1000] tela atual 1920x1080+1920+0 tela cheia False
+  janela notas: posição [40, 40] tamanho [1840, 1000] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 278, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-sem-wm-rust-sem-tela-cheia.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=False
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela notas: posição [40, 40] tamanho [1840, 1000] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [1960, 40] tamanho [1840, 1000] tela atual 1920x1080+1920+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 303, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 253, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-sem-wm-rust.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela notas: posição [40, 40] tamanho [1840, 1000] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [1960, 40] tamanho [1840, 1000] tela atual 1920x1080+1920+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 1960,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 40,40; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 262, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== x11-sem-wm-sozinha.txt
+  sessão: x11 DISPLAY=:93 WAYLAND=None modo=sozinha tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+1920+0 TELA-2', '1920x1080+0+0 TELA-1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [0, 0] tamanho [0, 0] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 800x450
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== xwayland-open-clique.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  janela notas: posição [35, 231] tamanho [1916, 1097] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 7 (primeira: {'ms': 3016, 'msg': {'slide': 10, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'clique': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}, 'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 35,231; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 194, 'msg': {'slide': 10, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': True}
+== xwayland-open-popup-liberado.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  on_new_window chamado: tauri://localhost/#/notas/q1 (n=0)
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  janela notas: posição [159, 443] tamanho [1916, 1097] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 14 (primeira: {'ms': 901, 'msg': {'slide': 3, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'object', 'fechada': False, 'hrefDaFilha': 'about:blank'}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 159,443; janela 1840x1000
+    BroadcastChannel existe: recebidas 17 (primeira: {'ms': 102, 'msg': {'slide': 3, 'tipo': 'slide'}}); evento storage recebido 17 vez(es)
+    window.opener: {'tem': True}
+== xwayland-open-sem-gesto.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=open tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+== xwayland-rust-cheia-gtk.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  rust: {'cheia_gtk': {'monitor_gdk': 1, 'monitores_gdk': 2}}
+  janela notas: posição [945, 68] tamanho [1916, 1097] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 451,132; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 304, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 945,68; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 272, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== xwayland-rust-sem-tela-cheia.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=rust tela cheia pedida=False
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  janela notas: posição [733, 398] tamanho [1916, 1097] tela atual 1920x1080+0+0 tela cheia False
+  janela apresentacao: posição [882, 182] tamanho [1916, 1097] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 882,182; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 307, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 733,398; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 323, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== xwayland-rust.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=rust tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [0, 0] tamanho [1920, 1080] tela atual 1920x1080+0+0 tela cheia True
+  janela notas: posição [990, 258] tamanho [1916, 1097] tela atual 1920x1080+1920+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 0,0; janela 1920x1080
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 303, 'msg': {'slide': 1, 'tipo': 'eco'}}); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}
+  página notas: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 990,258; janela 1840x1000
+    BroadcastChannel existe: recebidas 16 (primeira: {'ms': 310, 'msg': {'slide': 1, 'tipo': 'slide'}}); evento storage recebido 16 vez(es)
+    window.opener: {'tem': False}
+== xwayland-sozinha.txt
+  sessão: x11 DISPLAY=:0 WAYLAND=None modo=sozinha tela cheia pedida=True
+  monitores (Tauri): ['1920x1080+0+0 screen0', '1920x1080+1920+0 screen1']; principal: 1920x1080+0+0
+  janela apresentacao: posição [204, 341] tamanho [876, 547] tela atual 1920x1080+0+0 tela cheia False
+  página apresentacao: isExtended NÃO existe (None); getScreenDetails não existe; screen 1920x1080; screenX/Y 204,341; janela 800x450
+    BroadcastChannel existe: recebidas 0 (primeira: None); evento storage recebido 0 vez(es)
+    window.open: {'semGesto': {'devolveu': 'null', 'fechada': None}}

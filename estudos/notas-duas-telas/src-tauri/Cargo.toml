@@ -1,0 +1,22 @@
+[package]
+name = "notas-duas-telas"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Estudo: notas do professor em duas telas (protótipo separado do Giz Livre)"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+
+[dependencies]
+tauri = { version = "=2.12.5", features = [] }
+serde_json = "1"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+# só para os contornos do Linux: tela cheia num monitor escolhido (GTK) e janela aberta pela página sem clique (WebKitGTK)
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "=0.18.2"
+webkit2gtk = "=2.0.2"

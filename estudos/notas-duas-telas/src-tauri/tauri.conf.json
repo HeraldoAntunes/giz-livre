@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "notas-duas-telas",
+  "version": "0.1.0",
+  "identifier": "br.ifce.gizlivre.estudo.notas",
+  "build": { "frontendDist": "../dist" },
+  "app": { "withGlobalTauri": true, "windows": [], "security": { "csp": null } },
+  "bundle": { "active": false, "icon": ["icons/icon.png"] }
+}
