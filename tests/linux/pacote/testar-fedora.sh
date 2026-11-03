@@ -73,8 +73,13 @@ for IMG in "$@"; do
       desktop-file-validate "$TMP/giz-livre.desktop" && ok "desktop-file-validate (aqui fora, na cópia exata): sem erro nem aviso" ||
       nao "atalho ausente ou com problema"
     grep -E "^(Exec|Icon)=" "$TMP/giz-livre.desktop" | sed 's/^/    /'
-    root "python3 -c \"import struct;d=open('/home/prof/.local/share/icons/hicolor/128x128/apps/giz-livre.png','rb').read(24);print('    ícone: PNG %dx%d' % struct.unpack('>II', d[16:24]))\"" ||
-      nao "falta o ícone"
+    # ícones: um PNG em cada tamanho do tema hicolor (o tamanho real confere com a pasta) e o SVG em scalable
+    for t in 48 64 128 256; do
+      R=$(root "python3 -c \"import struct;d=open('/home/prof/.local/share/icons/hicolor/${t}x$t/apps/giz-livre.png','rb').read(24);print('%dx%d' % struct.unpack('>II', d[16:24]))\"" 2>/dev/null)
+      [ "$R" = "${t}x$t" ] && ok "ícone ${t}x$t: PNG $R" || nao "ícone ${t}x$t ausente ou do tamanho errado ($R)"
+    done
+    root "head -c 40 /home/prof/.local/share/icons/hicolor/scalable/apps/giz-livre.svg | grep -q '<svg'" && ok "ícone scalable: SVG" ||
+      nao "falta o ícone scalable"
 
     echo "-- abrir pelo comando do atalho"
     # o "chromium" que o server.py acha no PATH só anota o endereço; quem abre é o Chromium daqui de fora

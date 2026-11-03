@@ -31,7 +31,7 @@ for nome in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
   fi
 done
 if [ -z "$PY" ]; then
-  avisar "precisa do Python 3.10 ou mais novo. No Ubuntu ou Debian: sudo apt install python3"
+  avisar "precisa do Python 3.10 ou mais novo. Ubuntu ou Debian: sudo apt install python3; Fedora: sudo dnf install python3; openSUSE: sudo zypper install python3; Arch: sudo pacman -S python"
   exit 1
 fi
 if [ ! -f "$PROGRAMA/server.py" ]; then

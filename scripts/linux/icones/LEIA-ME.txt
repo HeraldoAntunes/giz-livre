@@ -1,0 +1,6 @@
+Ícones do pacote Linux (tema hicolor). O de 128x128 é o docs/img/icone.png. Os de 48x48, 64x64 e 256x256 foram
+desenhados a partir do app/icon.svg, que é o mesmo desenho e vai no pacote como "scalable":
+    rsvg-convert -w 48 -h 48 app/icon.svg -o scripts/linux/icones/giz-livre-48.png
+    rsvg-convert -w 64 -h 64 app/icon.svg -o scripts/linux/icones/giz-livre-64.png
+    rsvg-convert -w 256 -h 256 app/icon.svg -o scripts/linux/icones/giz-livre-256.png
+(rsvg-convert do pacote librsvg2-bin.) Ficam guardados aqui para a montagem não depender do rsvg-convert.

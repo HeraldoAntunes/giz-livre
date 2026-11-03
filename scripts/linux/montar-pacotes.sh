@@ -11,14 +11,15 @@
 #
 # Uso, da raiz do repositório:  sh scripts/linux/montar-pacotes.sh [--versao 1.16.0~rc2] [--mantenedor "Nome <email>"]
 # Sem --versao, usa a VERSAO do server.py. No .deb, "~rc2" faz a candidata vir antes da versão final.
-# Precisa de: dpkg-deb, tar, gzip, sha256sum, git (só para a data dos arquivos).
+# Precisa de: dpkg-deb, tar, gzip, sha256sum, python3 (gera o changelog do .deb), git (só para a data dos arquivos).
 set -eu
 LINUX=$(cd "$(dirname "$0")" && pwd)
 RAIZ=$(cd "$LINUX/../.." && pwd)
 cd "$RAIZ"
 
 VERSAO=
-MANTENEDOR="Heraldo Antunes (Giz Livre)"
+# o e-mail do mantenedor é escolha do professor: o marcador fica até ele decidir (não inventar nem completar)
+MANTENEDOR="Heraldo Antunes <PREENCHER-EMAIL-DO-MANTENEDOR>"
 while [ $# -gt 0 ]; do
   case "$1" in
     --versao) VERSAO=$2; shift 2 ;;
@@ -37,7 +38,9 @@ esac
 case "$VERSAO" in *[!0-9A-Za-z.+~-]*) echo "versão inválida: $VERSAO" >&2; exit 1 ;; esac
 NOME_ARQ=$(printf '%s' "$VERSAO" | tr '~' '-')   # "~" no nome do arquivo .tar.gz atrapalha no terminal
 
-for f in server.py app mcp LICENSE THIRD-PARTY-NOTICES.md CHANGELOG.md docs/GUIA-DE-USO.md docs/img/icone.png; do
+for f in server.py app mcp LICENSE THIRD-PARTY-NOTICES.md CHANGELOG.md docs/GUIA-DE-USO.md docs/img/icone.png \
+         app/icon.svg scripts/linux/icones/giz-livre-48.png scripts/linux/icones/giz-livre-64.png \
+         scripts/linux/icones/giz-livre-256.png scripts/linux/deb/lintian-overrides; do
   [ -e "$f" ] || { echo "falta $f no repositório" >&2; exit 1; }
 done
 command -v dpkg-deb >/dev/null || { echo "falta o dpkg-deb (sudo apt install dpkg)" >&2; exit 1; }
@@ -69,16 +72,32 @@ copiar_programa() {
   find "$1" -type f -exec chmod 644 {} +
 }
 
+# ícones do tema hicolor em $1/<tamanho>/apps/: o 128 é o PNG de docs/img; 48, 64 e 256 foram desenhados a partir do
+# app/icon.svg (mesmo desenho; ver scripts/linux/icones/LEIA-ME.txt); o SVG vai como scalable
+copiar_icones() {
+  for t in 48 64 128 256; do mkdir -p "$1/${t}x$t/apps"; done
+  mkdir -p "$1/scalable/apps"
+  cp scripts/linux/icones/giz-livre-48.png "$1/48x48/apps/giz-livre.png"
+  cp scripts/linux/icones/giz-livre-64.png "$1/64x64/apps/giz-livre.png"
+  cp docs/img/icone.png "$1/128x128/apps/giz-livre.png"
+  cp scripts/linux/icones/giz-livre-256.png "$1/256x256/apps/giz-livre.png"
+  cp app/icon.svg "$1/scalable/apps/giz-livre.svg"
+}
+
 datar() { find "$1" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +; }
 
 # ---------------- .deb ----------------
 DEB=$TMP/deb
 copiar_programa "$DEB/opt/giz-livre"
-mkdir -p "$DEB/usr/bin" "$DEB/usr/share/applications" "$DEB/usr/share/icons/hicolor/128x128/apps" \
-         "$DEB/usr/share/doc/giz-livre" "$DEB/DEBIAN"
+mkdir -p "$DEB/usr/bin" "$DEB/usr/share/applications" "$DEB/usr/share/doc/giz-livre" \
+         "$DEB/usr/share/lintian/overrides" "$DEB/DEBIAN"
 sed 's|@PROGRAMA@|/opt/giz-livre|' "$LINUX/giz-livre.in" > "$DEB/usr/bin/giz-livre"
 sed 's|@EXEC@|giz-livre|' "$LINUX/giz-livre.desktop.in" > "$DEB/usr/share/applications/giz-livre.desktop"
-cp docs/img/icone.png "$DEB/usr/share/icons/hicolor/128x128/apps/giz-livre.png"
+copiar_icones "$DEB/usr/share/icons/hicolor"
+# 5. /opt de propósito (programa autocontido, fora da distribuição): o motivo fica no override do lintian
+cp "$LINUX/deb/lintian-overrides" "$DEB/usr/share/lintian/overrides/giz-livre"
+# 4. changelog do pacote (pacote nativo: changelog.gz), gerado do CHANGELOG.md no formato do Debian
+python3 -I "$LINUX/changelog_debian.py" CHANGELOG.md "$VERSAO" "$MANTENEDOR" | gzip -n -9 > "$DEB/usr/share/doc/giz-livre/changelog.gz"
 {
   echo "Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/"
   echo "Upstream-Name: Giz Livre"
@@ -104,7 +123,7 @@ Maintainer: $MANTENEDOR
 Installed-Size: $TAMANHO
 Depends: python3 (>= 3.10)
 Recommends: xdg-utils
-Suggests: chromium | chromium-browser | google-chrome-stable | firefox | firefox-esr
+Suggests: chromium | chromium-browser | google-chrome-stable | firefox | firefox-esr, libreoffice-impress
 Section: education
 Priority: optional
 Homepage: https://github.com/HeraldoAntunes/giz-livre
@@ -115,6 +134,9 @@ Description: lousa digital livre e offline para aulas
  .
  Os quadros de cada conta ficam em ~/.local/share/giz-livre e não são
  apagados quando o pacote é removido.
+ .
+ Opcional: com o LibreOffice Impress instalado, o Giz Livre também traz
+ arquivos do PowerPoint (.pptx).
 EOF
 (cd "$DEB" && find opt usr -type f | LC_ALL=C sort | xargs md5sum > DEBIAN/md5sums)
 chmod 644 "$DEB/DEBIAN/control" "$DEB/DEBIAN/md5sums"
@@ -128,12 +150,17 @@ T=$TMP/$NOME_TAR
 copiar_programa "$T/programa"
 mkdir -p "$T/pacote"
 cp "$LINUX/giz-livre.in" "$LINUX/giz-livre.desktop.in" "$T/pacote/"
-cp docs/img/icone.png "$T/pacote/giz-livre.png"
+copiar_icones "$T/pacote/icones"
 cp "$LINUX/instalar.sh" "$LINUX/desinstalar.sh" "$T/"
 cat > "$T/LEIA-ME.txt" <<EOF
 Giz Livre $VERSAO para Linux, instalação só para a sua conta (sem senha de administrador)
 
-Precisa do Python 3.10 ou mais novo (no Ubuntu 22.04 ou mais novo e no Debian 12 ele já vem instalado).
+Precisa do Python 3.10 ou mais novo. No Ubuntu 22.04 ou mais novo e no Debian 12 ele já vem instalado.
+Se faltar, instale com o comando da sua distribuição:
+    Ubuntu ou Debian:  sudo apt install python3
+    Fedora:            sudo dnf install python3
+    openSUSE:          sudo zypper install python3
+    Arch:              sudo pacman -S python
 
 Instalar: abra um terminal nesta pasta e rode
     ./instalar.sh
@@ -141,14 +168,19 @@ Depois, procure "Giz Livre" no menu de aplicativos. Ele abre no navegador.
 
 Os quadros ficam em ~/.local/share/giz-livre/quadros.
 
+Opcional: para trazer arquivos do PowerPoint (.pptx), instale o LibreOffice Impress
+(Ubuntu ou Debian: sudo apt install libreoffice-impress; Fedora: sudo dnf install libreoffice-impress).
+
 Desinstalar:
     sh ~/.local/lib/giz-livre/desinstalar.sh
 Os quadros NÃO são apagados.
 
 Para instalar para todas as contas do computador, use o pacote giz-livre_${VERSAO}_all.deb.
 EOF
-chmod 644 "$T/LEIA-ME.txt" "$T/pacote/"*
-chmod 755 "$T/instalar.sh" "$T/desinstalar.sh" "$T/pacote/giz-livre.in" "$T" "$T/pacote"
+find "$T/pacote" -type f -exec chmod 644 {} +
+find "$T/pacote" -type d -exec chmod 755 {} +
+chmod 644 "$T/LEIA-ME.txt"
+chmod 755 "$T/instalar.sh" "$T/desinstalar.sh" "$T/pacote/giz-livre.in" "$T"
 datar "$T"
 ARQ_TAR=$NOME_TAR.tar.gz
 tar --sort=name --owner=0 --group=0 --numeric-owner --mtime="@$SOURCE_DATE_EPOCH" -C "$TMP" -cf - "$NOME_TAR" |

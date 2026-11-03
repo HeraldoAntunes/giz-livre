@@ -5,7 +5,7 @@
 #   ~/.local/lib/giz-livre/                                   o programa (e o desinstalar.sh)
 #   ~/.local/bin/giz-livre                                    o launcher
 #   ~/.local/share/applications/giz-livre.desktop             o atalho no menu de aplicativos
-#   ~/.local/share/icons/hicolor/128x128/apps/giz-livre.png   o ícone
+#   ~/.local/share/icons/hicolor/<tamanho>/apps/giz-livre.*  o ícone (48, 64, 128, 256 e scalable)
 # Os quadros ficam em ~/.local/share/giz-livre/quadros (com XDG_DATA_HOME, em $XDG_DATA_HOME/giz-livre/quadros).
 # Rodar de novo atualiza o programa e não mexe nos quadros.
 set -eu
@@ -17,7 +17,7 @@ esac
 PROGRAMA=$HOME/.local/lib/giz-livre
 LAUNCHER=$HOME/.local/bin/giz-livre
 DESKTOP=$BASE/applications/giz-livre.desktop
-ICONE=$BASE/icons/hicolor/128x128/apps/giz-livre.png
+ICONES=$BASE/icons/hicolor
 
 if [ "$(id -u)" = 0 ]; then
   echo "Rode sem sudo: esta instalação é só para a sua conta. Para todas as contas, use o pacote .deb." >&2
@@ -32,7 +32,11 @@ for nome in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
   fi
 done
 if [ "$ok" = 0 ]; then
-  echo "O Giz Livre precisa do Python 3.10 ou mais novo. No Ubuntu ou Debian: sudo apt install python3" >&2
+  echo "O Giz Livre precisa do Python 3.10 ou mais novo. Instale com o comando da sua distribuição:" >&2
+  echo "  Ubuntu ou Debian:  sudo apt install python3" >&2
+  echo "  Fedora:            sudo dnf install python3" >&2
+  echo "  openSUSE:          sudo zypper install python3" >&2
+  echo "  Arch:              sudo pacman -S python" >&2
   exit 1
 fi
 # o caminho vai no Exec do atalho e no launcher: sem aspas, crase, $ ou barra invertida
@@ -43,7 +47,7 @@ esac
 
 # programa: troca a cópia antiga inteira (os quadros não ficam aqui)
 rm -rf "$PROGRAMA"
-mkdir -p "$PROGRAMA" "$(dirname "$LAUNCHER")" "$(dirname "$DESKTOP")" "$(dirname "$ICONE")"
+mkdir -p "$PROGRAMA" "$(dirname "$LAUNCHER")" "$(dirname "$DESKTOP")"
 cp -R "$AQUI/programa/." "$PROGRAMA/"
 cp "$AQUI/desinstalar.sh" "$PROGRAMA/desinstalar.sh"
 chmod 755 "$PROGRAMA/desinstalar.sh"
@@ -57,13 +61,19 @@ case "$LAUNCHER" in
   *) sed "s|@EXEC@|$ESC|" "$AQUI/pacote/giz-livre.desktop.in" > "$DESKTOP" ;;
 esac
 chmod 644 "$DESKTOP"
-cp "$AQUI/pacote/giz-livre.png" "$ICONE"
-chmod 644 "$ICONE"
+# ícones: pacote/icones/<tamanho>/apps/giz-livre.(png|svg) -> ~/.local/share/icons/hicolor/<tamanho>/apps/
+for d in "$AQUI"/pacote/icones/*/; do
+  t=$(basename "$d")
+  mkdir -p "$ICONES/$t/apps"
+  for f in "$d"apps/giz-livre.*; do cp "$f" "$ICONES/$t/apps/" && chmod 644 "$ICONES/$t/apps/$(basename "$f")"; done
+done
 
-command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -f "$BASE/icons/hicolor/index.theme" ] &&
-  gtk-update-icon-cache -q "$BASE/icons/hicolor" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && [ -f "$ICONES/index.theme" ] &&
+  gtk-update-icon-cache -q "$ICONES" >/dev/null 2>&1 || true
 
 echo "Giz Livre instalado para esta conta."
 echo "  Abra pelo menu de aplicativos (procure \"Giz Livre\") ou rode: $LAUNCHER"
 echo "  Os quadros ficam em $BASE/giz-livre/quadros"
 echo "  Para desinstalar: sh $PROGRAMA/desinstalar.sh (os quadros não são apagados)"
+command -v soffice >/dev/null 2>&1 || command -v libreoffice >/dev/null 2>&1 ||
+  echo "  Opcional: para trazer arquivos do PowerPoint (.pptx), instale o LibreOffice Impress."
