@@ -1,8 +1,15 @@
 # Pacote Linux do Giz Livre 1.16.3 em várias distribuições
 
 Conferência dos pacotes Linux do Giz Livre **1.16.3** (tag `v1.16.3`, commit `58939db`), feita em 03/11/2026 no ramo
-`pacote-linux-distros`, que sai do `pacote-linux-1.16.3`. Nada do programa foi alterado, e os pacotes são os mesmos
-da 1.16.3:
+`pacote-linux-distros`, que sai do `pacote-linux-1.16.3`. Nada do programa foi alterado. Foram duas rodadas, no mesmo
+dia:
+
+1. **Conferência**, com os pacotes da 1.16.3 como estavam. Ela achou 7 defeitos, descritos a partir de "O que já
+   estava provado".
+2. **Correções** dos defeitos no empacotamento (`scripts/linux/`), seguidas de novos testes. Estão logo abaixo, em
+   "Correções: antes e depois".
+
+Pacotes da primeira rodada (os mesmos da 1.16.3):
 
 ```
 53d7f24e6410331c930b09124ab10c0aaa26d251cd58e79a564039b41878fdac  giz-livre_1.16.3_all.deb
@@ -14,6 +21,68 @@ o `.tar.gz`, onde houver Python. A conferência dos arquivos achou **7 defeitos,
 uso**: 3 erros do `lintian` (um deles vem da escolha de instalar em `/opt`), ícone num tamanho só, aviso de Python
 que só fala do `apt`, LibreOffice não sugerido e 2 avisos do `lintian` sem efeito prático. Nenhum quadro se perdeu em
 nenhuma desinstalação.
+
+## Correções: antes e depois
+
+Pedidas pela gestão depois da primeira rodada. Só mudou o empacotamento (`scripts/linux/`) e o teste do Fedora; o
+programa é o mesmo.
+
+| Defeito | Antes | Depois |
+|---|---|---|
+| 1. Arquivos em `/opt` | 197 erros `dir-or-file-in-opt` | `/opt` mantido. Os 197 agora aparecem como `O:` (cobertos pelo override `/usr/share/lintian/overrides/giz-livre`), com o motivo escrito no arquivo: programa autocontido, fora da distribuição, no lugar que o FHS reserva para isso |
+| 2. `Maintainer` sem e-mail | `Heraldo Antunes (Giz Livre)`: 1 erro `malformed-contact` | `Heraldo Antunes <PREENCHER-EMAIL-DO-MANTENEDOR>`. **Falta a escolha do professor.** O e-mail não foi inventado nem completado. Até lá o `lintian` continua dando 1 `malformed-contact` e, por causa do changelog novo, 35 `bogus-mail-host-in-debian-changelog` (o mesmo marcador em cada uma das 35 entradas). Os dois somem quando o e-mail for preenchido |
+| 3. Sem changelog no pacote | 1 erro `no-changelog` | `/usr/share/doc/giz-livre/changelog.gz`, gerado do `CHANGELOG.md` no formato do Debian por `scripts/linux/changelog_debian.py` (35 versões, da 1.0.0 à 1.16.3). O `lintian` não acusa mais nem a falta nem erro de formato |
+| 4. Ícone num tamanho só | só `128x128` | `48x48`, `64x64`, `128x128` e `256x256` (PNG) e `scalable` (o `app/icon.svg`), no `.deb` e no `.tar.gz`. O de 128 continua sendo o `docs/img/icone.png`; os outros foram desenhados a partir do `app/icon.svg`, que é o mesmo desenho, e estão em `scripts/linux/icones/` |
+| 5. Aviso de Python só com `apt` | "No Ubuntu ou Debian: sudo apt install python3" | O `instalar.sh`, o launcher e o `LEIA-ME.txt` dão o comando de cada uma: `sudo apt install python3` (Ubuntu e Debian), `sudo dnf install python3` (Fedora), `sudo zypper install python3` (openSUSE) e `sudo pacman -S python` (Arch) |
+| 6. LibreOffice não sugerido | fora do `Suggests` | `Suggests: ..., libreoffice-impress`, e a descrição do pacote, o `LEIA-ME.txt` e o fim do `instalar.sh` (quando não acha o LibreOffice) dizem que ele serve para trazer arquivos do PowerPoint |
+| 7. Dois avisos sem efeito | `maintainer-script-empty [postrm]` e `no-manual-page` | Só registrados, como pedido. Continuam iguais (motivos no defeito 7, abaixo) |
+
+`lintian` (2.117, `--info --pedantic --display-experimental --show-overrides`), antes e depois:
+
+| Tipo e etiqueta | Antes | Depois |
+|---|---|---|
+| E: `dir-or-file-in-opt` | 197 | 0 (197 cobertos pelo override, `O:`) |
+| E: `malformed-contact` | 1 | 1 (marcador do e-mail) |
+| E: `no-changelog` | 1 | 0 |
+| E: `bogus-mail-host-in-debian-changelog` | 0 | 35 (marcador do e-mail, no changelog novo) |
+| W: `maintainer-script-empty` | 1 | 1 |
+| W: `no-manual-page` | 1 | 1 |
+
+Testes depois das correções:
+
+| Passo | Ubuntu 24.04 (`.deb` e `.tar.gz`) | Fedora 40 (`.tar.gz`) | Fedora 45 (sem Python) |
+|---|---|---|---|
+| Instalar | passou | passou | recusou, como devia, agora com o comando de cada distribuição |
+| `desktop-file-validate` no atalho | passou | passou | não se aplica |
+| Ícones 48, 64, 128 e 256 (tamanho real confere com a pasta) e `scalable` | passou (no `.deb` instalado) | passou | não se aplica |
+| `changelog.gz`, override e `Suggests` no `.deb` instalado | passou | não se aplica | não se aplica |
+| Abrir pelo atalho, servidor respondendo | passou | passou (`/api/info`: 1.16.3) | não se aplica |
+| Criar, salvar e reabrir um quadro | passou | criar e salvar: passou | não se aplica |
+| Desinstalar sem sobra, com os quadros intactos | passou | passou | não se aplica |
+| `dpkg -i` num Debian 12 sem Python recusa o pacote | passou | | |
+
+Saídas: `tests/linux/pacote/lintian-1.16.3-corrigido-2026-11-03.txt`,
+`tests/linux/pacote/resultados-ubuntu-24.04-corrigido-2026-11-03.txt` e
+`tests/linux/pacote/resultados-fedora-corrigido-2026-11-03.txt`.
+
+Pacotes corrigidos e testados (montei duas vezes e os bytes saíram iguais):
+
+```
+982ab042c3504956bf4a1ed17ae60ce71eca0d6fb1acd9f53c446567e4d42cb4  giz-livre_1.16.3_all.deb
+a9d1c09d482a3656094020db8e243a5e9ec0e0a4c39b13ba98553df456c7c8d4  giz-livre-1.16.3-linux-usuario.tar.gz
+```
+
+O `.deb` passou de 1,50 MB para 1,53 MB (ícones e changelog), e o `.tar.gz` de 1,88 MB para 1,90 MB.
+
+**Falta a escolha do professor:** o e-mail do campo `Maintainer`. Quando ele escolher, basta montar com
+`sh scripts/linux/montar-pacotes.sh --mantenedor "Heraldo Antunes <email>"`, ou trocar o marcador no
+`scripts/linux/montar-pacotes.sh`. Os 36 erros que sobraram no `lintian` somem com isso.
+
+Outra mudança: montar os pacotes agora também precisa do `python3`, que gera o changelog. Ele já era necessário para
+rodar o programa.
+
+Não repeti no Ubuntu 22.04 e no Debian 12, porque as correções não mexem em nada que seja diferente entre eles e o
+Ubuntu 24.04 (só arquivos a mais, textos e campos do pacote).
 
 ## O que já estava provado (não repeti)
 
@@ -118,7 +187,9 @@ Há um ícone só: `/usr/share/icons/hicolor/128x128/apps/giz-livre.png`, PNG 12
 
 ## Defeitos, e como reproduzir
 
-Todos se reproduzem da raiz do repositório, no ramo `pacote-linux-distros`, depois de montar os pacotes:
+Esta seção é da primeira rodada. O que foi feito com cada defeito está em "Correções: antes e depois", acima. Os
+comandos abaixo reproduzem os defeitos nos pacotes de antes (commit `a2e200a` deste ramo); nos de agora, servem para
+ver a correção. Rode da raiz do repositório, depois de montar os pacotes:
 
 ```bash
 sh scripts/linux/montar-pacotes.sh
