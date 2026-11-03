@@ -2904,6 +2904,24 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         self.assertEqual(self.pedir("PUT", "/api/folder/q", {"title": "Outro nome", "folder": "Aulas"})[0], 200)
         self.assertTrue(self.thumb_da_galeria())
 
+    # provas da 1.16.2 (ramo provas-1.16.2), B3: o servidor marca a PNG com o conteúdo gravado na hora em que ela
+    # chega; a miniatura desenhada do conteúdo 1 que chega depois do salvamento do conteúdo 2 vira a prévia do 2.
+    # Para a 1.17 (P63): a página manda a revisão que desenhou e o servidor só marca se bater. Falham hoje.
+    @unittest.expectedFailure
+    def test_miniatura_de_revisao_anterior_nao_vira_previa_da_seguinte(self):
+        self.novo_lugar()
+        rev1 = self.salvar("conteúdo 1", 0, criar=True)
+        self.salvar("conteúdo 2", rev1)
+        corpo = {"thumb": "data:image/png;base64," + __import__("base64").b64encode(self.R0).decode(), "revision": rev1}
+        self.pedir("PUT", "/api/thumbs/q", corpo)   # a do conteúdo 1, atrasada
+        self.assertFalse(self.thumb_da_galeria())
+
+    @unittest.expectedFailure
+    def test_marca_novo_da_criacao_nao_muda_a_impressao(self):
+        # a página manda "novo": true ao criar e o editor tira ao abrir: a miniatura da criação sumia por ~4 s
+        quadro = {"title": "Q", "items": [{"id": "a", "type": "text", "x": 1, "y": 2, "text": "x"}]}
+        self.assertEqual(self.s.impressao_conteudo({**quadro, "novo": True}), self.s.impressao_conteudo(quadro))
+
     def test_miniatura_de_versao_anterior_segue_a_regra_da_hora(self):
         d = self.novo_lugar()
         self.salvar("x", 0, criar=True)

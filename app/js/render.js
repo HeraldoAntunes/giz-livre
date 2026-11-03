@@ -349,13 +349,27 @@ function drawNote(ctx, it) {
   ctx.restore();
 }
 
+// imagem que não carregou (servidor reaberto no meio da aula, arquivo do OneDrive ainda vindo da nuvem): sai do cache e
+// é pedida de novo quando voltar a ser desenhada, depois de 0,5 s, 2 s, 8 s e daí de 30 em 30 s. Antes, ficava
+// guardada quebrada e o slide seguia em branco até fechar e abrir o quadro (aula de 03/11/2026, P64)
+const falhas = new Map();   // src → { n: tentativas que falharam, t: quando falhou a última }
 function getImage(it, src = it.src) {
   let img = imgCache.get(src);
+  const f = falhas.get(src);
+  if (img && f && img.complete && !img.naturalWidth && performance.now() - f.t > Math.min(30000, 500 * 4 ** (f.n - 1))) {
+    imgCache.delete(src);
+    img = null;
+  }
   if (!img) {
-    img = new Image();
-    img.onload = () => onImageLoad();
-    img.src = src;
-    imgCache.set(src, img);
+    const nova = img = new Image();
+    nova.onload = () => { falhas.delete(src); onImageLoad(); };
+    nova.onerror = () => {
+      const n = (falhas.get(src)?.n || 0) + 1;
+      falhas.set(src, { n, t: performance.now() });
+      setTimeout(() => { if (imgCache.get(src) === nova) onImageLoad(); }, Math.min(30000, 500 * 4 ** (n - 1)) + 50);
+    };
+    nova.src = src;
+    imgCache.set(src, nova);
   }
   return img;
 }

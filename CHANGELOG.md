@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.16.3 (03/11/2026)
+Correções.
+- **Apresentação longa sem travar:** num quadro com muitos slides e escrita à mão, cada troca de slide gravava o
+  quadro inteiro de novo, e a passagem chegava a levar vários segundos num computador mais simples. Agora trocar de
+  slide não grava nada: o slide onde você parou é guardado com a próxima gravação, ao sair da apresentação ou ao
+  fechar o quadro. Num teste com 203 slides, a troca caiu de até 6,5 s para menos de 0,3 s.
+- **Slide que não aparecia volta sozinho:** se a imagem de um slide falhasse ao carregar (programa reaberto no meio da
+  aula, arquivo do OneDrive ainda vindo da nuvem), o slide ficava em branco até fechar e abrir o quadro. Agora o
+  programa tenta de novo sozinho.
+
 ## 1.16.2 (02/11/2026)
 Correções.
 - **Miniatura sempre do desenho certo:** se o programa caísse poucos segundos depois de salvar, a galeria ainda podia

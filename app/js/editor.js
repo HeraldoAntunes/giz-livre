@@ -1648,6 +1648,7 @@ async function doSave() {
   if (saving) { savePending = true; return; }
   const previous = failedSnaps.get(S.id);
   const snap = snapshot();
+  vistaPendente = false;   // a vista vai neste retrato
   // Preserva a condição de conflito, mesmo se o professor continuar escrevendo.
   snap.conflict = previous?.conflict;
   failedSnaps.set(snap.id, snap);
@@ -1657,7 +1658,7 @@ async function doSave() {
 
 export async function flush() {
   if (editing) commitText();
-  if (saveTimer || savePending) await doSave();
+  if (saveTimer || savePending || vistaPendente) await doSave();
   while (saving) await new Promise(r => setTimeout(r, 50));
   if (failedSnaps.size) await retryFailed();
   return failedSnaps.size === 0;
@@ -1684,7 +1685,7 @@ export async function closeBoard() {
 const hasUnsavedChanges = () => failedSnaps.size > 0 || !!(S && (dirtyVer !== savedVer || saveTimer || saving));
 function emergencySave() {
   const pending = new Map(failedSnaps);
-  if (S && (dirtyVer !== savedVer || saveTimer || saving)) pending.set(S.id, { ...snapshot(), conflict: failedSnaps.get(S.id)?.conflict });
+  if (S && (dirtyVer !== savedVer || saveTimer || saving || vistaPendente)) pending.set(S.id, { ...snapshot(), conflict: failedSnaps.get(S.id)?.conflict });
   for (const snap of pending.values()) {
     if (saving || snap.conflict) continue;
     const body = JSON.stringify({ title: snap.board.title, board: snap.board, revision: snap.board._rev || 0 });
@@ -1707,10 +1708,16 @@ function viewChanged() {
   updatePageBar();
   if (editing) positionTextEditor();
   requestRender();
+  // a vista (em que slide parou, quanto ampliou) não grava o quadro inteiro a cada troca: num deck de 200 slides com
+  // escrita, alguns MB gravados a cada slide travavam a apresentação (aula de 03/11/2026, P64). Fica pendente e vai
+  // junto da próxima gravação; sozinha, só depois de 10 s parada fora da apresentação, ao sair dela ou ao fechar
+  vistaPendente = true;
   clearTimeout(viewChanged.t);
+  if (present) return;
   const vid = S.id;
-  viewChanged.t = setTimeout(() => { if (S?.id === vid) scheduleSave(); }, 1500);
+  viewChanged.t = setTimeout(() => { if (S?.id === vid && vistaPendente) scheduleSave(); }, 10000);
 }
+let vistaPendente = false;
 function updateZoomLabel() { $('zLabel').textContent = Math.round(S.view.zoom * 100) + '%'; }
 
 function fitView() {
