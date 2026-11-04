@@ -10,6 +10,7 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
   <img src="https://img.shields.io/badge/feito%20em-JavaScript-f1e05a?logo=javascript&logoColor=black" alt="Feito em JavaScript">
   <img src="https://img.shields.io/badge/feito%20em-Python-3572A5?logo=python&logoColor=white" alt="Feito em Python">
   <a href="#sistemas"><img src="https://img.shields.io/badge/testado%20no-Windows%2011-0078D6" alt="Testado no Windows 11"></a>
+  <a href="#linux-e-macos-experimental"><img src="https://img.shields.io/badge/Linux-em%20testes-f0ad4e?logo=linux&logoColor=white" alt="Linux em testes"></a>
   <img src="https://img.shields.io/badge/internet-n%C3%A3o%20precisa-2b8a3e" alt="Não precisa de internet">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue" alt="Licença MIT"></a>
   <img src="https://img.shields.io/badge/situa%C3%A7%C3%A3o-est%C3%A1vel-2b8a3e" alt="Situação: estável">
@@ -44,6 +45,7 @@ Versão atual: **1.17.2**.
 |---|---|
 | **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.2.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/Instalar-GizLivre-1.17.2.zip) |
 | Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.2-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/GizLivre-1.17.2-portatil.zip) |
+| Linux (Ubuntu/Debian), em testes | [giz-livre_1.17.2_all.deb](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre_1.17.2_all.deb) · outras distribuições, só para a sua conta: [giz-livre-1.17.2-linux-usuario.tar.gz](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre-1.17.2-linux-usuario.tar.gz) |
 
 Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
 se instala, copia a pasta para a sua conta, sem pedir administrador, e cria os atalhos. Os quadros e ajustes
@@ -160,8 +162,8 @@ O pacote está em análise no catálogo da Microsoft; o comando passa a funciona
 ## Sistemas
 | | Windows 11 | Linux (experimental) | macOS (experimental) |
 |---|---|---|---|
-| Instalador e atalhos | ✅ | não (rodar pelo código) | não (rodar pelo código) |
-| Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | ✅ testado no Ubuntu | ⚠️ não testado |
+| Instalador e atalhos | ✅ | `.deb` e `.tar.gz`, em testes | não (rodar pelo código) |
+| Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | em testes (sem tela, no Ubuntu do WSL) | ⚠️ não testado |
 | Pressão da caneta | ✅ (Windows Ink) | ✅ geralmente, no Chrome/Chromium | ⚠️ depende do driver |
 | Abrir PowerPoint (`.pptx`) | ✅ PowerPoint ou LibreOffice | ✅ com LibreOffice | ⚠️ com LibreOffice |
 | Abrir PDF | ✅ | ✅ | ✅ |
@@ -181,7 +183,12 @@ grandes podem passar do tempo de conversão do LibreOffice: nesse caso, salve o 
 Vídeos dentro dos slides entram como imagem parada.
 
 ### Linux e macOS (experimental)
-Precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.
+**Linux, em testes:** há pacotes da 1.17.2 na [página da versão](https://github.com/HeraldoAntunes/giz-livre/releases/tag/v1.17.2):
+`sudo apt install ./giz-livre_1.17.2_all.deb` no Ubuntu e no Debian, ou o `.tar.gz` com `./instalar.sh` só para a sua
+conta. Eles passaram por testes automáticos sem tela no Ubuntu dentro do Windows (WSL), mas ainda não num computador
+com Linux de verdade, com tela e caneta. Os quadros ficam em `~/.local/share/giz-livre/quadros`.
+
+Pelo código, no Linux ou no macOS: precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.
 ```bash
 git clone https://github.com/HeraldoAntunes/giz-livre.git
 ```
