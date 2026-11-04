@@ -1,0 +1,1490 @@
+lintian v2.117.0ubuntu1.5 --info --pedantic --display-experimental --show-overrides em giz-livre_1.17.1_all.deb (70ddcaf5b00c7ebf…), 04/11/2026
+Comando: lintian --info --pedantic --display-experimental --show-overrides dist/linux/giz-livre_1.17.1_all.deb
+Maintainer: Heraldo Antunes <73407236+HeraldoAntunes@users.noreply.github.com>
+
+Resumo por tipo e etiqueta (O: = coberto pelo override):
+    203 O: dir-or-file-in-opt
+      1 W: maintainer-script-empty
+      1 W: no-manual-page
+
+Saída completa:
+running with root privileges is not recommended!
+N:
+W: giz-livre: maintainer-script-empty [postrm]
+N: 
+N:   The named maintainer script does not appear to contain code other than
+N:   comments or boilerplate such as set -e, exit statements, or a case
+N:   statement to parse options.
+N:   
+N:   While harmless in most cases, it is not needed. The package may also leave
+N:   files behind until purged, and can contribute to rare problems when dpkg
+N:   fails because no maintainer scripts are present.
+N:   
+N:   Please do not ship the maintainer script unless it does something useful.
+N: 
+N:   Visibility: warning
+N:   Show-Always: no
+N:   Check: maintainer-scripts/empty
+N: 
+N:
+W: giz-livre: no-manual-page [usr/bin/giz-livre]
+N: 
+N:   Each binary in /usr/bin, /usr/sbin, /bin, /sbin or /usr/games should have
+N:   a manual page
+N:   
+N:   Note that though the man program has the capability to check for several
+N:   program names in the NAMES section, each of these programs should have its
+N:   own manual page (a symbolic link to the appropriate manual page is
+N:   sufficient) because other manual page viewers such as xman or tkman don't
+N:   support this.
+N:   
+N:   If the name of the manual page differs from the binary by case, man may be
+N:   able to find it anyway; however, it is still best practice to match the
+N:   exact capitalization of the executable in the manual page.
+N:   
+N:   If the manual pages are provided by another package on which this package
+N:   depends, Lintian may not be able to determine that manual pages are
+N:   available. In this case, after confirming that all binaries do have manual
+N:   pages after this package and its dependencies are installed, please add a
+N:   Lintian override.
+N: 
+N:   Please refer to Manual pages (Section 12.1) in the Debian Policy Manual
+N:   for details.
+N: 
+N:   Visibility: warning
+N:   Show-Always: no
+N:   Check: documentation/manual
+N:   Renamed from: binary-without-manpage
+N: 
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/CHANGELOG.md]
+N: 
+N:   Debian packages should not install into /opt, because it is reserved for
+N:   add-on software.
+N: 
+N:   Please refer to /opt : Add-on application software packages (Section 3.13)
+N:   in the Filesystem Hierarchy Standard for details.
+N: 
+N:   Visibility: error
+N:   Show-Always: no
+N:   Check: files/hierarchy/standard
+N: 
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/LICENSE]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/THIRD-PARTY-NOTICES.md]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/bandeira-brasil.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/espera.html]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/galeria.css]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/icon.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/index.html]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/agente.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/ajuda.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/api.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/bars.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/beautify.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/calc.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/disciplinas.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/editor.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/encaixe.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/agronomia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/alimentos.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/base.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/biologia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/computacao.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/edfisica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/eletrica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/eletronica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/embarcados.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/empreendedorismo.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/estat.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/filosofia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/fisica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/fluxo.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/geografia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/hidra.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/historia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/icones.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/lab.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/matematica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/mecanica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/musica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/nutricao.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/portugues.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/quimica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/recursos-hidricos.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/renov.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/saneamento.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/setas.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/especiais/topografia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/esquadro.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/fluent-icons.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/fnmodels.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/icons.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/importer.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/library.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/main.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/marcadores.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/marcatexto.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/notas.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/pages.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/paper.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/paradas.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/plot.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/prefs.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/render.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/revelar.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/salvar.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapelib.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/agronomia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/alimentos.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/base.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/biologia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/carimbos.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/computacao.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/edfisica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/eletrica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/eletronica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/embarcados.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/empreendedorismo.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/estatistica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/filosofia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/fisica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/fluxo.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/geo-contornos.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/geografia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/hidraulica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/historia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/icones.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/laboratorio.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/matematica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/mecanica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/musica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/nutricao.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/portugues.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/quimica.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/recursoshidricos.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/renovaveis.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/saneamento.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/setas.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/shapes/topografia.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/stabilizer.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/tablet.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/tools.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/ui.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/version.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/js/vista.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/shapes-index.json]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/style.css]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/LICENSE]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/PROCEDENCIA.txt]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/add.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/arrow_download.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/arrow_import.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/arrow_left.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/arrow_redo.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/arrow_rotate_clockwise.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/arrow_undo.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/book_open.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/checkmark_circle.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/chevron_left.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/chevron_right.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/circle_half_fill.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/color.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/content_view_gallery.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/copy.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/cursor.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/delete.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/dismiss.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/dock_row.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/document_one_page.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/document_pdf.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/edit.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/eraser.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/eye_off.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/full_screen_maximize.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/grid.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/highlight.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/image.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/lasso.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/lightbulb.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/math_formula.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/more_horizontal.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/note.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/pen.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/presenter.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/print.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/ruler.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/search.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/settings.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/shapes.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/slide_add.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/slide_multiple.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/sparkle.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/table.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/text_t.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/timer.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/video_person_star.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/warning.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/zoom_fit.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/zoom_in.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/fluent/zoom_out.svg]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/LICENSE]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_AMS-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Caligraphic-Bold.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Caligraphic-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Fraktur-Bold.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Fraktur-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Main-Bold.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Main-BoldItalic.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Main-Italic.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Main-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Math-BoldItalic.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Math-Italic.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_SansSerif-Bold.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_SansSerif-Italic.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_SansSerif-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Script-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Size1-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Size2-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Size3-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Size4-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/KaTeX_Typewriter-Regular.woff2]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/OFL.txt]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/fonts/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/katex.min.css]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/katex/katex.min.js]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/pdfjs/LICENSE]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/pdfjs/OPENJPEG-LICENSE.txt]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/pdfjs/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/pdfjs/pdf.min.mjs]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/app/vendor/pdfjs/pdf.worker.min.mjs]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/docs/GUIA-DE-USO.md]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/docs/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/mcp/]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/mcp/giz_livre_mcp.py]
+N:
+N: O Giz Livre é um programa autocontido (servidor em Python e páginas),
+N: distribuído fora do Debian e do Ubuntu. O /opt é o lugar que o FHS
+N: reserva para programas de fora da distribuição ("add-on"); por isso o
+N: pacote instala em /opt/giz-livre de propósito, com o launcher em
+N: /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+O: giz-livre: dir-or-file-in-opt [opt/giz-livre/server.py]
