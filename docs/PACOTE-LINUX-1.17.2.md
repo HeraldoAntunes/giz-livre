@@ -1,13 +1,14 @@
 # Pacote Linux do Giz Livre 1.17.2
 
 Pacotes `.deb` e `.tar.gz` da versão **1.17.2** publicada (tag `v1.17.2`, commit `20a5277`), montados e testados em
-04/11/2026 no ramo `pacote-linux-1.17.2`. O ramo parte da tag `v1.17.2` e traz o empacotamento do ramo
+04/11/2026 no ramo `pacote-linux-1.17.2-wsl`. (O ramo `pacote-linux-1.17.2`, de uma sessão na nuvem do
+mesmo dia, tem pacotes com o mesmo programa e outros bytes; os publicados na release `v1.17.2` são os deste ramo.) O ramo parte da tag `v1.17.2` e traz o empacotamento do ramo
 `pacote-linux-1.17.1` por merge, sem conflito. Nada do programa foi alterado: fora de `scripts/linux/`, `tests/linux/`
 e `docs/PACOTE-LINUX*`, o ramo é igual à `v1.17.2`. Os scripts são os mesmos da 1.17.1.
 
 Desta vez a montagem e os testes foram feitos **no Ubuntu 26.04 do WSL** do computador do professor, com o Python
 3.14.4, e não na nuvem, que estava sem crédito. Por isso não houve os testes em contêiner (Debian 12, Fedora 40,
-Ubuntu 22.04 e 24.04) nem o teste de atualização da versão anterior. Nenhum pacote foi publicado.
+Ubuntu 22.04 e 24.04) nem o teste de atualização da versão anterior. Os pacotes deste ramo foram publicados como anexos da release `v1.17.2` (VirusTotal 0/75, pela gestão).
 
 **Resumo: tudo passou.** `lintian` com 0 erros.
 
