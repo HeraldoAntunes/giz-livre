@@ -116,3 +116,38 @@ dialog.g-pick .acts .btn { min-height: 36px; }
 .lv-saida.lv-erro { color: #a4262c; }
 dialog .choices .btn:has(small) { flex-direction: column; align-items: flex-start; gap: 2px; }
 dialog .choices .btn small { color: #605e5c; }
+
+/* abas Quadros | Marcadores (P65) */
+.g-abas { display: flex; background: #ececec; border-radius: 8px; padding: 3px; }
+.g-abas button { border: 0; background: none; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; color: var(--muted); min-height: 32px; }
+.g-abas button.on { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.g-abas button b { color: var(--accent); margin-left: 6px; }
+.g-abas button b:empty { display: none; }
+/* aba Marcadores: grupos em seções com a cor deles; cartões com a miniatura do ponto */
+.mk-topo { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; margin: -6px 0 -10px; }
+.mk-dica { color: var(--muted); font-size: 13px; }
+.mk-topo .btn { margin-left: auto; }
+.mk-grupo { grid-column: 1 / -1; border-radius: 10px; padding: 6px; margin: 0 -6px; transition: background .12s; }
+.mk-grupo.alvo { background: var(--accent-soft); outline: 2px dashed #9fc3e7; }
+.mk-ghead { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 10px; }
+.mk-ghead > i { width: 12px; height: 22px; border-radius: 3px; }
+.mk-ghead small { color: var(--muted); font-weight: 400; }
+.mk-gac { margin-left: auto; display: flex; gap: 2px; }
+.mk-bola { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; }
+.mk-linha { display: grid; grid-template-columns: repeat(auto-fill, minmax(234px, 1fr)); gap: 14px; }
+.mk-card { position: relative; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.14); overflow: hidden;
+  border-top: 4px solid var(--c); cursor: pointer; transition: box-shadow .12s, transform .12s; outline-offset: 2px; }
+.mk-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.18); transform: translateY(-1px); }
+.mk-card:focus-visible { outline: 2px solid var(--accent); }
+.mk-card.arrasto { opacity: .55; transform: rotate(-2deg); }
+.mk-mini { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #fff; border-bottom: 1px solid var(--line); }
+.mk-sem { display: grid; place-items: center; color: var(--c); }
+.mk-sem svg { width: 36px; height: 36px; }
+.mk-inf { padding: 8px 10px 4px; min-width: 0; }
+.mk-nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-de { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-bar { display: flex; gap: 2px; padding: 0 4px 4px; }
+.mk-bar .ib { width: 34px; height: 34px; }
+.mk-vazio { color: var(--muted); font-size: 13px; padding: 18px; border: 2px dashed var(--line); border-radius: 10px; text-align: center; }
+.mk-nada { grid-column: 1 / -1; color: var(--muted); padding: 40px 0; text-align: center; }
+.mk-nada svg { width: 18px; height: 18px; vertical-align: -4px; }

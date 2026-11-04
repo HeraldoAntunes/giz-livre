@@ -1,7 +1,9 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Galeria de quadros + navegação (#/ = galeria, #/p/<pasta> = pasta da galeria, #/b/<id> = quadro)
-import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, renameBoard, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader } from './api.js';
-import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, temPendente, inserirForma, flush } from './editor.js';
+import { listBoards, loadBoard, saveBoard, deleteBoard, setBoardFolder, renameBoard, listTrash, restoreTrash, newId, emptyBoard, autoTitle, download, safeName, readImageFile, initSession, serverInfo, wfetch, sessionLost, temSessao, tokenHeader, listarMarcadores, mudarMarcadores } from './api.js';
+import { initEditor, openBoard, closeBoard, tabletCfg, saveTabletCfg, openBoardId, temPendente, inserirForma, flush, irParaMarcador } from './editor.js';
+import * as MK from './marcadores.js';
+import * as NT from './notas.js';
 import { painelAgentes } from './agente.js';
 import { openTabletSettings } from './tablet.js';
 import { renderToCanvas, itemValido } from './render.js';
@@ -64,6 +66,8 @@ async function showGallery(folder = '') {
   hidePop();
   curFolder = folder;
   view = 'grid';
+  abas('quadros'); contarMarcadores();
+  $('gSearch').placeholder = 'Pesquisar quadros';
   $('gSort').hidden = false;
   $('board').hidden = true;
   $('gallery').hidden = false;
@@ -535,14 +539,157 @@ async function importFiles(files) {
 }
 
 let routeSeq = 0;
+// ================= marcadores (P65): aba ao lado de Quadros, com os de todos os quadros =================
+let marcadores = { grupos: [], marcadores: [] };
+function abas(qual) {
+  $('gAbaQuadros').classList.toggle('on', qual === 'quadros');
+  $('gAbaMarcadores').classList.toggle('on', qual === 'marcadores');
+}
+async function contarMarcadores() {
+  try { marcadores = await listarMarcadores(); } catch { marcadores = { grupos: [], marcadores: [] }; }
+  $('gMkN').textContent = marcadores.marcadores.length ? String(marcadores.marcadores.length) : '';
+}
+async function showMarcadores() {
+  hidePop();
+  view = 'marcadores';
+  abas('marcadores');
+  $('gSearch').placeholder = 'Pesquisar marcadores, quadros ou grupos';
+  $('gSort').hidden = true;
+  $('board').hidden = true;
+  $('gallery').hidden = false;
+  document.title = 'Marcadores — Giz Livre';
+  await contarMarcadores();
+  renderMarcadores();
+}
+const gruposEmOrdem = () => [...marcadores.grupos].sort((a, b) => (a.ordem ?? 1e9) - (b.ordem ?? 1e9));
+async function aplicarMarcadores(pedido, desfazer = null) {
+  try {
+    marcadores = await mudarMarcadores(pedido);
+    $('gMkN').textContent = marcadores.marcadores.length ? String(marcadores.marcadores.length) : '';
+    renderMarcadores();
+    if (desfazer) toast(desfazer.msg, 6000, { label: 'Desfazer', fn: () => aplicarMarcadores(desfazer.pedido) });
+  } catch (e) { toast(e.message); }
+}
+function renderMarcadores() {
+  if (view !== 'marcadores') return;
+  const q = plain($('gSearch').value.trim());
+  const acha = m => !q || [m.nome, m.titulo, m.grupoNome, m.pasta].some(t => plain(t).includes(q));
+  const todos = marcadores.marcadores.filter(acha);
+  const secoes = [...gruposEmOrdem().map(g => ({ g, ms: MK.doGrupo(todos, g.id, marcadores.grupos) })),
+    { g: null, ms: MK.doGrupo(todos, null, marcadores.grupos) }].filter(s => s.ms.length || (s.g && !q));
+  const data = t => t ? new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+  const cartao = m => `<div class="mk-card" draggable="true" data-mk="${esc(m.id)}" data-q="${esc(m.quadro)}" style="--c:${esc(m.cor || '#8a8886')}" tabindex="0"
+      title="Abrir ${esc(m.titulo)} neste ponto">
+    ${m.mini ? `<img class="mk-mini" src="${esc(m.mini)}" alt="" loading="lazy" draggable="false">` : `<div class="mk-mini mk-sem">${ICON.fita}</div>`}
+    <div class="mk-inf"><div class="mk-nm">${esc(m.nome)}</div><div class="mk-de">${esc(m.titulo)}${m.pagina ? ` · pág. ${m.pagina}` : ''} · ${data(m.criado)}</div></div>
+    <div class="mk-bar"><button class="ib" data-a="nome" title="Renomear">${ICON.edit}</button><button class="ib" data-a="grupo" title="Mudar de grupo">${ICON.folder}</button>
+      <button class="ib" data-a="apagar" title="Apagar o marcador (o quadro fica)">${ICON.trash}</button></div></div>`;
+  const grid = $('gGrid');
+  grid.innerHTML = `<div class="mk-topo"><span class="mk-dica">Toque num marcador para abrir o quadro naquele ponto. Arraste para mudar a ordem ou o grupo.</span>
+      <button class="btn" id="mkNovoGrupo">${ICON.plus} Grupo</button></div>`
+    + (secoes.length ? secoes.map(({ g, ms }) => `<section class="mk-grupo" data-g="${esc(g?.id || '')}">
+      <div class="mk-ghead"><i style="background:${esc(g?.cor || '#8a8886')}"></i>${esc(g?.nome || 'Sem grupo')} <small>${ms.length} marcador${ms.length === 1 ? '' : 'es'}</small>
+        ${g ? `<span class="mk-gac"><button class="ib" data-ga="nome" title="Renomear o grupo">${ICON.edit}</button><button class="ib" data-ga="cor" title="Cor do grupo"><span class="mk-bola" style="background:${esc(g.cor)}"></span></button></span>` : ''}</div>
+      <div class="mk-linha">${ms.map(cartao).join('') || '<div class="mk-vazio">Arraste um marcador para cá</div>'}</div></section>`).join('')
+      : `<div class="mk-nada">${q ? 'Nenhum marcador com esse nome.' : `Ainda não há marcadores. Dentro de um quadro, toque em ${ICON.fita} <b>Marcar</b> (ou Ctrl+M) para guardar o ponto de agora.`}</div>`);
+  const achaMk = el => marcadores.marcadores.find(m => m.id === el.dataset.mk && m.quadro === el.dataset.q);
+  const grupoDe = id => marcadores.grupos.find(g => g.id === id);
+  grid.querySelector('#mkNovoGrupo').onclick = async () => {
+    const nome = (await askText('Nome do grupo novo'))?.trim();
+    if (!nome) return;
+    aplicarMarcadores({ grupos: [...marcadores.grupos, { id: 'g' + newId(), nome: nome.slice(0, 60), cor: MK.CORES_GRUPO[marcadores.grupos.length % MK.CORES_GRUPO.length], ordem: marcadores.grupos.length + 1 }] });
+  };
+  grid.querySelectorAll('.mk-grupo').forEach(sec => {
+    const g = grupoDe(sec.dataset.g);
+    sec.querySelector('[data-ga="nome"]')?.addEventListener('click', async () => {
+      const nome = (await askText('Nome do grupo', g.nome))?.trim();
+      if (!nome) return;
+      aplicarMarcadores({ grupos: marcadores.grupos.map(x => x.id === g.id ? { ...x, nome } : x),
+        alterar: marcadores.marcadores.filter(m => m.grupo === g.id).map(m => ({ quadro: m.quadro, id: m.id, grupoNome: nome })) });
+    });
+    sec.querySelector('[data-ga="cor"]')?.addEventListener('click', e => showPop(e.currentTarget, `<div class="swatches">${MK.CORES_GRUPO.map(c => `<button class="sw${c === g.cor ? ' on' : ''}" data-c="${c}" style="background:${c}"></button>`).join('')}</div>`, p => {
+      p.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { hidePop(); const cor = b.dataset.c;
+        aplicarMarcadores({ grupos: marcadores.grupos.map(x => x.id === g.id ? { ...x, cor } : x),
+          alterar: marcadores.marcadores.filter(m => m.grupo === g.id).map(m => ({ quadro: m.quadro, id: m.id, cor })) }); });
+    }));
+    // arrastar: soltar sobre um cartão põe antes dele; no espaço do grupo, no fim
+    sec.addEventListener('dragover', e => { e.preventDefault(); sec.classList.add('alvo'); });
+    sec.addEventListener('dragleave', e => { if (!sec.contains(e.relatedTarget)) sec.classList.remove('alvo'); });
+    sec.addEventListener('drop', e => {
+      e.preventDefault(); sec.classList.remove('alvo');
+      const [q2, id] = (e.dataTransfer.getData('text/x-marcador') || '').split('/');
+      const arr = marcadores.marcadores.find(m => m.id === id && m.quadro === q2);
+      if (!arr) return;
+      const alvoEl = e.target.closest('.mk-card'), alvo = alvoEl && alvoEl.dataset.mk !== id ? achaMk(alvoEl) : null;
+      aplicarMarcadores({ alterar: MK.soltar(marcadores.marcadores, arr, sec.dataset.g || null, alvo, marcadores.grupos) });
+    });
+  });
+  grid.querySelectorAll('.mk-card').forEach(c => {
+    const m = achaMk(c);
+    c.addEventListener('dragstart', e => { e.dataTransfer.setData('text/x-marcador', `${m.quadro}/${m.id}`); e.dataTransfer.effectAllowed = 'move'; c.classList.add('arrasto'); });
+    c.addEventListener('dragend', () => c.classList.remove('arrasto'));
+    const abrir = () => { location.hash = `#/b/${m.quadro}?m=${encodeURIComponent(m.id)}`; };
+    c.onclick = e => { if (!e.target.closest('[data-a]')) abrir(); };
+    c.onkeydown = e => { if (e.key === 'Enter' && e.target === c) abrir(); };
+    c.querySelector('[data-a="nome"]').onclick = async () => {
+      const nome = (await askText('Nome do marcador', m.nome))?.trim();
+      if (nome) aplicarMarcadores({ alterar: [{ quadro: m.quadro, id: m.id, nome }] });
+    };
+    c.querySelector('[data-a="grupo"]').onclick = e => showPop(e.currentTarget, `<div class="menu">${gruposEmOrdem().map(g => `<button data-g="${esc(g.id)}"><i class="mk-bola" style="background:${esc(g.cor)}"></i> ${esc(g.nome)}</button>`).join('')}
+      <button data-g="">Sem grupo</button></div>`, p => {
+      p.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { hidePop(); const g = grupoDe(b.dataset.g);
+        aplicarMarcadores({ alterar: [{ quadro: m.quadro, id: m.id, ...(g ? { grupo: g.id, grupoNome: g.nome, cor: g.cor } : { grupo: '', grupoNome: '', cor: '' }) }] }); });
+    });
+    c.querySelector('[data-a="apagar"]').onclick = () => {
+      const { quadro, titulo, pasta, ...original } = m;
+      aplicarMarcadores({ apagar: [{ quadro, id: m.id }] }, { msg: `Marcador apagado: ${m.nome}`, pedido: { novos: [{ quadro, marcador: original }] } });
+    };
+  });
+}
+
+// janela das notas do professor (P64 i): aberta pela apresentação, na tela do professor. Recebe a página atual da
+// janela do quadro por BroadcastChannel; os botões e as setas passam os slides de lá
+let canalNotas = null;
+function mostrarNotas(quadro) {
+  $('gallery').hidden = true; $('board').hidden = true;
+  document.title = 'Notas do professor — Giz Livre';
+  canalNotas?.close();
+  canalNotas = new BroadcastChannel(NT.CANAL);
+  canalNotas.onmessage = e => {
+    const d = e.data || {};
+    if (d.quadro !== quadro || d.pedir || d.ir) return;
+    if (d.fim) { window.close(); return; }   // saiu da apresentação; se não fechar, fica o aviso de que terminou
+    $('njPagina').textContent = `Página ${d.pagina} de ${d.total}`;
+    $('njTitulo').textContent = (d.titulo || '') + (d.apresentando ? '' : ' · a apresentação terminou');
+    $('njTexto').textContent = d.texto || 'Sem nota nesta página.';
+    $('njProx').textContent = d.proxima == null ? 'É a última página.' : (d.proxima || 'Sem nota.');
+  };
+  const ir = passo => canalNotas.postMessage({ quadro, ir: passo });
+  $('njAnterior').onclick = () => ir(-1);
+  $('njProxima').onclick = () => ir(1);
+  onkeydown = e => {
+    if ($('notasJanela').hidden) return;
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); ir(1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); ir(-1); }
+  };
+  canalNotas.postMessage({ quadro, pedir: true });
+}
+
 async function route() {
   const seq = ++routeSeq;
   const m = location.hash.match(/^#\/b\/([A-Za-z0-9_-]+)/);
+  const marcador = location.hash.match(/^#\/b\/[A-Za-z0-9_-]+\?m=([A-Za-z0-9_-]+)/)?.[1];   // aberto pela aba Marcadores
   const ok = await closeBoard();
   if (seq !== routeSeq) return;   // outra navegação começou enquanto fechava
   if (!ok) toast('Atenção: as últimas mudanças ainda não foram salvas. Vou continuar tentando.', 6000);
   if (!m) ping();   // o quadro foi fechado: o servidor já pode deixar um agente gravar nele
+  $('gSearch').placeholder = 'Pesquisar quadros';   // a aba Marcadores troca o texto
+  abas(location.hash === '#/marcadores' ? 'marcadores' : 'quadros');
+  const notas = !m && location.hash.match(/^#\/notas\/([A-Za-z0-9_-]+)/);
+  $('notasJanela').hidden = !notas;
+  if (notas) return mostrarNotas(notas[1]);
   if (!m && location.hash === '#/lixeira') return showTrash();
+  if (!m && location.hash === '#/marcadores') return showMarcadores();
   if (!m && location.hash.startsWith('#/formas')) return showShapes(location.hash.split('/')[2] || '');
   if (!m) {
     const mp = location.hash.match(/^#\/p\/(.+)$/);
@@ -556,7 +703,8 @@ async function route() {
     $('gallery').hidden = true;
     $('board').hidden = false;
     document.title = (data.title || 'Sem título') + ' — Giz Livre';
-    openBoard(m[1], data, () => { location.hash = folderHash(cleanFolder(data.folder)); });
+    openBoard(m[1], data, () => { location.hash = marcador ? '#/marcadores' : folderHash(cleanFolder(data.folder)); });
+    if (marcador) requestAnimationFrame(() => irParaMarcador(marcador));
     if (formaAoAbrir?.quadro === m[1]) inserirForma(formaAoAbrir.forma);
     formaAoAbrir = null;
     ping();
@@ -568,7 +716,9 @@ async function route() {
 
 fillIcons();
 initEditor();
-$('gSearch').addEventListener('input', () => view === 'trash' ? renderTrash() : view === 'formas' ? renderShapes() : renderGrid());
+$('gSearch').addEventListener('input', () => view === 'trash' ? renderTrash() : view === 'formas' ? renderShapes() : view === 'marcadores' ? renderMarcadores() : renderGrid());
+$('gAbaQuadros').onclick = () => { if (location.hash === '#/' || location.hash === '') showGallery(''); else location.hash = '#/'; };
+$('gAbaMarcadores').onclick = () => { $('gSearch').value = ''; location.hash = '#/marcadores'; };
 $('gShapes').onclick = () => { $('gSearch').value = ''; location.hash = '#/formas'; };
 $('gSort').addEventListener('change', () => view === 'trash' ? renderTrash() : view === 'formas' ? renderShapes() : renderGrid());
 $('gImport').onclick = () => $('gImportFile').click();

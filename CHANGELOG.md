@@ -1,14 +1,56 @@
 # Histórico de versões
 
+## 1.17.0 (03/11/2026)
+Melhorias pedidas depois de uma aula com o Giz Livre.
+- **Marcadores, como as fitas de um livro:** o botão **Marcar** (ou Ctrl+M) guarda o ponto e o enquadramento de agora,
+  com um nome e um grupo de cor. Cada marcador vira uma fitinha na borda do quadro, e tocar nela leva até o ponto. Na
+  galeria, a aba **Marcadores** mostra os de todos os quadros, com busca e grupos; dá para renomear, apagar (com
+  Desfazer) e arrastar para mudar a ordem ou o grupo, e tocar num cartão abre o quadro naquele ponto. Na apresentação
+  as fitinhas ficam escondidas da turma, e a lista da mini-bandeja faz o mesmo. Os marcadores acompanham o quadro ao
+  renomear, mudar de pasta, ir para a lixeira e voltar, e ao levar os quadros para outro computador.
+- **Notas do professor:** em quadros com páginas (slides, PDF, caderno), o botão **Notas** da barra das páginas abre
+  um painel para escrever o que lembrar em cada página. A nota fica salva no quadro e acompanha a página, mas não vai
+  para a projeção, o PDF, a impressão nem a miniatura. Ao apresentar com duas telas (Win + P, **Estender**), as notas
+  abrem numa janela na sua tela, com a nota da página atual e a da próxima, e os botões dela também passam os slides;
+  a apresentação vai para a outra tela. Ao sair da apresentação, a janela das notas fecha e a lousa volta para a sua
+  tela. Com uma tela só (ou **Duplicar**), os alunos veriam as notas: o Giz Livre só lembra de usar Win + P e escolher
+  Estender.
+- **Barra da apresentação mais fácil:** a bolinha de cor escolhe cor e espessura juntas (antes, dois botões); setas,
+  formas e cota têm cada uma o seu botão, sempre à vista; o botão **Folha** põe uma folha em branco depois da atual
+  (a tecla N também).
+- **Colar onde a caneta tocou:** Ctrl+V põe a imagem ou o texto no último ponto em que você tocou no quadro (se ele
+  saiu da tela, no centro, como antes; no painel da caneta dá para preferir sempre o centro).
+- **Esconder até a aula:** selecione e toque no olho riscado da barra da seleção; o item some, fica salvo, e na aula o
+  botão **Revelar** (ou a tecla R na apresentação) mostra um de cada vez. Para preparar, o botão de lupa ao lado mostra
+  onde estão, só fora da apresentação.
+- **Roteiro de prints:** ◀ e ▶ **Parada**, na barra de zoom, levam a vista de uma imagem à seguinte do quadro, em ordem
+  de leitura; uma imagem escondida aparece ao chegar nela.
+- **Cota:** forma nova, uma seta dupla com um traço de chamada em cada ponta, para medidas no desenho.
+- **Marca-texto:** escolha a intensidade (clara, média ou forte) e segure Shift para marcar em linha reta.
+- **Imagem no rascunho:** a barra do rascunho ganhou o botão Imagem; a imagem some junto quando o rascunho é ocultado.
+- **Setas com o quadro ampliado:** as setas do teclado andam menos, e menos ainda com zoom (Shift continua o passo
+  maior).
+
+Correções.
+- **Sem conexões com a internet:** a janela do programa não abre mais, por conta própria, conexões com serviços do
+  Edge; tudo continua só no computador.
+- **Duas janelas do mesmo quadro:** a janela que só apresentou, sem escrever, recebia o aviso de que o quadro mudou em
+  outra janela, e o que ela escrevesse depois não era gravado. Agora ela traz o que a outra gravou e continua gravando.
+- **Programa reaberto no meio da aula:** os slides que ainda não tinham aparecido podiam ficar em branco por até meio
+  minuto depois de a janela voltar. Agora aparecem logo que a janela recebe o acesso novo.
+- **Miniatura da galeria:** a miniatura de um desenho anterior não vira mais a prévia do desenho seguinte quando os
+  dois são salvos em sequência rápida; a miniatura de um quadro novo não some por alguns segundos.
+
 ## 1.16.3 (03/11/2026)
 Correções.
 - **Apresentação longa sem travar:** num quadro com muitos slides e escrita à mão, cada troca de slide gravava o
   quadro inteiro de novo, e a passagem chegava a levar vários segundos num computador mais simples. Agora trocar de
   slide não grava nada: o slide onde você parou é guardado com a próxima gravação, ao sair da apresentação ou ao
   fechar o quadro. Num teste com 203 slides, a troca caiu de até 6,5 s para menos de 0,3 s.
-- **Slide que não aparecia volta sozinho:** se a imagem de um slide falhasse ao carregar (programa reaberto no meio da
-  aula, arquivo do OneDrive ainda vindo da nuvem), o slide ficava em branco até fechar e abrir o quadro. Agora o
-  programa tenta de novo sozinho.
+- **Slide que não aparecia volta sozinho:** se a imagem de um slide falhasse ao carregar por um momento (por exemplo,
+  um arquivo do OneDrive ainda vindo da nuvem), o slide ficava em branco até fechar e abrir o quadro. Agora o programa
+  tenta de novo sozinho. (Texto corrigido depois: com o programa reaberto no meio da aula, o slide podia levar até
+  meio minuto para voltar; a 1.17.0 corrige.)
 
 ## 1.16.2 (02/11/2026)
 Correções.

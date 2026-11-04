@@ -12,6 +12,7 @@ export { drawBackground, isDark } from './paper.js';
 import { shapeSvg } from './shapelib.js';
 import { svgDataUrl } from './library.js';
 import { drawBackground, isDark } from './paper.js';
+import { opacidade } from './marcatexto.js';
 
 // ---------- itens ----------
 // fundo escuro: tinta preta aparece branca e vice-versa (só na exibição)
@@ -146,7 +147,7 @@ export function drawStroke(ctx, s, cache = false) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.strokeStyle = ctx.fillStyle = color;
-  if (s.tool === 'highlighter') ctx.globalAlpha = 0.38;
+  if (s.tool === 'highlighter') ctx.globalAlpha = opacidade(s.op);
   if (n === 1) {
     ctx.beginPath();
     ctx.arc(p[0], p[1], (s.pr ? pw(s, p[2]) : s.width) / 2, 0, Math.PI * 2);
@@ -235,6 +236,15 @@ function drawShape(ctx, s) {
   ctx.setLineDash([]);
   if (s.kind === 'arrow') arrowHead(ctx, s.x1, s.y1, s.x2, s.y2, Math.max(14, s.width * 4), s.width);
   if (s.kind === 'arrow' && s.both) arrowHead(ctx, s.x2, s.y2, s.x1, s.y1, Math.max(14, s.width * 4), s.width);
+  // cota: seta dupla com um traço de chamada em cada ponta, de través à linha (P64 g)
+  if (s.cota) {
+    const L = Math.hypot(s.x2 - s.x1, s.y2 - s.y1) || 1, h = Math.max(10, s.width * 4);
+    const nx = -(s.y2 - s.y1) / L * h, ny = (s.x2 - s.x1) / L * h;
+    ctx.beginPath();
+    ctx.moveTo(s.x1 - nx, s.y1 - ny); ctx.lineTo(s.x1 + nx, s.y1 + ny);
+    ctx.moveTo(s.x2 - nx, s.y2 - ny); ctx.lineTo(s.x2 + nx, s.y2 + ny);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -353,6 +363,20 @@ function drawNote(ctx, it) {
 // é pedida de novo quando voltar a ser desenhada, depois de 0,5 s, 2 s, 8 s e daí de 30 em 30 s. Antes, ficava
 // guardada quebrada e o slide seguia em branco até fechar e abrir o quadro (aula de 03/11/2026, P64)
 const falhas = new Map();   // src → { n: tentativas que falharam, t: quando falhou a última }
+let onImageError = () => {};
+export function setImageErrorHandler(fn) { onImageError = fn; }
+// a sessão foi renovada (servidor reaberto e cookie novo): as imagens que falharam são pedidas de novo já, sem esperar
+// a próxima tentativa, que podia estar a 30 s (provas da 1.16.3, D2)
+// para os testes: o que o cache de imagens tem (endereço pedido, carregada ou não, tentativas que falharam)
+export const estadoDasImagens = () => [...imgCache].filter(([s]) => s.startsWith('/assets/'))
+  .map(([s, img]) => ({ s: s.slice(-12), pedido: img.src.slice(-16), ok: !!img.naturalWidth, fim: img.complete, n: falhas.get(s)?.n || 0 }));
+let renovacoes = 0;   // vai no endereço das imagens pedidas de novo: o navegador guardava o 401 e nem pedia ao servidor
+export function tentarImagensDeNovo() {
+  renovacoes++;
+  for (const [src, img] of imgCache) if (!img.naturalWidth) imgCache.delete(src);   // também a que estava a caminho com o código velho
+  falhas.clear();
+  onImageLoad();
+}
 function getImage(it, src = it.src) {
   let img = imgCache.get(src);
   const f = falhas.get(src);
@@ -366,9 +390,10 @@ function getImage(it, src = it.src) {
     nova.onerror = () => {
       const n = (falhas.get(src)?.n || 0) + 1;
       falhas.set(src, { n, t: performance.now() });
+      if (!src.startsWith('data:')) onImageError(src);
       setTimeout(() => { if (imgCache.get(src) === nova) onImageLoad(); }, Math.min(30000, 500 * 4 ** (n - 1)) + 50);
     };
-    nova.src = src;
+    nova.src = renovacoes && src.startsWith('/assets/') ? src + '?s=' + renovacoes : src;
     imgCache.set(src, nova);
   }
   return img;
@@ -423,6 +448,7 @@ export function itemValido(it) {
     case 'stroke': return nums(it.pts, 3, 3) && num(it.width) && it.width > 0;
     case 'shape': return num(it.width) && (it.kind === 'polygon' ? nums(it.pts, 2, 4) : [it.x1, it.y1, it.x2, it.y2].every(num));
     case 'text': return [it.x, it.y, it.w].every(num);
+    case 'notaprof': return typeof it.texto === 'string' && it.texto.length <= 20000 && [it.x, it.y, it.w, it.h].every(num);
     default: return [it.x, it.y, it.w, it.h].every(num);
   }
 }

@@ -28,7 +28,9 @@ const conexao = () => { try { return JSON.parse(readFileSync(CON, 'utf8')); } ca
 const itens = id => { try { return JSON.parse(readFileSync(join(DADOS, `${id}.json`), 'utf8')).items.length; } catch { return -1; } };
 const abrir = () => spawn(EXE, ['--dados', DADOS, '--porta', String(PORTA)], { stdio: 'ignore', detached: true,
   env: { ...process.env, GIZ_JANELA_DADOS: join(tmp, 'perfil'), WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${DEPURA}` } });
-const fechar = pid => ps(`Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool PostMessage(System.IntPtr h, uint m, System.IntPtr w, System.IntPtr l); public delegate bool Cb(System.IntPtr h, System.IntPtr p); [DllImport("user32.dll")] public static extern bool EnumWindows(Cb f, System.IntPtr p); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint p); [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(System.IntPtr h, System.Text.StringBuilder s, int n);'; [W.U]::EnumWindows({ param($h, $p) $x = 0; [void][W.U]::GetWindowThreadProcessId($h, [ref]$x); $c = New-Object System.Text.StringBuilder 64; [void][W.U]::GetClassName($h, $c, 64); if ($x -eq ${pid} -and $c.ToString() -eq 'Tauri Window') { [void][W.U]::PostMessage($h, 0x10, 0, 0) }; $true }, 0) | Out-Null`);
+// vezes > 1: os cliques repetidos no X saem do mesmo PowerShell, a `pausa` ms um do outro. Na VM lenta (rc3-170 e
+// rc6-170) cada PowerShell novo levava segundos para compilar o Add-Type, e a conferência "aos 6 s" caía bem depois
+const fechar = (pid, vezes = 1, pausa = 600) => ps(`Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool PostMessage(System.IntPtr h, uint m, System.IntPtr w, System.IntPtr l); public delegate bool Cb(System.IntPtr h, System.IntPtr p); [DllImport("user32.dll")] public static extern bool EnumWindows(Cb f, System.IntPtr p); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint p); [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(System.IntPtr h, System.Text.StringBuilder s, int n);'; $cb = [W.U+Cb]{ param($h, $p) $x = 0; [void][W.U]::GetWindowThreadProcessId($h, [ref]$x); $c = New-Object System.Text.StringBuilder 64; [void][W.U]::GetClassName($h, $c, 64); if ($x -eq ${pid} -and $c.ToString() -eq 'Tauri Window') { [void][W.U]::PostMessage($h, 0x10, 0, 0) }; $true }; for ($i = 0; $i -lt ${vezes}; $i++) { if ($i) { Start-Sleep -Milliseconds ${pausa} }; [W.U]::EnumWindows($cb, 0) | Out-Null }`);
 
 async function sessao(id) {
   const prog = abrir();
@@ -63,9 +65,10 @@ try {
   s = await sessao('lenta');
   await s.avaliar(`(() => { const f = window.fetch; window.fetch = (u, o) => (o && o.method === 'PUT') ? new Promise(r => setTimeout(r, 8000)).then(() => f(u, o)) : f(u, o); })()`);
   await traco(s);
-  fechar(s.prog.pid); await espera(600); fechar(s.prog.pid); await espera(600); fechar(s.prog.pid);
-  await espera(6000);
-  conferir('gravação de 8 s: a janela ainda espera aos 6 s', vivo(s.prog.pid));
+  const t0 = Date.now();   // os três cliques saem em ~1,2 s depois que o PowerShell abre (o tempo conta daqui, por cima)
+  fechar(s.prog.pid, 3, 600);
+  await espera(Math.max(0, t0 + 6000 - Date.now()));
+  conferir('gravação de 8 s: a janela ainda espera aos 6 s', vivo(s.prog.pid), `aos ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   conferir('gravação de 8 s: fecha sozinha quando termina', !!await ate(() => !vivo(s.prog.pid) && !vivo(s.srv), 30000));
   conferir('gravação de 8 s: o traço ficou salvo', itens('lenta') === 1, `itens ${itens('lenta')}`);
   try { s.ws.close(); } catch {}

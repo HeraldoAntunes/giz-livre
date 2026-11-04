@@ -80,6 +80,14 @@ fn esquecer_registro_do_perfil() {
     }
 }
 
+// O WebView2 abre por conta própria conexões com a Microsoft. Na VM (rc3-170, 03/11/2026) foi 2620:1ec:33:1::11:443,
+// que é o edge.microsoft.com (serviços e componentes do Edge), pedido pela pilha de rede do navegador. A página do
+// programa só fala com o servidor em 127.0.0.1, e o "Procurar versão nova" é do servidor: aqui nenhum nome da internet
+// resolve (como no Tarja Livre). Os três primeiros recursos são o padrão do wry (SmartScreen desligado). A lousa e a
+// janela das notas dividem o mesmo WebView2: as duas precisam destes mesmos argumentos.
+const SEM_REDE: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking \
+    --disable-component-update --disable-domain-reliability --no-pings --host-resolver-rules=\"MAP * ~NOTFOUND, EXCLUDE 127.0.0.1\"";
+
 // onde o server.py grava porta e código desta conta (arquivo_conexao no server.py)
 fn arquivo_conexao(dados: &Option<String>) -> PathBuf {
     match dados {
@@ -220,11 +228,104 @@ fn navegacao_nossa(u: &tauri::Url, porta: u16) -> bool {
         || ["tauri", "about", "blob", "data"].contains(&u.scheme())
 }
 
+/// A apresentação pede a janela das notas do professor (P64 i) com window.open('/#/notas/<quadro>').
+fn endereco_de_notas(u: &tauri::Url, porta: u16) -> bool {
+    u.scheme() == "http" && u.host_str() == Some("127.0.0.1") && u.port() == Some(porta)
+        && u.fragment().is_some_and(|f| f.starts_with("/notas/"))
+}
+
+/// Com duas telas (Estender), a apresentação vai para a primeira tela que não é a principal (a do projetor); as notas
+/// ficam na principal, a do professor. Com uma tela só, nenhuma.
+fn tela_dos_alunos(posicoes: &[(i32, i32)], principal: (i32, i32)) -> Option<usize> {
+    posicoes.iter().position(|p| *p != principal)
+}
+
+// A janela das notas: uma só, no mesmo perfil do WebView2 da lousa (assim o BroadcastChannel liga as duas). A página
+// passa a página atual para ela; o programa só cria a janela e arruma as telas.
+fn abrir_notas(app: &AppHandle, de: &str, url: tauri::Url) {
+    if let Some(j) = app.get_webview_window("notas") {
+        let _ = j.navigate(url);
+        let _ = j.set_focus();
+        return;
+    }
+    let srv = app.state::<Servidor>();
+    let porta = srv.porta;
+    let r = WebviewWindowBuilder::new(app, "notas", WebviewUrl::App("espera.html".into()))
+        .title("Notas do professor — Giz Livre")
+        .inner_size(900.0, 640.0)
+        .data_directory(pasta_da_janela())
+        .additional_browser_args(SEM_REDE)
+        .on_new_window(|u, _| {
+            abrir_fora(u.as_str());
+            tauri::webview::NewWindowResponse::Deny
+        })
+        .on_navigation(move |u| {
+            if !navegacao_nossa(u, porta) {
+                abrir_fora(u.as_str());
+                return false;
+            }
+            true
+        })
+        .build();
+    let j = match r {
+        Ok(j) => j,
+        Err(e) => { diario(&format!("janela das notas: erro ao criar: {e}")); return; }
+    };
+    let _ = j.set_cookie(cookie_de_acesso(&srv));
+    let _ = j.navigate(url);
+    let monitores = app.available_monitors().unwrap_or_default();
+    let posicoes: Vec<(i32, i32)> = monitores.iter().map(|m| (m.position().x, m.position().y)).collect();
+    match (app.primary_monitor().ok().flatten(), app.get_webview_window(de)) {
+        (Some(p), Some(lousa)) => match tela_dos_alunos(&posicoes, (p.position().x, p.position().y)) {
+            Some(i) => {
+                // onde a lousa estava, para voltar ao sair da apresentação (a caneta é no notebook)
+                if let (Ok(pos), Ok(tam)) = (lousa.outer_position(), lousa.inner_size()) {
+                    guardar_lugar(de, Lugar { x: pos.x, y: pos.y, w: tam.width, h: tam.height,
+                        maximizada: lousa.is_maximized().unwrap_or(true) });
+                }
+                let _ = lousa.unmaximize();
+                let _ = lousa.set_position(*monitores[i].position());
+                let _ = lousa.maximize();
+                let _ = j.set_position(*p.position());
+                let _ = j.maximize();
+                diario(&format!("janela das notas: aberta na tela principal; {de} na tela {}", i + 1));
+            }
+            None => diario("janela das notas: aberta (uma tela só)"),
+        },
+        _ => diario("janela das notas: aberta (sem saber das telas)"),
+    }
+}
+
+// Lugar da lousa antes de ir para a tela dos alunos, por janela; sai da lista ao voltar (uma vez só)
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Lugar { x: i32, y: i32, w: u32, h: u32, maximizada: bool }
+static LUGARES: Mutex<std::collections::BTreeMap<String, Lugar>> = Mutex::new(std::collections::BTreeMap::new());
+fn guardar_lugar(rotulo: &str, l: Lugar) {
+    // a primeira vez vale: abrir as notas de novo na mesma apresentação não troca o lugar do notebook pelo do projetor
+    LUGARES.lock().unwrap().entry(rotulo.to_string()).or_insert(l);
+}
+fn tirar_lugar(rotulo: &str) -> Option<Lugar> { LUGARES.lock().unwrap().remove(rotulo) }
+
+// A página saiu da apresentação (MARCA_FIM no título): fecha a janela das notas e devolve a lousa à tela principal, no
+// tamanho de antes. Sem lugar guardado (uma tela só), a lousa fica onde está.
+fn fim_da_apresentacao(lousa: &tauri::WebviewWindow) {
+    if let Some(n) = lousa.app_handle().get_webview_window("notas") { liberar_e_fechar(&n); }
+    if let Some(l) = tirar_lugar(lousa.label()) {
+        let _ = lousa.unmaximize();
+        let _ = lousa.set_position(tauri::PhysicalPosition::new(l.x, l.y));
+        let _ = lousa.set_size(tauri::PhysicalSize::new(l.w, l.h));
+        if l.maximizada { let _ = lousa.maximize(); }
+        let _ = lousa.set_focus();
+        diario(&format!("janela {}: fim da apresentação, de volta à tela principal", lousa.label()));
+    }
+}
+
 fn criar_janela(app: &AppHandle) -> tauri::Result<()> {
     let srv = app.state::<Servidor>();
     let url: tauri::Url = format!("http://127.0.0.1:{}/", srv.porta).parse().unwrap();
     let n = JANELAS.fetch_add(1, Ordering::SeqCst) + 1;
     let porta = srv.porta;
+    let (h, rotulo) = (app.clone(), format!("lousa{n}"));
     // começa na página de espera do próprio exe; o cookie de acesso entra antes de ir para o servidor
     let r = WebviewWindowBuilder::new(app, format!("lousa{n}"), WebviewUrl::App("espera.html".into()))
         .title("Giz Livre")
@@ -232,20 +333,28 @@ fn criar_janela(app: &AppHandle) -> tauri::Result<()> {
         .min_inner_size(640.0, 480.0)
         .maximized(true)
         .data_directory(pasta_da_janela())
+        .additional_browser_args(SEM_REDE)
         // o título acompanha o da página ("Aula 3 — Giz Livre"), como na janela do Edge
         // a marca MARCA_FECHAR no título é o aviso da página de que terminou de gravar (ver abaixo)
         .on_document_title_changed(|w, t| {
             match t.as_str() {
                 MARCA_FECHAR => liberar_e_fechar(&w),
+                MARCA_FIM => fim_da_apresentacao(&w),
                 MARCA_RECEBIDO => { FECHANDO.lock().unwrap().insert(w.label().to_string(), Fechando::Gravando); }
                 MARCA_PERGUNTA => { FECHANDO.lock().unwrap().insert(w.label().to_string(), Fechando::Perguntando); }
                 MARCA_FICA => { FECHANDO.lock().unwrap().remove(w.label()); diario(&format!("janela {}: fica aberta (não salvou)", w.label())); }
                 _ => { let _ = w.set_title(&t); }
             }
         })
-        // link com target="_blank" (página de downloads, GitHub): navegador do sistema
-        .on_new_window(|u, _| {
-            abrir_fora(u.as_str());
+        // link com target="_blank" (página de downloads, GitHub): navegador do sistema; a janela das notas do
+        // professor é nossa (fora da thread da janela, como a outra janela do atalho)
+        .on_new_window(move |u, _| {
+            if endereco_de_notas(&u, porta) {
+                let (h, de, u) = (h.clone(), rotulo.clone(), u.clone());
+                std::thread::spawn(move || abrir_notas(&h, &de, u));
+            } else {
+                abrir_fora(u.as_str());
+            }
             tauri::webview::NewWindowResponse::Deny
         })
         .on_navigation(move |u| {
@@ -274,6 +383,8 @@ const MARCA_FECHAR: &str = "giz-livre:pode-fechar";
 const MARCA_RECEBIDO: &str = "giz-livre:gravando";
 // a gravação falhou e o professor preferiu não fechar: a janela fica aberta
 const MARCA_FICA: &str = "giz-livre:fica";
+// a página saiu da apresentação (MARCA_FIM em app/js/notas.js): fecha as notas e traz a lousa de volta
+const MARCA_FIM: &str = "giz-livre:fim-apresentacao";
 // a gravação falhou e a página está perguntando se fecha mesmo assim: a resposta é do professor, sem prazo (antes,
 // passados os 2 min de ESPERA_GRAVANDO, a janela fechava com a pergunta na tela; auditoria de 30/10/2026)
 const MARCA_PERGUNTA: &str = "giz-livre:perguntando";
@@ -391,6 +502,13 @@ fn main() {
             Ok(())
         })
         .on_window_event(|w, ev| {
+            // a última lousa fechou: a janela das notas fecha junto (sozinha, ela seguraria o programa aberto)
+            if let WindowEvent::Destroyed = ev {
+                let lousas = w.app_handle().webview_windows().into_keys().filter(|k| k.starts_with("lousa") && k != w.label()).count();
+                if w.label().starts_with("lousa") && lousas == 0 {
+                    if let Some(n) = w.app_handle().get_webview_window("notas") { liberar_e_fechar(&n); }
+                }
+            }
             if let WindowEvent::CloseRequested { api, .. } = ev {
                 let rot = w.label().to_string();
                 let mut lib = LIBERADAS.lock().unwrap();
@@ -478,6 +596,41 @@ mod testes {
         assert_eq!(fechar_assim_mesmo(Some(Fechando::Gravando), s(120)), Some(true)); // travou gravando: fecha
         assert_eq!(fechar_assim_mesmo(Some(Fechando::Perguntando), s(600)), Some(false)); // a resposta é do professor
         assert_eq!(fechar_assim_mesmo(None, s(200)), None);                           // fechou ou ficou aberta
+    }
+
+    // rc3-170: o WebView2 conectou no edge.microsoft.com; nenhum nome da internet resolve, o servidor local sim
+    #[test]
+    fn webview2_sem_nomes_da_internet() {
+        assert!(SEM_REDE.contains("--host-resolver-rules=\"MAP * ~NOTFOUND, EXCLUDE 127.0.0.1\""));
+        assert!(SEM_REDE.contains("msSmartScreenProtection"));   // o padrão do wry continua
+        assert!(!SEM_REDE.contains("  "));                        // a continuação da linha não deixa espaço duplo
+    }
+
+    // rc.6: ao sair da apresentação, a lousa volta ao lugar do notebook (o primeiro guardado), uma vez só
+    #[test]
+    fn a_lousa_volta_ao_lugar_de_antes_da_apresentacao() {
+        let note = Lugar { x: 0, y: 0, w: 1366, h: 728, maximizada: true };
+        let projetor = Lugar { x: 1366, y: 0, w: 1920, h: 1040, maximizada: true };
+        guardar_lugar("lousa-teste", note);
+        guardar_lugar("lousa-teste", projetor);              // notas abertas de novo, já no projetor
+        assert_eq!(tirar_lugar("lousa-teste"), Some(note));
+        assert_eq!(tirar_lugar("lousa-teste"), None);        // sair de novo não move nada
+        assert_eq!(MARCA_FIM, "giz-livre:fim-apresentacao");  // igual a NT.MARCA_FIM (app/js/notas.js)
+        let js = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../app/js/notas.js")).unwrap();
+        assert!(js.contains(&format!("MARCA_FIM = '{MARCA_FIM}'")));
+    }
+
+    // P64 i: a apresentação abre a janela das notas; com duas telas, a apresentação vai para a que não é a principal
+    #[test]
+    fn notas_do_professor_tem_janela_propria_e_a_apresentacao_vai_para_a_outra_tela() {
+        let u = |s: &str| s.parse::<tauri::Url>().unwrap();
+        assert!(endereco_de_notas(&u("http://127.0.0.1:8765/#/notas/abc123"), 8765));
+        assert!(!endereco_de_notas(&u("http://127.0.0.1:8765/#/b/abc123"), 8765));
+        assert!(!endereco_de_notas(&u("http://127.0.0.1:9999/#/notas/abc123"), 8765));
+        assert!(!endereco_de_notas(&u("https://github.com/#/notas/x"), 8765));
+        assert_eq!(tela_dos_alunos(&[(0, 0)], (0, 0)), None);                       // uma tela só
+        assert_eq!(tela_dos_alunos(&[(0, 0), (1920, 0)], (0, 0)), Some(1));        // projetor à direita
+        assert_eq!(tela_dos_alunos(&[(-1280, 0), (0, 0)], (0, 0)), Some(0));       // projetor à esquerda
     }
 
     // em build de produção, as páginas do exe vêm de http://tauri.localhost: recusá-las impedia a janela de nascer
