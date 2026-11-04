@@ -266,7 +266,9 @@ export function openBoard(id, board, back) {
   notasPagina = -1; notaPendente = false;   // o painel Notas lê de novo no quadro novo
   ultimoToque = null;   // o toque era de outro quadro: colar sem tocar neste vai para o meio (Ordem 21)
   const pending = failedSnaps.get(id);
-  if (pending) board = pending.board;
+  // gravação pendente: o conteúdo é o desta janela, mas os marcadores do disco podem ser mais novos (Ordem 26)
+  if (pending) board = (board?._mkv || 0) > (pending.board._mkv || 0)
+    ? { ...pending.board, marcadores: board.marcadores, _mkv: board._mkv } : pending.board;
   board.background = { color: '#ffffff', pattern: 'none', ...(board.background || {}) };
   let view = board.view && isFinite(board.view.zoom) && board.view.zoom > 0 ? { ...board.view } : null;
   if (view) view.zoom = Math.max(0.1, Math.min(ZOOM_MAX, view.zoom));
@@ -1477,7 +1479,13 @@ async function clearBoard() {
     commit(S.items.filter(i => i.locked || NT.ehNota(i) || PG.pageOf(L, i) !== pg));
     return toast(`Página ${pg + 1} limpa. Ctrl+Z desfaz.`);
   }
-  if (modo === 'tudo' && PG.isPages(S.board)) { commit([], { ...S.board.layout, count: 1 }); goToPage(0, present); refreshPanel(); updatePageBar(); }
+  if (modo === 'tudo' && PG.isPages(S.board)) {
+    const L = S.board.layout, step = L.h + L.gap;
+    commit([], { ...L, count: 1 });
+    // só a 1ª página fica: os marcadores das outras saem junto, e o Ctrl+Z os traz de volta (Ordem 25)
+    marcadoresSeguem(y => Math.floor((y + L.gap / 2) / step) === 0 ? y : null);
+    goToPage(0, present); refreshPanel(); updatePageBar();
+  }
   else commit(modo === 'tudo' ? [] : locked);
   toast('Quadro limpo. Ctrl+Z desfaz.');
 }
@@ -1646,7 +1654,7 @@ async function retryFailed() {
 let itensGravados = null;   // os itens da última gravação bem-sucedida (ou do quadro como abriu)
 // e os outros dados do quadro nessa hora (título, rascunho oculto, fundo...): um conflito só é "só de vista" se nada disso
 // mudou também; sem a vista, a revisão e o que já vem do disco (marcadores, _meta)
-const dadosDoQuadro = b => { const { items, view, _rev, marcadores, _meta, updated, ...resto } = b || {}; return JSON.stringify(resto); };
+const dadosDoQuadro = b => { const { items, view, _rev, marcadores, _mkv, _meta, updated, ...resto } = b || {}; return JSON.stringify(resto); };
 let dadosGravados = null;
 // D1: traz o quadro do disco (com o que a outra janela gravou) e mantém a vista desta janela; a vista vai na próxima
 // gravação, já na revisão nova. Só quando esta janela não tem conteúdo por gravar (quem chama confere)
@@ -1654,13 +1662,19 @@ async function reconciliar(snap) {
   try {
     const fresh = await loadBoard(snap.id);
     if (S !== snap.state || S.items !== itensGravados || dadosDoQuadro(S.board) !== dadosGravados) return false;   // mudou algo enquanto buscava: conflito de verdade
-    const vista = { ...S.view };
+    const vista = { ...S.view }, antes = S.board;
     S.board = { ...fresh, view: vista };
+    // marcadores: a mesma regra da gravação (Ordem 26). Com pedidos na fila, ou com um pedido que voltou depois desta
+    // leitura (versão menor), fica a lista da tela, que é a mais nova
+    if (naFilaMarcadores || (fresh._mkv || 0) < (antes._mkv || 0)) {
+      if (antes.marcadores) S.board.marcadores = antes.marcadores; else delete S.board.marcadores;
+      if (antes._mkv != null) S.board._mkv = antes._mkv; else delete S.board._mkv;
+    }
     S.items = Array.isArray(fresh.items) ? fresh.items : [];
     itensGravados = S.items; dadosGravados = dadosDoQuadro(S.board);
     undoStack = []; redoStack = []; sel = new Set();   // o desfazer apontava para o quadro de antes
     failedSnaps.delete(snap.id);
-    syncSaveError(); updateUndo(); updatePageBar(); syncToolbar(); requestRender();
+    syncSaveError(); updateUndo(); updatePageBar(); syncToolbar(); syncFitas(); requestRender();
     vistaPendente = true; scheduleSave();
     toast('O quadro foi atualizado com o que a outra janela gravou', 4000);
     return true;
@@ -1689,8 +1703,14 @@ async function writeSnapshot(snap) {
     const res = await saveBoard(snap.id, snap.board, null);
     snap.state.board._rev = snap.board._rev;
     if (S === snap.state) { itensGravados = snap.board.items; dadosGravados = dadosDoQuadro(snap.board); }
-    // marcadores: os do arquivo (a galeria pode ter mudado com o quadro aberto; P65)
-    if (Array.isArray(res?.marcadores)) { snap.state.board.marcadores = res.marcadores; if (S === snap.state) syncFitas(); }
+    // marcadores: os do arquivo (a galeria pode ter mudado com o quadro aberto; P65). Com pedidos na fila, os do
+    // arquivo ainda são os de antes: a última resposta da fila é que atualiza. E uma gravação lida antes de um pedido
+    // que já voltou traz uma versão menor: fica a da tela (Ordem 25)
+    if (Array.isArray(res?.marcadores) && !naFilaMarcadores && (res.mkv || 0) >= (snap.state.board._mkv || 0)) {
+      snap.state.board._mkv = res.mkv || 0;
+      snap.state.board.marcadores = res.marcadores;
+      if (S === snap.state) syncFitas();
+    }
     if (snap.board._meta && snap.board._meta !== snap.state.board._meta) {   // renomeado/movido pela galeria
       Object.assign(snap.state.board, { _meta: snap.board._meta, title: snap.board.title });
       if (snap.board.folder) snap.state.board.folder = snap.board.folder; else delete snap.state.board.folder;
@@ -2982,7 +3002,7 @@ async function exportPng(transparent = false) {
 }
 async function exportLousa() {
   const data = { ...S.board, items: S.items, view: { ...S.view } };
-  delete data._rev; // revisão pertence ao arquivo de origem, não à cópia portátil
+  delete data._rev; delete data._mkv; // revisão e versão dos marcadores pertencem ao arquivo de origem, não à cópia portátil
   try {
     await embedBoard(data);
     download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(data.title) + '.lousa');
@@ -3582,7 +3602,9 @@ function revelar() {
   if (!S) return;
   // só o que está na tela: revelar a resposta de um slide que a turma ainda não viu não mudaria nada à vista
   const a = toWorld(0, 0), b = toWorld(W, H);
-  const naTela = it => { const c = R.bbox(it); return c.x < b.x && c.x + c.w > a.x && c.y < b.y && c.y + c.h > a.y; };
+  // e só o que aparece ao revelar: o do rascunho oculto continuaria invisível, e o R parecia não fazer nada (Ordem 25)
+  const naTela = it => { if (it.camada === 'rascunho' && S.board.rascunhoOculto) return false;
+    const c = R.bbox(it); return c.x < b.x && c.x + c.w > a.x && c.y < b.y && c.y + c.h > a.y; };
   const r = revelarProximo(S.items, naTela);
   if (!r) return toast(quantosEscondidos(S.items) ? 'Nada escondido nesta tela' : 'Nada escondido para revelar');
   commit(r.items);
@@ -3669,15 +3691,30 @@ function marcadoresSeguem(novoY) {
   trocarMarcadores(mk.antes, mk.depois);
   return mk.antes.length - mk.depois.length;
 }
+// os pedidos dos marcadores vão em fila, um depois do outro: com o servidor lento, o segundo chegava antes do primeiro
+// e o marcador parava na página errada, ou um Ctrl+Z logo depois de excluir perdia o marcador (Ordem 25). Só a resposta
+// do último da fila atualiza a tela: a de um anterior traria de volta o estado de antes das mudanças seguintes
+let filaMarcadores = Promise.resolve(), naFilaMarcadores = 0;
+function marcadoresNaFila(quadro, pedido) {
+  naFilaMarcadores++;
+  const p = filaMarcadores.then(() => mudarMarcadores(pedido));
+  filaMarcadores = p.catch(() => {});
+  return p.then(r => {
+    const v = r.versoes?.[quadro];
+    if (naFilaMarcadores === 1 && S?.id === quadro && !(v < (S.board._mkv || 0))) {
+      if (v != null) S.board._mkv = v;
+      marcadoresRecebidos(r.marcadores.filter(x => x.quadro === quadro).map(({ quadro: _q, titulo: _t, pasta: _p, ...x }) => x));
+    }
+    return r;
+  }).finally(() => naFilaMarcadores--);
+}
 // leva os marcadores `de` a ficarem como `para`: já na tela e, em seguida, no arquivo
 function trocarMarcadores(de, para) {
   const quadro = S.id, sai = new Set(de.map(m => m.id)), pedido = MK.pedidoDeMudanca(quadro, de, para);
   S.board.marcadores = [...marcadoresDoQuadro().filter(m => !sai.has(m.id)), ...para];
   syncFitas();
   if (!Object.keys(pedido).length) return;
-  mudarMarcadores(pedido).then(r => {
-    if (S?.id === quadro) marcadoresRecebidos(r.marcadores.filter(x => x.quadro === quadro).map(({ quadro: _q, titulo: _t, pasta: _p, ...x }) => x));
-  }).catch(e => toast('Os marcadores não acompanharam as páginas: ' + e.message, 8000));
+  marcadoresNaFila(quadro, pedido).catch(e => toast('Os marcadores não acompanharam as páginas: ' + e.message, 8000));
 }
 // cartão de marcar: nome sugerido, grupos em bolinhas de cor, Enter confirma
 async function abrirMarcar(anchor) {
@@ -3728,8 +3765,7 @@ async function criarMarcador(nome, grupo, pagina) {
   try {
     if (grupo) cfg.ultimoGrupoMarcador = grupo.id, saveCfg();
     const novoGrupo = grupo && !gruposMarcadores.slice(0, -1).some(g => g.id === grupo.id) ? { grupos: gruposMarcadores } : {};
-    const r = await mudarMarcadores({ novos: [{ quadro, marcador: m }], ...novoGrupo });
-    if (S?.id === quadro) marcadoresRecebidos(r.marcadores.filter(x => x.quadro === quadro).map(({ quadro: _q, titulo: _t, pasta: _p, ...x }) => x));
+    const r = await marcadoresNaFila(quadro, { novos: [{ quadro, marcador: m }], ...novoGrupo });
     // só diz "Marcado" se o marcador voltou na lista gravada (Ordem 21: o servidor podia descartar sem erro)
     toast(r.marcadores.some(x => x.quadro === quadro && x.id === m.id) ? `Marcado: ${m.nome}` : 'Não consegui gravar o marcador');
   } catch (e) { toast(e.message); }

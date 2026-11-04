@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.17.2 (04/11/2026)
+Correções.
+- **Marcadores com o computador lento:** inserir duas páginas seguidas, ou excluir uma página e logo usar Ctrl+Z, podia
+  deixar o marcador na página errada ou apagá-lo. Agora as mudanças dos marcadores são gravadas uma de cada vez, e uma
+  gravação ou leitura do quadro que chegue atrasada (também com o mesmo quadro aberto em duas janelas) não traz de
+  volta os marcadores de antes.
+- **Limpar tudo** num quadro com páginas tira também os marcadores das páginas que saíram (o Ctrl+Z traz de volta).
+- **Revelar na apresentação:** com o rascunho oculto, a tecla R gastava um escondido do rascunho, que continuava
+  invisível, e nada aparecia. Agora ela revela o que está à vista.
+
 ## 1.17.1 (04/11/2026)
 Correções achadas em duas revisões independentes da 1.17.0.
 - **Duas janelas do mesmo quadro:** se uma janela só trocou o título, o fundo (cor ou folha) ou o rascunho escondido

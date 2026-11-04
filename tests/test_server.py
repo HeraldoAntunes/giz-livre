@@ -2969,6 +2969,17 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         self.pedir("POST", "/api/marcadores", {"apagar": [{"quadro": "q", "id": "m0"}]})
         self.assertEqual(self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": {**self.MK, "id": "mais1"}}]})[0], 200)
 
+    def test_versao_dos_marcadores_sobe_so_por_api_marcadores(self):
+        # Ordem 25: a janela compara a versão da gravação do quadro com a da última resposta de /api/marcadores
+        self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        _, r1 = self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": {**self.MK, "id": "v1"}}]})
+        _, r2 = self.pedir("POST", "/api/marcadores", {"apagar": [{"quadro": "q", "id": "v1"}]})
+        self.assertEqual((r1["versoes"], r2["versoes"]), ({"q": 1}, {"q": 2}))
+        # a gravação do editor não muda a versão, mesmo mandando outra, e a devolve
+        status, corpo = self.pedir("PUT", "/api/boards/q", {"board": {"title": "Q", "items": [], "_mkv": 99}, "revision": 1})
+        self.assertEqual((status, corpo.get("mkv")), (200, 2), corpo)
+
     def test_renomear_grupo_grande_passa_de_64_kb(self):
         # provas da 1.17.0, D4: renomear um grupo manda um "alterar" por marcador; com uns 1.100 passava de 64 KB (413)
         self.novo_lugar()

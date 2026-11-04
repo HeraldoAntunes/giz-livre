@@ -71,7 +71,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.17.1"
+VERSAO = "1.17.2"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -179,7 +179,7 @@ def avulsa_resolvida(arq: Path) -> bool:
 
 TOLERANCIA_MINIATURA = 2.0   # s: um pendrive em FAT32 guarda a hora do arquivo de 2 em 2 s
 # o que muda sem a prévia mudar: renomear, mudar de pasta, salvar sem mexer no desenho
-FORA_DA_PREVIA = ("title", "folder", "_meta", "_rev", "updated", "view", "novo", "marcadores")   # "novo": marca da criação (P63)
+FORA_DA_PREVIA = ("title", "folder", "_meta", "_rev", "updated", "view", "novo", "marcadores", "_mkv")   # "novo": marca da criação (P63)
 MARCA_MINIATURA = b"giz-conteudo"
 MARCA_LIDA = re.compile(rb"tEXt" + MARCA_MINIATURA + rb"\x00([0-9a-f]{64})")
 MARCA_ANTIGA = re.compile(rb"[\x00-\xff]{4}tEXt" + MARCA_MINIATURA + rb"\x00[0-9a-f]{64}[\x00-\xff]{4}")
@@ -417,8 +417,10 @@ def listar_marcadores() -> dict:
 def mudar_marcadores(pedido: dict) -> dict:
     """Lote vindo do editor ou da galeria: {"novos": [{"quadro", "marcador"}], "alterar": [{"quadro", "id", ...campos}],
     "apagar": [{"quadro", "id"}], "grupos": [...]} (grupos: a lista inteira, quando muda). Cada quadro é lido e gravado
-    sob a trava dele, sem mexer na revisão nem na data de edição."""
+    sob a trava dele, sem mexer na revisão nem na data de edição. Cada quadro mexido ganha +1 na versão dos marcadores
+    ("_mkv"), devolvida em "versoes": a janela não aceita depois uma lista mais antiga (Ordem 25)."""
     por_quadro: dict = {}
+    versoes: dict = {}
     for chave in ("novos", "alterar", "apagar"):
         for x in pedido.get(chave) or []:
             if not isinstance(x, dict) or not isinstance(x.get("quadro"), str) or not ID_OK.match(x["quadro"]):
@@ -449,8 +451,14 @@ def mudar_marcadores(pedido: dict) -> dict:
                             if novo:
                                 lista[i] = novo
             board["marcadores"] = lista[:MAX_MARCADORES]
+            board["_mkv"] = versoes[bid] = versao_marcadores(board) + 1
             gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
-    return listar_marcadores()
+    return {**listar_marcadores(), "versoes": versoes}
+
+
+def versao_marcadores(board: dict) -> int:
+    v = board.get("_mkv", 0)
+    return v if type(v) is int and v >= 0 else 0
 
 
 def resumo_quadro(arq: Path) -> dict:
@@ -1115,10 +1123,13 @@ class Handler(SimpleHTTPRequestHandler):
                     board.pop("folder", None)
                 board["_meta"] = meta
             # marcadores: só /api/marcadores muda; o editor manda a cópia que tinha ao abrir, e a do arquivo fica (P65)
+            # a versão deles também é a do arquivo: a janela compara com a da última resposta de /api/marcadores
             if arq.exists():
                 board["marcadores"] = limpar_marcadores(atual.get("marcadores"))
+                board["_mkv"] = versao_marcadores(atual)
             else:
                 board["marcadores"] = limpar_marcadores(board.get("marcadores"))
+                board.pop("_mkv", None)
             if not board["marcadores"]:
                 board.pop("marcadores")
             board["_rev"] = revision + 1
@@ -1131,7 +1142,8 @@ class Handler(SimpleHTTPRequestHandler):
             if png:
                 gravar_miniatura(bid, png, board)
         return self._json({"ok": True, "updated": board["updated"], "revision": board["_rev"], "title": board["title"],
-                           "folder": board.get("folder", ""), "meta": board.get("_meta", 0), "marcadores": board.get("marcadores", [])})
+                           "folder": board.get("folder", ""), "meta": board.get("_meta", 0), "marcadores": board.get("marcadores", []),
+                           "mkv": versao_marcadores(board)})
 
     def do_POST(self):
         if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):
@@ -2159,6 +2171,7 @@ def quadro_do_pacote(dados: bytes, bid: str = "") -> dict:
     else:
         board.pop("folder", None)
     board.pop("_rev", None)
+    board.pop("_mkv", None)   # a versão dos marcadores é do arquivo de origem
     json.dumps(board, ensure_ascii=False, allow_nan=False)
     return board
 
