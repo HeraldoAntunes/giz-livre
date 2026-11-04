@@ -1,0 +1,132 @@
+{
+  "inicio": "2026-11-03T18:40:00.004Z",
+  "slides": 203,
+  "trocas": 300,
+  "kbPorSlide": 900,
+  "tela": "1920x1080",
+  "janela": "sem janela (headless)",
+  "kbMedio": 1921,
+  "itens": 203,
+  "quadroKB": 27,
+  "apresentacao": true,
+  "falhasInjetadas": 22,
+  "trocasComFalhaMs": [
+    624,
+    649,
+    641,
+    616,
+    632,
+    620,
+    650,
+    688,
+    654,
+    639,
+    627,
+    737,
+    647,
+    630,
+    615,
+    655,
+    649,
+    633,
+    639,
+    689,
+    628,
+    636
+  ],
+  "troca": {
+    "n": 278,
+    "mediaMs": 54,
+    "p50": 56,
+    "p95": 124,
+    "max": 219
+  },
+  "sumidos": [],
+  "memoria": [
+    {
+      "troca": 0,
+      "heapMB": 16.4,
+      "edgeMB": 609.6,
+      "edgeProc": 11
+    },
+    {
+      "troca": 25,
+      "heapMB": 12.6,
+      "edgeMB": 734.9,
+      "edgeProc": 11
+    },
+    {
+      "troca": 50,
+      "heapMB": 12.7,
+      "edgeMB": 909.3,
+      "edgeProc": 9
+    },
+    {
+      "troca": 75,
+      "heapMB": 12.9,
+      "edgeMB": 1018.9,
+      "edgeProc": 9
+    },
+    {
+      "troca": 100,
+      "heapMB": 12.8,
+      "edgeMB": 1012,
+      "edgeProc": 9
+    },
+    {
+      "troca": 125,
+      "heapMB": 12.5,
+      "edgeMB": 994.8,
+      "edgeProc": 9
+    },
+    {
+      "troca": 150,
+      "heapMB": 12.5,
+      "edgeMB": 987.8,
+      "edgeProc": 9
+    },
+    {
+      "troca": 175,
+      "heapMB": 12.6,
+      "edgeMB": 991.7,
+      "edgeProc": 9
+    },
+    {
+      "troca": 200,
+      "heapMB": 12.7,
+      "edgeMB": 991.7,
+      "edgeProc": 9
+    },
+    {
+      "troca": 225,
+      "heapMB": 12.8,
+      "edgeMB": 1010.8,
+      "edgeProc": 9
+    },
+    {
+      "troca": 250,
+      "heapMB": 12.9,
+      "edgeMB": 1026.8,
+      "edgeProc": 9
+    },
+    {
+      "troca": 275,
+      "heapMB": 13,
+      "edgeMB": 1034.6,
+      "edgeProc": 9
+    },
+    {
+      "troca": 300,
+      "heapMB": 13.1,
+      "edgeMB": 985.6,
+      "edgeProc": 9
+    }
+  ],
+  "gravacoesSoPorTrocar": 0,
+  "metas": {
+    "trocaP95Abaixo300ms": true,
+    "nenhumSumido": true,
+    "memoriaEstavel": true,
+    "semGravarSoPorTrocar": true
+  }
+}
