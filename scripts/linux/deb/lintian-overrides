@@ -1,0 +1,5 @@
+# O Giz Livre é um programa autocontido (servidor em Python e páginas), distribuído fora do Debian e do Ubuntu.
+# O /opt é o lugar que o FHS reserva para programas de fora da distribuição ("add-on"); por isso o pacote instala
+# em /opt/giz-livre de propósito, com o launcher em /usr/bin. Ver docs/PACOTE-LINUX.md e docs/PACOTE-LINUX-DISTROS.md.
+giz-livre: dir-or-file-in-opt [opt/giz-livre/*]
+giz-livre: dir-or-file-in-opt [opt/giz-livre/]

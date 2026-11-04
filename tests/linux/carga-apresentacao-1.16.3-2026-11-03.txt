@@ -1,0 +1,55 @@
+Carga do modo apresentação, Giz Livre 1.16.3 (tag v1.16.3, 58939db), 03/11/2026 18:39 UTC
+Host: Ubuntu 24.04.5 LTS, 4 CPUs, 16091 MB de RAM, Python 3.13.17, node v22.22.0
+Comando: node tests/linux/carga_apresentacao_linux.mjs --slides 203 --trocas 300
+
+(carga_apresentacao.mjs com /opt/pw-browsers/chromium-1243/chrome-linux64/chrome no lugar do Edge, python3 e memória pelo /proc)
+18:39:09 gerando 203 slides de ~900 KB
+18:39:29   PNG médio 1921 KB
+18:39:29   quadro com 203 itens, 27 KB
+18:39:37   25 trocas; última 67 ms; sumidos 0 { troca: 25, heapMB: 13.1, edgeMB: 750.4, edgeProc: 12 }
+18:39:40   50 trocas; última 74 ms; sumidos 0 { troca: 50, heapMB: 12.5, edgeMB: 918.2, edgeProc: 10 }
+18:39:42   75 trocas; última 78 ms; sumidos 0 { troca: 75, heapMB: 12.9, edgeMB: 1014.2, edgeProc: 10 }
+18:39:44   100 trocas; última 68 ms; sumidos 0 { troca: 100, heapMB: 12.7, edgeMB: 1007.4, edgeProc: 10 }
+18:39:46   125 trocas; última 78 ms; sumidos 0 { troca: 125, heapMB: 12.5, edgeMB: 1007, edgeProc: 10 }
+18:39:47   150 trocas; última 66 ms; sumidos 0 { troca: 150, heapMB: 12.7, edgeMB: 1003.7, edgeProc: 10 }
+18:39:48   175 trocas; última 19 ms; sumidos 0 { troca: 175, heapMB: 12.8, edgeMB: 1007.8, edgeProc: 10 }
+18:39:48   200 trocas; última 10 ms; sumidos 0 { troca: 200, heapMB: 12.9, edgeMB: 1008.1, edgeProc: 10 }
+18:39:49   225 trocas; última 41 ms; sumidos 0 { troca: 225, heapMB: 13, edgeMB: 998.9, edgeProc: 10 }
+18:39:51   250 trocas; última 62 ms; sumidos 0 { troca: 250, heapMB: 13, edgeMB: 1045.9, edgeProc: 10 }
+18:39:51   275 trocas; última 19 ms; sumidos 0 { troca: 275, heapMB: 13.1, edgeMB: 995.2, edgeProc: 10 }
+18:39:52   300 trocas; última 11 ms; sumidos 0 { troca: 300, heapMB: 13.2, edgeMB: 995.3, edgeProc: 10 }
+18:39:52 troca { n: 300, mediaMs: 57, p50: 62, p95: 120, max: 273 } sumidos 0 falhas injetadas 0 metas {
+  trocaP95Abaixo300ms: true,
+  nenhumSumido: true,
+  memoriaEstavel: true,
+  semGravarSoPorTrocar: true
+}
+18:39:52 resultado em /home/user/giz-livre/build/evidencia/carga_apresentacao/resultado.json
+saída: 0
+
+######## variante com falhas injetadas ########
+Comando: node tests/linux/carga_apresentacao_linux.mjs --slides 203 --trocas 300 --falhas
+(carga_apresentacao.mjs com /opt/pw-browsers/chromium-1243/chrome-linux64/chrome no lugar do Edge, python3 e memória pelo /proc)
+18:40:01 gerando 203 slides de ~900 KB
+18:40:20   PNG médio 1921 KB
+18:40:20   quadro com 203 itens, 27 KB
+18:40:30   25 trocas; última 69 ms; sumidos 0 { troca: 25, heapMB: 12.6, edgeMB: 734.9, edgeProc: 11 }
+18:40:34   50 trocas; última 115 ms; sumidos 0 { troca: 50, heapMB: 12.7, edgeMB: 909.3, edgeProc: 9 }
+18:40:39   75 trocas; última 66 ms; sumidos 0 { troca: 75, heapMB: 12.9, edgeMB: 1018.9, edgeProc: 9 }
+18:40:42   100 trocas; última 65 ms; sumidos 0 { troca: 100, heapMB: 12.8, edgeMB: 1012, edgeProc: 9 }
+18:40:46   125 trocas; última 72 ms; sumidos 0 { troca: 125, heapMB: 12.5, edgeMB: 994.8, edgeProc: 9 }
+18:40:50   150 trocas; última 636 ms; sumidos 0 { troca: 150, heapMB: 12.5, edgeMB: 987.8, edgeProc: 9 }
+18:40:51   175 trocas; última 12 ms; sumidos 0 { troca: 175, heapMB: 12.6, edgeMB: 991.7, edgeProc: 9 }
+18:40:51   200 trocas; última 19 ms; sumidos 0 { troca: 200, heapMB: 12.7, edgeMB: 991.7, edgeProc: 9 }
+18:40:52   225 trocas; última 50 ms; sumidos 0 { troca: 225, heapMB: 12.8, edgeMB: 1010.8, edgeProc: 9 }
+18:40:54   250 trocas; última 64 ms; sumidos 0 { troca: 250, heapMB: 12.9, edgeMB: 1026.8, edgeProc: 9 }
+18:40:54   275 trocas; última 16 ms; sumidos 0 { troca: 275, heapMB: 13, edgeMB: 1034.6, edgeProc: 9 }
+18:40:55   300 trocas; última 11 ms; sumidos 0 { troca: 300, heapMB: 13.1, edgeMB: 985.6, edgeProc: 9 }
+18:40:55 troca { n: 278, mediaMs: 54, p50: 56, p95: 124, max: 219 } sumidos 0 falhas injetadas 22 metas {
+  trocaP95Abaixo300ms: true,
+  nenhumSumido: true,
+  memoriaEstavel: true,
+  semGravarSoPorTrocar: true
+}
+18:40:55 resultado em /home/user/giz-livre/build/evidencia/carga_apresentacao/resultado.json
+saída: 0

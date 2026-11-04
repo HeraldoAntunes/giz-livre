@@ -1,0 +1,241 @@
+Teste dos pacotes do Giz Livre 1.16.3 no Ubuntu 24.04, depois das correções, 03/11/2026 20:53 UTC
+Ramo pacote-linux-distros, commit 837f50a; comando: sh tests/linux/pacote/testar-pacotes.sh mirror.gcr.io/library/ubuntu:24.04
+
+================ mirror.gcr.io/library/ubuntu:24.04 ================
+-- preparar o contêiner
+  sistema: Ubuntu 24.04.5 LTS
+  ✓ sem python3 antes de instalar o pacote
+  navegador de teste: Google Chrome for Testing 153.0.8010.12 
+
+---- mirror.gcr.io/library/ubuntu:24.04, pacote: deb ----
+-- instalar
+  apt-get install ./giz-livre_1.16.3_all.deb
+    Preparing to unpack .../libpython3.12-minimal_3.12.3-1ubuntu0.17_amd64.deb ...
+    Unpacking libpython3.12-minimal:amd64 (3.12.3-1ubuntu0.17) ...
+    Preparing to unpack .../python3.12-minimal_3.12.3-1ubuntu0.17_amd64.deb ...
+    Unpacking python3.12-minimal (3.12.3-1ubuntu0.17) ...
+    Setting up libpython3.12-minimal:amd64 (3.12.3-1ubuntu0.17) ...
+    Setting up python3.12-minimal (3.12.3-1ubuntu0.17) ...
+    Preparing to unpack .../0-python3-minimal_3.12.3-0ubuntu2.1_amd64.deb ...
+    Unpacking python3-minimal (3.12.3-0ubuntu2.1) ...
+    Preparing to unpack .../1-media-types_10.1.0_all.deb ...
+    Unpacking media-types (10.1.0) ...
+    Preparing to unpack .../2-netbase_6.4_all.deb ...
+    Unpacking netbase (6.4) ...
+    Preparing to unpack .../3-tzdata_2026e-0ubuntu0.24.04.1_all.deb ...
+    Unpacking tzdata (2026e-0ubuntu0.24.04.1) ...
+    Preparing to unpack .../4-readline-common_8.2-4build1_all.deb ...
+    Unpacking readline-common (8.2-4build1) ...
+    Preparing to unpack .../5-libreadline8t64_8.2-4build1_amd64.deb ...
+    Unpacking libreadline8t64:amd64 (8.2-4build1) ...
+    Preparing to unpack .../6-libpython3.12-stdlib_3.12.3-1ubuntu0.17_amd64.deb ...
+    Unpacking libpython3.12-stdlib:amd64 (3.12.3-1ubuntu0.17) ...
+    Preparing to unpack .../7-python3.12_3.12.3-1ubuntu0.17_amd64.deb ...
+    Unpacking python3.12 (3.12.3-1ubuntu0.17) ...
+    Preparing to unpack .../8-libpython3-stdlib_3.12.3-0ubuntu2.1_amd64.deb ...
+    Unpacking libpython3-stdlib:amd64 (3.12.3-0ubuntu2.1) ...
+    Setting up python3-minimal (3.12.3-0ubuntu2.1) ...
+    Preparing to unpack .../python3_3.12.3-0ubuntu2.1_amd64.deb ...
+    Unpacking python3 (3.12.3-0ubuntu2.1) ...
+    Preparing to unpack /tmp/giz-livre_1.16.3_all.deb ...
+    Unpacking giz-livre (1.16.3) ...
+    Setting up media-types (10.1.0) ...
+    Setting up tzdata (2026e-0ubuntu0.24.04.1) ...
+    Setting up netbase (6.4) ...
+    Setting up readline-common (8.2-4build1) ...
+    Setting up libreadline8t64:amd64 (8.2-4build1) ...
+    Setting up libpython3.12-stdlib:amd64 (3.12.3-1ubuntu0.17) ...
+    Setting up python3.12 (3.12.3-1ubuntu0.17) ...
+    Setting up libpython3-stdlib:amd64 (3.12.3-0ubuntu2.1) ...
+    Setting up python3 (3.12.3-0ubuntu2.1) ...
+    Setting up giz-livre (1.16.3) ...
+    Status: install ok installed
+    Version: 1.16.3
+    Depends: python3 (>= 3.10)
+  ✓ python3 veio pela dependência: Python 3.12.3
+  ✓ launcher em /usr/bin/giz-livre
+  ✓ programa em /opt/giz-livre
+-- conferir o atalho
+  ✓ desktop-file-validate /usr/share/applications/giz-livre.desktop: sem erro nem aviso
+    Name=Giz Livre
+    Exec=giz-livre
+    Icon=giz-livre
+    Categories=Education;
+  ✓ ícone em /usr/share/icons/hicolor/128x128/apps/giz-livre.png (PNG 128x128)
+-- abrir pelo atalho
+  Exec do atalho: giz-livre
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 3646, "versao": "1.16.3"}
+    processo: prof     python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros
+  ✓ o navegador foi chamado: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
+-- criar e salvar um quadro no Chromium sem janela
+  ✓ o launcher abriu o navegador no endereço do Giz Livre
+    endereço: http://127.0.0.1:8765/
+  ✓ a galeria abriu (a chave de abertura foi aceita)
+  ✓ a chave de uso único saiu do endereço
+  ✓ quadro novo criado e aberto
+  ✓ traço de caneta no quadro
+  ✓ texto no quadro
+  ✓ a página mostra "Salvo"
+  ✓ sem erro de JavaScript na página
+-- fechar
+  ✓ a janela fechou e o servidor se encerrou sozinho
+  ✓ arquivo de conexão apagado na saída
+-- conferir o quadro no disco
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mw1627gq0nlvh.json (7093 bytes, permissão 600, dono prof)
+    conteúdo: 1 traço(s), texto(s): ['Pacote deb em mirror.gcr.io/library/ubuntu:24.04']
+  ✓ o quadro no disco tem o traço e o texto
+-- abrir de novo pelo atalho
+  Exec do atalho: giz-livre
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 4059, "versao": "1.16.3"}
+    processo: prof     python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros
+  ✓ o navegador foi chamado: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
+-- reabrir o quadro
+  ✓ o launcher abriu o navegador no endereço do Giz Livre
+    endereço: http://127.0.0.1:8765/
+  ✓ a galeria abriu (a chave de abertura foi aceita)
+  ✓ a chave de uso único saiu do endereço
+  ✓ o quadro salvo antes aparece na galeria
+  ✓ reaberto com o traço
+  ✓ reaberto com o texto
+  ✓ sem erro de JavaScript na página
+-- fechar
+  ✓ a janela fechou e o servidor se encerrou sozinho
+  ✓ arquivo de conexão apagado na saída
+-- desinstalar
+  apt-get remove giz-livre (saída completa):
+    Reading package lists...
+    Building dependency tree...
+    Reading state information...
+    The following packages were automatically installed and are no longer required:
+      libpython3-stdlib libpython3.12-minimal libpython3.12-stdlib libreadline8t64
+      media-types netbase python3 python3-minimal python3.12 python3.12-minimal
+      readline-common tzdata
+    Use 'apt autoremove' to remove them.
+    The following packages will be REMOVED:
+      giz-livre
+    0 upgraded, 0 newly installed, 1 to remove and 1 not upgraded.
+    After this operation, 6350 kB disk space will be freed.
+    Removing giz-livre (1.16.3) ...
+    Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
+    (ou em $XDG_DATA_HOME/giz-livre) na pasta pessoal de cada conta. Para apagá-los, apague essa pasta.
+    Processing triggers for desktop-file-utils (0.27-2build1) ...
+  apt-get purge giz-livre:
+      giz-livre*
+    Purging configuration files for giz-livre (1.16.3) ...
+    Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
+    (ou em $XDG_DATA_HOME/giz-livre) na pasta pessoal de cada conta. Para apagá-los, apague essa pasta.
+    dpkg: warning: while removing giz-livre, directory '/opt' not empty so not removed
+-- conferir que nada sobrou e que os quadros ficaram
+  ✓ o pacote saiu (dpkg -s não acha giz-livre)
+  ✓ nenhum arquivo giz-livre sobrou fora da pasta pessoal (nem /opt/giz-livre, /usr/bin, atalho, ícone)
+  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros: mw1627gq0nlvh.json 
+
+---- mirror.gcr.io/library/ubuntu:24.04, pacote: usuario ----
+-- instalar
+  ./instalar.sh (conta prof, sem sudo)
+    Giz Livre instalado para esta conta.
+      Abra pelo menu de aplicativos (procure "Giz Livre") ou rode: /home/prof/.local/bin/giz-livre
+      Os quadros ficam em /home/prof/.local/share/giz-livre/quadros
+      Para desinstalar: sh /home/prof/.local/lib/giz-livre/desinstalar.sh (os quadros não são apagados)
+      Opcional: para trazer arquivos do PowerPoint (.pptx), instale o LibreOffice Impress.
+  ✓ launcher em ~/.local/bin/giz-livre
+  ✓ programa em ~/.local/lib/giz-livre
+  ✓ nada gravado fora da pasta pessoal
+-- conferir o atalho
+  ✓ desktop-file-validate /home/prof/.local/share/applications/giz-livre.desktop: sem erro nem aviso
+    Name=Giz Livre
+    Exec=/home/prof/.local/bin/giz-livre
+    Icon=giz-livre
+    Categories=Education;
+  ✓ ícone em /home/prof/.local/share/icons/hicolor/128x128/apps/giz-livre.png (PNG 128x128)
+-- abrir pelo atalho
+  Exec do atalho: /home/prof/.local/bin/giz-livre
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 4593, "versao": "1.16.3"}
+    processo: prof     python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros
+  ✓ o navegador foi chamado: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
+-- criar e salvar um quadro no Chromium sem janela
+  ✓ o launcher abriu o navegador no endereço do Giz Livre
+    endereço: http://127.0.0.1:8765/
+  ✓ a galeria abriu (a chave de abertura foi aceita)
+  ✓ a chave de uso único saiu do endereço
+  ✓ quadro novo criado e aberto
+  ✓ traço de caneta no quadro
+  ✓ texto no quadro
+  ✓ a página mostra "Salvo"
+  ✓ sem erro de JavaScript na página
+-- fechar
+  ✓ a janela fechou e o servidor se encerrou sozinho
+  ✓ arquivo de conexão apagado na saída
+-- conferir o quadro no disco
+  ✓ quadro salvo no disco: .local/share/giz-livre/quadros/mw162x66d7im9.json (6941 bytes, permissão 600, dono prof)
+    conteúdo: 1 traço(s), texto(s): ['Pacote usuario em mirror.gcr.io/library/ubuntu:24.04']
+  ✓ o quadro no disco tem o traço e o texto
+-- abrir de novo pelo atalho
+  Exec do atalho: /home/prof/.local/bin/giz-livre
+  ✓ servidor no ar: {"porta": 8765, "token": "…", "pid": 4979, "versao": "1.16.3"}
+    processo: prof     python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros
+  ✓ o navegador foi chamado: chromium --app=http://127.0.0.1:8765/?k=… --start-maximized
+-- reabrir o quadro
+  ✓ o launcher abriu o navegador no endereço do Giz Livre
+    endereço: http://127.0.0.1:8765/
+  ✓ a galeria abriu (a chave de abertura foi aceita)
+  ✓ a chave de uso único saiu do endereço
+  ✓ o quadro salvo antes aparece na galeria
+  ✓ reaberto com o traço
+  ✓ reaberto com o texto
+  ✓ sem erro de JavaScript na página
+-- fechar
+  ✓ a janela fechou e o servidor se encerrou sozinho
+  ✓ arquivo de conexão apagado na saída
+-- desinstalar
+  sh ~/.local/lib/giz-livre/desinstalar.sh (conta prof):
+    Giz Livre desinstalado desta conta.
+    Os quadros NÃO foram apagados: continuam em /home/prof/.local/share/giz-livre
+    Para apagá-los também, apague essa pasta.
+-- conferir que nada sobrou e que os quadros ficaram
+  ✓ fora de ~/.local/share/giz-livre, a pasta pessoal voltou a ser como era antes de instalar
+  ✓ launcher, programa, atalho e ícone apagados
+  ✓ os quadros ficaram: 2 em ~/.local/share/giz-livre/quadros: mw1627gq0nlvh.json mw162x66d7im9.json 
+
+================ dependência: mirror.gcr.io/library/debian:12, sem python3 ================
+    Selecting previously unselected package giz-livre.
+    (Reading database ... 6096 files and directories currently installed.)
+    Preparing to unpack .../giz-livre_1.16.3_all.deb ...
+    Unpacking giz-livre (1.16.3) ...
+    dpkg: dependency problems prevent configuration of giz-livre:
+     giz-livre depends on python3 (>= 3.10); however:
+      Package python3 is not installed.
+    
+    dpkg: error processing package giz-livre (--install):
+     dependency problems - leaving unconfigured
+    Errors were encountered while processing:
+     giz-livre
+    dpkg saiu com 1
+  ✓ sem python3, o dpkg não configura o pacote e diz que falta python3 (>= 3.10)
+
+================ resumo ================
+pacotes testados:
+  982ab042c3504956bf4a1ed17ae60ce71eca0d6fb1acd9f53c446567e4d42cb4  giz-livre_1.16.3_all.deb
+  a9d1c09d482a3656094020db8e243a5e9ec0e0a4c39b13ba98553df456c7c8d4  giz-livre-1.16.3-linux-usuario.tar.gz
+resultado:
+  PASSOU  mirror.gcr.io/library/ubuntu:24.04
+  PASSOU  mirror.gcr.io/library/debian:12 (dependência python3 conferida pelo dpkg)
+saída: 0
+
+######## ícones e changelog do .deb instalado (Ubuntu 24.04) ########
+   /usr/share/icons/hicolor/48x48/apps/giz-livre.png PNG 48x48
+   /usr/share/icons/hicolor/64x64/apps/giz-livre.png PNG 64x64
+   /usr/share/icons/hicolor/128x128/apps/giz-livre.png PNG 128x128
+   /usr/share/icons/hicolor/256x256/apps/giz-livre.png PNG 256x256
+   -rw-r--r-- 1 root root 19037 Nov  3 20:52 /usr/share/doc/giz-livre/changelog.gz
+   -rw-r--r-- 1 root root   584 Nov  3 20:52 /usr/share/icons/hicolor/scalable/apps/giz-livre.svg
+   -rw-r--r-- 1 root root   447 Nov  3 20:52 /usr/share/lintian/overrides/giz-livre
+   primeiras linhas do changelog:
+     giz-livre (1.16.3) unstable; urgency=medium
+     
+       * Correções.
+       * Apresentação longa sem travar: num quadro com muitos slides e escrita à
+   Maintainer: Heraldo Antunes <PREENCHER-EMAIL-DO-MANTENEDOR>
+   Suggests: chromium | chromium-browser | google-chrome-stable | firefox | firefox-esr, libreoffice-impress
+   Maintainer: Heraldo Antunes <PREENCHER-EMAIL-DO-MANTENEDOR>
+   Suggests: chromium | chromium-browser | google-chrome-stable | firefox | firefox-esr, libreoffice-impress
