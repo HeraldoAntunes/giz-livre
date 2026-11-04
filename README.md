@@ -7,20 +7,21 @@ Feita por um professor para as próprias aulas: quadro infinito, caderno A4, sli
 folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem internet.</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/feito%20em-JavaScript-f1e05a?logo=javascript&logoColor=black" alt="Feito em JavaScript">
-  <img src="https://img.shields.io/badge/feito%20em-Python-3572A5?logo=python&logoColor=white" alt="Feito em Python">
+  <a href="https://github.com/HeraldoAntunes/giz-livre/releases/latest"><img src="https://img.shields.io/github/v/release/HeraldoAntunes/giz-livre?label=vers%C3%A3o" alt="Versão"></a>
+  <img src="https://img.shields.io/badge/situa%C3%A7%C3%A3o-est%C3%A1vel-2b8a3e" alt="Situação: estável">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue" alt="Licença MIT"></a>
+  <a href="https://doi.org/10.5281/zenodo.23552115"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg" alt="DOI"></a>
+  <a href="https://github.com/HeraldoAntunes/giz-livre/releases"><img src="https://img.shields.io/github/downloads/HeraldoAntunes/giz-livre/total?label=downloads" alt="Downloads"></a>
+  <br>
   <a href="#sistemas"><img src="https://img.shields.io/badge/testado%20no-Windows%2011-0078D6" alt="Testado no Windows 11"></a>
   <a href="#linux-e-macos-experimental"><img src="https://img.shields.io/badge/Linux-em%20testes-f0ad4e?logo=linux&logoColor=white" alt="Linux em testes"></a>
   <img src="https://img.shields.io/badge/internet-n%C3%A3o%20precisa-2b8a3e" alt="Não precisa de internet">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-blue" alt="Licença MIT"></a>
-  <img src="https://img.shields.io/badge/situa%C3%A7%C3%A3o-est%C3%A1vel-2b8a3e" alt="Situação: estável">
   <a href="docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental"><img src="https://img.shields.io/badge/agentes-MCP-6f42c1" alt="Agentes: MCP"></a>
   <br>
+  <img src="https://img.shields.io/badge/feito%20em-JavaScript-f1e05a?logo=javascript&logoColor=black" alt="Feito em JavaScript">
+  <img src="https://img.shields.io/badge/feito%20em-Python-3572A5?logo=python&logoColor=white" alt="Feito em Python">
   <a href="https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml"><img src="https://github.com/HeraldoAntunes/giz-livre/actions/workflows/testes.yml/badge.svg" alt="Testes"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/HeraldoAntunes/giz-livre"><img src="https://api.scorecard.dev/projects/github.com/HeraldoAntunes/giz-livre/badge" alt="OpenSSF Scorecard"></a>
-  <a href="https://github.com/HeraldoAntunes/giz-livre/releases/latest"><img src="https://img.shields.io/github/v/release/HeraldoAntunes/giz-livre?label=vers%C3%A3o" alt="Versão"></a>
-  <a href="https://github.com/HeraldoAntunes/giz-livre/releases"><img src="https://img.shields.io/github/downloads/HeraldoAntunes/giz-livre/total?label=downloads" alt="Downloads"></a>
-  <a href="https://doi.org/10.5281/zenodo.23552115"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg" alt="DOI"></a>
 </p>
 
 <p align="center">
@@ -68,9 +69,6 @@ programa é gratuito e não tem assinatura paga). Versões anteriores e a confer
 
 ## Como baixar e instalar (Windows)
 
-As instruções abaixo descrevem a 1.16.0, com janela própria. A tabela de downloads acima permanece na última versão
-publicada; os links da versão nova serão atualizados quando ela for publicada.
-
 1. Abra a página de **[downloads (Releases)](https://github.com/HeraldoAntunes/giz-livre/releases/latest)**.
 2. Baixe o arquivo que serve para você:
 
@@ -85,17 +83,15 @@ publicada; os links da versão nova serão atualizados quando ela for publicada.
    Se o componente faltar, o programa orienta instalar o WebView2 oficial da Microsoft.
 
 O Windows pode avisar "editor desconhecido" (SmartScreen), porque o programa não tem assinatura digital paga. Clique em
-*Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 com o
-`SHA256SUMS.txt` da mesma página (troque `x.y.z` pela versão que baixou):
-```bash
+*Mais informações → Executar assim mesmo*. Para conferir se o arquivo é legítimo, compare o SHA-256 (uma "impressão digital" do
+arquivo) com o `SHA256SUMS.txt` da mesma página. No Windows, abra o Prompt de Comando na pasta do download e digite
+(troque `x.y.z` pela versão que baixou):
+```cmd
 certutil -hashfile Instalar-GizLivre-x.y.z.zip SHA256
 ```
 
-**Pelo winget** (gerenciador de pacotes do Windows), para quem prefere instalar pela linha de comando:
-```bash
-winget install HeraldoAntunes.GizLivre
-```
-O pacote está em análise no catálogo da Microsoft; o comando passa a funcionar quando ele for aprovado.
+**Pelo winget** (gerenciador de pacotes do Windows): o pedido no catálogo da Microsoft foi feito para uma versão antiga
+(1.12.1) e ainda está em análise. Por enquanto, não use; baixe pelo zip acima.
 
 ## Como é
 | Caderno A4 com plano cartesiano | Slides do PowerPoint anotados |
@@ -163,7 +159,7 @@ O pacote está em análise no catálogo da Microsoft; o comando passa a funciona
 | | Windows 11 | Linux (experimental) | macOS (experimental) |
 |---|---|---|---|
 | Instalador e atalhos | ✅ | `.deb` e `.tar.gz`, em testes | não (rodar pelo código) |
-| Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | em testes (sem tela, no Ubuntu do WSL) | ⚠️ não testado |
+| Quadro, canetas, folhas, caderno, PDF, apresentação, ferramentas | ✅ | em testes automáticos, ainda não num computador com Linux | ⚠️ não testado |
 | Pressão da caneta | ✅ (Windows Ink) | ✅ geralmente, no Chrome/Chromium | ⚠️ depende do driver |
 | Abrir PowerPoint (`.pptx`) | ✅ PowerPoint ou LibreOffice | ✅ com LibreOffice | ⚠️ com LibreOffice |
 | Abrir PDF | ✅ | ✅ | ✅ |
@@ -184,9 +180,10 @@ Vídeos dentro dos slides entram como imagem parada.
 
 ### Linux e macOS (experimental)
 **Linux, em testes:** há pacotes da 1.17.2 na [página da versão](https://github.com/HeraldoAntunes/giz-livre/releases/tag/v1.17.2):
-`sudo apt install ./giz-livre_1.17.2_all.deb` no Ubuntu e no Debian, ou, em outro Linux, o `.tar.gz` com `./instalar.sh`,
-que instala só para o seu usuário, sem pedir senha de administrador. Eles passaram por testes automáticos sem tela no Ubuntu dentro do Windows (WSL), mas ainda não num computador
-com Linux de verdade, com tela e caneta. Os quadros ficam em `~/.local/share/giz-livre/quadros`.
+`sudo apt install ./giz-livre_1.17.2_all.deb` no Ubuntu e no Debian, ou, em outro Linux, o arquivo compactado `.tar.gz`:
+extraia e rode `./instalar.sh`, que instala só para o seu usuário, sem pedir senha de administrador. Eles passaram
+por testes automáticos num Linux que roda dentro do Windows, mas ainda não num computador com Linux de verdade, com
+tela e caneta. Os quadros ficam em `~/.local/share/giz-livre/quadros`.
 
 Pelo código, no Linux ou no macOS: precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.
 ```bash
@@ -231,8 +228,9 @@ em zip daqui, confere o SHA-256 publicado, extrai, instala por cima e abre o pro
 estão. Quem usa a 1.15 ou anterior precisa fazer a primeira atualização para a janela própria à mão, extraindo o zip
 de instalação e abrindo o `GizLivre.exe`; o Sobre antigo só reconhece o instalador anterior.
 
-**Onde ficam os meus quadros?** Na versão instalada, em `Documentos\Giz Livre\quadros`. Na portátil e no Linux/macOS,
-na pasta `quadros` ao lado do programa. Para fazer backup, copie essa pasta.
+**Onde ficam os meus quadros?** Na versão instalada, em `Documentos\Giz Livre\quadros`. Na portátil, na pasta `quadros`
+ao lado do programa. Nos pacotes Linux (`.deb` e `.tar.gz`), em `~/.local/share/giz-livre/quadros`, na sua pasta
+pessoal. Rodando pelo código, na pasta `quadros` do programa. Para fazer backup, copie essa pasta.
 
 **Funciona com a minha mesa digitalizadora?** Se ela funciona no Windows com o **Windows Ink** ligado no driver, funciona
 no Giz Livre; sem o Windows Ink ela desenha como mouse, sem pressão. Veja o passo a passo no [Guia de uso](docs/GUIA-DE-USO.md#2-primeira-vez-com-mesa-digitalizadora-5-minutos).
