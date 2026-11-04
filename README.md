@@ -45,7 +45,7 @@ Versão atual: **1.17.2**.
 |---|---|
 | **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.2.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/Instalar-GizLivre-1.17.2.zip) |
 | Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.2-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/GizLivre-1.17.2-portatil.zip) |
-| Linux (Ubuntu/Debian), em testes | [giz-livre_1.17.2_all.deb](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre_1.17.2_all.deb) · outras distribuições, só para a sua conta: [giz-livre-1.17.2-linux-usuario.tar.gz](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre-1.17.2-linux-usuario.tar.gz) |
+| Linux (Ubuntu/Debian), em testes | [giz-livre_1.17.2_all.deb](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre_1.17.2_all.deb) · outro Linux (Fedora, Arch...): [giz-livre-1.17.2-linux-usuario.tar.gz](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre-1.17.2-linux-usuario.tar.gz), que instala só para o seu usuário, sem pedir senha de administrador |
 
 Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
 se instala, copia a pasta para a sua conta, sem pedir administrador, e cria os atalhos. Os quadros e ajustes
@@ -184,8 +184,8 @@ Vídeos dentro dos slides entram como imagem parada.
 
 ### Linux e macOS (experimental)
 **Linux, em testes:** há pacotes da 1.17.2 na [página da versão](https://github.com/HeraldoAntunes/giz-livre/releases/tag/v1.17.2):
-`sudo apt install ./giz-livre_1.17.2_all.deb` no Ubuntu e no Debian, ou o `.tar.gz` com `./instalar.sh` só para a sua
-conta. Eles passaram por testes automáticos sem tela no Ubuntu dentro do Windows (WSL), mas ainda não num computador
+`sudo apt install ./giz-livre_1.17.2_all.deb` no Ubuntu e no Debian, ou, em outro Linux, o `.tar.gz` com `./instalar.sh`,
+que instala só para o seu usuário, sem pedir senha de administrador. Eles passaram por testes automáticos sem tela no Ubuntu dentro do Windows (WSL), mas ainda não num computador
 com Linux de verdade, com tela e caneta. Os quadros ficam em `~/.local/share/giz-livre/quadros`.
 
 Pelo código, no Linux ou no macOS: precisa de **Python 3.10+** e do Chrome/Chromium/Edge. Para abrir PowerPoint, instale o **LibreOffice**, que é gratuito.
