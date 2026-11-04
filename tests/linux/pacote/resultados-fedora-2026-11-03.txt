@@ -1,0 +1,57 @@
+Teste do .tar.gz do Giz Livre 1.16.3 no Fedora, 03/11/2026 20:46 UTC
+Ramo pacote-linux-distros; host Ubuntu 24.04.5 LTS, Docker 29.9.2, desktop-file-validate desktop-file-validate 0.27
+Comando: sh tests/linux/pacote/testar-fedora.sh
+
+================ mirror.gcr.io/library/fedora:40, .tar.gz ================
+  sistema: Fedora release 40 (Forty)
+-- instalar (./instalar.sh na conta prof, sem sudo)
+  python3 da imagem: Python 3.12.8
+    Giz Livre instalado para esta conta.
+      Abra pelo menu de aplicativos (procure "Giz Livre") ou rode: /home/prof/.local/bin/giz-livre
+      Os quadros ficam em /home/prof/.local/share/giz-livre/quadros
+      Para desinstalar: sh /home/prof/.local/lib/giz-livre/desinstalar.sh (os quadros não são apagados)
+  ✓ launcher e programa instalados
+-- conferir o atalho e o ícone
+  ✓ desktop-file-validate (aqui fora, na cópia exata): sem erro nem aviso
+    Exec=/home/prof/.local/bin/giz-livre
+    Icon=giz-livre
+    ícone: PNG 128x128
+-- abrir pelo comando do atalho
+    processo: python3.12 server.py --dados /home/prof/.local/share/giz-livre/quadros 
+  ✓ o servidor responde no /api/info: {"versao": "1.16.3", "app": "giz-livre"}
+  ✓ o server.py chamou o chromium com --app=http://127.0.0.1:8765/?k=…
+-- criar e salvar um quadro (Chromium sem janela daqui de fora)
+  ✓ o launcher abriu o navegador no endereço do Giz Livre
+    endereço: http://127.0.0.1:8765/
+  ✓ a galeria abriu (a chave de abertura foi aceita)
+  ✓ a chave de uso único saiu do endereço
+  ✓ quadro novo criado e aberto
+  ✓ traço de caneta no quadro
+  ✓ texto no quadro
+  ✓ a página mostra "Salvo"
+  ✓ sem erro de JavaScript na página
+-- fechar
+  ✓ a janela fechou e o servidor se encerrou sozinho
+  ✓ arquivo de conexão apagado na saída
+    no disco: 1 traço(s), textos ['Fedora em mirror.gcr.io/library/fedora:40']
+  ✓ quadro salvo no disco: ~/.local/share/giz-livre/quadros/mw15r7lfcvazp.json (600 prof)
+-- desinstalar (sh ~/.local/lib/giz-livre/desinstalar.sh)
+    Giz Livre desinstalado desta conta.
+    Os quadros NÃO foram apagados: continuam em /home/prof/.local/share/giz-livre
+    Para apagá-los também, apague essa pasta.
+  ✓ fora de ~/.local/share/giz-livre, a pasta pessoal voltou a ser como era antes de instalar
+  ✓ os quadros ficaram: 1 em ~/.local/share/giz-livre/quadros
+
+================ mirror.gcr.io/library/fedora:latest, .tar.gz ================
+  sistema: Fedora release 45 (Forty Five)
+-- instalar sem python3 na imagem
+    O Giz Livre precisa do Python 3.10 ou mais novo. No Ubuntu ou Debian: sudo apt install python3
+  ✓ o instalar.sh recusou (saída 1) e disse que falta o Python 3.10 ou mais novo
+  ✓ nada foi instalado
+
+================ resumo (Fedora) ================
+pacote testado: ba4257cd5b8bc223a5fd6dde6c613ecb5359fb8035357c9fd5b4d0faff3cd128  giz-livre-1.16.3-linux-usuario.tar.gz
+resultado:
+  PASSOU  mirror.gcr.io/library/fedora:40
+  PASSOU  mirror.gcr.io/library/fedora:latest
+saída: 0

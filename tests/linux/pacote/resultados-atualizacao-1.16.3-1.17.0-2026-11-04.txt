@@ -1,0 +1,117 @@
+Atualização do pacote Linux do Giz Livre, 1.16.3 -> 1.17.0, 04/11/2026 00:44 UTC
+Ramo pacote-linux-1.17.0, commit 151616f; host Ubuntu 24.04.5 LTS, Docker 29.9.2
+Comando: sh tests/linux/pacote/testar-atualizacao.sh   (ANTIGO=dist/linux-1.16.3, os pacotes 1.16.3 do ramo pacote-linux-distros)
+
+================ mirror.gcr.io/library/ubuntu:24.04, deb: 1.16.3 -> nova ================
+  sistema: Ubuntu 24.04.5 LTS
+-- instalar a versão antiga
+    giz-livre 1.16.3 (install ok installed)
+  ✓ versão antiga instalada
+-- criar um quadro na versão antiga
+    programa no ar: 1.16.3
+    gravado: {"ok": true, "updated": 1793753080360, "revision": 1, "title": "Quadro da Feito na 1.16.3", "folder": "", "meta": 0}
+  ✓ quadro criado na 1.16.3
+  ✓ programa antigo encerrado
+    antes:  7c3088b11bb7199213b1d61830a4f76e7d4af54cb1eaf35eb9c90c38ad1b5c31  atualizacao1.json
+-- atualizar para a versão nova, por cima
+    giz-livre 1.17.0 (install ok installed)
+  ✓ versão nova instalada por cima
+    depois: 7c3088b11bb7199213b1d61830a4f76e7d4af54cb1eaf35eb9c90c38ad1b5c31  atualizacao1.json
+  ✓ os arquivos dos quadros estão iguais, byte a byte (SHA-256)
+    programa no ar: 1.17.0
+  ✓ agora roda a 1.17.0
+    na galeria e abre: título 'Quadro da Feito na 1.16.3', 1 traço(s), textos ['Feito na 1.16.3']
+  ✓ o quadro da 1.16.3 aparece na galeria da 1.17.0 e abre com o traço e o texto
+-- desinstalar
+    Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
+    Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
+  ✓ pacote removido
+  ✓ os quadros continuam em ~/.local/share/giz-livre/quadros, iguais
+
+================ mirror.gcr.io/library/ubuntu:24.04, usuario: 1.16.3 -> nova ================
+  sistema: Ubuntu 24.04.5 LTS
+-- instalar a versão antiga
+    programa 1.16.3 em ~/.local/lib/giz-livre
+  ✓ versão antiga instalada
+-- criar um quadro na versão antiga
+    programa no ar: 1.16.3
+    gravado: {"ok": true, "updated": 1793753098278, "revision": 1, "title": "Quadro da Feito na 1.16.3", "folder": "", "meta": 0}
+  ✓ quadro criado na 1.16.3
+  ✓ programa antigo encerrado
+    antes:  1aff4748224956684fca6087520ca2982ae24f0952bbbcc3d2bc36e30dfe8b36  atualizacao1.json
+-- atualizar para a versão nova, por cima
+    programa 1.17.0 em ~/.local/lib/giz-livre
+  ✓ versão nova instalada por cima
+    depois: 1aff4748224956684fca6087520ca2982ae24f0952bbbcc3d2bc36e30dfe8b36  atualizacao1.json
+  ✓ os arquivos dos quadros estão iguais, byte a byte (SHA-256)
+    programa no ar: 1.17.0
+  ✓ agora roda a 1.17.0
+    na galeria e abre: título 'Quadro da Feito na 1.16.3', 1 traço(s), textos ['Feito na 1.16.3']
+  ✓ o quadro da 1.16.3 aparece na galeria da 1.17.0 e abre com o traço e o texto
+-- desinstalar
+    Os quadros NÃO foram apagados: continuam em /home/prof/.local/share/giz-livre
+  ✓ programa removido
+  ✓ os quadros continuam em ~/.local/share/giz-livre/quadros, iguais
+
+================ mirror.gcr.io/library/buildpack-deps:bookworm, deb: 1.16.3 -> nova ================
+  sistema: Debian GNU/Linux 12 (bookworm)
+  (sem acesso ao repositório da distribuição: o .deb entra por dpkg -i, com o python3 da imagem)
+-- instalar a versão antiga
+    giz-livre 1.16.3 (install ok installed)
+  ✓ versão antiga instalada
+-- criar um quadro na versão antiga
+    programa no ar: 1.16.3
+    gravado: {"ok": true, "updated": 1793753118980, "revision": 1, "title": "Quadro da Feito na 1.16.3", "folder": "", "meta": 0}
+  ✓ quadro criado na 1.16.3
+  ✓ programa antigo encerrado
+    antes:  24ad655359a38f3c1110cec4252790d14a4a2fcbadf77d27a051fe7f20dd2e03  atualizacao1.json
+-- atualizar para a versão nova, por cima
+    giz-livre 1.17.0 (install ok installed)
+  ✓ versão nova instalada por cima
+    depois: 24ad655359a38f3c1110cec4252790d14a4a2fcbadf77d27a051fe7f20dd2e03  atualizacao1.json
+  ✓ os arquivos dos quadros estão iguais, byte a byte (SHA-256)
+    programa no ar: 1.17.0
+  ✓ agora roda a 1.17.0
+    na galeria e abre: título 'Quadro da Feito na 1.16.3', 1 traço(s), textos ['Feito na 1.16.3']
+  ✓ o quadro da 1.16.3 aparece na galeria da 1.17.0 e abre com o traço e o texto
+-- desinstalar
+    Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
+    Giz Livre removido. Os quadros NÃO foram apagados: continuam em ~/.local/share/giz-livre
+  ✓ pacote removido
+  ✓ os quadros continuam em ~/.local/share/giz-livre/quadros, iguais
+
+================ mirror.gcr.io/library/buildpack-deps:bookworm, usuario: 1.16.3 -> nova ================
+  sistema: Debian GNU/Linux 12 (bookworm)
+  (sem acesso ao repositório da distribuição: o .deb entra por dpkg -i, com o python3 da imagem)
+-- instalar a versão antiga
+    programa 1.16.3 em ~/.local/lib/giz-livre
+  ✓ versão antiga instalada
+-- criar um quadro na versão antiga
+    programa no ar: 1.16.3
+    gravado: {"ok": true, "updated": 1793753131435, "revision": 1, "title": "Quadro da Feito na 1.16.3", "folder": "", "meta": 0}
+  ✓ quadro criado na 1.16.3
+  ✓ programa antigo encerrado
+    antes:  931e6128f212c82dff9e905787a56388ba3977307a22566a62e7f24c68c1a6f9  atualizacao1.json
+-- atualizar para a versão nova, por cima
+    programa 1.17.0 em ~/.local/lib/giz-livre
+  ✓ versão nova instalada por cima
+    depois: 931e6128f212c82dff9e905787a56388ba3977307a22566a62e7f24c68c1a6f9  atualizacao1.json
+  ✓ os arquivos dos quadros estão iguais, byte a byte (SHA-256)
+    programa no ar: 1.17.0
+  ✓ agora roda a 1.17.0
+    na galeria e abre: título 'Quadro da Feito na 1.16.3', 1 traço(s), textos ['Feito na 1.16.3']
+  ✓ o quadro da 1.16.3 aparece na galeria da 1.17.0 e abre com o traço e o texto
+-- desinstalar
+    Os quadros NÃO foram apagados: continuam em /home/prof/.local/share/giz-livre
+  ✓ programa removido
+  ✓ os quadros continuam em ~/.local/share/giz-livre/quadros, iguais
+
+================ resumo (atualização) ================
+de:   15f7cb2340e6c1f83e6b56543d77a7d12cb2d0908e7790ed13bb399aa8815433  giz-livre_1.16.3_all.deb dffcd5754f122b1872b282bd7ffffd71ed5d5856d32013ea181fbd53ca1b2df3  giz-livre-1.16.3-linux-usuario.tar.gz 
+para: e6a99a9c8c481126ae63d9df73af5871444e8aca9395740134b09e58062ade7f  giz-livre_1.17.0_all.deb c5ba18bec14c403b709cf46a37d374e91b8e4bf0318593cb7994fffd9e5bb16d  giz-livre-1.17.0-linux-usuario.tar.gz 
+resultado:
+  PASSOU  mirror.gcr.io/library/ubuntu:24.04, deb
+  PASSOU  mirror.gcr.io/library/ubuntu:24.04, usuario
+  PASSOU  mirror.gcr.io/library/buildpack-deps:bookworm, deb
+  PASSOU  mirror.gcr.io/library/buildpack-deps:bookworm, usuario
+saída: 0

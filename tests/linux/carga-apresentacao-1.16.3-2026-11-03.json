@@ -1,0 +1,108 @@
+{
+  "inicio": "2026-11-03T18:39:07.899Z",
+  "slides": 203,
+  "trocas": 300,
+  "kbPorSlide": 900,
+  "tela": "1920x1080",
+  "janela": "sem janela (headless)",
+  "kbMedio": 1921,
+  "itens": 203,
+  "quadroKB": 27,
+  "apresentacao": true,
+  "falhasInjetadas": 0,
+  "troca": {
+    "n": 300,
+    "mediaMs": 57,
+    "p50": 62,
+    "p95": 120,
+    "max": 273
+  },
+  "sumidos": [],
+  "memoria": [
+    {
+      "troca": 0,
+      "heapMB": 12.6,
+      "edgeMB": 557.1,
+      "edgeProc": 12
+    },
+    {
+      "troca": 25,
+      "heapMB": 13.1,
+      "edgeMB": 750.4,
+      "edgeProc": 12
+    },
+    {
+      "troca": 50,
+      "heapMB": 12.5,
+      "edgeMB": 918.2,
+      "edgeProc": 10
+    },
+    {
+      "troca": 75,
+      "heapMB": 12.9,
+      "edgeMB": 1014.2,
+      "edgeProc": 10
+    },
+    {
+      "troca": 100,
+      "heapMB": 12.7,
+      "edgeMB": 1007.4,
+      "edgeProc": 10
+    },
+    {
+      "troca": 125,
+      "heapMB": 12.5,
+      "edgeMB": 1007,
+      "edgeProc": 10
+    },
+    {
+      "troca": 150,
+      "heapMB": 12.7,
+      "edgeMB": 1003.7,
+      "edgeProc": 10
+    },
+    {
+      "troca": 175,
+      "heapMB": 12.8,
+      "edgeMB": 1007.8,
+      "edgeProc": 10
+    },
+    {
+      "troca": 200,
+      "heapMB": 12.9,
+      "edgeMB": 1008.1,
+      "edgeProc": 10
+    },
+    {
+      "troca": 225,
+      "heapMB": 13,
+      "edgeMB": 998.9,
+      "edgeProc": 10
+    },
+    {
+      "troca": 250,
+      "heapMB": 13,
+      "edgeMB": 1045.9,
+      "edgeProc": 10
+    },
+    {
+      "troca": 275,
+      "heapMB": 13.1,
+      "edgeMB": 995.2,
+      "edgeProc": 10
+    },
+    {
+      "troca": 300,
+      "heapMB": 13.2,
+      "edgeMB": 995.3,
+      "edgeProc": 10
+    }
+  ],
+  "gravacoesSoPorTrocar": 0,
+  "metas": {
+    "trocaP95Abaixo300ms": true,
+    "nenhumSumido": true,
+    "memoriaEstavel": true,
+    "semGravarSoPorTrocar": true
+  }
+}
