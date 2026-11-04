@@ -1,0 +1,35 @@
+Giz Livre 1.17.2: pacotes Linux, 04/11/2026, Ubuntu 26.04 LTS no WSL 2, Python 3.14.4
+ramo pacote-linux-1.17.2, commit 38da380 (merge de pacote-linux-1.17.1 sobre v1.17.2, 20a5277)
+
+montagem (sh scripts/linux/montar-pacotes.sh), duas vezes, bytes iguais:
+ec04ba59c7575a1bae8e8018e812aacfff7a9b0e14f34c41172a9e72579f9bde  giz-livre_1.17.2_all.deb
+6ff906c70dee1528c5f3423d2f3b9fb95fcc0d1c5f19ddd989ea5476e039df93  giz-livre-1.17.2-linux-usuario.tar.gz
+
+programa igual ao de git archive v1.17.2:
+  .deb (/opt/giz-livre): 191 iguais, 0 diferentes
+  .tar.gz (programa/): 191 iguais, 0 diferentes
+caminhos pessoais (pasta do usuário, AppData, pasta dos projetos, /home/<conta>): nenhum
+
+lintian 2.129.0ubuntu2.1: 0 erros; W maintainer-script-empty [postrm]; W no-manual-page [usr/bin/giz-livre];
+  203 dir-or-file-in-opt (override)
+
+.deb:
+  dpkg -i: Status install ok installed, Version 1.17.2, Depends python3 (>= 3.10)
+  /usr/share/applications/giz-livre.desktop e /usr/bin/giz-livre presentes
+  giz-livre --sem-janela --sem-auto-encerrar --porta 8791 --dados <tmp>: GET / 200, /js/version.js 1.17.2
+  test_server.py contra /opt/giz-livre (conta comum, installer/ da fonte ligado ao lado):
+    rodada 1: OK (skipped=4)
+    rodada 2: OK (skipped=4)
+    rodada 3: OK (skipped=4)
+    nenhum __pycache__ criado em /opt/giz-livre
+  antes das rodadas acima, sem installer/: 1 erro (FileNotFoundError installer/lousa.iss, arquivo só do Windows)
+  classe GravacaoComFalhaDeDiscoTests contra o instalado: 3 OK e 2 FAILED em 5 rodadas
+    (test_miniatura_de_um_segundo_antes_nao_aparece_depois_da_queda, linha 2843); sozinho 12 OK em 12;
+    contra a fonte 12 OK em 12
+  dpkg -i e dpkg -P com retrato de /opt /usr/bin /usr/share/{applications,icons,doc,pixmaps,man} /etc
+    /var/lib/dpkg/info: entraram 217 caminhos; depois de dpkg -P, retrato igual ao de antes
+
+.tar.gz (HOME de teste, sem sudo):
+  instalar.sh: atalho, ícones e launcher em ~/.local
+  ~/.local/bin/giz-livre --sem-janela ...: /js/version.js 1.17.2
+  desinstalar.sh: sobram ~/.local/share (vazia) e o registro do servidor de teste ao lado da pasta --dados
