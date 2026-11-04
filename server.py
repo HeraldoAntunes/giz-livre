@@ -71,7 +71,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.17.0"
+VERSAO = "1.17.1"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -80,7 +80,8 @@ ASSET_OK = re.compile(r"^[0-9a-f]{40}\.(png|jpg)\Z")
 TIPOS = {"png": "image/png", "jpg": "image/jpeg"}
 MB = 1024 * 1024
 LIMITES = {"boards": 200 * MB, "thumbs": 5 * MB, "assets": 40 * MB, "pptx": 300 * MB, "pdf": 300 * MB, "ocr": 2 * MB,
-           "agente": 1 * MB, "outros": 64 * 1024}
+           "agente": 1 * MB, "outros": 64 * 1024,
+           "marcadores": 4 * MB}   # renomear um grupo manda um item por marcador (provas da 1.17.0, D4)
 TOKEN = secrets.token_hex(16)        # token da sessão: só a página servida por ESTE servidor o conhece
 TRAVA_PPTX = threading.Semaphore(1)  # conversões pesadas: uma de cada vez
 PPTX_DESCOMPACTADO_MAX = 1536 * MB      # soma declarada dos arquivos dentro de uma apresentação (checar_pptx)
@@ -436,6 +437,8 @@ def mudar_marcadores(pedido: dict) -> dict:
                 if chave == "novos":
                     m = limpar_marcador(x.get("marcador"))
                     if m and all(o["id"] != m["id"] for o in lista):
+                        if len(lista) >= MAX_MARCADORES:   # antes, o 501º saía "marcado" e era descartado (Ordem 21)
+                            raise ValueError(f"Este quadro já tem {MAX_MARCADORES} marcadores. Apague algum para marcar outro.")
                         lista.append(m)
                 elif chave == "apagar":
                     lista = [o for o in lista if o["id"] != x.get("id")]
@@ -1282,7 +1285,7 @@ class Handler(SimpleHTTPRequestHandler):
         if rota == "/api/lixeira/restaurar":
             return self._restaurar()
         if rota == "/api/marcadores":   # criar, renomear, mudar de grupo, reordenar e apagar marcadores (P65)
-            corpo = self._corpo()
+            corpo = self._corpo("marcadores")
             if corpo is None:
                 return
             try:

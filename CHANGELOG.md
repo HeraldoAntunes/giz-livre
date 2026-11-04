@@ -1,5 +1,23 @@
 # Histórico de versões
 
+## 1.17.1 (04/11/2026)
+Correções achadas em duas revisões independentes da 1.17.0.
+- **Duas janelas do mesmo quadro:** se uma janela só trocou o título, o fundo (cor ou folha) ou o rascunho escondido
+  enquanto a outra gravava, a troca podia sumir sem aviso. Agora ela é gravada ou aparece o aviso de conflito.
+- **Marcadores:** passar de 500 num quadro dava "Marcado", mas o marcador não era guardado. Agora aparece o aviso para
+  apagar algum antes.
+- **Arquivo .lousa:** a imagem do cartão do marcador agora vai junto e aparece no outro computador.
+- **Esconder até a aula** voltou a funcionar em quadros muito grandes.
+- **Colar (Ctrl+V)** sem tocar no quadro aberto agora vai para o meio da tela, não para o ponto tocado em outro quadro.
+- **Marcadores acompanham as páginas:** inserir uma página (também pela tecla N ou ao importar slides no meio) ou
+  excluir uma leva os marcadores das páginas seguintes junto, com o número e o nome sugerido ("Página 3"). O marcador
+  de uma página excluída sai com ela, e o Ctrl+Z traz os dois de volta.
+- **Revelar na apresentação:** a tecla R e o botão Revelar mostram o escondido que está na tela, e não mais o de outro
+  slide, que a turma ainda não viu.
+- **Roteiro de paradas:** a ordem não muda mais com "Trazer para a frente" ou "Enviar para trás".
+- **Renomear um grupo** com mais de mil marcadores voltou a funcionar.
+- A tecla N num quadro sem páginas agora só avisa, sem erro.
+
 ## 1.17.0 (03/11/2026)
 Melhorias pedidas depois de uma aula com o Giz Livre.
 - **Marcadores, como as fitas de um livro:** o botão **Marcar** (ou Ctrl+M) guarda o ponto e o enquadramento de agora,

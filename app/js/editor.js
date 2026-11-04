@@ -264,6 +264,7 @@ export function initEditor() {
 export function openBoard(id, board, back) {
   onBack = back;
   notasPagina = -1; notaPendente = false;   // o painel Notas lê de novo no quadro novo
+  ultimoToque = null;   // o toque era de outro quadro: colar sem tocar neste vai para o meio (Ordem 21)
   const pending = failedSnaps.get(id);
   if (pending) board = pending.board;
   board.background = { color: '#ffffff', pattern: 'none', ...(board.background || {}) };
@@ -273,6 +274,7 @@ export function openBoard(id, board, back) {
   const items = (Array.isArray(board.items) ? board.items : []).filter(i => !(i.type === 'text' && !String(i.text || '').trim()));
   S = { id, board, items, view };
   itensGravados = pending ? null : items;   // o conteúdo que está no disco (D1: reconciliar um conflito só de vista)
+  dadosGravados = pending ? null : dadosDoQuadro(board);
   dirtyVer = pending?.ver || 0; savedVer = pending ? -1 : 0;
   if (pending) pending.state = S;
   undoStack = []; redoStack = []; sel = new Set(); action = null; ruler = null; laser = []; editing = null; noRascunho = false; paradaAtual = -1;
@@ -1555,8 +1557,11 @@ function changed() {
 function undo() {
   if (!undoStack.length) return;
   pendingBeauty = []; clearTimeout(beautyTimer);
-  redoStack.push(histEntry());
-  restore(undoStack.pop());
+  const e = undoStack.pop(), atual = histEntry();
+  if (e.mk) atual.mk = e.mk;   // páginas inseridas ou excluídas: os marcadores voltam junto (D1 das provas da 1.17.0)
+  redoStack.push(atual);
+  restore(e);
+  if (e.mk) trocarMarcadores(e.mk.depois, e.mk.antes);
   changed();
   avisoAcao('Desfeito', { label: 'Refazer', fn: redo });
 }
@@ -1567,8 +1572,11 @@ function avisoAcao(msg, act) {
 }
 function redo() {
   if (!redoStack.length) return;
-  undoStack.push(histEntry());
-  restore(redoStack.pop());
+  const e = redoStack.pop(), atual = histEntry();
+  if (e.mk) atual.mk = e.mk;
+  undoStack.push(atual);
+  restore(e);
+  if (e.mk) trocarMarcadores(e.mk.antes, e.mk.depois);
   changed();
 }
 function updateUndo() {
@@ -1636,16 +1644,20 @@ async function retryFailed() {
 }
 
 let itensGravados = null;   // os itens da última gravação bem-sucedida (ou do quadro como abriu)
+// e os outros dados do quadro nessa hora (título, rascunho oculto, fundo...): um conflito só é "só de vista" se nada disso
+// mudou também; sem a vista, a revisão e o que já vem do disco (marcadores, _meta)
+const dadosDoQuadro = b => { const { items, view, _rev, marcadores, _meta, updated, ...resto } = b || {}; return JSON.stringify(resto); };
+let dadosGravados = null;
 // D1: traz o quadro do disco (com o que a outra janela gravou) e mantém a vista desta janela; a vista vai na próxima
 // gravação, já na revisão nova. Só quando esta janela não tem conteúdo por gravar (quem chama confere)
 async function reconciliar(snap) {
   try {
     const fresh = await loadBoard(snap.id);
-    if (S !== snap.state || S.items !== itensGravados) return false;   // escreveu algo enquanto buscava: conflito de verdade
+    if (S !== snap.state || S.items !== itensGravados || dadosDoQuadro(S.board) !== dadosGravados) return false;   // mudou algo enquanto buscava: conflito de verdade
     const vista = { ...S.view };
     S.board = { ...fresh, view: vista };
     S.items = Array.isArray(fresh.items) ? fresh.items : [];
-    itensGravados = S.items;
+    itensGravados = S.items; dadosGravados = dadosDoQuadro(S.board);
     undoStack = []; redoStack = []; sel = new Set();   // o desfazer apontava para o quadro de antes
     failedSnaps.delete(snap.id);
     syncSaveError(); updateUndo(); updatePageBar(); syncToolbar(); requestRender();
@@ -1676,7 +1688,7 @@ async function writeSnapshot(snap) {
   try {
     const res = await saveBoard(snap.id, snap.board, null);
     snap.state.board._rev = snap.board._rev;
-    if (S === snap.state) itensGravados = snap.board.items;
+    if (S === snap.state) { itensGravados = snap.board.items; dadosGravados = dadosDoQuadro(snap.board); }
     // marcadores: os do arquivo (a galeria pode ter mudado com o quadro aberto; P65)
     if (Array.isArray(res?.marcadores)) { snap.state.board.marcadores = res.marcadores; if (S === snap.state) syncFitas(); }
     if (snap.board._meta && snap.board._meta !== snap.state.board._meta) {   // renomeado/movido pela galeria
@@ -1697,7 +1709,8 @@ async function writeSnapshot(snap) {
   } catch (e) {
     // conflito só de vista: esta janela não mudou o conteúdo desde a última gravação (só apresentou), e a outra gravou.
     // Recarrega o quadro do disco e grava a vista de novo, em vez de parar de gravar (provas da 1.16.3, D1)
-    if (e.conflict && S === snap.state && itensGravados && snap.board.items === itensGravados && await reconciliar(snap)) return;
+    if (e.conflict && S === snap.state && itensGravados && snap.board.items === itensGravados && dadosDoQuadro(snap.board) === dadosGravados
+      && await reconciliar(snap)) return;
     snap.conflict = !!e.conflict;
     if (S === snap.state) { st.textContent = e.conflict ? e.message : 'Erro ao salvar — tentando de novo'; st.classList.add('err'); }
     if (e.conflict) toast(e.message, 12000);
@@ -2971,7 +2984,7 @@ async function exportLousa() {
   const data = { ...S.board, items: S.items, view: { ...S.view } };
   delete data._rev; // revisão pertence ao arquivo de origem, não à cópia portátil
   try {
-    data.items = await embedAssets(data.items);
+    await embedBoard(data);
     download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(data.title) + '.lousa');
   } catch (e) { toast(e.message, 8000); }
 }
@@ -2989,6 +3002,18 @@ export async function embedAssets(items) {
     })));
     return { ...it, src: await cache.get(it.src) };
   }));
+}
+// o .lousa inteiro: imagens dos itens e miniaturas dos marcadores embutidas (Ordem 21: a miniatura ficava como
+// endereço deste PC). Miniatura que falhar não interrompe: o marcador vai sem ela
+export async function embedBoard(data) {
+  data.items = await embedAssets(data.items);
+  if (Array.isArray(data.marcadores)) data.marcadores = await MK.embutirMinis(data.marcadores, async src => {
+    const r = await fetch(src);
+    if (!r.ok || !r.headers.get('Content-Type')?.startsWith('image/')) throw new Error('miniatura ausente');
+    const b = await r.blob();
+    return new Promise((res, reject) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = reject; fr.readAsDataURL(b); });
+  });
+  return data;
 }
 
 function showKeys() {
@@ -3197,10 +3222,14 @@ function insertPageAfter(i, extra = []) {
   const L = S.board.layout, step = L.h + L.gap, cut = PG.pageRect(L, i).y + L.h + L.gap / 2;
   const items = itemsShift(S.items, cut, step);
   commit([...items, ...extra.map(it => R.transformItem(it, 0, 0))], { ...L, count: L.count + 1 });
+  marcadoresSeguem(y => (y > cut ? y + step : y));
   goToPage(i + 1, present);
   refreshPanel();
 }
-function addBlankAfter() { if (insertPageAfter(curPage()) !== false) toast('Página em branco inserida'); }
+function addBlankAfter() {
+  if (!PG.isPages(S.board)) return toast('O quadro livre não tem páginas: é só continuar escrevendo ao lado');   // tecla N (D6 das provas da 1.17.0)
+  if (insertPageAfter(curPage()) !== false) toast('Página em branco inserida');
+}
 
 function duplicatePage(i) {
   const L = S.board.layout, step = L.h + L.gap;
@@ -3227,10 +3256,12 @@ async function deletePages(list) {
   }
   clearSel();
   commit(items, { ...L, count: L.count - idx.length });
+  // o marcador de uma página excluída sai junto (Ctrl+Z o traz de volta); os de depois sobem com o conteúdo
+  const saiu = marcadoresSeguem(y => { const p = Math.floor((y + L.gap / 2) / step); return idx.includes(p) ? null : y - step * idx.filter(i => i < p).length; });
   goToPage(Math.min(idx[idx.length - 1], L.count - idx.length - 1), present);
   panelSel.clear();
   refreshPanel(true);
-  toast(idx.length === 1 ? 'Página excluída' : `${idx.length} páginas excluídas`);
+  toast((idx.length === 1 ? 'Página excluída' : `${idx.length} páginas excluídas`) + (saiu ? (saiu === 1 ? ', com o marcador dela' : `, com ${saiu} marcadores`) : ''));
 }
 
 function addPageEnd() { insertPageAfter(S.board.layout.count - 1); }
@@ -3277,7 +3308,9 @@ async function importSlidesIntoBoard(file) {
       L = { ...L, count: L.count + srcs.length };
     }
     if (L.count > PG.MAX_PAGINAS) throw new Error(`Com estes slides o quadro passaria de ${PG.MAX_PAGINAS} páginas, o máximo. Use um quadro novo para eles.`);
+    const eraPaginas = PG.isPages(S.board), corte = eraPaginas ? PG.pageRect(L, start - 1).y + L.h + L.gap / 2 : 0;
     commit([...items, ...slideItems(L, srcs, start, sizes, videos)], L);
+    if (eraPaginas) marcadoresSeguem(y => (y > corte ? y + srcs.length * (L.h + L.gap) : y));
     goToPage(start);
     toast(`${srcs.length} página(s) importada(s)`);
     refreshPanel();
@@ -3547,8 +3580,11 @@ function presentColorPop(anchor) {
 // revelar na hora (P61 A): um toque mostra o próximo escondido, na ordem em que foram escondidos; Ctrl+Z desfaz
 function revelar() {
   if (!S) return;
-  const r = revelarProximo(S.items);
-  if (!r) return toast('Nada escondido para revelar');
+  // só o que está na tela: revelar a resposta de um slide que a turma ainda não viu não mudaria nada à vista
+  const a = toWorld(0, 0), b = toWorld(W, H);
+  const naTela = it => { const c = R.bbox(it); return c.x < b.x && c.x + c.w > a.x && c.y < b.y && c.y + c.h > a.y; };
+  const r = revelarProximo(S.items, naTela);
+  if (!r) return toast(quantosEscondidos(S.items) ? 'Nada escondido nesta tela' : 'Nada escondido para revelar');
   commit(r.items);
 }
 function syncRevelar() {
@@ -3623,6 +3659,26 @@ function marcadoresRecebidos(lista) {
   S.board.marcadores = lista;
   syncFitas();
 }
+// páginas inseridas ou excluídas: os marcadores seguem o conteúdo (provas da 1.17.0, D1). Chamar logo depois do
+// commit da operação: a mudança fica na mesma entrada do desfazer. Devolve quantos marcadores saíram
+function marcadoresSeguem(novoY) {
+  const L = S.board.layout, mk = MK.seguirPaginas(marcadoresDoQuadro(), novoY, L.h + L.gap);
+  if (!mk.antes.length) return 0;
+  const topo = undoStack[undoStack.length - 1];
+  if (topo) topo.mk = mk;
+  trocarMarcadores(mk.antes, mk.depois);
+  return mk.antes.length - mk.depois.length;
+}
+// leva os marcadores `de` a ficarem como `para`: já na tela e, em seguida, no arquivo
+function trocarMarcadores(de, para) {
+  const quadro = S.id, sai = new Set(de.map(m => m.id)), pedido = MK.pedidoDeMudanca(quadro, de, para);
+  S.board.marcadores = [...marcadoresDoQuadro().filter(m => !sai.has(m.id)), ...para];
+  syncFitas();
+  if (!Object.keys(pedido).length) return;
+  mudarMarcadores(pedido).then(r => {
+    if (S?.id === quadro) marcadoresRecebidos(r.marcadores.filter(x => x.quadro === quadro).map(({ quadro: _q, titulo: _t, pasta: _p, ...x }) => x));
+  }).catch(e => toast('Os marcadores não acompanharam as páginas: ' + e.message, 8000));
+}
 // cartão de marcar: nome sugerido, grupos em bolinhas de cor, Enter confirma
 async function abrirMarcar(anchor) {
   if (!S) return;
@@ -3674,7 +3730,8 @@ async function criarMarcador(nome, grupo, pagina) {
     const novoGrupo = grupo && !gruposMarcadores.slice(0, -1).some(g => g.id === grupo.id) ? { grupos: gruposMarcadores } : {};
     const r = await mudarMarcadores({ novos: [{ quadro, marcador: m }], ...novoGrupo });
     if (S?.id === quadro) marcadoresRecebidos(r.marcadores.filter(x => x.quadro === quadro).map(({ quadro: _q, titulo: _t, pasta: _p, ...x }) => x));
-    toast(`Marcado: ${m.nome}`);
+    // só diz "Marcado" se o marcador voltou na lista gravada (Ordem 21: o servidor podia descartar sem erro)
+    toast(r.marcadores.some(x => x.quadro === quadro && x.id === m.id) ? `Marcado: ${m.nome}` : 'Não consegui gravar o marcador');
   } catch (e) { toast(e.message); }
 }
 // na apresentação: a lista dos marcadores deste quadro, para pular até um (as fitinhas ficam escondidas da turma)

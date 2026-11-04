@@ -42,3 +42,60 @@ export function soltar(marcadores, arrastado, grupoDestino, alvo, grupos) {
 export function nomeSugerido(pagina, quantos) {
   return pagina ? `Página ${pagina}` : `Marcador ${quantos + 1}`;
 }
+
+/** Inserir ou excluir páginas desloca o conteúdo; o marcador vai junto (provas da 1.17.0, D1). novoY(y) dá a altura
+ * nova do ponto, ou null se a página dele saiu. Devolve só os que mudaram: antes (como estavam) e depois (sem os que
+ * saíram). O número da página acompanha, e o nome também, se ainda for o sugerido ("Página 3"). */
+export function seguirPaginas(marcadores, novoY, passo) {
+  const antes = [], depois = [];
+  for (const m of marcadores || []) {
+    const y = novoY(m.cy);
+    if (y === m.cy) continue;
+    antes.push(m);
+    if (y == null) continue;
+    const n = { ...m, cy: y };
+    if (m.pagina) {
+      n.pagina = Math.floor(y / passo) + 1;
+      if (m.nome === `Página ${m.pagina}`) n.nome = `Página ${n.pagina}`;
+    }
+    depois.push(n);
+  }
+  return { antes, depois };
+}
+
+/** O pedido para /api/marcadores que leva os marcadores `de` (como estão no arquivo) a ficarem como `para`. */
+export function pedidoDeMudanca(quadro, de, para) {
+  const ja = new Map(de.map(m => [m.id, m])), fica = new Set(para.map(m => m.id));
+  const novos = [], alterar = [];
+  for (const m of para) {
+    if (!ja.has(m.id)) { novos.push({ quadro, marcador: m }); continue; }
+    const o = ja.get(m.id), dif = {};
+    for (const k of ['cx', 'cy', 'w', 'pagina', 'nome']) if (m[k] !== o[k] && m[k] !== undefined) dif[k] = m[k];
+    if (Object.keys(dif).length) alterar.push({ quadro, id: m.id, ...dif });
+  }
+  const apagar = de.filter(m => !fica.has(m.id)).map(m => ({ quadro, id: m.id }));
+  return { ...(novos.length ? { novos } : {}), ...(alterar.length ? { alterar } : {}), ...(apagar.length ? { apagar } : {}) };
+}
+
+// .lousa (Ordem 21): a miniatura mora na pasta de imagens deste PC; no arquivo ela vai embutida e, ao importar, volta
+// a ser imagem da pasta do outro PC. Se uma não der, o marcador segue sem a miniatura (o ponto é o que importa)
+const sem = ({ mini, ...m }) => m;
+const MINI_LOCAL = /^\/assets\/[0-9a-f]{40}\.(png|jpg)$/, MINI_EMBUTIDA = /^data:image\/(png|jpeg)[;,]/;
+
+/** Os marcadores com a miniatura embutida (ler: endereço /assets/... para data URL). */
+export async function embutirMinis(marcadores, ler) {
+  return Promise.all((marcadores || []).map(async m => {
+    if (typeof m?.mini !== 'string' || !MINI_LOCAL.test(m.mini)) return m?.mini === undefined ? m : sem(m);
+    try { return { ...m, mini: await ler(m.mini) }; } catch { return sem(m); }
+  }));
+}
+
+/** Os marcadores de um .lousa com a miniatura enviada à pasta de imagens (subir: data URL para /assets/...). */
+export async function subirMinis(marcadores, subir) {
+  return Promise.all((marcadores || []).map(async m => {
+    if (typeof m?.mini !== 'string') return m;
+    if (!MINI_EMBUTIDA.test(m.mini)) return sem(m);
+    try { const url = await subir(m.mini); return typeof url === 'string' && MINI_LOCAL.test(url) ? { ...m, mini: url } : sem(m); }
+    catch { return sem(m); }
+  }));
+}

@@ -2953,6 +2953,38 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         status, corpo = self.pedir("PUT", "/api/boards/q", pacote)
         self.assertEqual((status, self.marcadores()["marcadores"]), (200, []))
 
+    def test_marcador_alem_do_limite_e_recusado_com_aviso(self):
+        # Ordem 21 do Codex, achado 2: o 501º era confirmado (200) e descartado em silêncio
+        self.novo_lugar()
+        self.salvar("x", 0, criar=True)
+        for k in range(0, 500, 100):   # em lotes: um pedido só passaria do tamanho que o servidor aceita
+            lote = [{"quadro": "q", "marcador": {**self.MK, "id": f"m{i}"}} for i in range(k, k + 100)]
+            self.assertEqual(self.pedir("POST", "/api/marcadores", {"novos": lote})[0], 200)
+        status, corpo = self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": {**self.MK, "id": "mais1"}}]})
+        self.assertEqual(status, 400, corpo)
+        self.assertIn("500", corpo.get("erro", ""))
+        ids = [x["id"] for x in self.marcadores()["marcadores"]]
+        self.assertEqual((len(ids), "mais1" in ids), (500, False))
+        # apagar um abre lugar de novo
+        self.pedir("POST", "/api/marcadores", {"apagar": [{"quadro": "q", "id": "m0"}]})
+        self.assertEqual(self.pedir("POST", "/api/marcadores", {"novos": [{"quadro": "q", "marcador": {**self.MK, "id": "mais1"}}]})[0], 200)
+
+    def test_renomear_grupo_grande_passa_de_64_kb(self):
+        # provas da 1.17.0, D4: renomear um grupo manda um "alterar" por marcador; com uns 1.100 passava de 64 KB (413)
+        self.novo_lugar()
+        alterar = []
+        for q in ("qa", "qb", "qc"):
+            self.salvar("x", 0, criar=True, bid=q)
+            for k in range(0, 400, 100):
+                lote = [{"quadro": q, "marcador": {**self.MK, "id": f"{q}x{i}"}} for i in range(k, k + 100)]
+                self.assertEqual(self.pedir("POST", "/api/marcadores", {"novos": lote})[0], 200)
+            alterar += [{"quadro": q, "id": f"{q}x{i}", "grupoNome": "Revisão final do ano"} for i in range(400)]
+        pedido = {"grupos": [{"id": "g1", "nome": "Revisão final do ano", "cor": "#c50f1f"}], "alterar": alterar}
+        self.assertGreater(len(json.dumps(pedido)), 64 * 1024)
+        status, corpo = self.pedir("POST", "/api/marcadores", pedido)
+        self.assertEqual(status, 200, str(corpo)[:200])
+        self.assertTrue(all(m["grupoNome"] == "Revisão final do ano" for m in self.marcadores()["marcadores"]))
+
     def test_marcador_danificado_fica_de_fora(self):
         self.novo_lugar()
         self.salvar("x", 0, criar=True)

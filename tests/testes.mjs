@@ -793,6 +793,17 @@ console.log('\nEncaixe, esquadro e calculadora');
     r = RV.revelarProximo(r.items); igual(r.id, 'c', 'depois o segundo');
     igual(RV.revelarProximo(RV.revelarProximo(r.items).items), null, 'nada mais');
   });
+  teste('revelar só o que está na tela: o de outro slide fica escondido (provas da 1.17.0, D2)', () => {
+    const q = [{ id: 's3', y: 2000, revelar: 1 }, { id: 's1', y: 100, revelar: 2 }];
+    igual(RV.revelarProximo(q, i => i.y < 800).id, 's1', 'o da tela, mesmo escondido depois');
+    igual(RV.revelarProximo(q, () => false), null, 'nada na tela: nada revela');
+    igual(RV.revelarProximo(q).id, 's3', 'sem filtro, a ordem de sempre');
+  });
+  teste('esconder num quadro gigante (150 mil itens) não estoura a pilha (Ordem 21, achado 4)', () => {
+    const q = Array.from({ length: 150000 }, (_, k) => ({ id: 'i' + k, ...(k === 7 ? { revelar: 4 } : {}) }));
+    const r = RV.esconder(q, new Set(['i5']));
+    igual(r[5].revelar, 5, 'vai depois do maior número que já havia');
+  });
 
   // P64 i: notas do professor, uma por página, como item invisível que acompanha a página
   const NT = await mod('notas.js'), PGn = await mod('pages.js'), Rn = await mod('render.js');
@@ -838,6 +849,12 @@ console.log('\nEncaixe, esquadro e calculadora');
       im('pdf', 0, 0, { locked: true }), im('r', 0, 0, { camada: 'rascunho' })]);
     igual(lista.map(i => i.id).join(), 'a,b,c,d', 'ordem de leitura, sem texto, página de PDF nem rascunho');
   });
+  teste('paradas: prints em escada dão a mesma ordem, qualquer que seja a ordem no quadro (provas da 1.17.0, D5)', () => {
+    const A = { id: 'A', type: 'image', x: 0, y: 80, w: 300, h: 100 }, B = { id: 'B', type: 'image', x: 500, y: 40, w: 300, h: 100 },
+      C = { id: 'C', type: 'image', x: 1000, y: 0, w: 300, h: 100 };
+    const ordens = new Set([[A, B, C], [C, B, A], [B, A, C], [A, C, B], [B, C, A], [C, A, B]].map(p => PR.paradas(p).map(i => i.id).join('')));
+    igual([...ordens].join(' '), [...ordens][0], 'uma ordem só');
+  });
   teste('paradas: a vista enquadra a imagem no centro, com folga', () => {
     const v = PR.vistaDaCaixa({ x: 1000, y: 2000, w: 400, h: 200 }, 1600, 900);
     perto((1000 + 200) * v.zoom + v.x, 800, 1e-9, 'centro x'); perto((2000 + 100) * v.zoom + v.y, 450, 1e-9, 'centro y');
@@ -846,6 +863,32 @@ console.log('\nEncaixe, esquadro e calculadora');
 
   // P65: marcadores (o ponto em coordenadas do quadro, o mesmo enquadramento em outra tela, arrastar)
   const MKS = await mod('marcadores.js');
+  teste('marcadores seguem a página ao inserir e excluir (provas da 1.17.0, D1)', () => {
+    const P = 768, ms = [{ id: 'a', nome: 'Página 1', cy: 360, pagina: 1 }, { id: 'b', nome: 'Página 3', cy: 2 * P + 360, pagina: 3 },
+      { id: 'c', nome: 'Lei de Hess', cy: 3 * P + 360, pagina: 4 }];
+    const ins = MKS.seguirPaginas(ms, y => (y > P - 24 ? y + P : y), P);
+    igual(ins.antes.map(m => m.id).join(), 'b,c', 'só os de depois mudam');
+    igual(ins.depois.map(m => `${m.nome}@${m.pagina}`).join(), 'Página 4@4,Lei de Hess@5', 'nome sugerido acompanha; nome dado fica');
+    const del = MKS.seguirPaginas(ms, y => (Math.floor(y / P) === 2 ? null : y > 3 * P ? y - P : y), P);
+    igual(del.depois.map(m => m.id).join(), 'c', 'o da página excluída sai');
+    const ped = MKS.pedidoDeMudanca('q', del.antes, del.depois);
+    igual(JSON.stringify(ped), JSON.stringify({ alterar: [{ quadro: 'q', id: 'c', cy: 2 * P + 360, pagina: 3 }], apagar: [{ quadro: 'q', id: 'b' }] }), 'pedido');
+    igual(JSON.stringify(MKS.pedidoDeMudanca('q', del.depois, del.antes).novos.map(x => x.marcador.id)), '["b"]', 'desfazer recria o que saiu');
+  });
+  {
+    // Ordem 21, achado 3: o .lousa levava o marcador com a miniatura como endereço deste PC (/assets/...), sem os bytes
+    const A1 = '/assets/' + 'a'.repeat(40) + '.png', A2 = '/assets/' + 'b'.repeat(40) + '.png', PNG = 'data:image/png;base64,iVBORw0KGgo=';
+    const lista = [{ id: 'm1', mini: A1 }, { id: 'm2', mini: A2 }, { id: 'm3' }];
+    const fora = await MKS.embutirMinis(lista, async src => { if (src === A2) throw new Error('sumiu'); return PNG; });
+    const chegou = await MKS.subirMinis([...fora, { id: 'm4', mini: 'https://exemplo.com/x.png' }, { id: 'm5', mini: 'data:text/html,oi' }],
+      async d => (d === PNG ? A2 : null));
+    teste('.lousa: a miniatura do marcador vai embutida e volta como imagem do outro PC', () => {
+      igual(fora[0].mini, PNG, 'embutida'); igual('mini' in fora[1], false, 'a que sumiu sai sem miniatura (o marcador fica)');
+      igual(fora.length, 3, 'nenhum marcador some'); igual(lista[0].mini, A1, 'a lista do quadro não muda');
+      igual(chegou[0].mini, A2, 'no outro PC, o endereço da imagem enviada');
+      igual(chegou.slice(1).map(m => m.mini ?? '-').join(), '-,-,-,-', 'sem miniatura, de fora ou estranha');
+    });
+  }
   teste('marcadores: o ponto da vista volta igual, e numa tela maior com a mesma largura vista', () => {
     const v = { x: -300, y: -1200, zoom: 1.5 }, p = MKS.pontoDaVista(v, 1600, 900);
     const de = MKS.vistaDoMarcador(p, 1600, 900);

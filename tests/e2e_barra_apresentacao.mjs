@@ -176,6 +176,9 @@ try {
   // P61 A) na apresentação: o botão Revelar está na mini-bandeja, e a tecla R revela o escondido
   conferir('Revelar (1) na mini-bandeja', await avaliar(`(() => { const b = document.getElementById('ppRevelar'); return !b.hidden && b.offsetWidth > 0 && b.textContent.trim() === 'Revelar (1)'; })()`));
   await avaliar('document.activeElement?.blur()');
+  // o R revela o escondido que está na tela (provas da 1.17.0, D2): a vista volta para o texto escondido
+  await avaliar(`(() => { const S = window.__lousa.S, it = S.items.find(i => i.id === ${JSON.stringify(idEsc)}), c = document.getElementById('cv'), z = S.view.zoom;
+    S.view = { zoom: z, x: c.clientWidth / 2 - it.x * z, y: c.clientHeight / 2 - it.y * z }; })()`); await espera(200);
   await tecla('r', 'KeyR', 82); await espera(200);
   const rev = await avaliar(`(() => { const it = window.__lousa.S.items.find(i => i.id === ${JSON.stringify(idEsc)}); return { campo: it && 'revelar' in it, botao: document.getElementById('ppRevelar').hidden }; })()`);
   conferir('a tecla R revela, e o botão some quando não há mais nada', rev.campo === false && rev.botao === true, JSON.stringify(rev));

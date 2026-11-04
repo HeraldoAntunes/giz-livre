@@ -100,6 +100,37 @@ try {
   await A.ate(`document.getElementById('bStatus').textContent === 'Salvo'`, 15000); await espera(500);
   conferir('o que A escreve depois chega ao disco, com o de B', tracosNoDisco('d1') === 2, `${tracosNoDisco('d1')} traços no disco`);
 
+  // D1b (Ordem 21 do Codex, achado 1): A muda só o título (sem tocar nos itens), com a revisão velha. Não é conflito só
+  // de vista: a troca do título não pode sumir em silêncio
+  await B.avaliar(`location.reload()`); await espera(500); await abrir(B, 'd1');
+  await B.traco(500, 300);
+  conferir('D1b: B grava mais um traço', await B.ate(`document.getElementById('bStatus').textContent === 'Salvo'`, 15000) && tracosNoDisco('d1') === 3);
+  await A.avaliar(`(() => { const t = document.getElementById('bTitle'); t.value = 'Título novo de A'; t.dispatchEvent(new Event('change')); })()`);
+  await espera(4000);
+  const d1b = await A.avaliar(`({ titulo: window.__lousa.S.board.title, st: document.getElementById('bStatus').textContent, erro: document.getElementById('bStatus').classList.contains('err') })`);
+  const tituloDisco = JSON.parse(readFileSync(join(DADOS, 'd1.json'), 'utf8')).title;
+  conferir('D1b: o título novo de A não some em silêncio (fica na janela e no disco, ou A avisa do conflito)',
+    d1b.titulo === 'Título novo de A' && (tituloDisco === 'Título novo de A' || d1b.erro), JSON.stringify({ ...d1b, tituloDisco }));
+
+  // D1c: o mesmo com o fundo (cor e folha), pelo menu da folha, sem tocar nos itens
+  await api('PUT', '/api/boards/d1c', { board: { version: 2, title: 'D1c', background: { color: '#ffffff', pattern: 'none' }, layout: L, view: null, items: [] }, revision: 0, criar: true });
+  // janelas novas: a A do D1b pode ter ficado com o título por gravar, e recarregar pararia no aviso de sair da página
+  const A2 = await navegador('a2'), B2 = await navegador('b2');
+  await abrir(A2, 'd1c'); await abrir(B2, 'd1c');
+  await B2.traco(300, 300);
+  conferir('D1c: B grava um traço', await B2.ate(`document.getElementById('bStatus').textContent === 'Salvo'`, 15000) && tracosNoDisco('d1c') === 1);
+  const fundo = await A2.avaliar(`(async () => { const w = ms => new Promise(r => setTimeout(r, ms));
+    document.getElementById('tPaper').click(); await w(300);
+    const c = [...document.querySelectorAll('[data-c]')].find(x => x.dataset.c && x.dataset.c.toLowerCase() !== '#ffffff'); c.click(); await w(300);
+    const p = [...document.querySelectorAll('[data-p]')].find(x => x.dataset.p && x.dataset.p !== 'none'); p.click(); await w(100);
+    return { color: c.dataset.c, pattern: p.dataset.p }; })()`);
+  await espera(4000);
+  const d1c = await A2.avaliar(`({ bg: window.__lousa.S.board.background, erro: document.getElementById('bStatus').classList.contains('err') })`);
+  const bgDisco = JSON.parse(readFileSync(join(DADOS, 'd1c.json'), 'utf8')).background || {};
+  const bateFundo = b => b && b.color === fundo.color && b.pattern === fundo.pattern;
+  conferir('D1c: a cor e a folha novas de A não somem em silêncio (ficam na janela e no disco, ou A avisa do conflito)',
+    bateFundo(d1c.bg) && (bateFundo(bgDisco) || d1c.erro), JSON.stringify({ fundo, janela: d1c.bg, erro: d1c.erro, disco: bgDisco }));
+
   // ---------- D2 ----------
   console.log('D2: servidor reaberto com a janela aberta');
   const C = await navegador('c');   // outra janela: a A acabou de sair da tela cheia, que o navegador sem janela não desenha bem

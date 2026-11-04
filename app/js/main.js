@@ -9,7 +9,7 @@ import { openTabletSettings } from './tablet.js';
 import { renderToCanvas, itemValido } from './render.js';
 import { boardThumb, makeLayout, SIZES } from './pages.js';
 import { boardFromSlides, uploadAsset, isPptx, isPdf } from './importer.js';
-import { embedAssets } from './editor.js';
+import { embedBoard } from './editor.js';
 import { ICON } from './icons.js';
 import { fillIcons, toast, askText, confirmBox, showPop, hidePop, popOpen, aboutBox, dialog } from './ui.js';
 import { VERSION } from './version.js';
@@ -347,7 +347,7 @@ function cardMenu(anchor, id) {
     });
     on('lousa', async () => {
       const data = await loadBoard(id);
-      data.items = await embedAssets(data.items);
+      await embedBoard(data);
       delete data._rev;
       download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(data.title) + '.lousa');
     });
@@ -516,6 +516,8 @@ async function importFiles(files) {
         }
         if (L?.mode === 'pages') L.count = Math.round(L.count);
         if (!board.background || typeof board.background !== 'object') board.background = emptyBoard().background;
+        // miniaturas dos marcadores: vêm embutidas e vão para a pasta de imagens deste PC (Ordem 21)
+        if (Array.isArray(board.marcadores)) board.marcadores = await MK.subirMinis(board.marcadores.slice(0, 500), uploadAsset);
       } else if (isPptx(f) || isPdf(f)) {
         board = await boardFromSlides(f, (m, a) => toast(m, 120000, a));
       } else {

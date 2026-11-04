@@ -38,12 +38,12 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.17.0**.
+Versão atual: **1.17.1**.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.0.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.0/Instalar-GizLivre-1.17.0.zip) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.0/GizLivre-1.17.0-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.1.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.1/Instalar-GizLivre-1.17.1.zip) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.1-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.1/GizLivre-1.17.1-portatil.zip) |
 
 Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
 se instala, copia a pasta para a sua conta, sem pedir administrador, e cria os atalhos. Os quadros e ajustes
