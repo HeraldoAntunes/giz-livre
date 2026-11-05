@@ -243,6 +243,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* 1.4.0: barras de criar e de desenho empilhadas em tela baixa (bars.js, empilhaDesenho) */
 .create.apertada .cb { padding: 2px 0 1px; }
 .create.apertada .cb svg { width: 18px; height: 18px; }
+/* 1.17.3: só ícones nas barras laterais (modo "só ícones", ou o automático em tela baixa/estreita): cerca de metade
+   da largura; o nome continua na dica ao pairar */
+.create.sem-nomes .cb { width: 40px; padding: 7px 0; }
+.create.sem-nomes .cb small { display: none; }
+.create.sem-nomes.apertada .cb { padding: 4px 0; }
+#board.barras-icones .teachbar.esq, #board.barras-icones .drawbar { left: 64px; }
 /* notebook: barra de desenho em duas colunas, embaixo da barra de criar */
 .drawbar.duas-col { display: grid; grid-template-columns: repeat(2, auto); }
 .drawbar.duas-col::before, .drawbar.duas-col .bar-min { grid-column: 1 / -1; justify-self: center; }
@@ -627,22 +633,27 @@ button:focus:not(:focus-visible) { outline: none; }
 .ib.txt b { font-size: 13px; font-weight: 600; }
 
 /* marcadores (P65): fitinhas de livro na borda direita, na cor do grupo */
-#fitas { position: absolute; right: 0; top: 64px; bottom: 80px; width: 30px; z-index: 8; pointer-events: none; }   /* acima das barras: a da direita ocupa a borda */
+/* fitinhas dos marcadores (1.17.3): abas arredondadas, sem contorno, uma por página (com o número quando há mais de um
+   marcador nela), sem nunca encostar uma na outra; ao pairar, a aba abre para a esquerda e mostra o nome dentro dela.
+   Ficam à esquerda da barra do professor quando ela está na direita (antes, por cima dela) */
+#fitas { position: absolute; right: 0; top: 64px; bottom: 80px; width: 0; z-index: 8; pointer-events: none; }
 #fitas[hidden], #board.present #fitas { display: none; }
-#fitas .fita { position: absolute; right: 0; width: 22px; height: 46px; padding: 0; border: 0; border-radius: 5px 0 0 5px;
-  background: var(--c, var(--accent)); box-shadow: -1px 1px 3px rgba(0,0,0,.28); pointer-events: auto; cursor: pointer;
-  transform: translateY(-50%); transition: width .15s ease; }
-#fitas .fita::after { content: ''; position: absolute; left: 0; bottom: -7px; border-left: 11px solid var(--c, var(--accent));
-  border-right: 11px solid var(--c, var(--accent)); border-bottom: 7px solid transparent; transition: border-width .15s ease; }
-#fitas .fita:hover, #fitas .fita:focus-visible { width: 30px; }
-#fitas .fita:hover::after, #fitas .fita:focus-visible::after { border-left-width: 15px; border-right-width: 15px; }
-#fitas .fita-dica { display: none; position: absolute; right: 38px; top: 50%; transform: translateY(-50%); white-space: nowrap;
-  background: #242424; color: #fff; font-size: 12px; padding: 5px 9px; border-radius: 6px; pointer-events: none; }
-#fitas .fita:hover .fita-dica, #fitas .fita:focus-visible .fita-dica { display: block; }
+#fitas .fita { position: absolute; right: 0; height: 30px; min-width: 16px; max-width: 16px; padding: 0; border: 0;
+  border-radius: 10px 0 0 10px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; overflow: hidden;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c, var(--accent)) 72%, #fff), var(--c, var(--accent)) 70%);
+  color: #fff; font: 600 12px "Segoe UI", sans-serif; white-space: nowrap; pointer-events: auto; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.16), 0 1px 2px rgba(0,0,0,.12); transform: translateY(-50%);
+  transition: max-width .2s ease, padding .2s ease, box-shadow .2s ease; }
+#fitas .fita.varios { min-width: 22px; max-width: 22px; }
+#fitas .fita .fita-n { flex: none; width: 22px; text-align: center; font-size: 11px; }
+#fitas .fita .fita-nome { opacity: 0; transition: opacity .15s ease; }
+#fitas .fita:hover, #fitas .fita:focus-visible { max-width: 260px; padding-left: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.22); outline: none; }
+#fitas .fita:hover .fita-nome, #fitas .fita:focus-visible .fita-nome { opacity: 1; }
+#fitas .fita:not(.varios):hover::after, #fitas .fita:not(.varios):focus-visible::after { content: ''; flex: none; width: 4px; }
 #fitas .fita.brilho { animation: fita-brilho .9s ease-out 1; }
-@keyframes fita-brilho { 0% { box-shadow: 0 0 0 0 rgba(15,108,189,.0); width: 22px; } 30% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 35%, transparent); width: 32px; }
-  100% { box-shadow: -1px 1px 3px rgba(0,0,0,.28); width: 22px; } }
-@media (prefers-reduced-motion: reduce) { #fitas .fita.brilho { animation: none; } }
+@keyframes fita-brilho { 0% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 35%, transparent); }
+  100% { box-shadow: 0 2px 8px rgba(0,0,0,.16), 0 1px 2px rgba(0,0,0,.12); } }
+@media (prefers-reduced-motion: reduce) { #fitas .fita.brilho { animation: none; } #fitas .fita { transition: none; } }
 /* cartão de marcar */
 .mk-cartao { width: 290px; }
 .mk-cartao h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
@@ -659,6 +670,33 @@ button:focus:not(:focus-visible) { outline: none; }
 .mk-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .mk-acoes kbd { font-size: 11px; border: 1px solid rgba(255,255,255,.6); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
 .mk-lista button { display: flex; align-items: center; gap: 8px; }
+/* lista dos marcadores por grupo (1.17.3): alça para arrastar com mouse, caneta ou dedo, e ⋮ */
+/* espessura direto na bolinha de cor da apresentação (1.17.3) */
+.esp-cor small { display: block; color: var(--muted); margin-bottom: 6px; }
+.esp-bolas { display: flex; gap: 6px; }
+.esp-bolas button { width: 42px; height: 38px; border-radius: 8px; border: 1px solid #ddd; background: #fff; display: grid; place-items: center; cursor: pointer; }
+.esp-bolas button.on { border: 2px solid var(--accent); background: var(--accent-soft); }
+.esp-bolas i { display: block; border-radius: 50%; }
+.mk-lista2 { width: 320px; max-height: min(70vh, 560px); overflow-y: auto; padding: 2px; }
+.mk-lista2 .mk-cab { font-weight: 600; }
+.mk-lista2 .mkl-dica { display: block; color: var(--muted); margin: 2px 0 6px; }
+.mk-sec { border-radius: 8px; padding: 2px 0 6px; }
+.mk-sec-t { font-size: 12px; font-weight: 600; padding: 4px 4px 2px; }
+.mkl-linha { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 2px; margin: 3px 0; border-radius: 8px;
+  background: #fff; box-shadow: 0 0 0 1px #ececec; }
+.mkl-linha > i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.mkl-linha .mk-alca { cursor: grab; color: #9e9e9e; padding: 4px 2px 4px 6px; touch-action: none; user-select: none; font-size: 15px; }
+.mkl-linha .mk-ir { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 4px 0; font: inherit;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.mkl-linha .mk-ir:hover { color: var(--accent); }
+.mkl-linha small { color: var(--muted); white-space: nowrap; }
+.mkl-linha .mk-mais { border: 0; background: none; width: 28px; height: 28px; border-radius: 6px; font-size: 17px; cursor: pointer; }
+.mkl-linha .mk-mais:hover { background: #f0f0f0; }
+.mkl-linha.mk-saiu { opacity: .35; }
+.mk-fantasma { position: fixed; z-index: 2147483000; pointer-events: none; box-shadow: 0 8px 22px rgba(0,0,0,.25); opacity: .95; }
+.mk-entra { height: 3px; border-radius: 2px; background: var(--accent); margin: 2px 4px; }
+.mkl-vazio { color: var(--muted); font-size: 12px; padding: 8px; border: 1px dashed #d0d0d0; border-radius: 8px; text-align: center; }
+.mk-lista2 .mk-todos { width: 100%; margin-top: 6px; }
 .mk-lista button i { width: 10px; height: 18px; border-radius: 2px; flex: none; }
 .mk-lista button small { margin-left: auto; color: var(--muted); }
 .widths.wd-g { gap: 8px; }

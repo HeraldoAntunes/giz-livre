@@ -199,15 +199,17 @@ let popOwner = null;
 export function showPop(anchor, html, setup, where = 'below') {
   const p = popEl();
   if (!p.hidden && popOwner === anchor) { hidePop(); return null; }
+  const r = anchor.getBoundingClientRect();   // antes de trocar o conteúdo: o botão que abriu pode estar dentro dele
   p.innerHTML = html;
   p.className = 'pop';
   p.hidden = false;
   popOwner = anchor;
   fillIcons(p);
   setup?.(p);
-  const r = anchor.getBoundingClientRect(), pr = p.getBoundingClientRect();
+  const pr = p.getBoundingClientRect();
   let x, y;
   if (where === 'right') { x = r.right + 8; y = r.top + r.height / 2 - pr.height / 2; }
+  else if (where === 'left') { x = r.left - pr.width - 8; y = r.top + r.height / 2 - pr.height / 2; }
   else if (where === 'above') { x = r.left + r.width / 2 - pr.width / 2; y = r.top - pr.height - 8; }
   else { x = r.left + r.width / 2 - pr.width / 2; y = r.bottom + 8; }
   x = Math.max(8, Math.min(innerWidth - pr.width - 8, x));

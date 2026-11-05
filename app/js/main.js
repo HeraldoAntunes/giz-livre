@@ -630,8 +630,41 @@ function renderMarcadores() {
     const m = achaMk(c);
     c.addEventListener('dragstart', e => { e.dataTransfer.setData('text/x-marcador', `${m.quadro}/${m.id}`); e.dataTransfer.effectAllowed = 'move'; c.classList.add('arrasto'); });
     c.addEventListener('dragend', () => c.classList.remove('arrasto'));
+    // caneta e dedo: o arrastar do HTML só funciona com o mouse (1.17.3, retorno da aula de 04/11/2026). Depois de 10 px,
+    // o cartão segue a ponta; solto sobre um grupo, vai para ele, antes do cartão embaixo da ponta
+    c.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' || e.target.closest('[data-a]')) return;
+      const x0 = e.clientX, y0 = e.clientY, r = c.getBoundingClientRect();
+      let fantasma = null;
+      const move = ev => {
+        if (!fantasma && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 10) return;
+        if (!fantasma) {
+          try { c.setPointerCapture(ev.pointerId); } catch {}
+          fantasma = c.cloneNode(true); fantasma.classList.add('mk-fantasma');
+          fantasma.style.cssText += `;position:fixed;width:${r.width}px;z-index:2147483000;pointer-events:none;opacity:.9`;
+          document.body.appendChild(fantasma); c.classList.add('arrasto');
+        }
+        ev.preventDefault();
+        fantasma.style.left = (ev.clientX - r.width / 2) + 'px'; fantasma.style.top = (ev.clientY - 20) + 'px';
+        grid.querySelectorAll('.mk-grupo.alvo').forEach(s => s.classList.remove('alvo'));
+        document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.mk-grupo')?.classList.add('alvo');
+      };
+      const fim = ev => {
+        removeEventListener('pointermove', move); removeEventListener('pointerup', fim); removeEventListener('pointercancel', fim);
+        if (!fantasma) return;
+        fantasma.remove(); c.classList.remove('arrasto');
+        grid.querySelectorAll('.mk-grupo.alvo').forEach(s => s.classList.remove('alvo'));
+        c.dataset.semClique = '1'; setTimeout(() => delete c.dataset.semClique, 0);
+        if (ev.type !== 'pointerup') return;
+        const sob = document.elementFromPoint(ev.clientX, ev.clientY), sec = sob?.closest('.mk-grupo');
+        if (!sec) return;
+        const alvoEl = sob.closest('.mk-card'), alvo = alvoEl && alvoEl !== c ? achaMk(alvoEl) : null;
+        aplicarMarcadores({ alterar: MK.soltar(marcadores.marcadores, m, sec.dataset.g || null, alvo, marcadores.grupos) });
+      };
+      addEventListener('pointermove', move, { passive: false }); addEventListener('pointerup', fim); addEventListener('pointercancel', fim);
+    });
     const abrir = () => { location.hash = `#/b/${m.quadro}?m=${encodeURIComponent(m.id)}`; };
-    c.onclick = e => { if (!e.target.closest('[data-a]')) abrir(); };
+    c.onclick = e => { if (!e.target.closest('[data-a]') && !c.dataset.semClique) abrir(); };
     c.onkeydown = e => { if (e.key === 'Enter' && e.target === c) abrir(); };
     c.querySelector('[data-a="nome"]').onclick = async () => {
       const nome = (await askText('Nome do marcador', m.nome))?.trim();

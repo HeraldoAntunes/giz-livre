@@ -147,7 +147,7 @@ try {
     while (atual !== meta && plano.length < TROCAS) { atual += dir; plano.push(atual); }
     ai++;
   }
-  const tempos = [], sumidos = [], memoria = [];
+  const tempos = [], sumidos = [], memoria = [], primeira = [];   // primeira: a 1ª vez em cada slide (imagem ainda não vista)
   // gravações do quadro (pedidos a /api/boards/apres) só por trocar de slide: deveriam ser zero
   const gravacoes = () => avaliar(`performance.getEntriesByType('resource').filter(e => e.name.endsWith('/api/boards/apres')).length`);
   await espera(2000);
@@ -184,7 +184,7 @@ try {
     // a primeira vez num slide com falha injetada espera a nova tentativa: conta à parte, não no p95
     const comFalha = R.falhasInjetadas && i % 7 === 3 && !plano.slice(0, k).includes(i);
     if (ok && comFalha) (R.trocasComFalhaMs ||= []).push(ms);
-    else if (ok) tempos.push(ms); else sumidos.push({ troca: k + 1, slide: i + 1, paginaNaTela: (await pagina()) + 1, pixel: await pixel() });
+    else if (ok) { tempos.push(ms); if (!plano.slice(0, k).includes(i)) primeira.push(ms); } else sumidos.push({ troca: k + 1, slide: i + 1, paginaNaTela: (await pagina()) + 1, pixel: await pixel() });
     if ((k + 1) % 25 === 0) { memoria.push({ troca: k + 1, heapMB: await heap(), ...memoriaEdge() }); log(`  ${k + 1} trocas; última ${ms} ms; sumidos ${sumidos.length}`, memoria.at(-1)); }
   }
   if (PERFIL) {
@@ -198,6 +198,8 @@ try {
   }
   const s = [...tempos].sort((a, b) => a - b), q = p => s[Math.min(s.length - 1, Math.floor(p * s.length))];
   R.troca = { n: tempos.length, mediaMs: Math.round(tempos.reduce((a, b) => a + b, 0) / Math.max(1, tempos.length)), p50: q(.5), p95: q(.95), max: s.at(-1) };
+  { const s1 = [...primeira].sort((a, b) => a - b), q1 = p => s1[Math.min(s1.length - 1, Math.floor(p * s1.length))];
+    R.primeiraVez = { n: s1.length, p50: q1(.5), p95: q1(.95), max: s1.at(-1) }; log('primeira vez em cada slide', R.primeiraVez); }
   R.sumidos = sumidos; R.memoria = memoria;
   R.gravacoesSoPorTrocar = (await gravacoes()) - gravacoes0;
   const m50 = memoria.find(m => m.troca === 50) || memoria[1], fim = memoria.at(-1);

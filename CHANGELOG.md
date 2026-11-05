@@ -1,5 +1,27 @@
 # Histórico de versões
 
+## 1.17.3 (05/11/2026)
+Melhorias pedidas depois de uma aula de verdade (04/11/2026).
+- **Apresentação mais leve ao passar slides rápido:** o slide anterior e os dois seguintes já ficam prontos antes da
+  troca. Num computador lento, a primeira passada pelos slides ficou cerca de 4 vezes mais rápida.
+- **Marcadores:**
+  - as fitinhas na borda ficaram mais bonitas, com uma por página e o número quando há mais de um marcador nela; elas
+    não ficam mais uma em cima da outra, nem por cima da barra de ferramentas;
+  - a lista dos marcadores mostra os grupos; dá para arrastar um marcador pela alça ⠿, com mouse, caneta ou dedo,
+    para outra posição ou outro grupo;
+  - o menu ⋮ de cada marcador tem "Mover para o grupo…", "Subir", "Descer", "Mudar de lugar no quadro", "Renomear" e
+    "Apagar";
+  - na aba Marcadores da galeria, arrastar entre grupos também funciona com caneta e toque.
+- **Espessura direto na cor, na apresentação:** tocar de novo na cor que já está ativa abre as espessuras logo acima
+  dela, e a bolinha da cor mostra o tamanho escolhido.
+- **Barras laterais mais estreitas:** os nomes embaixo dos ícones agora são "com nomes", "só ícones" ou "automático"
+  (o novo padrão: só ícones em notebook e projetor, e a barra fica com cerca de metade da largura). A escolha fica no
+  botão Ferramentas do professor; o nome continua na dica ao passar o mouse.
+- **Ponteiro da caneta maior:** tamanhos P, M, G e GG no menu da caneta, para a turma ver onde você escreve.
+- **Página importada:** a borracha apaga só o que foi escrito no Giz Livre. Quando ela passa só sobre uma página de
+  PDF ou slide, um aviso explica por que nada saiu. E o menu da página tem "Trocar a imagem da página", que troca a
+  página por outra (imagem, PDF ou apresentação) e mantém por cima tudo o que você escreveu.
+
 ## 1.17.2 (04/11/2026)
 Correções.
 - **Marcadores com o computador lento:** inserir duas páginas seguidas, ou excluir uma página e logo usar Ctrl+Z, podia

@@ -13,10 +13,10 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
   <a href="https://doi.org/10.5281/zenodo.23552115"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23552115.svg" alt="DOI"></a>
   <a href="https://github.com/HeraldoAntunes/giz-livre/releases"><img src="https://img.shields.io/github/downloads/HeraldoAntunes/giz-livre/total?label=downloads" alt="Downloads"></a>
   <br>
-  <a href="#sistemas"><img src="https://img.shields.io/badge/testado%20no-Windows%2011-0078D6" alt="Testado no Windows 11"></a>
+  <a href="#sistemas"><img src="https://img.shields.io/badge/testado%20no-Windows%2010%20e%2011-0078D6" alt="Testado no Windows 10 e 11"></a>
   <a href="#linux-e-macos-experimental"><img src="https://img.shields.io/badge/Linux-em%20testes-f0ad4e?logo=linux&logoColor=white" alt="Linux em testes"></a>
   <img src="https://img.shields.io/badge/internet-n%C3%A3o%20precisa-2b8a3e" alt="Não precisa de internet">
-  <a href="docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental"><img src="https://img.shields.io/badge/agentes-MCP-6f42c1" alt="Agentes: MCP"></a>
+  <a href="docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental"><img src="https://img.shields.io/badge/agentes-MCP%20(criar%20e%20preencher)-6f42c1" alt="Agentes: MCP (criar e preencher)"></a>
   <br>
   <img src="https://img.shields.io/badge/feito%20em-JavaScript-f1e05a?logo=javascript&logoColor=black" alt="Feito em JavaScript">
   <img src="https://img.shields.io/badge/feito%20em-Python-3572A5?logo=python&logoColor=white" alt="Feito em Python">
@@ -40,12 +40,12 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.17.2**.
+Versão atual: **1.17.3**.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.2.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/Instalar-GizLivre-1.17.2.zip) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.2-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/GizLivre-1.17.2-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.3.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.3/Instalar-GizLivre-1.17.3.zip) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.3-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.3/GizLivre-1.17.3-portatil.zip) |
 | Linux (Ubuntu/Debian), em testes | [giz-livre_1.17.2_all.deb](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre_1.17.2_all.deb) · outro Linux (Fedora, Arch...): [giz-livre-1.17.2-linux-usuario.tar.gz](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre-1.17.2-linux-usuario.tar.gz), que instala só para o seu usuário, sem pedir senha de administrador |
 
 Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
@@ -170,7 +170,8 @@ Edge e Chrome instalados como navegadores não são requisitos. O Python oficial
 
 A janela própria foi testada automaticamente no Windows 11; caneta, pressão, toque, projetor, DPI e vários monitores
 nessa janela ainda dependem de homologação manual. As versões anteriores foram usadas com Wacom Intuos no Windows 11.
-O Windows 10 e outras mesas digitalizadoras ainda precisam de verificação nesta arquitetura.
+No Windows 10, a 1.17.3 foi testada num notebook com duas placas de vídeo: instalar, atualizar da versão anterior,
+abrir, apresentar e desinstalar. Outras mesas digitalizadoras ainda precisam de verificação nesta arquitetura.
 
 **Tamanho de apresentação testado:** até **200 slides** roda liso, inclusive num computador modesto; de 200 a 400
 slides roda bem num computador atual, mas num computador modesto o painel "Ver todas as páginas" e a vista afastada

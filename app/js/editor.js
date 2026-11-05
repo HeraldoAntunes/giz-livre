@@ -22,7 +22,7 @@ import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHe
 import * as MK from './marcadores.js';
 import * as NT from './notas.js';
 import { ICON, penIcon } from './icons.js';
-import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc } from './ui.js';
+import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc, askText } from './ui.js';
 import { VERSION } from './version.js';
 import { DEFAULT_TABLET, openTabletSettings, pressureKind, pressureState, PRESSAO_INICIAL, ocrAviso } from './tablet.js';
 import { createStabilizer, smoothPts, resampleN } from './stabilizer.js';
@@ -150,9 +150,11 @@ function loadCfg() {
     if ((c.migr || 0) < 3) { c.teachBar = true; c.teachSide = 'dir'; c.teachNames = true; }
     // 1.10.0: o catálogo de formas passa a abrir na vitrine das áreas (uma vez; depois vale a última aba escolhida)
     if ((c.migr || 0) < 4) c.shapeTab = '__vitrine';
+    // 1.17.3: nomes nas barras laterais em modo automático (só ícones em tela baixa ou estreita; retorno da aula de 04/11/2026)
+    if ((c.migr || 0) < 5) c.barNomes = 'auto';
     return { ...c, tools: { ...structuredClone(DEFAULT_TOOLS), ...(c.tools || {}) }, tool: c.tool, inkShape: !!c.inkShape,
-      shapeFill: !!c.shapeFill, tablet, migr: 4 };
-  } catch { return { tools: structuredClone(DEFAULT_TOOLS), inkShape: false, tablet: { ...DEFAULT_TABLET }, teachBar: true, teachSide: 'dir', teachNames: true, migr: 3 }; }
+      shapeFill: !!c.shapeFill, tablet, migr: 5 };
+  } catch { return { tools: structuredClone(DEFAULT_TOOLS), inkShape: false, tablet: { ...DEFAULT_TABLET }, teachBar: true, teachSide: 'dir', barNomes: 'auto', migr: 5 }; }
 }
 function saveCfg() {
   try { localStorage.setItem('lousa.cfg', JSON.stringify({ ...cfg, tool })); } catch {}
@@ -265,6 +267,7 @@ export function openBoard(id, board, back) {
   onBack = back;
   notasPagina = -1; notaPendente = false;   // o painel Notas lê de novo no quadro novo
   ultimoToque = null;   // o toque era de outro quadro: colar sem tocar neste vai para o meio (Ordem 21)
+  movendoMarcador = null;   // "Mudar de lugar no quadro" era do quadro de antes
   const pending = failedSnaps.get(id);
   // gravação pendente: o conteúdo é o desta janela, mas os marcadores do disco podem ser mais novos (Ordem 26)
   if (pending) board = (board?._mkv || 0) > (pending.board._mkv || 0)
@@ -291,7 +294,7 @@ export function openBoard(id, board, back) {
   updatePageBar();
   syncToolbar();
   updateUndo();
-  buildTeachBar();
+  aplicarNomesBarras(true);   // também refaz a barra do professor
   montaRascBar();
   placeBars();
   requestRender();
@@ -358,7 +361,7 @@ function usarEstojo(e, comFundo = true) {
 }
 
 // gancho de depuração (testes automatizados)
-window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; }, get sel() { return sel; } };
+window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; }, get sel() { return sel; }, get bitmaps() { return R.bitmapsGuardados(); } };
 
 export function isOpen() { return !!S && !$('board').hidden; }
 // quadro aberto nesta janela (o ping avisa o servidor, para um agente de IA não gravar nele)
@@ -395,6 +398,7 @@ function resize() {
   dpr = devicePixelRatio || 1;
   W = innerWidth; H = innerHeight;
   for (const c of [cv, ov]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  if (S) { aplicarNomesBarras(); syncFitas(); }   // modo automático: a janela mudou de tamanho
   requestRender();
 }
 
@@ -537,6 +541,9 @@ function drawPenCursor(x, y, c, kind) {
   };
   octx.save();
   octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // tamanho do ponteiro (P, M, G, GG): para a turma ver onde o professor escreve (retorno da aula de 04/11/2026)
+  const k = escalaPonteiro();
+  if (k !== 1) { octx.translate(x, y); octx.scale(k, k); octx.translate(-x, -y); }
   octx.lineJoin = 'round'; octx.lineCap = 'round';
   if (kind === 'ponta') {
     octx.translate(x, y); octx.rotate(Math.PI / 4);   // corpo para cima e à direita, como a caneta na mão
@@ -912,6 +919,9 @@ const CURSORS = [
   ['anel', 'Bolinha', '<svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>'],
 ];
 
+const TAM_PONTEIRO = [['p', 'P', 1], ['m', 'M', 1.5], ['g', 'G', 2], ['gg', 'GG', 3]];
+function escalaPonteiro() { return (TAM_PONTEIRO.find(([k]) => k === cfg.tablet.cursorTam) || TAM_PONTEIRO[0])[2]; }
+
 function penPop(anchor, t) {
   const c = cfg.tools[t], hl = isHl(t);
   const pal = hl ? HL_PALETTE : PALETTE, widths = hl ? HL_WIDTHS : PEN_WIDTHS;
@@ -932,6 +942,7 @@ function penPop(anchor, t) {
       ${st === 'calligraphy' || st === 'marker' ? `<div class="row"><small>${st === 'marker' ? 'Ângulo da ponta' : 'Ângulo da pena'}</small><input type="range" id="pNib" min="0" max="90" value="${c.nib ?? (st === 'marker' ? 30 : 45)}"><small id="pNibV">${c.nib ?? (st === 'marker' ? 30 : 45)}°</small></div>` : ''}
       <label class="row"><input type="checkbox" id="pArrow" ${c.arrow ? 'checked' : ''}> Ponta de seta no fim do traço</label>`}
     <h4>Ponteiro da caneta na tela</h4><div class="seg cursors">${CURSORS.map(([k, n, svg]) => `<button data-k="${k}" class="${k === (cfg.tablet.cursor || 'ponta') ? 'on' : ''}" title="${n}">${svg}<small>${n}</small></button>`).join('')}</div>
+    <h4>Tamanho do ponteiro</h4><div class="seg tamPont">${TAM_PONTEIRO.map(([k, n, e]) => `<button data-tp="${k}" class="${k === (cfg.tablet.cursorTam || 'p') ? 'on' : ''}" title="Ponteiro ${n} (${String(e).replace('.', ',')}x): maior ajuda a turma a ver onde você escreve">${(CURSORS.find(c => c[0] === (cfg.tablet.cursor || 'ponta')) || CURSORS[0])[2].replace(/width="22" height="22"/, `width="${Math.round(14 * e)}" height="${Math.round(14 * e)}"`)}<small>${n}</small></button>`).join('')}</div>
     <label class="row"><input type="checkbox" id="pCurDraw" ${cfg.tablet.cursorDraw !== false ? 'checked' : ''}> Manter o ponteiro visível enquanto escreve</label>
     <label class="row"><input type="checkbox" id="pCurMouse" ${cfg.tablet.mouseCursor !== false ? 'checked' : ''}> Usar este ponteiro também com o mouse</label>
     <label class="row"><input type="checkbox" id="pColarCentro" ${cfg.colarCentro ? 'checked' : ''}> Ctrl+V cola no centro da tela (e não onde a caneta tocou por último)</label>
@@ -946,12 +957,13 @@ function penPop(anchor, t) {
       p.querySelectorAll('[data-op]').forEach(x => x.onclick = () => { c.op = +x.dataset.op; saveCfg(); p.querySelectorAll('[data-op]').forEach(y => y.classList.toggle('on', y === x)); drawPrev(); });
       const nibEl = p.querySelector('#pNib');
       if (nibEl) nibEl.oninput = () => { c.nib = +nibEl.value; p.querySelector('#pNibV').textContent = c.nib + '°'; saveCfg(); drawPrev(); };
-      p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { cfg.tablet.cursor = x.dataset.k; saveCfg(); p.querySelectorAll('[data-k]').forEach(y => y.classList.toggle('on', y === x)); });
+      p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { cfg.tablet.cursor = x.dataset.k; reopen(); });   // a prévia dos tamanhos troca de desenho
+      p.querySelectorAll('[data-tp]').forEach(x => x.onclick = () => { cfg.tablet.cursorTam = x.dataset.tp; saveCfg(); p.querySelectorAll('[data-tp]').forEach(y => y.classList.toggle('on', y === x)); });
       p.querySelector('#pCurDraw').onchange = e => { cfg.tablet.cursorDraw = e.target.checked; saveCfg(); };
       p.querySelector('#pCurMouse').onchange = e => { cfg.tablet.mouseCursor = e.target.checked; saveCfg(); };
       p.querySelector('#pColarCentro').onchange = e => { cfg.colarCentro = e.target.checked; saveCfg(); };
       p.querySelector('#pReset').onclick = () => {
-        cfg.tools[t] = structuredClone(DEFAULT_TOOLS[t]); cfg.tablet.cursor = 'ponta'; cfg.tablet.cursorDraw = true;
+        cfg.tools[t] = structuredClone(DEFAULT_TOOLS[t]); cfg.tablet.cursor = 'ponta'; cfg.tablet.cursorDraw = true; delete cfg.tablet.cursorTam;
         saveCfg(); syncToolbar(); hidePop(); penPop(anchor, t); toast('Caneta de volta ao padrão');
       };
       p.querySelector('#pHlPrev')?.addEventListener('change', e => { cfg.hlPrevia = e.target.checked; saveCfg(); });
@@ -1902,6 +1914,9 @@ function startGesture() {
 function onDown(e) {
   if (!S) return;
   if (zoomLens?.modo === 'escolher' && e.button === 0) { hover = { x: e.clientX, y: e.clientY }; ampliarAqui(); return; }
+  // "Mudar de lugar no quadro": vale só no mesmo quadro e por 60 s (revisão da 1.17.3-rc.1, achado 3)
+  if (movendoMarcador && (movendoMarcador.quadro !== S.id || Date.now() > movendoMarcador.ate)) movendoMarcador = null;
+  if (movendoMarcador && e.button === 0) { e.preventDefault(); soltarMarcadorAqui(e); return; }
   if (editing) { $('textEdit').blur(); }
   clearTimeout(beautyTimer);
   hidePop();
@@ -2273,7 +2288,15 @@ function onUp(e) {
           if (!parts) return [i];
           return parts.map((pc, k) => { const n = { ...i, id: k ? newId() : i.id, pts: pc, arrow: i.arrow && endsAt(pc, i.pts) }; delete n.orig; return n; });
         }));
-      } else requestRender();
+      } else {
+        requestRender();
+        // nada saiu e a borracha passou sobre uma página importada: o que se vê ali pode ser parte da imagem do
+        // PDF/slide (retorno da aula de 04/11/2026). Uma vez por quadro aberto, para não incomodar
+        if (a.sobrePagina && avisoBorracha !== S.id) {
+          avisoBorracha = S.id;
+          toast('A borracha apaga só o que foi escrito no Giz Livre. O que veio no PDF ou no slide faz parte da página importada e não sai; para trocar a página por uma limpa: menu da página (…) → Trocar a imagem da página.', 9000);
+        }
+      }
       break;
     case 'lasso': {
       const p = a.poly;
@@ -2435,10 +2458,13 @@ function hitLib(it, x, y, tol) {
 
 // raio da borracha em px de tela (ajustável no menu da borracha)
 const ERASER_SIZES = [['P', 6], ['M', 12], ['G', 28], ['GG', 60]];
+let avisoBorracha = null;   // quadro em que o aviso "a borracha não tira o que veio na página importada" já apareceu
 function eraserR() { return Math.max(3, Math.min(120, +cfg.eraserSize || 12)); }
 
 function eraseAt(x, y) {
   const tol = eraserR() / S.view.zoom;
+  // passou sobre uma página importada (PDF/slide): se não apagar nada, avisa por que (ao soltar)
+  if (!action.sobrePagina && S.items.some(it => it.type === 'image' && it.locked && x >= it.x && y >= it.y && x <= it.x + it.w && y <= it.y + it.h)) action.sobrePagina = true;
   if (cfg.eraserMode === 'partial') {
     // corta só os pontos dentro do círculo da borracha; o resto vira pedaços
     action.parts = action.parts || new Map();
@@ -2737,6 +2763,7 @@ function onKey(e) {
   if (!isOpen()) return;
   if (e.key === 'F1') { e.preventDefault(); if (ajudaAberta()) fecharAjuda(); else abreAjuda(); return; }
   if (e.key === 'Escape' && (tourEmAndamento() || ajudaAberta())) { e.preventDefault(); encerrarTour(); fecharAjuda(); return; }
+  if (e.key === 'Escape' && movendoMarcador) { e.preventDefault(); movendoMarcador = null; toast('Mudança de lugar cancelada', 2500); return; }
   const tag = e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
@@ -2817,7 +2844,7 @@ function onKey(e) {
 // barras, barra do professor, painel da lupa, cronômetro e relógio de volta às posições de fábrica
 function layoutPadrao() {
   resetBars();
-  cfg.teachSide = 'dir'; cfg.teachNames = true; saveCfg();
+  cfg.teachSide = 'dir'; cfg.barNomes = 'auto'; saveCfg(); nomesAplicados = null;
   for (const k of ['lousa.stripPos', 'lousa.timerPos', 'lousa.clockPos']) try { localStorage.removeItem(k); } catch {}
   const st = $('strip'); st.style.top = ''; st.style.bottom = '';
   for (const el of document.querySelectorAll('.timerbox')) { el.style.left = el.style.top = el.style.right = el.style.bottom = ''; }
@@ -3117,6 +3144,12 @@ function goToPage(i, fill = false) {
     S.view = alvo;
   }
   viewChanged();
+  precarregarVizinhas(i);
+}
+// a página atual, a anterior e as duas seguintes: imagens importadas já decodificadas para a próxima troca
+function precarregarVizinhas(i) {
+  const L = S.board.layout, perto = new Set([i - 1, i, i + 1, i + 2]);
+  R.precarregarImagens(S.items.filter(it => it.type === 'image' && it.locked && perto.has(PG.pageOf(L, it))));
 }
 
 // enquadrar slide (F): a página que mais aparece na tela volta ao maior tamanho que cabe no espaço livre entre as
@@ -3337,6 +3370,63 @@ async function importSlidesIntoBoard(file) {
   } catch (e) { toast(e.message, 7000); }
 }
 
+// a imagem travada (PDF/slide importado) que forma o fundo da página i; null se a página não tem
+function imagemDaPagina(i) {
+  if (!S || !PG.isPages(S.board)) return null;
+  const L = S.board.layout, r = PG.pageRect(L, i);
+  let melhor = null;
+  for (const it of S.items) {
+    if (it.type !== 'image' || !it.locked || PG.pageOf(L, it) !== i) continue;
+    const a = Math.min(it.w, r.w) * Math.min(it.h, r.h);
+    if (a > r.w * r.h * 0.25 && (!melhor || a > melhor.a)) melhor = { it, a };
+  }
+  return melhor?.it || null;
+}
+// "Trocar a imagem desta página" (retorno da aula de 04/11/2026): a página importada já vinha com marcações que a
+// borracha não tira. Troca só a imagem do fundo, pela de outro arquivo (imagem, PDF ou apresentação), no mesmo lugar
+// da pilha: tudo o que foi escrito no Giz Livre continua por cima. Ctrl+Z desfaz.
+async function trocarImagemDaPagina(i, file) {
+  const velha = imagemDaPagina(i);
+  if (!velha) return toast('Esta página não tem imagem importada para trocar.', 5000);
+  const alvo = S;
+  try {
+    let src, size;
+    if (/^image\//.test(file.type)) {
+      toast('Lendo ' + file.name + '…', 30000);
+      src = await uploadAsset(file);
+      const im = new Image(); im.src = src; await im.decode();
+      size = { w: im.naturalWidth, h: im.naturalHeight };
+    } else {
+      toast('Lendo ' + file.name + '…', 60000);
+      const esc = await paginasEscolhidas(file, (m, a) => toast(m, 60000, a));
+      if (!esc) return toast('Troca cancelada.', 3000);
+      if (esc.srcs.length > 1) toast('Usei a primeira página marcada.', 4000);
+      src = esc.srcs[0]; size = esc.sizes[0];
+    }
+    if (S !== alvo) return toast('Troca cancelada: o quadro foi fechado.', 6000);
+    // durante a leitura o professor pode ter inserido ou excluído páginas: a imagem é achada de novo pelo id (revisão
+    // da 1.17.3-rc.1, achado 5); se saiu, nada é trocado e o aviso diz isso
+    const atual = S.items.find(it => it.id === velha.id);
+    if (!atual) return toast('Troca cancelada: a página mudou enquanto o arquivo era lido.', 6000);
+    const pg = PG.pageOf(S.board.layout, atual), r = PG.pageRect(S.board.layout, pg);
+    let w = r.w, h = r.h;
+    if (size?.w > 0 && size?.h > 0) { const f = Math.min(r.w / size.w, r.h / size.h); w = size.w * f; h = size.h * f; }
+    // o mesmo id e a mesma camada da imagem antiga: com "Escrever no rascunho" ligado, um id novo levava a página para
+    // o rascunho, e "Limpar rascunho" a apagava (revisão da 1.17.3-rc.1, achado 1)
+    const { id: _i, src: _s, x: _x, y: _y, w: _w, h: _h, ...resto } = atual;
+    const nova = { ...resto, id: atual.id, type: 'image', locked: true, x: r.x + (r.w - w) / 2, y: r.y + (r.h - h) / 2, w, h, src };
+    commit(S.items.map(it => it === atual ? nova : it));
+    refreshPanel();
+    toast(`Imagem da página ${pg + 1} trocada. O que foi escrito continua por cima; Ctrl+Z desfaz.`, 5000);
+  } catch (e) { toast(e.message, 7000); }
+}
+function escolherImagemDaPagina(i) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*,.pdf,application/pdf,.pptx,.ppt,.ppsx,.pps,.potx,.odp,.otp,.key';
+  inp.onchange = () => { const f = inp.files[0]; if (f) trocarImagemDaPagina(i, f); };
+  inp.click();
+}
+
 async function exportPdfFile() {
   const title = S.board.title;
   try {
@@ -3464,8 +3554,10 @@ function pageMenu(anchor) {
       <hr>
       <button data-a="all">${ICON.gallery} Ver todas as páginas</button>
       <button data-a="slides">${ICON.slides} Inserir PDF ou apresentação aqui</button>
+      ${imagemDaPagina(i) ? `<button data-a="trocarImg" title="Troca só a imagem importada desta página (por outra imagem, PDF ou apresentação); o que foi escrito no Giz Livre continua por cima">${ICON.slides} Trocar a imagem da página ${n}</button>` : ''}
       <button data-a="present">${ICON.present} Apresentar</button>
     </div>`, p => {
+    p.querySelector('[data-a="trocarImg"]')?.addEventListener('click', () => { hidePop(); escolherImagemDaPagina(i); });
     p.querySelector('[data-a="ins"]').onclick = () => { hidePop(); insertPageAfter(i); };
     p.querySelector('[data-a="dup"]').onclick = () => { hidePop(); duplicatePage(i); };
     p.querySelector('[data-a="del"]').onclick = () => { hidePop(); deletePage(i); };
@@ -3583,6 +3675,13 @@ function drawZoomLens() {
 // cor e espessura juntas na apresentação (antes, dois botões; P64 e): valem para a caneta (e as formas, que usam a
 // caneta) ou para o marca-texto ativo, que também escolhe a intensidade
 function larguraAlvo() { return isPen(tool) || isHl(tool) ? tool : (cfg.lastPen || 'pen0'); }
+function espessuraDaCor(anchor, t) {
+  const c = cfg.tools[t], cor = inkShown(c.color) === '#ffffff' ? '#ccc' : inkShown(c.color);
+  showPop(anchor, `<div class="esp-cor"><small>${esc(corNome(c.color).startsWith('#') ? 'Espessura' : 'Espessura do ' + corNome(c.color).toLowerCase())}</small>
+    <div class="esp-bolas">${PEN_WIDTHS.map(w => `<button class="${w === c.width ? 'on' : ''}" data-w="${w}" title="${String(w).replace('.', ',')} px"><i style="width:${Math.round(4 + w * 2.2)}px;height:${Math.round(4 + w * 2.2)}px;background:${cor}"></i></button>`).join('')}</div></div>`, p => {
+    p.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { c.width = +b.dataset.w; saveCfg(); syncPresentBar(); requestRender(false); hidePop(); });
+  }, 'above');
+}
 function presentColorPop(anchor) {
   const t = larguraAlvo(), c = cfg.tools[t], hl = isHl(t), pal = hl ? HL_PALETTE : PALETTE, list = hl ? HL_WIDTHS : PEN_WIDTHS;
   const cor = inkShown(c.color) === '#ffffff' ? '#ccc' : inkShown(c.color), bola = w => Math.round(Math.min(34, 4 + w * (hl ? 0.33 : 2.4)));
@@ -3653,18 +3752,31 @@ function syncFitas() {
   const ms = marcadoresDoQuadro();
   box.hidden = !S || !ms.length || present;   // na apresentação, a turma vê a tela: fitinhas escondidas
   if (box.hidden) { box.innerHTML = ''; return; }
+  // à esquerda da barra do professor quando ela está na borda direita (antes, as fitas ficavam por cima dela)
+  const tb = $('teachbar'), rt = tb && !tb.hidden ? tb.getBoundingClientRect() : null;
+  box.style.right = rt && rt.width && rt.right > innerWidth - 24 ? Math.round(innerWidth - rt.left + 6) + 'px' : '';
   // a altura conta o quadro inteiro: as páginas todas, ou tudo o que está desenhado no quadro infinito
-  const L = S.board.layout, caixa = PG.isPages(S.board) ? { y: 0, h: L.count * (L.h + L.gap) - L.gap } : R.unionBox(S.items);
-  const alt = MK.alturaDasFitas(ms, caixa);
-  box.innerHTML = ms.map((m, i) => `<button class="fita" data-mk="${esc(m.id)}" style="top:${(6 + alt[i] * 82).toFixed(2)}%;--c:${esc(m.cor || '#0f6cbd')}"
-    aria-label="${esc(m.nome)}"><span class="fita-dica">${esc(m.nome)}${m.grupoNome ? ' · ' + esc(m.grupoNome) : ''}</span></button>`).join('');
-  box.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => voarAoMarcador(b.dataset.mk));
+  const L = S.board.layout, pags = PG.isPages(S.board), caixa = pags ? { y: 0, h: L.count * (L.h + L.gap) - L.gap } : R.unionBox(S.items);
+  const porId = new Map(ms.map(m => [m.id, m]));
+  // uma fita por página (ou por pontos muito perto), com o número quando há mais de um: antes, 4 marcadores na mesma
+  // página ficavam um em cima do outro (retorno da aula de 04/11/2026)
+  box.innerHTML = MK.fitasAgrupadas(ms, caixa, box.clientHeight, pags ? L.h + L.gap : 0).map(({ ids, y }) => {
+    const m = porId.get(ids[0]), n = ids.length, pg = m.pagina || (pags ? Math.floor(m.cy / (L.h + L.gap)) + 1 : null);
+    const nome = n > 1 ? `${pg ? `Página ${pg}: ` : ''}${n} marcadores` : m.nome + (m.grupoNome ? ' · ' + m.grupoNome : '');
+    return `<button class="fita${n > 1 ? ' varios' : ''}" data-ids="${esc(ids.join(' '))}" style="top:${y}px;--c:${esc(m.cor || '#0f6cbd')}" aria-label="${esc(nome)}"
+      title="${esc(n > 1 ? ids.map(i => porId.get(i).nome).join(', ') : nome)}"><span class="fita-nome">${esc(nome)}</span>${n > 1 ? `<span class="fita-n">${n}</span>` : ''}</button>`;
+  }).join('');
+  box.querySelectorAll('[data-ids]').forEach(b => b.onclick = () => {
+    const ids = b.dataset.ids.split(' ');
+    if (ids.length === 1) return voarAoMarcador(ids[0]);
+    listaDeMarcadores(b, { so: ids, onde: 'left' });
+  });
 }
 function voarAoMarcador(id) {
   const m = marcadoresDoQuadro().find(x => x.id === id);
   if (!m) return;
   animarVista(MK.vistaDoMarcador(m, W, H), MK.VOO_MS);
-  const f = $('fitas').querySelector(`[data-mk="${CSS.escape(id)}"]`);
+  const f = [...$('fitas').querySelectorAll('[data-ids]')].find(x => x.dataset.ids.split(' ').includes(id));
   if (f) { f.classList.remove('brilho'); void f.offsetWidth; f.classList.add('brilho'); }
 }
 // aberto pela galeria (aba Marcadores): o quadro inteiro primeiro e, logo depois, o voo até o ponto
@@ -3771,12 +3883,153 @@ async function criarMarcador(nome, grupo, pagina) {
   } catch (e) { toast(e.message); }
 }
 // na apresentação: a lista dos marcadores deste quadro, para pular até um (as fitinhas ficam escondidas da turma)
-function listaDeMarcadores(anchor) {
-  const ms = marcadoresDoQuadro();
+// Lista dos marcadores do quadro, por grupo (1.17.3, retorno da aula de 04/11/2026): tocar no nome leva até ele; a alça
+// ⠿ arrasta (mouse, caneta ou dedo: eventos de ponteiro, não o arrastar do HTML, que não funciona com caneta e toque)
+// para outra posição ou outro grupo; o ⋮ faz o mesmo sem arrastar e muda o lugar no quadro. Tudo vai por
+// /api/marcadores, na fila e com a versão dos marcadores (_mkv). `so`: só estes (a fita de uma página com vários).
+let listaAberta = null;   // { anchor, opc } da lista na tela, para abrir de novo depois de uma mudança
+async function listaDeMarcadores(anchor, opc = {}) {
+  if (!S) return;
+  const quadro = S.id;
+  let todos = { marcadores: [], grupos: gruposMarcadores };
+  try { todos = await listarMarcadores(); gruposMarcadores = todos.grupos; } catch {}
+  if (S?.id !== quadro) return;
+  const ms = marcadoresDoQuadro().filter(m => !opc.so || opc.so.includes(m.id));
   if (!ms.length) return toast('Este quadro não tem marcadores. Marcar (Ctrl+M) guarda o ponto de agora.');
-  showPop(anchor, `<div class="menu mk-lista">${ms.map(m => `<button data-mk="${esc(m.id)}"><i style="background:${esc(m.cor || '#0f6cbd')}"></i>${esc(m.nome)}${m.pagina ? `<small>pág. ${m.pagina}</small>` : ''}</button>`).join('')}</div>`, p => {
-    p.querySelectorAll('[data-mk]').forEach(b => b.onclick = () => { hidePop(); voarAoMarcador(b.dataset.mk); });
-  }, 'above');
+  const grupos = [...gruposMarcadores].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  const comQuadro = todos.marcadores.length ? todos.marcadores : ms.map(m => ({ ...m, quadro }));
+  const secoes = [...grupos.map(g => ({ g, lista: MK.doGrupo(ms, g.id, grupos) })), { g: null, lista: MK.doGrupo(ms, null, grupos) }]
+    .filter(s => s.lista.length || (!opc.so && s.g));
+  const linha = m => `<div class="mkl-linha" data-mk="${esc(m.id)}"><span class="mk-alca" title="Arraste para mudar a posição ou o grupo">⠿</span>
+    <i style="background:${esc(m.cor || '#8a8886')}"></i><button class="mk-ir" title="Ir até este marcador">${esc(m.nome)}</button>
+    ${m.pagina ? `<small>pág. ${m.pagina}</small>` : ''}<button class="mk-mais" title="Mover, mudar de lugar, renomear ou apagar" aria-label="Mais opções">⋮</button></div>`;
+  listaAberta = { anchor, opc };
+  const p = showPop(anchor, `<div class="mk-lista2"><div class="mk-cab">${opc.so ? `${ms.length} marcadores aqui` : 'Marcadores deste quadro'}</div>
+    <small class="mkl-dica">Arraste pela alça ⠿ (mouse, caneta ou dedo), ou use ⋮</small>
+    ${secoes.map(({ g, lista }) => `<div class="mk-sec" data-g="${esc(g?.id || '')}"><div class="mk-sec-t" style="color:${esc(g?.cor || '#616161')}">${esc(g?.nome || 'Sem grupo')}</div>
+      ${lista.map(linha).join('') || '<div class="mkl-vazio">Solte aqui</div>'}</div>`).join('')}
+    ${opc.so ? '<button class="btn mk-todos">Ver todos os marcadores</button>' : ''}</div>`, p => {
+    const doId = id => ms.find(m => m.id === id);
+    p.querySelectorAll('.mkl-linha').forEach(l => {
+      const m = doId(l.dataset.mk);
+      l.querySelector('.mk-ir').onclick = () => { hidePop(); listaAberta = null; voarAoMarcador(m.id); };
+      l.querySelector('.mk-mais').onclick = () => menuDoMarcador(l.querySelector('.mk-mais'), m, comQuadro, grupos);
+      l.querySelector('.mk-alca').addEventListener('pointerdown', e => arrastarMarcador(e, l, m, comQuadro, grupos, p));
+    });
+    p.querySelector('.mk-todos')?.addEventListener('click', () => { hidePop(); listaDeMarcadores(anchor); });
+  }, opc.onde || 'above');
+  if (!p) listaAberta = null;
+}
+async function mudarMarcadoresDaLista(pedido, msg, acao = null) {
+  if (!S) return;
+  try {
+    await marcadoresNaFila(S.id, pedido);
+    if (msg) toast(msg, acao ? 8000 : 2600, acao);
+    if (listaAberta) {
+      // as fitas foram refeitas com a lista nova: a lista abre de novo junto da fita dos mesmos marcadores
+      let { anchor, opc } = listaAberta;
+      if (!document.body.contains(anchor)) anchor = (opc.so && [...$('fitas').querySelectorAll('[data-ids]')].find(f => f.dataset.ids.split(' ').some(i => opc.so.includes(i)))) || (present ? $('ppMarcadores') : null);
+      hidePop(); listaAberta = null;
+      if (anchor) listaDeMarcadores(anchor, opc.so ? { ...opc, so: null } : opc);
+    }
+  } catch (e) { toast(e.message, 6000); }
+}
+function arrastarMarcador(e, linha, m, comQuadro, grupos, pop) {
+  e.preventDefault(); e.stopPropagation();
+  const alca = e.currentTarget;
+  try { alca.setPointerCapture(e.pointerId); } catch {}
+  const r = linha.getBoundingClientRect(), fantasma = linha.cloneNode(true);
+  fantasma.className = 'mkl-linha mk-fantasma'; fantasma.style.width = r.width + 'px';
+  document.body.appendChild(fantasma);
+  linha.classList.add('mk-saiu');
+  const marca = document.createElement('div'); marca.className = 'mk-entra';
+  let destino = null;
+  const move = ev => {
+    fantasma.style.left = r.left + 'px'; fantasma.style.top = (ev.clientY - r.height / 2) + 'px';
+    const sob = document.elementFromPoint(r.left + r.width / 2, ev.clientY), sec = sob?.closest?.('.mk-sec');
+    if (!sec || !pop.contains(sec)) { marca.remove(); destino = null; return; }
+    const linhas = [...sec.querySelectorAll('.mkl-linha:not(.mk-saiu)')];
+    const antes = linhas.find(x => { const b = x.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; }) || null;
+    sec.insertBefore(marca, antes || null);
+    destino = { g: sec.dataset.g || null, alvo: antes?.dataset.mk || null };
+  };
+  // Esc no meio do arraste cancela só o arraste: não fecha a lista nem sai da apresentação (revisão da 1.17.3-rc.1, achado 4)
+  const esc = ev => { if (ev.key !== 'Escape') return; ev.preventDefault(); ev.stopImmediatePropagation(); fim({ type: 'cancelado' }); };
+  const fim = ev => {
+    alca.removeEventListener('pointermove', move); alca.removeEventListener('pointerup', fim); alca.removeEventListener('pointercancel', fim);
+    removeEventListener('keydown', esc, true);
+    try { alca.releasePointerCapture(e.pointerId); } catch {}
+    fantasma.remove(); marca.remove(); linha.classList.remove('mk-saiu');
+    if (ev.type !== 'pointerup' || !destino) return;
+    const alvo = destino.alvo ? comQuadro.find(x => x.id === destino.alvo && x.quadro === S.id) : null;
+    const arr = comQuadro.find(x => x.id === m.id && x.quadro === S.id) || { ...m, quadro: S.id };
+    mudarMarcadoresDaLista({ alterar: MK.soltar(comQuadro, arr, destino.g, alvo, grupos) });
+  };
+  move(e);
+  alca.addEventListener('pointermove', move); alca.addEventListener('pointerup', fim); alca.addEventListener('pointercancel', fim);
+  addEventListener('keydown', esc, true);
+}
+function menuDoMarcador(anchor, m, comQuadro, grupos) {
+  const quadro = S.id, arr = comQuadro.find(x => x.id === m.id && x.quadro === quadro) || { ...m, quadro };
+  const doMeuGrupo = MK.doGrupo(marcadoresDoQuadro(), m.grupo && grupos.some(g => g.id === m.grupo) ? m.grupo : null, grupos);
+  const k = doMeuGrupo.findIndex(x => x.id === m.id), noTodo = id => comQuadro.find(x => x.id === id && x.quadro === quadro);
+  const grupoAtual = m.grupo && grupos.some(g => g.id === m.grupo) ? m.grupo : null;
+  showPop(anchor, `<div class="menu">
+      <button data-a="grupo">Mover para o grupo… ›</button>
+      <button data-a="sobe" ${k <= 0 ? 'disabled' : ''}>Subir na lista</button>
+      <button data-a="desce" ${k < 0 || k >= doMeuGrupo.length - 1 ? 'disabled' : ''}>Descer na lista</button>
+      <button data-a="lugar">Mudar de lugar no quadro</button>
+      <button data-a="nome">Renomear</button>
+      <button data-a="apagar" class="danger">Apagar</button></div>`, p => {
+    p.querySelector('[data-a="grupo"]').onclick = () => hidePop() || showPop(anchor, `<div class="menu">${grupos.map(g => `<button data-g="${esc(g.id)}" class="${g.id === grupoAtual ? 'on' : ''}"><i class="mk-bola" style="background:${esc(g.cor)}"></i> ${esc(g.nome)}</button>`).join('')}
+        <button data-g="" class="${grupoAtual ? '' : 'on'}">Sem grupo</button><button data-g="+">${ICON.plus} Grupo novo…</button></div>`, q => {
+      q.querySelectorAll('[data-g]').forEach(b => b.onclick = async () => {
+        let gs = grupos, gid = b.dataset.g || null, extra = {};
+        if (gid === '+') {
+          hidePop();
+          const nome = (await askText('Nome do grupo novo'))?.trim();
+          if (!nome) return;
+          const g = { id: 'g' + newId(), nome: nome.slice(0, 60), cor: MK.CORES_GRUPO[grupos.length % MK.CORES_GRUPO.length], ordem: grupos.length + 1 };
+          gs = [...grupos, g]; gid = g.id; extra = { grupos: gs };
+        }
+        hidePop();
+        mudarMarcadoresDaLista({ ...extra, alterar: MK.soltar(comQuadro, arr, gid, null, gs) }, `“${m.nome}” em ${gid ? gs.find(g => g.id === gid).nome : 'Sem grupo'}`);
+      });
+    }, 'left');
+    p.querySelector('[data-a="sobe"]').onclick = () => { hidePop(); mudarMarcadoresDaLista({ alterar: MK.soltar(comQuadro, arr, grupoAtual, noTodo(doMeuGrupo[k - 1].id), grupos) }); };
+    p.querySelector('[data-a="desce"]').onclick = () => { hidePop(); const depois = doMeuGrupo[k + 2];
+      mudarMarcadoresDaLista({ alterar: MK.soltar(comQuadro, arr, grupoAtual, depois ? noTodo(depois.id) : null, grupos) }); };
+    p.querySelector('[data-a="lugar"]').onclick = () => {
+      hidePop(); listaAberta = null; movendoMarcador = { m, quadro, ate: Date.now() + 60000 };
+      toast(`Toque no ponto novo do quadro para “${m.nome}” (Esc cancela)`, 60000);
+    };
+    p.querySelector('[data-a="nome"]').onclick = async () => {
+      hidePop();
+      const nome = (await askText('Nome do marcador', m.nome))?.trim();
+      if (nome && nome !== m.nome) mudarMarcadoresDaLista({ alterar: [{ quadro, id: m.id, nome }] });
+    };
+    // apagar com "Desfazer" (revisão da 1.17.3-rc.1, achado 2): um toque errado com caneta ou dedo não perde o marcador
+    p.querySelector('[data-a="apagar"]').onclick = () => {
+      hidePop();
+      const { quadro: _q, titulo: _t, pasta: _p, ...original } = m;
+      mudarMarcadoresDaLista({ apagar: [{ quadro, id: m.id }] }, `Marcador apagado: ${m.nome}`,
+        { label: 'Desfazer', fn: () => S?.id === quadro && mudarMarcadoresDaLista({ novos: [{ quadro, marcador: original }] }, `Marcador de volta: ${m.nome}`) });
+    };
+  }, 'left');
+}
+// "Mudar de lugar no quadro": o próximo toque no quadro é o ponto novo (o enquadramento guardado continua do mesmo
+// tamanho); a página e o nome sugerido ("Página 3") acompanham
+let movendoMarcador = null;
+function soltarMarcadorAqui(e) {
+  const { m } = movendoMarcador; movendoMarcador = null;
+  const P = toWorld(e.clientX, e.clientY), dif = { cx: P.x, cy: P.y };
+  if (PG.isPages(S.board)) {
+    const L = S.board.layout, pg = Math.floor(P.y / (L.h + L.gap)) + 1;
+    dif.pagina = pg;
+    if (m.nome === `Página ${m.pagina}`) dif.nome = `Página ${pg}`;
+  }
+  $('toast').hidden = true;
+  mudarMarcadoresDaLista({ alterar: [{ quadro: S.id, id: m.id, ...dif }] }, `“${dif.nome || m.nome}” mudou de lugar`);
 }
 
 // só para o professor preparar: onde estão os escondidos, em tracejado fraco (nunca na apresentação)
@@ -3815,7 +4068,11 @@ function syncPresentBar() {
   document.querySelectorAll('#presentbar [data-pt]').forEach(x => {
     x.classList.toggle('active', x.dataset.pt === tool);
     const dot = x.querySelector('i');
-    if (dot && cfg.tools[x.dataset.pt]) dot.style.background = inkShown(cfg.tools[x.dataset.pt].color);
+    if (dot && cfg.tools[x.dataset.pt]) {
+      dot.style.background = inkShown(cfg.tools[x.dataset.pt].color);
+      // a bolinha mostra a espessura escolhida: maior ou menor (1.17.3)
+      if (x.classList.contains('dot')) { const d = Math.round(Math.min(22, 9 + cfg.tools[x.dataset.pt].width * 1.1)); dot.style.width = dot.style.height = d + 'px'; }
+    }
   });
   const c = $('ppColor')?.querySelector('i');
   if (c) c.style.setProperty('--c', inkShown(currentInk().color));
@@ -3871,7 +4128,11 @@ function initPagesUI() {
   document.querySelectorAll('.lupactl [data-lupa]').forEach(x => x.onclick = () => mudarLupa(+x.dataset.lupa));
   $('ppInkShape').onclick = () => { cfg.inkShape = !cfg.inkShape; saveCfg(); syncToolbar(); toast(cfg.inkShape ? 'Tinta vira forma: ligado (traço quase reto vira reta)' : 'Tinta vira forma: desligado (desenho livre)'); };
   $('ppStrip').onclick = () => toggleZoomLens();
-  document.querySelectorAll('#presentbar [data-pt]').forEach(x => x.onclick = () => { setTool(x.dataset.pt); syncPresentBar(); });
+  // tocar de novo na bolinha da cor que já está ativa abre a espessura dela, logo acima (1.17.3, pedido do professor)
+  document.querySelectorAll('#presentbar [data-pt]').forEach(x => x.onclick = () => {
+    if (x.classList.contains('dot') && tool === x.dataset.pt) return espessuraDaCor(x, x.dataset.pt);
+    setTool(x.dataset.pt); syncPresentBar();
+  });
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && present) setPresent(false); else resize(); });
 }
 
@@ -3907,18 +4168,38 @@ function toolsPop(anchor) {
       <button data-lado="dir" class="${cfg.teachBar && lado === 'dir' ? 'on' : ''}">À direita</button>
       <button data-lado="esq" class="${cfg.teachBar && lado === 'esq' ? 'on' : ''}">À esquerda</button>
       <button data-fechar class="${cfg.teachBar ? '' : 'on'}">Só neste menu</button></div>
-      <label class="row"><input type="checkbox" id="tbNomes" ${cfg.teachNames ? 'checked' : ''}> nome embaixo de cada ícone</label></div>
+      <div class="row"><span>Nomes nas barras laterais:</span><div class="seg">${NOMES_BARRAS.map(([k, n]) => `<button data-nb="${k}" class="${k === modoNomes() ? 'on' : ''}" title="${k === 'auto' ? 'Com nomes em tela grande; só os ícones em notebook e projetor' : n}">${n}</button>`).join('')}</div></div></div>
     <div class="menu newkind tools">${TEACH_ITEMS().map(([k, ic, n, d]) =>
     `<button data-k="${k}" class="${on[k] ? 'on' : ''}">${ic}<span><b>${n}</b><small>${d}</small></span></button>`).join('')}</div>
     <small class="tb-note">Aberta, a barra também pode ir para qualquer lugar: destrave o cadeado (barra de cima) e arraste.</small>`, p => {
     p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { hidePop(); toolAction(x.dataset.k); });
     p.querySelectorAll('[data-lado]').forEach(x => x.onclick = () => { hidePop(); setTeachBar(true, x.dataset.lado); });
     p.querySelector('[data-fechar]').onclick = () => { hidePop(); setTeachBar(false); };
-    p.querySelector('#tbNomes').onchange = e => { cfg.teachNames = e.target.checked; saveCfg(); buildTeachBar(); placeBars(); };
+    p.querySelectorAll('[data-nb]').forEach(x => x.onclick = () => { mudarNomesBarras(x.dataset.nb); p.querySelectorAll('[data-nb]').forEach(y => y.classList.toggle('on', y === x)); });
   });
 }
 
 // barra do professor "explodida": todas as ferramentas à vista (opcional, móvel como as outras barras)
+// nomes embaixo dos ícones das barras laterais (criar, desenho, professor): "com nomes", "só ícones" ou "automático"
+// (o padrão: com nomes só em tela grande; em notebook e projetor, só os ícones, e a barra fica com cerca de metade da
+// largura). O nome continua na dica ao pairar
+const NOMES_BARRAS = [['nomes', 'Com nomes'], ['icones', 'Só ícones'], ['auto', 'Automático']];
+const modoNomes = () => (NOMES_BARRAS.some(([k]) => k === cfg.barNomes) ? cfg.barNomes : 'auto');
+function nomesNasBarras() {
+  const m = modoNomes();
+  return m === 'nomes' || (m === 'auto' && innerHeight >= 900 && innerWidth >= 1600);
+}
+let nomesAplicados = null;
+function aplicarNomesBarras(forcar = false) {
+  const n = nomesNasBarras();
+  if (!forcar && n === nomesAplicados) return;
+  nomesAplicados = n;
+  for (const id of ['createbar', 'drawbar']) $(id)?.classList.toggle('sem-nomes', !n);
+  $('board')?.classList.toggle('barras-icones', !n);
+  buildTeachBar(); placeBars();
+}
+function mudarNomesBarras(m) { cfg.barNomes = m; saveCfg(); aplicarNomesBarras(true); }
+
 function setTeachBar(on, lado) {
   cfg.teachBar = !!on;
   if (lado) { cfg.teachSide = lado; resetBar('teach'); }   // escolher um lado desfaz a posição arrastada
@@ -3926,6 +4207,7 @@ function setTeachBar(on, lado) {
   buildTeachBar();
   syncTeachBar();
   placeBars();
+  syncFitas();
 }
 function buildTeachBar() {
   const b = $('teachbar');
@@ -3933,17 +4215,18 @@ function buildTeachBar() {
   b.hidden = !cfg.teachBar || !S;
   if (b.hidden) return;
   b.classList.toggle('esq', cfg.teachSide === 'esq');
-  b.classList.toggle('nomes', !!cfg.teachNames);
-  b.innerHTML = TEACH_ITEMS().map(([k, ic, n, d, curto]) => cfg.teachNames
+  const nomes = nomesNasBarras();
+  b.classList.toggle('nomes', nomes);
+  b.innerHTML = TEACH_ITEMS().map(([k, ic, n, d, curto]) => nomes
       ? `<button class="cb" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}<small>${esc(curto)}</small></button>`
       : `<button class="ib" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}</button>`).join('')
     + `<span class="sep"></span><div class="tb-acoes"><button class="ib" data-lado title="Passar a barra para o outro lado">⇄</button>`
-    + `<button class="ib" data-nomes title="${cfg.teachNames ? 'Esconder' : 'Mostrar'} os nomes">Aa</button>`
+    + `<button class="ib" data-nomes title="${nomes ? 'Só os ícones' : 'Mostrar os nomes'} nas barras laterais (o automático fica no menu das Ferramentas)">Aa</button>`
     + `<button class="ib" data-x title="Fechar a barra (as ferramentas continuam no botão da barra de cima)">${ICON.close}</button></div>`;
   b.querySelectorAll('[data-k]').forEach(x => x.onclick = () => toolAction(x.dataset.k, x));
   b.querySelector('[data-x]').onclick = () => setTeachBar(false);
   b.querySelector('[data-lado]').onclick = () => setTeachBar(true, cfg.teachSide === 'esq' ? 'dir' : 'esq');
-  b.querySelector('[data-nomes]').onclick = () => { cfg.teachNames = !cfg.teachNames; saveCfg(); buildTeachBar(); placeBars(); };
+  b.querySelector('[data-nomes]').onclick = () => mudarNomesBarras(nomes ? 'icones' : 'nomes');
   recolhivelDeNovo('teach');   // o botão de recolher some quando a barra é refeita
   syncTeachBar();
 }

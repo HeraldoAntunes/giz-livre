@@ -112,10 +112,11 @@ try {
   conferir('marcador criado com o nome, o grupo novo, a página e o ponto', mk?.nome === 'Lei de Hess: exemplo 2' && mk.grupoNome === 'Termoquímica' && mk.pagina === 2
     && Math.abs(mk.cx - vistaMarcada.cx) < 1 && Math.abs(mk.w - vistaMarcada.w) < 1, JSON.stringify(mk));
   conferir('com miniatura do ponto', /^\/assets\/[0-9a-f]{40}\.png$/.test(mk?.mini || ''));
-  const fita = await avaliar(`(() => { const f = document.querySelector('#fitas .fita'); return f && { vis: !document.getElementById('fitas').hidden && f.offsetWidth > 0, dica: f.textContent.trim(), cor: getComputedStyle(f).backgroundColor }; })()`);
-  await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1590, y: await avaliar(`(() => { const r = document.querySelector('#fitas .fita').getBoundingClientRect(); return r.top + r.height / 2; })()`) });
+  const fita = await avaliar(`(() => { const f = document.querySelector('#fitas .fita'); return f && { vis: !document.getElementById('fitas').hidden && f.offsetWidth > 0, dica: f.textContent.trim(), cor: getComputedStyle(f).getPropertyValue('--c').trim() }; })()`);
+  { const [fx, fy] = await avaliar(`(() => { const r = document.querySelector('#fitas .fita').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()`);
+    await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: fx, y: fy }); }
   await espera(200); await captura('2-fitinha-com-o-nome');
-  conferir('a fitinha aparece na borda, com o nome e a cor do grupo', fita?.vis && fita.dica === 'Lei de Hess: exemplo 2 · Termoquímica' && fita.cor === 'rgb(197, 15, 31)', JSON.stringify(fita));
+  conferir('a fitinha aparece na borda, com o nome e a cor do grupo', fita?.vis && fita.dica === 'Lei de Hess: exemplo 2 · Termoquímica' && fita.cor === '#c50f1f', JSON.stringify(fita));
 
   // a fitinha leva ao ponto, com o voo
   await tecla('Home', 'Home', 36); await avaliar(`(() => { const S = window.__lousa.S; S.view = { ...S.view, x: S.view.x + 300, y: S.view.y + 2000, zoom: S.view.zoom * 0.5 }; })()`);
@@ -129,8 +130,9 @@ try {
   conferir('na apresentação, as fitinhas somem da tela', await avaliar(`(() => { const f = document.getElementById('fitas'); return f.hidden || getComputedStyle(f).display === 'none'; })()`));
   conferir('Marcar e a lista de marcadores na mini-bandeja', await avaliar(`['ppMarcar', 'ppMarcadores'].every(id => document.getElementById(id)?.offsetWidth > 0)`));
   await tecla('PageDown', 'PageDown', 34); await espera(500);
-  await clicar('#ppMarcadores'); await espera(200);
-  await avaliar(`document.querySelector('#pop .mk-lista [data-mk]').click()`); await espera(700);
+  await clicar('#ppMarcadores');
+  await ate(`!!document.querySelector('#pop:not([hidden]) .mkl-linha .mk-ir')`, 5000);   // 1.17.3: a lista lê os grupos do servidor antes
+  await avaliar(`document.querySelector('#pop .mkl-linha .mk-ir').click()`); await espera(700);
   conferir('a lista da mini-bandeja leva ao ponto marcado', await noPonto(mk));
   // sai pelo botão da mini-bandeja: com a tela cheia ligada, o Esc simulado não chega à página (o de verdade sai da
   // tela cheia, e o programa sai junto da apresentação)

@@ -21,6 +21,28 @@ export function alturaDasFitas(marcadores, caixa) {
   return marcadores.map(m => (y1 > y0 ? (m.cy - y0) / (y1 - y0) : 0.5));
 }
 
+/** As fitinhas na borda (1.17.3): uma por página (`passo` = altura da página mais o vão) ou, no quadro infinito, uma
+ * para os pontos a menos de uma fita de distância; cada uma na altura média dos seus (px, numa borda de `altura` px) e
+ * nunca a menos de `alto + folga` da vizinha. Devolve [{ ids, y }] de cima para baixo. */
+export function fitasAgrupadas(marcadores, caixa, altura, passo = 0, alto = 30, folga = 6) {
+  if (!marcadores.length) return [];
+  const alt = alturaDasFitas(marcadores, caixa), px = alt.map(a => (0.04 + a * 0.92) * altura);
+  const ordem = marcadores.map((m, i) => ({ m, y: px[i] })).sort((a, b) => a.y - b.y || (a.m.ordem ?? 0) - (b.m.ordem ?? 0));
+  const grupos = [];
+  for (const o of ordem) {
+    const g = grupos.at(-1), chave = passo ? Math.floor(o.m.cy / passo) : null;
+    if (g && (passo ? g.chave === chave : o.y - g.y0 < alto)) { g.ids.push(o.m.id); g.soma += o.y; }
+    else grupos.push({ chave, y0: o.y, ids: [o.m.id], soma: o.y });
+  }
+  const ys = grupos.map(g => g.soma / g.ids.length), d = alto + folga;
+  for (let i = 1; i < ys.length; i++) ys[i] = Math.max(ys[i], ys[i - 1] + d);
+  if (ys.length && ys.at(-1) > altura - alto / 2) {   // passou do fim: empurra de baixo para cima
+    ys[ys.length - 1] = altura - alto / 2;
+    for (let i = ys.length - 2; i >= 0; i--) ys[i] = Math.min(ys[i], ys[i + 1] - d);
+  }
+  return grupos.map((g, i) => ({ ids: g.ids, y: Math.round(ys[i]) }));
+}
+
 /** Os marcadores de um grupo, na ordem; `semGrupo` junta os sem grupo e os de grupo que não existe mais. */
 export function doGrupo(marcadores, grupoId, grupos) {
   const existe = new Set(grupos.map(g => g.id));

@@ -417,8 +417,40 @@ function srcOf(it) {
 }
 // imagem já carregada do item (ou null) — a borracha usa para tocar só no desenho da forma
 export function loadedImage(it) { const img = getImage(it, srcOf(it)); return img.complete && img.naturalWidth ? img : null; }
+// slides já decodificados (retorno da aula de 04/11/2026: passando rápido, cada slide novo parava a tela enquanto o
+// navegador decodificava a imagem). A apresentação pede o anterior e os dois seguintes de antemão; a decodificação
+// (createImageBitmap) sai do caminho da tela, e só os últimos BITMAPS_MAX ficam guardados, para não crescer a memória
+// num deck de 200 slides
+const BITMAPS_MAX = 8;
+const bitmaps = new Map(), decodificando = new Set();
+function guardaBitmap(src, b) {
+  bitmaps.get(src)?.close?.();
+  bitmaps.delete(src); bitmaps.set(src, b);
+  while (bitmaps.size > BITMAPS_MAX) { const [k, v] = bitmaps.entries().next().value; v.close?.(); bitmaps.delete(k); }
+}
+export function precarregarImagens(items) {
+  if (typeof createImageBitmap !== 'function') return;
+  for (const it of items) {
+    if (it.type !== 'image' || !it.locked) continue;
+    const src = srcOf(it);
+    if (bitmaps.has(src)) { const b = bitmaps.get(src); bitmaps.delete(src); bitmaps.set(src, b); continue; }   // recente de novo
+    if (decodificando.has(src)) continue;
+    decodificando.add(src);
+    const img = getImage(it, src);
+    const vai = () => createImageBitmap(img).then(b => guardaBitmap(src, b)).catch(() => {}).finally(() => decodificando.delete(src));
+    if (img.complete) { if (img.naturalWidth) vai(); else decodificando.delete(src); }
+    else {
+      img.addEventListener('load', vai, { once: true });
+      img.addEventListener('error', () => decodificando.delete(src), { once: true });
+    }
+  }
+}
+export const bitmapsGuardados = () => bitmaps.size;   // para os testes
+
 function drawImage(ctx, it) {
-  const img = getImage(it, srcOf(it));
+  const src = srcOf(it), bm = bitmaps.get(src);
+  if (bm) { ctx.drawImage(bm, it.x, it.y, it.w, it.h); return; }
+  const img = getImage(it, src);
   if (img.complete && img.naturalWidth) ctx.drawImage(img, it.x, it.y, it.w, it.h);
   else {
     ctx.fillStyle = 'rgba(0,0,0,0.06)';

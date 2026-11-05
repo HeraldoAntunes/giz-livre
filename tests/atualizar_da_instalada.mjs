@@ -93,6 +93,37 @@ try {
   conferir('a versão nova lê o quadro inteiro (texto, traço e imagem)', b.items?.length === 3);
   const ms = await (await fetch(`http://127.0.0.1:${con.porta}/api/marcadores`, { headers: { 'X-Lousa': con.token } })).json();
   conferir('o marcador continua', ms.marcadores?.some(m => m.quadro === 'aula' && m.id === 'mk1'));
+
+  // --completo (notebook com Windows 10, 05/11/2026): o marcador vai para um grupo; fecha, abre de novo e confere;
+  // desinstala e confere que os quadros ficaram
+  if (process.argv.includes('--completo')) {
+    const h2 = { 'X-Lousa': con.token, 'Content-Type': 'application/json' }, base2 = `http://127.0.0.1:${con.porta}`;
+    const rg = await fetch(`${base2}/api/marcadores`, { method: 'POST', headers: h2, body: JSON.stringify({
+      grupos: [{ id: 'gW10', nome: 'Aula de teste', cor: '#0f6cbd', ordem: 1 }],
+      alterar: [{ quadro: 'aula', id: 'mk1', grupo: 'gW10', grupoNome: 'Aula de teste', cor: '#0f6cbd', ordem: 1 }] }) });
+    conferir('o marcador foi para o grupo "Aula de teste"', rg.ok && (await rg.json()).marcadores?.some(m => m.id === 'mk1' && m.grupo === 'gW10'));
+    // fechar pelo X, como o professor: WM_CLOSE na janela do Tauri (o /api/sair só desliga o servidor)
+    const fecharJanela = () => { for (const l of procsNaPasta().filter(x => / GizLivre\.exe$/.test(x))) { const pid = l.split(' ')[0];
+      ps(`Add-Type -Namespace W -Name U -MemberDefinition '[DllImport("user32.dll")] public static extern bool PostMessage(System.IntPtr h, uint m, System.IntPtr w, System.IntPtr l); public delegate bool Cb(System.IntPtr h, System.IntPtr p); [DllImport("user32.dll")] public static extern bool EnumWindows(Cb f, System.IntPtr p); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint p); [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(System.IntPtr h, System.Text.StringBuilder s, int n);'; $cb = [W.U+Cb]{ param($h, $p) $x = 0; [void][W.U]::GetWindowThreadProcessId($h, [ref]$x); $c = New-Object System.Text.StringBuilder 64; [void][W.U]::GetClassName($h, $c, 64); if ($x -eq ${pid} -and $c.ToString() -eq 'Tauri Window') { [void][W.U]::PostMessage($h, 0x10, 0, 0) }; $true }; [W.U]::EnumWindows($cb, 0) | Out-Null`); } };
+    fecharJanela();
+    conferir('fechou pelo X (nenhum processo da pasta do programa)', await ate(() => !procsNaPasta().length, 20000), procsNaPasta().join('; '));
+    const PORTA2 = PORTA + 1;
+    spawn(join(PROG, 'GizLivre.exe'), ['--dados', DADOS, '--porta', String(PORTA2)], { stdio: 'ignore', detached: true, env: ENV }).unref();
+    const con2 = await ate(() => { const c = conexao(); return c?.porta === PORTA2 && c?.versao === V_NOVA ? c : null; }, 40000);
+    conferir('abriu de novo', !!con2, JSON.stringify(conexao()));
+    if (con2) {
+      const b2 = await (await fetch(`http://127.0.0.1:${PORTA2}/api/boards/aula`, { headers: { 'X-Lousa': con2.token } })).json();
+      conferir('depois de reabrir, o quadro continua inteiro (o traço também)', b2.items?.some(i => i.id === 's1' && i.type === 'stroke') && b2.items.length === 3);
+      const ms2 = await (await fetch(`http://127.0.0.1:${PORTA2}/api/marcadores`, { headers: { 'X-Lousa': con2.token } })).json();
+      conferir('depois de reabrir, o marcador continua no grupo', ms2.marcadores?.some(m => m.id === 'mk1' && m.grupo === 'gW10'));
+      fecharJanela();
+      await ate(() => !procsNaPasta().length, 20000);
+    }
+    const des = spawnSync(join(PROG, 'GizLivre.exe'), ['--desinstalar', '--silencioso'], { env: ENV, timeout: 60000 }).status;
+    await espera(1500);
+    conferir('desinstalou (saída 0, sem a chave e sem o programa)', des === 0 && !versaoNoRegistro() && !existsSync(join(PROG, 'GizLivre.exe')), `${des} ${versaoNoRegistro()}`);
+    conferir('os quadros ficaram (o arquivo do quadro e a imagem)', existsSync(join(DADOS, 'aula.json')) && existsSync(join(DADOS, img.replace(/^\//, ''))));
+  }
 } catch (e) { falhas++; console.log('  ✗ parou: ' + e.message); }
 finally {
   // fecha o que abriu da pasta de teste e desinstala (tira a chave de teste)
