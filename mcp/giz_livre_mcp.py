@@ -17,14 +17,15 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.17.3"
+VERSAO = "1.18.0"
 PROTOCOLOS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 CONGELADO = getattr(sys, "frozen", False)
 RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).resolve().parent.parent
 
 INSTRUCOES = (
     "Ferramentas para preparar aulas no Giz Livre (lousa digital offline). O agente cria quadros novos e acrescenta "
-    "textos, notas, formas, fórmulas LaTeX e gráficos; não exclui nada. Posições em px (96 por polegada): com "
+    "textos, notas, formas, fórmulas LaTeX e gráficos; importa PDF e PowerPoint deste computador como páginas "
+    "(importar_arquivo) e vê uma página com a imagem dela (ver_pagina); não exclui nada. Posições em px (96 por polegada): com "
     "`pagina` (1, 2...), x e y contam a partir do canto da página; sem x/y, o item entra abaixo do último item da "
     "página. Para vários itens no mesmo quadro, prefira adicionar_itens (uma chamada, uma gravação, tudo ou nada) "
     "em vez de uma chamada por item. Notas são para lembretes curtos (de 120 a 600 px de largura, altura de 0,75 a 2 "
@@ -96,17 +97,19 @@ class Cliente:
         raise Falha("Agentes de IA desligados no Giz Livre. Peça ao professor para abrir o Giz Livre e ligar "
                     "\"Permitir agentes de IA\" (menu do quadro ou botão Agentes de IA na galeria).")
 
-    def pedir(self, metodo: str, rota: str, corpo: dict | None = None, consulta: dict | None = None) -> dict:
+    def pedir(self, metodo: str, rota: str, corpo: dict | None = None, consulta: dict | None = None,
+              bruto: bytes | None = None, prazo: int = 30) -> dict:
         url = f"http://127.0.0.1:{self.porta}/api/agente/{rota}"
         if consulta:
             q = {k: v for k, v in consulta.items() if v is not None and v != ""}
             if q:
                 url += "?" + urllib.parse.urlencode(q)
-        dados = json.dumps(corpo, ensure_ascii=False).encode("utf-8") if corpo is not None else None
+        dados = bruto if bruto is not None else json.dumps(corpo, ensure_ascii=False).encode("utf-8") if corpo is not None else None
         req = urllib.request.Request(url, data=dados, method=metodo, headers={
-            "Host": f"127.0.0.1:{self.porta}", "X-Agente": self.token(), "Content-Type": "application/json"})
+            "Host": f"127.0.0.1:{self.porta}", "X-Agente": self.token(),
+            "Content-Type": "application/octet-stream" if bruto is not None else "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=prazo) as r:
                 return json.loads(r.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             with e:
@@ -216,7 +219,55 @@ FERRAMENTAS = [
         "eixos": {"type": "boolean"}, "rotulo": {"type": "boolean", "description": "escrever \"y = ...\" ao lado"},
         **POSICAO, "w": {"type": "number"}, "h": {"type": "number"}, "cor": COR}, ["quadro"]),
 ]
+FERRAMENTAS += [
+    ferramenta("importar_arquivo", "Importa um PDF ou uma apresentação do PowerPoint (.pdf, .ppt, .pptx) deste "
+               "computador como páginas de slide: num quadro novo ou no fim de um quadro com páginas que esteja "
+               "fechado. PowerPoint: as páginas entram na hora (o Giz Livre usa o PowerPoint ou o LibreOffice). PDF: "
+               "o arquivo fica guardado e as páginas são desenhadas quando o professor abrir o quadro.", {
+        "caminho": {"type": "string", "description": "caminho completo do arquivo neste computador (não vale atalho "
+                                                     "nem pasta de rede)"},
+        "quadro": {"type": "string", "description": "acrescentar no fim deste quadro (vazio: quadro novo)"},
+        "titulo": {"type": "string", "maxLength": 200, "description": "título do quadro novo (padrão: nome do arquivo)"},
+        "pasta": {"type": "string", "description": "pasta da galeria do quadro novo"},
+        "paginas": {"type": "string", "description": "só estas páginas, ex.: 1-5,8 (vazio: todas)"}}, ["caminho"]),
+    ferramenta("ver_pagina", "Mostra uma página de um quadro com páginas: a imagem importada (o slide ou a página do "
+               "PDF) e a lista do que foi escrito por cima.", {
+        "quadro": QUADRO, "pagina": {"type": "integer", "minimum": 1}}, ["quadro", "pagina"], leitura=True),
+]
 NOMES = {f["name"] for f in FERRAMENTAS}
+IMPORTAR_MAX = 300 * 1024 * 1024
+IMPORTAR_EXT = {".pdf": b"%PDF-", ".pptx": b"PK\x03\x04", ".ppt": bytes.fromhex("d0cf11e0")}
+
+
+def ler_para_importar(caminho) -> tuple:
+    """Confere o caminho antes de ler: só arquivo local comum, com extensão e começo de PDF ou PowerPoint. Os erros
+    nunca citam o conteúdo do arquivo."""
+    if not isinstance(caminho, str) or not caminho.strip():
+        raise Falha("caminho: obrigatório")
+    c = caminho.strip().strip('"')
+    if c.startswith(("\\\\", "//")) or c.lower().startswith(("http:", "https:", "file:")):
+        raise Falha("caminho: só arquivos deste computador (pasta de rede e endereço da internet não valem)")
+    if not os.path.isabs(c):
+        raise Falha("caminho: use o caminho completo (ex.: C:\\Users\\...\\aula.pptx)")
+    ext = os.path.splitext(c)[1].lower()
+    if ext not in IMPORTAR_EXT:
+        raise Falha("caminho: só arquivos .pdf, .ppt ou .pptx")
+    if os.path.islink(c):
+        raise Falha("caminho: atalhos e links não valem; use o arquivo de verdade")
+    if not os.path.isfile(c):
+        raise Falha("caminho: arquivo não encontrado")
+    try:
+        tam = os.path.getsize(c)
+        if tam == 0 or tam > IMPORTAR_MAX:
+            raise Falha("o arquivo está vazio ou passa de 300 MB")
+        with open(c, "rb") as f:
+            dados = f.read(IMPORTAR_MAX + 1)
+    except OSError:
+        raise Falha("não consegui ler o arquivo (está aberto em outro programa ou sem permissão?)")
+    marca = IMPORTAR_EXT[ext]
+    if not (marca in dados[:1024] if ext == ".pdf" else dados.startswith(marca)):
+        raise Falha(f"o conteúdo do arquivo não é de um {ext}")
+    return os.path.basename(c), dados
 TIPO_ITEM = {"escrever_texto": "texto", "escrever_nota": "nota", "desenhar_forma_geometrica": "geometria",
              "inserir_forma": "forma", "inserir_latex": "latex", "desenhar_grafico": "grafico"}
 
@@ -232,9 +283,18 @@ def executar(cli: Cliente, nome: str, a: dict) -> dict:
         return cli.pedir("GET", "modelos", consulta={"area": a.get("area")})
     if nome == "criar_quadro":
         return cli.pedir("POST", "quadros", a)
+    if nome == "importar_arquivo":
+        arq, dados = ler_para_importar(a.get("caminho"))
+        return cli.pedir("POST", "importar", consulta={"nome": arq, **{k: a.get(k) for k in ("quadro", "titulo", "pasta", "paginas")}},
+                         bruto=dados, prazo=900)
     q = a.get("quadro")
     if not isinstance(q, str) or not q:
         raise Falha("quadro: obrigatório (id de criar_quadro ou listar_quadros)")
+    if nome == "ver_pagina":
+        p = a.get("pagina")
+        if not isinstance(p, int) or isinstance(p, bool) or p < 1:
+            raise Falha("pagina: número da página, a partir de 1")
+        return cli.pedir("GET", f"quadros/{q}/paginas/{p}")
     q = urllib.parse.quote(q, safe="")
     if nome == "ler_quadro":
         return cli.pedir("GET", f"quadros/{q}", consulta={"detalhe": a.get("detalhe")})
@@ -288,8 +348,11 @@ def tratar(cli: Cliente, msg) -> dict | None:
             return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": f"ferramenta desconhecida: {str(nome)[:80]}"}}
         try:
             r = executar(cli, nome, args)
-            return ok({"content": [{"type": "text", "text": json.dumps(r, ensure_ascii=False)}],
-                       "structuredContent": r, "isError": False})
+            img = r.pop("imagem", None) if isinstance(r, dict) else None   # ver_pagina: a imagem vai como imagem
+            conteudo = [{"type": "text", "text": json.dumps(r, ensure_ascii=False)}]
+            if isinstance(img, dict) and img.get("base64"):
+                conteudo.insert(0, {"type": "image", "data": img["base64"], "mimeType": img.get("tipo", "image/png")})
+            return ok({"content": conteudo, "structuredContent": r, "isError": False})
         except Falha as e:
             return ok({"content": [{"type": "text", "text": str(e)}], "isError": True})
     return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": f"método não suportado: {metodo}"}}

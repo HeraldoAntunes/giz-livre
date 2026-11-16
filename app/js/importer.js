@@ -83,15 +83,17 @@ async function loadPdfJs() {
   return pdfjs;
 }
 
-export async function slidesFromPdf(file, onProgress = () => {}) {
+// paginas: só estas (números a partir de 1); vazio = todas (V1, PDF importado pelo agente)
+export async function slidesFromPdf(file, onProgress = () => {}, paginas = null) {
   const lib = await loadPdfJs();
   const doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
   const first = (await doc.getPage(1)).getViewport({ scale: 1 });
   // tamanho da página em px de mundo (pt → px)
   const size = { w: Math.round(first.width * 96 / 72), h: Math.round(first.height * 96 / 72) };
   const srcs = [], sizes = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    onProgress(`Lendo página ${i} de ${doc.numPages}…`);
+  const lista = paginas?.length ? paginas.filter(i => i >= 1 && i <= doc.numPages) : Array.from({ length: doc.numPages }, (_, k) => k + 1);
+  for (const [k, i] of lista.entries()) {
+    onProgress(`Desenhando a página ${k + 1} de ${lista.length}…`);
     const page = await doc.getPage(i);
     const vp1 = page.getViewport({ scale: 1 });
     sizes.push({ w: vp1.width * 96 / 72, h: vp1.height * 96 / 72 });

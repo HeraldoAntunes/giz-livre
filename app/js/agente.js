@@ -11,6 +11,7 @@ export const SRC_RESERVA = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2F
 const COR_ERRO = '#e81224';
 
 export const temPendentes = items => items.some(i => i?.type === 'pendente' || (i?.lib && i.src === SRC_RESERVA));
+export const pdfsPendentes = items => items.filter(i => i?.type === 'pendente' && i.gera === 'pdf' && /^[0-9a-f]{40}$/.test(i.pdf || ''));
 
 // item que não pôde ser gerado: vira texto vermelho com o código, no mesmo lugar, para nada se perder
 const textoErro = (it, texto) => ({ id: it.id, type: 'text', x: it.x, y: it.y, w: Math.max(it.w || 0, 240), text: texto,
@@ -54,7 +55,7 @@ export async function hidratarPendentes(items, deps) {
       if (src) trocas.set(it.id, [{ ...it, src }]);
       continue;
     }
-    if (it?.type !== 'pendente') continue;
+    if (it?.type !== 'pendente' || it.gera === 'pdf') continue;   // PDF do agente: montarPdfsDoAgente, no editor
     chegaram++;
     try {
       if (it.gera === 'latex') {

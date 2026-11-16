@@ -364,7 +364,11 @@ label.tb-line { flex-wrap: nowrap; align-items: flex-start; } label.tb-line inpu
 
 /* páginas */
 .pagebar { left: 50%; bottom: 12px; transform: translateX(-50%); }
-.pglabel { font-size: 13px; min-width: 96px; text-align: center; color: #424242; }
+.pglabel { font-size: 13px; min-width: 96px; text-align: center; color: #424242; cursor: pointer; border-radius: 6px; padding: 4px 2px; }
+.pglabel:hover, .pglabel:focus-visible { background: rgba(0,0,0,.06); }
+.ir-pg { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; }
+.ir-pg input { width: 84px; font: inherit; font-size: 16px; padding: 6px 8px; border: 1px solid #c8c6c4; border-radius: 6px; }
+.ir-saltos button { min-width: 56px; min-height: 40px; }
 .pagespanel { position: absolute; left: 80px; top: 64px; bottom: 70px; width: 196px; z-index: 6; background: #fff; border-radius: 10px;
   box-shadow: var(--shadow); display: flex; flex-direction: column; }
 .pp-head { display: flex; align-items: center; gap: 4px; padding: 6px 6px 6px 12px; border-bottom: 1px solid var(--line); }
@@ -587,6 +591,8 @@ button:focus:not(:focus-visible) { outline: none; }
 .teachbar.nomes .cb { width: 76px; padding: 5px 0 3px; }
 .teachbar.nomes .cb small { font-size: 12px; white-space: nowrap; }
 .teachbar .tb-acoes { display: flex; justify-content: center; }
+/* B2 (P68 item 5): só com ícones, trocar de lado, Aa e fechar ficam em coluna; deitados, alargavam a barra ao dobro */
+.teachbar:not(.nomes) .tb-acoes { flex-direction: column; align-items: center; }
 .teachbar .tb-acoes .ib { width: 34px; height: 34px; font: 600 13px "Segoe UI", sans-serif; }
 .teachbar.nomes .sep { width: 44px; }
 .tb-fixar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 4px 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px; font-size: 13px; }
@@ -774,3 +780,8 @@ button:focus:not(:focus-visible) { outline: none; }
 .ink.apertada .pen { width: 32px; }
 /* tela baixa (1024×600): a barra de ferramentas da direita rola por dentro em vez de sair da tela */
 .teachbar { max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+
+/* V1: aviso discreto enquanto o PDF importado pelo agente é desenhado */
+.pdf-agente-aviso { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); z-index: 30; max-width: min(640px, 90vw);
+  background: #fff8e1; color: #3b2f00; border: 1px solid #e8d48b; border-radius: 8px; padding: 8px 14px; font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); pointer-events: none; }

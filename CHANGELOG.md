@@ -1,5 +1,34 @@
 # Histórico de versões
 
+## 1.18.0 (15/11/2026)
+Pacote do retorno das aulas de 10 a 12/11/2026 e o conector de agentes de IA importando arquivos.
+- **Correções:**
+  - abrir um quadro pelo marcador agora chega à página marcada (antes parava 2 ou 3 slides antes, em quadros grandes);
+  - o + da barra de páginas e do painel põe a página em branco **depois da atual**, e não no fim do quadro. "Nova
+    página no fim" continua no menu …;
+  - na apresentação, o Esc fecha primeiro o que está aberto por cima (lupa, menu, calculadora, cronômetro, cortina,
+    esquadro…) e só um segundo Esc sai da apresentação;
+  - o aviso "O programa Giz Livre foi fechado" não aparece mais por uma falha passageira da rede do Windows e some
+    sozinho quando o programa volta a responder;
+  - "Mover quadros para a pasta" mostra primeiro os quadros sem pasta, deixa os que já estão em outras pastas
+    agrupados e recolhidos, tem busca e pergunta antes de tirar um quadro de outra pasta;
+  - criar um grupo de marcadores não apaga mais um grupo criado ao mesmo tempo em outra janela;
+  - os cartões de marcador da galeria têm uma alça ⠿ para arrastar com o dedo ou a caneta.
+- **Apresentação e páginas:**
+  - "Marcar" marca o slide com um toque; no slide já marcado, o botão vira "Desmarcar" (com Desfazer);
+  - depois de pular por um marcador, "↩ Voltar ao slide N" leva de volta ao slide de onde você saiu, como o voltar do
+    navegador;
+  - Home e End vão à primeira e à última página. Tocar no número da página abre "Ir para": primeira, última, 10 para
+    trás, 10 para a frente ou o número;
+  - o aviso com "Desfazer" some assim que você continua o trabalho (o Ctrl+Z continua valendo).
+- **Barras:** a página enquadrada não fica mais embaixo das barras em telas pequenas, e a barra do professor só com
+  ícones ficou com a largura de um ícone.
+- **Galeria:** a faixa de formas no topo pode ser ocultada; o botão Exibir muda o tamanho dos cartões (P, M, G, GG); e
+  cada pasta pode ter cor e ícone próprios (menu da pasta, "Cor e ícone…").
+- **Agentes de IA (conector MCP):** o agente importa um PDF ou uma apresentação do PowerPoint deste computador como
+  páginas (`importar_arquivo`) e vê uma página, com a imagem dela (`ver_pagina`). O PDF importado é desenhado quando
+  você abre o quadro, com um aviso discreto; se fechar antes, nada se perde.
+
 ## 1.17.3 (05/11/2026)
 Melhorias pedidas depois de uma aula de verdade (04/11/2026).
 - **Apresentação mais leve ao passar slides rápido:** o slide anterior e os dois seguintes já ficam prontos antes da

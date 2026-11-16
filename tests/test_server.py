@@ -3033,6 +3033,16 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
                                                        {"id": "g2", "nome": "Prova", "cor": "#0f6cbd", "ordem": 1}])
         self.assertNotIn("marcadores", [q["id"] for q in self.s.listar_quadros()])   # o arquivo dos grupos não vira quadro
 
+    # Pacote 1.18 (D6): "Grupo novo" manda só o grupo novo; um grupo criado noutra janela nesse meio-tempo fica
+    def test_grupos_mudar_acrescenta_e_muda_sem_apagar_os_outros(self):
+        self.novo_lugar()
+        self.pedir("POST", "/api/marcadores", {"grupos": [{"id": "g1", "nome": "Aula 1", "ordem": 1}]})
+        self.pedir("POST", "/api/marcadores", {"gruposMudar": [{"id": "g2", "nome": "Da outra janela", "ordem": 2}]})
+        self.assertEqual(self.pedir("POST", "/api/marcadores", {"gruposMudar": [{"id": "g1", "nome": "Aula 1 (revisada)", "cor": "#107C10"},
+                                                                                  {"id": "../x", "nome": "ruim"}]})[0], 200)
+        self.assertEqual(self.marcadores()["grupos"], [{"id": "g1", "nome": "Aula 1 (revisada)", "cor": "#107c10", "ordem": 1},
+                                                       {"id": "g2", "nome": "Da outra janela", "cor": "#0f6cbd", "ordem": 2}])
+
     def test_pacote_de_outro_pc_traz_so_marcadores_validos(self):
         b = self.s.quadro_do_pacote(json.dumps({"title": "Q", "items": [], "marcadores": [self.MK, {"id": "x"}, "lixo"]}).encode(), "q")
         self.assertEqual([m["id"] for m in b["marcadores"]], ["mk1"])
@@ -3111,6 +3121,127 @@ class GravacaoComFalhaDeDiscoTests(unittest.TestCase):
         sha_p1 = __import__("hashlib").sha256(self.P1).hexdigest()
         self.casos(rodar)
         self.casos(lambda d, falha: rodar(d, falha, ocupado=True))
+
+
+# V1 do pacote 1.18: o agente importa PDF ou PowerPoint e vê a página. O conversor do PowerPoint é simulado (o teste não
+# abre o PowerPoint do computador); o servidor é importado como módulo, com uma pasta de dados temporária.
+class ImportarAgenteTests(unittest.TestCase):
+    PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                        "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("servidor_importar", ROOT / "server.py")
+        self.s = s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        s.registrar = s.diario = lambda *a, **kw: None
+        self.temp = tempfile.TemporaryDirectory(prefix="giz-importar-")
+        s.DADOS = Path(self.temp.name)
+        s.LIXEIRA = s.DADOS / "lixeira"
+        s.LIXEIRA.mkdir()
+        (s.DADOS / "assets").mkdir()
+        s.quadros_abertos = lambda: set(self.abertos)
+        self.abertos = []
+        self.cfg = {"nivel": 2}
+        self.slides = [s.guardar_asset(self.PNG + bytes([k])) for k in range(4)]
+        s.converter_pptx = lambda conteudo, nome="": {"width": 960.0, "height": 540.0, "slides": list(self.slides), "info": {}}
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def pptx(self):
+        import io, zipfile
+        b = io.BytesIO()
+        with zipfile.ZipFile(b, "w") as z:
+            z.writestr("[Content_Types].xml", "<Types/>")
+            z.writestr("ppt/presentation.xml", "<p:presentation/>")
+            z.writestr("ppt/slides/slide1.xml", "<p:sld/>")
+        return b.getvalue()
+
+    def ler(self, bid):
+        return json.loads((self.s.DADOS / f"{bid}.json").read_text(encoding="utf-8"))
+
+    def test_pptx_vira_quadro_novo_de_slides(self):
+        r = self.s.importar_para_agente(self.pptx(), "Aula 3.pptx", "", "", "", "Hidráulica", self.cfg)
+        b = self.ler(r["quadro"])
+        self.assertEqual((r["tipo"], r["paginas_importadas"]), ("pptx", 4))
+        self.assertEqual((b["title"], b["folder"], b["criado_por"]), ("Aula 3", "Hidráulica", "agente"))
+        self.assertEqual((b["layout"]["kind"], b["layout"]["count"], b["layout"]["w"], b["layout"]["h"]), ("custom", 4, 1280.0, 720))
+        self.assertEqual([i["src"] for i in b["items"]], self.slides)
+        self.assertTrue(all(i["locked"] and i["type"] == "image" for i in b["items"]))
+
+    def test_pptx_so_as_paginas_pedidas_e_no_fim_de_um_quadro_do_agente(self):
+        r1 = self.s.importar_para_agente(self.pptx(), "a.pptx", "", "", "1", "", self.cfg)
+        r2 = self.s.importar_para_agente(self.pptx(), "b.pptx", r1["quadro"], "", "2-3,9", "", self.cfg)
+        b = self.ler(r1["quadro"])
+        self.assertEqual((r2["paginas_importadas"], b["layout"]["count"]), (2, 3))
+        self.assertEqual([i["src"] for i in b["items"]], [self.slides[0], self.slides[1], self.slides[2]])
+        passo = b["layout"]["h"] + b["layout"]["gap"]
+        self.assertEqual([round(i["y"] // passo) for i in b["items"]], [0, 1, 2])
+
+    def test_recusas(self):
+        s, R = self.s, self.s.RecusaAgente
+        casos = [(b"%PDF-1.4", "aula.txt", "só arquivos"), (b"nada disso", "aula.pdf", "não é um PDF"),
+                 (b"%PDF-1.4", "aula.pptx", "não é um arquivo .pptx"), (self.pptx(), "aula.ppt", "não é um arquivo .ppt"),
+                 (b"", "aula.pdf", "vazio"), (b"%PDF-1.4", "aula.pdf", "")]
+        for conteudo, nome, msg in casos[:-1]:
+            with self.subTest(nome=nome, msg=msg), self.assertRaises(R) as e:
+                s.importar_para_agente(conteudo, nome, "", "", "", "", self.cfg)
+            self.assertIn(msg, str(e.exception))
+        with self.assertRaises(R):
+            s.importar_para_agente(b"%PDF-1.4", "a.pdf", "", "", "1-x", "", self.cfg)
+        # quadro do professor (não do agente) no nível 2; quadro aberto na tela
+        (s.DADOS / "prof.json").write_text(json.dumps({"title": "P", "items": [], "layout": {"mode": "pages", "kind": "s169", "w": 1280, "h": 720, "gap": 48, "count": 2}}), encoding="utf-8")
+        with self.assertRaises(R) as e:
+            s.importar_para_agente(self.pptx(), "a.pptx", "prof", "", "", "", self.cfg)
+        self.assertEqual(e.exception.status, 403)
+        self.abertos = ["prof"]
+        with self.assertRaises(R) as e:
+            s.importar_para_agente(self.pptx(), "a.pptx", "prof", "", "", "", {"nivel": 3})
+        self.assertEqual(e.exception.status, 409)
+        self.assertEqual(self.ler("prof")["layout"]["count"], 2)   # nada mudou
+
+    def test_pdf_fica_pendente_e_o_arquivo_guardado(self):
+        pdf = b"%PDF-1.4\n1 0 obj<</Type/Pages/Kids[]/Count 3>>endobj\n%%EOF"
+        r = self.s.importar_para_agente(pdf, "lista.pdf", "", "Lista 2", "", "", self.cfg)
+        b = self.ler(r["quadro"])
+        self.assertEqual((r["tipo"], r["paginas_importadas"], b["title"]), ("pdf", 3, "Lista 2"))
+        [p] = b["items"]
+        self.assertEqual((p["type"], p["gera"], p["modo"]), ("pendente", "pdf", "novo"))
+        arq = self.s.arquivo_pdf_pendente(p["pdf"])
+        self.assertEqual(arq.read_bytes(), pdf)
+        # a página só apaga o PDF depois que nenhum quadro o espera
+        self.assertFalse(self.s.apagar_pdf_pendente(p["pdf"]))
+        (self.s.DADOS / f"{r['quadro']}.json").write_text(json.dumps({**b, "items": []}), encoding="utf-8")
+        self.assertTrue(self.s.apagar_pdf_pendente(p["pdf"]))
+        self.assertFalse(arq.exists())
+        self.assertIsNone(self.s.arquivo_pdf_pendente("../x"))
+
+    def test_powerpoint_convertido_em_pdf_pelo_libreoffice_tambem_fica_pendente(self):
+        import base64
+        self.s.converter_pptx = lambda c, n="": {"pdf": base64.b64encode(b"%PDF-1.4 x").decode(), "info": {}}
+        r = self.s.importar_para_agente(self.pptx(), "a.pptx", "", "", "2", "", self.cfg)
+        p = self.ler(r["quadro"])["items"][0]
+        self.assertEqual((r["tipo"], p["gera"], p["paginas"]), ("pdf", "pdf", [2]))
+
+    def test_ver_pagina_devolve_a_imagem_e_o_que_esta_por_cima(self):
+        r = self.s.importar_para_agente(self.pptx(), "a.pptx", "", "", "", "", self.cfg)
+        b = self.ler(r["quadro"])
+        b["items"].append({"id": "t1", "type": "text", "text": "Exemplo", "x": 100, "y": 768 + 100, "w": 200, "h": 40})
+        v = self.s.pagina_para_agente(r["quadro"], b, 2)
+        self.assertEqual(v["imagem"]["tipo"], "image/png")
+        self.assertEqual(__import__("base64").b64decode(v["imagem"]["base64"]), self.PNG + bytes([1]))
+        self.assertEqual([i["id"] for i in v["itens"] if i["type"] == "text"], ["t1"])
+        with self.assertRaises(self.s.RecusaAgente):
+            self.s.pagina_para_agente(r["quadro"], b, 9)
+
+    def test_paginas_pedidas(self):
+        f = self.s.paginas_pedidas
+        self.assertEqual(f("1-3, 5,3"), [1, 2, 3, 5])
+        self.assertIsNone(f(""))
+        self.assertEqual(len(f("1-100000")), self.s.MAX_PAGINAS)
+        for ruim in ("0", "3-1", "a", "1,,2"):
+            with self.subTest(ruim=ruim), self.assertRaises(self.s.RecusaAgente):
+                f(ruim)
 
 
 if __name__ == "__main__":

@@ -64,6 +64,13 @@ dialog.g-pick { width: min(560px, 94vw); }
 .g-pick-list input { width: 22px; height: 22px; grid-row: span 2; margin: 0; }
 .g-pick-list .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .g-pick-list small { color: var(--muted); }
+.g-pick-busca { width: 100%; box-sizing: border-box; margin: 0 0 8px; padding: 8px 10px; font: inherit; border: 1px solid #c8c6c4; border-radius: 6px; }
+.g-pick-grupo { display: flex; flex-direction: column; gap: 2px; }
+.g-pick-grupo + .g-pick-grupo { margin-top: 6px; border-top: 1px solid #edebe9; padding-top: 6px; }
+.g-pick-tit { font-weight: 600; padding: 6px 4px; display: flex; align-items: center; gap: 6px; cursor: default; }
+summary.g-pick-tit { cursor: pointer; }
+.g-pick-tit svg { width: 18px; height: 18px; flex: none; }
+.g-pick-vazio { padding: 4px 8px; }
 dialog.g-pick .acts .btn { min-height: 36px; }
 
 /* lixeira */
@@ -140,6 +147,9 @@ dialog .choices .btn small { color: #605e5c; }
 .mk-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.18); transform: translateY(-1px); }
 .mk-card:focus-visible { outline: 2px solid var(--accent); }
 .mk-card.arrasto { opacity: .55; transform: rotate(-2deg); }
+/* D7: a alça não deixa o navegador rolar a página no meio do arraste com o dedo ou a caneta */
+.mk-card .mk-alca { touch-action: none; cursor: grab; user-select: none; color: #8a8886; font-size: 18px; line-height: 1;
+  min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; margin-right: auto; }
 .mk-mini { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #fff; border-bottom: 1px solid var(--line); }
 .mk-sem { display: grid; place-items: center; color: var(--c); }
 .mk-sem svg { width: 36px; height: 36px; }
@@ -151,3 +161,25 @@ dialog .choices .btn small { color: #605e5c; }
 .mk-vazio { color: var(--muted); font-size: 13px; padding: 18px; border: 2px dashed var(--line); border-radius: 10px; text-align: center; }
 .mk-nada { grid-column: 1 / -1; color: var(--muted); padding: 40px 0; text-align: center; }
 .mk-nada svg { width: 18px; height: 18px; vertical-align: -4px; }
+
+/* pacote 1.18 (P68 item 9): tamanho dos cartões (G2), formas no topo (G1), cor e ícone da pasta (G3) */
+.g-grid[data-tam="P"] { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.g-grid[data-tam="P"] .card .thumb { height: 100px; }
+.g-grid[data-tam="P"] .g-folders { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.g-grid[data-tam="G"] { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.g-grid[data-tam="G"] .card .thumb { height: 180px; }
+.g-grid[data-tam="G"] .g-folders { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.g-grid[data-tam="GG"] { grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); }
+.g-grid[data-tam="GG"] .card .thumb { height: 250px; }
+.g-grid[data-tam="GG"] .card .t, .g-grid[data-tam="G"] .card .t { font-size: 16px; }
+.g-grid[data-tam="GG"] .g-folders { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.g-grid[data-tam="G"] .fcard, .g-grid[data-tam="GG"] .fcard { padding-top: 16px; padding-bottom: 16px; }
+.g-grid[data-tam="G"] .fcard .ficon, .g-grid[data-tam="GG"] .fcard .ficon { width: 48px; height: 48px; }
+.g-grid[data-tam="G"] .fcard .ficon svg, .g-grid[data-tam="GG"] .fcard .ficon svg { width: 30px; height: 30px; }
+.g-grid[data-tam="G"] .fcard .t, .g-grid[data-tam="GG"] .fcard .t { font-size: 16px; }
+.gv-ocultar { margin-left: 4px; }
+.g-chk { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.g-chk input { width: 20px; height: 20px; }
+.g-icones { display: grid; grid-template-columns: repeat(6, 40px); gap: 4px; margin: 8px 0; }
+.g-icones .ib { width: 40px; height: 40px; }
+.g-icones .ib.on { outline: 2px solid var(--accent); }

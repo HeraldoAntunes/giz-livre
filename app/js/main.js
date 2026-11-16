@@ -36,6 +36,63 @@ function saveExtraFolders() {
   catch { toast('Não foi possível guardar as pastas vazias neste perfil.', 6000); }
 }
 
+// ---- aparência da galeria (pacote 1.18, P68 item 9) ----
+// G1 e G2: faixa de formas no topo (mostrar/ocultar) e tamanho dos cartões (P, M, G, GG), em 'lousa.galeria'
+// G3: cor e ícone de cada pasta, em 'lousa.pastas' ({ nome: { cor, icone } }). Os dois vão para preferencias.json
+// pelo aviso periódico ao programa (chaves 'lousa.*') e voltam num perfil novo
+const lerJson = (k, pad) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && typeof v === 'object' ? v : pad; } catch { return pad; } };
+const gravarJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const TAMANHOS_CARTAO = [['P', 'Pequeno'], ['M', 'Médio'], ['G', 'Grande'], ['GG', 'Bem grande']];
+const galCfg = () => ({ vitrine: true, tam: 'M', ...lerJson('lousa.galeria', {}) });
+const mudarGal = o => { gravarJson('lousa.galeria', { ...galCfg(), ...o }); renderGrid(); };
+const PASTA_CORES = ['#0f6cbd', '#c50f1f', '#107c10', '#ca5010', '#8764b8', '#038387', '#e3008c', '#605e5c'];
+const sv = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const PASTA_ICONES = {
+  livro: ['Livro', sv('<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5z"/><path d="M4 20.5A2.5 2.5 0 016.5 18H20v3H6.5"/>')],
+  frasco: ['Laboratório', sv('<path d="M9 3h6M10 3v6l-5 9a2 2 0 001.8 3h10.4a2 2 0 001.8-3l-5-9V3"/><path d="M7.5 15h9"/>')],
+  gota: ['Água', sv('<path d="M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z"/>')],
+  folha: ['Ambiente', sv('<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19l7-7"/>')],
+  calc: ['Cálculo', sv('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h1M12 12h1M16 12h.01M8 16h1M12 16h1M16 16h.01"/>')],
+  grafico: ['Gráfico', sv('<path d="M4 4v16h16"/><path d="M7 15l4-5 3 3 5-6"/>')],
+  globo: ['Mundo', sv('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>')],
+  engrenagem: ['Técnica', sv('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>')],
+  chip: ['Eletrônica', sv('<rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>')],
+  formatura: ['Turma', sv('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5M22 9v6"/>')],
+  estrela: ['Destaque', sv('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>')],
+};
+const pastasCfg = () => lerJson('lousa.pastas', {});
+const aparenciaPasta = nome => pastasCfg()[nome] || {};
+function mudarPasta(nome, o) { const c = pastasCfg(); if (o) c[nome] = { ...c[nome], ...o }; else delete c[nome]; gravarJson('lousa.pastas', c); }
+function renomearAparencia(de, para) { const c = pastasCfg(); if (c[de]) { c[para] = c[de]; delete c[de]; gravarJson('lousa.pastas', c); } }
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+function iconePasta(nome) {
+  const a = aparenciaPasta(nome), cor = PASTA_CORES.includes(a.cor) ? a.cor : null;
+  return `<span class="ficon"${cor ? ` style="background:${rgba(cor, 0.14)};color:${cor}"` : ''}>${PASTA_ICONES[a.icone]?.[1] || ICON_FOLDER}</span>`;
+}
+// "Exibir": formas no topo e tamanho dos cartões
+function exibirPop(anchor) {
+  const c = galCfg();
+  showPop(anchor, `<h4>Exibir</h4>
+    <div class="row"><span>Tamanho dos cartões</span><div class="seg">${TAMANHOS_CARTAO.map(([k, n]) => `<button data-tam="${k}" class="${k === c.tam ? 'on' : ''}" title="${n}">${k}</button>`).join('')}</div></div>
+    <label class="row g-chk"><input type="checkbox" data-a="vitrine" ${c.vitrine ? 'checked' : ''}> Formas técnicas no topo da galeria</label>`, p => {
+    p.querySelectorAll('[data-tam]').forEach(b => b.onclick = () => { mudarGal({ tam: b.dataset.tam }); p.querySelectorAll('[data-tam]').forEach(x => x.classList.toggle('on', x === b)); });
+    p.querySelector('[data-a="vitrine"]').onchange = e => mudarGal({ vitrine: e.target.checked });
+  }, 'below');
+}
+// cor e ícone de uma pasta
+function aparenciaPop(anchor, nome) {
+  const a = aparenciaPasta(nome);
+  showPop(anchor, `<h4>Cor e ícone de "${esc(nome)}"</h4>
+    <div class="swatches">${PASTA_CORES.map(c => `<button class="sw${c === a.cor ? ' on' : ''}" data-c="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join('')}</div>
+    <div class="g-icones">${[['', 'Pasta', ICON_FOLDER], ...Object.entries(PASTA_ICONES).map(([k, [n, s]]) => [k, n, s])].map(([k, n, s]) =>
+      `<button class="ib${(a.icone || '') === k ? ' on' : ''}" data-i="${k}" title="${n}" aria-label="${n}">${s}</button>`).join('')}</div>
+    <button class="btn" data-a="padrao">Voltar ao padrão</button>`, p => {
+    p.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { mudarPasta(nome, { cor: b.dataset.c }); hidePop(); renderGrid(); });
+    p.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { mudarPasta(nome, { icone: b.dataset.i || undefined }); hidePop(); renderGrid(); });
+    p.querySelector('[data-a="padrao"]').onclick = () => { mudarPasta(nome, null); hidePop(); renderGrid(); };
+  }, 'below');
+}
+
 const folderHash = f => f ? '#/p/' + encodeURIComponent(f) : '#/';
 const byName = (a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' });
 const ICON_FOLDER = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 015.5 5h3.4l2.2 2.2h7.4A2.5 2.5 0 0121 9.7v6.8a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 16.5z"/><path d="M3 10h18"/></svg>';
@@ -107,7 +164,8 @@ function vitrineFormas() {
   if (!amostra.length) return '';
   return `<section class="g-vitrine" aria-label="Biblioteca de formas">
     <div class="gv-cab"><b>${ALL_SHAPES.length.toLocaleString('pt-BR')} formas técnicas para a sua aula</b>
-      <span>desenhadas para o Giz Livre, prontas para pôr no quadro</span><a class="btn" href="#/formas">Ver todas</a></div>
+      <span>desenhadas para o Giz Livre, prontas para pôr no quadro</span><a class="btn" href="#/formas">Ver todas</a>
+      <button class="btn gv-ocultar" title="Ocultar esta faixa (volta em Exibir, no alto da galeria)">Ocultar</button></div>
     <div class="gv-lista">${amostra.map(([g, f]) => `<a class="gv-item" href="#/formas/${g.id}" data-forma="${esc(f[0])}" data-g="${esc(g.id)}" title="${esc(f[1])} (${esc(g.nome)}): toque para pôr num quadro">
       <img src="${imgForma(f[0])}" alt=""><span>${esc(f[1])}</span><small>${esc(g.nome)}</small></a>`).join('')}</div>
   </section>`;
@@ -124,7 +182,7 @@ function renderGrid() {
   const path = curFolder || q ? backNav(curFolder, q ? 'pesquisa em todas as pastas' : '') : '';
   const fcards = showFolders.length ? `<div class="g-folders">${showFolders.map(f => `
       <div class="fcard" data-folder="${esc(f.name)}" tabindex="0" title="Abrir a pasta">
-        <span class="ficon">${ICON_FOLDER}</span>
+        ${iconePasta(f.name)}
         <span class="fmeta"><span class="t">${esc(f.name)}</span><span class="d">${f.n} quadro${f.n === 1 ? '' : 's'}</span></span>
         <button class="dots" title="Opções da pasta" aria-label="Opções da pasta">${ICON.more}</button>
       </div>`).join('')}</div>` : '';
@@ -132,12 +190,16 @@ function renderGrid() {
   const empty = list.length ? '' : q ? (showFolders.length ? '' : '<div class="g-empty">Nenhum quadro com esse nome.</div>')
     : curFolder ? `<div class="g-empty">Pasta vazia. Mova quadros para cá pelo ⋯ do quadro (Mover para pasta…)${fora ? ' ou escolha agora:' : '.'}
         ${fora ? `<div><button class="btn primary" id="gPick">${ICON_FOLDER} Escolher quadros…</button></div>` : ''}</div>` : '';
-  $('gGrid').innerHTML = `${q || curFolder ? '' : vitrineFormas()}${path}${fcards}
+  const gal = galCfg();
+  $('gGrid').dataset.tam = TAMANHOS_CARTAO.some(([k]) => k === gal.tam) ? gal.tam : 'M';
+  $('gGrid').innerHTML = `${q || curFolder || !gal.vitrine ? '' : vitrineFormas()}${path}${fcards}
     ${fcards && !q ? '<div class="g-sec">Quadros sem pasta</div>' : ''}
     <div class="card new" id="gNew"><div class="plus">${ICON.plus}</div>${curFolder ? 'Criar quadro nesta pasta' : 'Criar novo quadro'}</div>
     ${list.map(b => boardCard(b, !!q)).join('')}
     ${empty}`;
   $('gNew').onclick = createBoard;
+  const ocultar = $('gGrid').querySelector('.gv-ocultar');
+  if (ocultar) ocultar.onclick = e => { e.preventDefault(); mudarGal({ vitrine: false }); toast('Formas ocultas da galeria. Para mostrar de novo: Exibir, no alto.', 4000); };
   bindBack();
   if ($('gPick')) $('gPick').onclick = () => pickBoards(curFolder);
   $('gGrid').querySelectorAll('.fcard').forEach(c => {
@@ -176,30 +238,55 @@ async function newFolder() {
   openFolder(t);
 }
 
-// escolher vários quadros de uma vez para mover para a pasta
+// escolher vários quadros de uma vez para mover para a pasta. Os sem pasta vêm primeiro; os que já estão em outra
+// pasta ficam agrupados por pasta e recolhidos, e tirá-los de lá pede confirmação (P68 item 8: a lista misturava todos
+// e dava para tirar um quadro de outra pasta sem querer). A busca filtra pelo nome do quadro ou da pasta
 function pickBoards(folder) {
   const cand = boards.filter(b => (b.folder || '') !== folder).sort((a, b) => b.updated - a.updated);
+  const soltos = cand.filter(b => !b.folder), porPasta = new Map();
+  for (const b of cand.filter(b => b.folder)) { if (!porPasta.has(b.folder)) porPasta.set(b.folder, []); porPasta.get(b.folder).push(b); }
+  const pastas = [...porPasta.keys()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const linha = b => `<label data-busca="${esc((b.title + ' ' + (b.folder || '')).toLocaleLowerCase('pt-BR'))}"><input type="checkbox" value="${esc(b.id)}" data-de="${esc(b.folder || '')}">
+      <span class="t">${esc(b.title)}</span><small>${fmt(b.updated)}</small></label>`;
   const d = document.createElement('dialog');
   d.className = 'g-pick';
   d.innerHTML = `<h3>Mover quadros para "${esc(folder)}"</h3>
-    <div class="g-pick-list">${cand.map(b => `<label><input type="checkbox" value="${esc(b.id)}">
-      <span class="t">${esc(b.title)}</span><small>${b.folder ? esc(b.folder) + ' · ' : ''}${fmt(b.updated)}</small></label>`).join('')}</div>
+    <input type="search" class="g-pick-busca" placeholder="Procurar quadro ou pasta" aria-label="Procurar quadro ou pasta">
+    <div class="g-pick-list">
+      <div class="g-pick-grupo" data-grupo=""><div class="g-pick-tit">Sem pasta <small>${soltos.length}</small></div>${soltos.map(linha).join('') || '<small class="g-pick-vazio">Nenhum quadro solto.</small>'}</div>
+      ${pastas.map(p => `<details class="g-pick-grupo" data-grupo="${esc(p)}"><summary class="g-pick-tit">${ICON_FOLDER} Já na pasta "${esc(p)}" <small>${porPasta.get(p).length}</small></summary>${porPasta.get(p).map(linha).join('')}</details>`).join('')}
+    </div>
     <div class="acts"><button class="btn" data-a="0">Cancelar</button><button class="btn primary" data-a="1" disabled>Mover</button></div>`;
   document.body.appendChild(d);
   const ok = d.querySelector('[data-a="1"]');
-  const marcados = () => [...d.querySelectorAll('input:checked')].map(x => x.value);
+  const marcados = () => [...d.querySelectorAll('.g-pick-list input:checked')];
   const close = () => { d.close(); d.remove(); };
-  d.addEventListener('change', () => { const n = marcados().length; ok.disabled = !n; ok.textContent = n ? `Mover ${n}` : 'Mover'; });
+  d.addEventListener('change', () => {
+    const m = marcados(), fora = m.filter(x => x.dataset.de).length;
+    ok.disabled = !m.length;
+    ok.textContent = m.length ? `Mover ${m.length}` + (fora ? ` (${fora} sai${fora > 1 ? 'em' : ''} de outra pasta)` : '') : 'Mover';
+  });
+  const busca = d.querySelector('.g-pick-busca');
+  busca.addEventListener('input', () => {
+    const q = busca.value.trim().toLocaleLowerCase('pt-BR');
+    d.querySelectorAll('.g-pick-list label').forEach(l => { l.hidden = !!q && !l.dataset.busca.includes(q); });
+    d.querySelectorAll('details.g-pick-grupo').forEach(g => { const algum = [...g.querySelectorAll('label')].some(l => !l.hidden); g.hidden = !!q && !algum; if (q && algum) g.open = true; });
+  });
   d.addEventListener('cancel', e => { e.preventDefault(); close(); });
   d.querySelector('[data-a="0"]').onclick = close;
   ok.onclick = async () => {
-    const ids = marcados();
+    const m = marcados(), ids = m.map(x => x.value), de = [...new Set(m.map(x => x.dataset.de).filter(Boolean))];
+    if (de.length) {
+      const n = m.filter(x => x.dataset.de).length;
+      if (!await confirmBox('Tirar de outra pasta?', `${n === 1 ? '1 quadro vai sair' : n + ' quadros vão sair'} de ${de.map(p => '"' + p + '"').join(', ')} e ir para "${folder}".`, 'Mover mesmo assim')) return;
+    }
     close();
     await moveBoards(ids, folder);
     toast(`${ids.length} quadro(s) movido(s) para "${folder}"`);
     refresh();
   };
   d.showModal();
+  busca.focus();
 }
 
 // menu da pasta: abrir, renomear, remover (os quadros voltam para a raiz; nenhum quadro é apagado)
@@ -208,12 +295,14 @@ function folderMenu(anchor, name) {
   showPop(anchor, `<div class="menu">
     <button data-a="open">${ICON_FOLDER} Abrir</button>
     <button data-a="rename">${ICON.edit} Renomear pasta</button>
+    <button data-a="aparencia">${ICON.color} Cor e ícone…</button>
     <hr><button data-a="undo">${ICON.close} Remover a pasta (os quadros ficam)</button></div>`, p => {
     const on = (a, fn) => p.querySelector(`[data-a="${a}"]`).onclick = async () => {
       hidePop();
       try { await fn(); } catch (e) { toast(e.message); refresh(); }
     };
     on('open', () => openFolder(name));
+    p.querySelector('[data-a="aparencia"]').onclick = () => { hidePop(); aparenciaPop(anchor, name); };
     on('rename', async () => {
       const t = cleanFolder(await askText('Renomear pasta', name));
       if (!t || t === name) return;
@@ -221,6 +310,7 @@ function folderMenu(anchor, name) {
         !await confirmBox('Juntar as pastas?', `Já existe a pasta "${t}". Os quadros de "${name}" vão para ela.`, 'Juntar')) return;
       if (extraFolders.delete(name)) extraFolders.add(t);
       saveExtraFolders();
+      renomearAparencia(name, t);
       await moveBoards(ids, t);
       if (curFolder === name) location.hash = folderHash(t); else refresh();
     });
@@ -228,6 +318,7 @@ function folderMenu(anchor, name) {
       if (ids.length && !await confirmBox('Remover a pasta?', `Os ${ids.length} quadro(s) de "${name}" voltam para a lista principal. Nenhum quadro é apagado.`, 'Remover a pasta')) return;
       extraFolders.delete(name);
       saveExtraFolders();
+      mudarPasta(name, null);
       await moveBoards(ids, '');
       if (curFolder === name) location.hash = '#/'; else refresh();
     });
@@ -584,7 +675,7 @@ function renderMarcadores() {
       title="Abrir ${esc(m.titulo)} neste ponto">
     ${m.mini ? `<img class="mk-mini" src="${esc(m.mini)}" alt="" loading="lazy" draggable="false">` : `<div class="mk-mini mk-sem">${ICON.fita}</div>`}
     <div class="mk-inf"><div class="mk-nm">${esc(m.nome)}</div><div class="mk-de">${esc(m.titulo)}${m.pagina ? ` · pág. ${m.pagina}` : ''} · ${data(m.criado)}</div></div>
-    <div class="mk-bar"><button class="ib" data-a="nome" title="Renomear">${ICON.edit}</button><button class="ib" data-a="grupo" title="Mudar de grupo">${ICON.folder}</button>
+    <div class="mk-bar"><span class="mk-alca" title="Arraste para mudar a ordem ou o grupo (com o dedo ou a caneta, arraste por aqui)">⠿</span><button class="ib" data-a="nome" title="Renomear">${ICON.edit}</button><button class="ib" data-a="grupo" title="Mudar de grupo">${ICON.folder}</button>
       <button class="ib" data-a="apagar" title="Apagar o marcador (o quadro fica)">${ICON.trash}</button></div></div>`;
   const grid = $('gGrid');
   grid.innerHTML = `<div class="mk-topo"><span class="mk-dica">Toque num marcador para abrir o quadro naquele ponto. Arraste para mudar a ordem ou o grupo.</span>
@@ -599,19 +690,19 @@ function renderMarcadores() {
   grid.querySelector('#mkNovoGrupo').onclick = async () => {
     const nome = (await askText('Nome do grupo novo'))?.trim();
     if (!nome) return;
-    aplicarMarcadores({ grupos: [...marcadores.grupos, { id: 'g' + newId(), nome: nome.slice(0, 60), cor: MK.CORES_GRUPO[marcadores.grupos.length % MK.CORES_GRUPO.length], ordem: marcadores.grupos.length + 1 }] });
+    aplicarMarcadores({ gruposMudar: [{ id: 'g' + newId(), nome: nome.slice(0, 60), cor: MK.CORES_GRUPO[marcadores.grupos.length % MK.CORES_GRUPO.length], ordem: marcadores.grupos.length + 1 }] });   // só o novo (D6)
   };
   grid.querySelectorAll('.mk-grupo').forEach(sec => {
     const g = grupoDe(sec.dataset.g);
     sec.querySelector('[data-ga="nome"]')?.addEventListener('click', async () => {
       const nome = (await askText('Nome do grupo', g.nome))?.trim();
       if (!nome) return;
-      aplicarMarcadores({ grupos: marcadores.grupos.map(x => x.id === g.id ? { ...x, nome } : x),
+      aplicarMarcadores({ gruposMudar: [{ ...g, nome }],
         alterar: marcadores.marcadores.filter(m => m.grupo === g.id).map(m => ({ quadro: m.quadro, id: m.id, grupoNome: nome })) });
     });
     sec.querySelector('[data-ga="cor"]')?.addEventListener('click', e => showPop(e.currentTarget, `<div class="swatches">${MK.CORES_GRUPO.map(c => `<button class="sw${c === g.cor ? ' on' : ''}" data-c="${c}" style="background:${c}"></button>`).join('')}</div>`, p => {
       p.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { hidePop(); const cor = b.dataset.c;
-        aplicarMarcadores({ grupos: marcadores.grupos.map(x => x.id === g.id ? { ...x, cor } : x),
+        aplicarMarcadores({ gruposMudar: [{ ...g, cor }],
           alterar: marcadores.marcadores.filter(m => m.grupo === g.id).map(m => ({ quadro: m.quadro, id: m.id, cor })) }); });
     }));
     // arrastar: soltar sobre um cartão põe antes dele; no espaço do grupo, no fim
@@ -633,7 +724,8 @@ function renderMarcadores() {
     // caneta e dedo: o arrastar do HTML só funciona com o mouse (1.17.3, retorno da aula de 04/11/2026). Depois de 10 px,
     // o cartão segue a ponta; solto sobre um grupo, vai para ele, antes do cartão embaixo da ponta
     c.addEventListener('pointerdown', e => {
-      if (e.pointerType === 'mouse' || e.target.closest('[data-a]')) return;
+      // com o dedo ou a caneta, pela alça (D7): fora dela o toque rola a galeria, e o navegador cancelava o arraste
+      if (e.pointerType === 'mouse' || e.target.closest('[data-a]') || !e.target.closest('.mk-alca')) return;
       const x0 = e.clientX, y0 = e.clientY, r = c.getBoundingClientRect();
       let fantasma = null;
       const move = ev => {
@@ -755,6 +847,7 @@ $('gSearch').addEventListener('input', () => view === 'trash' ? renderTrash() : 
 $('gAbaQuadros').onclick = () => { if (location.hash === '#/' || location.hash === '') showGallery(''); else location.hash = '#/'; };
 $('gAbaMarcadores').onclick = () => { $('gSearch').value = ''; location.hash = '#/marcadores'; };
 $('gShapes').onclick = () => { $('gSearch').value = ''; location.hash = '#/formas'; };
+$('gExibir').onclick = () => exibirPop($('gExibir'));
 $('gSort').addEventListener('change', () => view === 'trash' ? renderTrash() : view === 'formas' ? renderShapes() : renderGrid());
 $('gImport').onclick = () => $('gImportFile').click();
 $('gNewFolder').onclick = newFolder;
@@ -843,13 +936,37 @@ function prefsLocais() {
 // mantém o servidor vivo enquanto houver janela aberta; se ele tiver sido fechado, avisa em vez de "salvar" no vazio.
 // Também conta qual quadro está aberto nesta janela: um agente de IA não grava em quadro aberto.
 const JANELA = newId();
+// P67 (09/11/2026): com o Windows sem portas livres, UM aviso falhou com o programa vivo e a página dizia "o programa
+// foi fechado" até o professor fechar a janela. Agora a falha é conferida de novo (3 vezes, 2 s entre elas) antes do
+// aviso, o aviso some quando o programa volta a responder, e o programa registra as falhas no giz-livre.log.
+let semResposta = 0;
+const PING_TENTATIVAS = 3, PING_INTERVALO_MS = 2000;
+async function pingUmaVez() {
+  const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ janela: JANELA, quadro: openBoardId(), pendente: temPendente(), prefs: prefsLocais(), ...(semResposta ? { semResposta } : {}) }),
+    signal: AbortSignal.timeout(10000) });
+  if (!r.ok && r.status !== 409) throw 0;
+}
+let pingando = false;
 async function ping() {
-  if (!temSessao()) return;   // a página ainda está abrindo (ex.: a janela ficou visível antes do /api/info voltar)
+  if (!temSessao() || pingando) return;   // a página ainda está abrindo (ex.: a janela ficou visível antes do /api/info voltar)
+  pingando = true;
   try {
-    const r = await wfetch('/api/ping', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ janela: JANELA, quadro: openBoardId(), pendente: temPendente(), prefs: prefsLocais() }) });
-    if (!r.ok && r.status !== 409) throw 0;
-  }
-  catch { sessionLost('O programa Giz Livre foi fechado. Abra o Giz Livre de novo pelo atalho: o que não foi salvo continua nesta página.', false); }
+    for (let t = 1; ; t++) {
+      try {
+        await pingUmaVez();
+        semResposta = 0;
+        const b = document.getElementById('banner');
+        if (b && !b.hidden && b.dataset?.motivo === 'fechado') b.hidden = true;   // o programa voltou a responder
+        return;
+      } catch {
+        semResposta++;
+        if (t >= PING_TENTATIVAS) break;
+        await new Promise(r => setTimeout(r, PING_INTERVALO_MS));
+      }
+    }
+    sessionLost('O programa Giz Livre foi fechado. Abra o Giz Livre de novo pelo atalho: o que não foi salvo continua nesta página.', false, 'fechado');
+  } finally { pingando = false; }
 }
 setInterval(ping, 30000);
 setTimeout(ping, 3000);   // a cópia dos ajustes chega logo, sem esperar os 30 s

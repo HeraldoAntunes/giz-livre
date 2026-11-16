@@ -1,7 +1,7 @@
 // Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE)
 // Teste de carga com apresentações grandes (sem dependências). Mede importação, abertura, troca de página, rolagem,
 // apresentação, caneta, gravação e reabertura em quadros de vários tamanhos.
-// Rodar:  node tests/carga_slides.mjs --deck A.pptx [--deck B.pdf ...] [--tamanhos 50,100,200,400] [--lento] [--visivel] [--manter]
+// Rodar:  node tests/carga_slides.mjs [--sintetico 120 [--kb 900]] [--deck A.pptx] [--deck B.pdf ...] [--tamanhos 50,100,200,400] [--lento] [--visivel] [--manter]
 // Sobe um servidor do Giz Livre numa porta livre com dados temporários (nunca a 8765 do instalado nem a 8799 do
 // navegador de teste), importa os arquivos pela própria galeria (Edge sem janela, protocolo de depuração), monta
 // quadros de N slides com as imagens importadas e mede tudo. Fecha o servidor por /api/sair. Resultado em JSON e
@@ -21,6 +21,7 @@ const opc = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null
 const DECKS = args.flatMap((a, i) => args[i - 1] === '--deck' ? [a] : []);
 const TAMANHOS = (opc('--tamanhos') || '50,100,200,400').split(',').map(Number);
 const VISIVEL = args.includes('--visivel'), MANTER = args.includes('--manter'), LENTO = args.includes('--lento');
+const SINT = Number(opc('--sintetico') || 0), KB_SINT = Number(opc('--kb') || 900);
 if (MANTER) process.env.GIZ_MANTER = '1';   // a limpeza de temporario.mjs também guarda
 const LARG = 1920, ALT = 1080;
 const EDGE = ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -200,6 +201,35 @@ async function importar(arquivo) {
   return { id, itens: b.items.filter(i => i.type === 'image').map(i => ({ src: i.src, w: i.w, h: i.h })), layout: b.layout, novos: [...antes] };
 }
 
+// --sintetico N: deck SINTÉTICO, sem arquivo do professor (pacote da 1.18, M1). PNG 1920x1080 como os do PowerPoint,
+// cada um com texto, degradê e uma "foto" de pixels sorteados (~KB por slide); sobem direto para /api/assets.
+async function slidesSinteticos(n) {
+  await abrirUrl(BASE + '/');
+  log(`gerando ${n} slides sintéticos de ~${KB_SINT} KB`);
+  const srcs = await avaliar(`(async () => {
+    const out = [], lado = Math.round(Math.sqrt(${KB_SINT} * 1024 / 3.4) * 0.63);
+    for (let i = 0; i < ${n}; i++) {
+      const c = document.createElement('canvas'); c.width = ${LARG}; c.height = ${ALT};
+      const g = c.getContext('2d');
+      const gr = g.createLinearGradient(0, 0, ${LARG}, ${ALT}); gr.addColorStop(0, 'hsl(' + (i * 7 % 360) + ',40%,92%)'); gr.addColorStop(1, '#fff');
+      g.fillStyle = gr; g.fillRect(0, 0, ${LARG}, ${ALT});
+      g.fillStyle = '#123'; g.font = 'bold 72px Segoe UI'; g.fillText('Slide ' + (i + 1) + ': hidráulica', 80, 140);
+      g.font = '40px Segoe UI'; for (let k = 0; k < 8; k++) g.fillText('• tópico ' + (k + 1) + ' do slide ' + (i + 1), 120, 260 + k * 70);
+      const ruido = g.createImageData(lado, lado);
+      for (let p = 0; p < ruido.data.length; p++) ruido.data[p] = (p & 3) === 3 ? 255 : (Math.random() * 256) | 0;
+      g.putImageData(ruido, ${LARG} - lado - 60, ${ALT} - lado - 60);
+      const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+      let r;
+      for (let t = 0; t < 3 && !r; t++) { try { r = await fetch('/api/assets', { method: 'POST', headers: { 'X-Lousa': ${JSON.stringify(token)}, 'Content-Type': 'image/png' }, body: blob }); } catch { await new Promise(s => setTimeout(s, 500)); } }
+      if (!r || !r.ok) throw new Error('não deu para enviar o slide ' + (i + 1));
+      out.push({ src: (await r.json()).url, kb: Math.round(blob.size / 1024) });
+    }
+    return out; })()`, 600000);
+  R.sintetico = { slides: n, kbMedio: Math.round(srcs.reduce((s, x) => s + x.kb, 0) / srcs.length) };
+  log(`  PNG médio ${R.sintetico.kbMedio} KB`);
+  return { itens: srcs.map(s => ({ src: s.src, w: LARG, h: ALT })), layout: { mode: 'pages', kind: 's169', w: 1280, h: 720, gap: 48 }, novos: [] };
+}
+
 // ---------------- 2. quadros de N slides ----------------
 function montarQuadro(n, fontes, L) {
   const itens = [];
@@ -369,6 +399,7 @@ try {
     if (r) importados.push({ deck: basename(d), ...r });
     writeFileSync(join(SAIDA, 'resultado.json'), JSON.stringify(R, null, 1));
   }
+  if (SINT > 0) importados.push({ deck: 'sintetico.pptx', ...await slidesSinteticos(SINT) });
   // fontes para os quadros de carga: slides de .pptx primeiro (sem repetir imagem), na ordem dos decks
   const fontes = [];
   const vistos = new Set();

@@ -71,7 +71,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.17.3"
+VERSAO = "1.18.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -414,9 +414,13 @@ def listar_marcadores() -> dict:
     return {"grupos": grupos, "marcadores": marcadores}
 
 
+TRAVA_GRUPOS = threading.Lock()   # os grupos dos marcadores: um arquivo para todos os quadros
+
+
 def mudar_marcadores(pedido: dict) -> dict:
     """Lote vindo do editor ou da galeria: {"novos": [{"quadro", "marcador"}], "alterar": [{"quadro", "id", ...campos}],
-    "apagar": [{"quadro", "id"}], "grupos": [...]} (grupos: a lista inteira, quando muda). Cada quadro é lido e gravado
+    "apagar": [{"quadro", "id"}], "grupos": [...], "gruposMudar": [...]} (grupos: a lista inteira, ao reordenar;
+    gruposMudar: só os grupos novos ou mudados, por id). Cada quadro é lido e gravado
     sob a trava dele, sem mexer na revisão nem na data de edição. Cada quadro mexido ganha +1 na versão dos marcadores
     ("_mkv"), devolvida em "versoes": a janela não aceita depois uma lista mais antiga (Ordem 25)."""
     por_quadro: dict = {}
@@ -426,8 +430,22 @@ def mudar_marcadores(pedido: dict) -> dict:
             if not isinstance(x, dict) or not isinstance(x.get("quadro"), str) or not ID_OK.match(x["quadro"]):
                 raise ValueError("quadro inválido")
             por_quadro.setdefault(x["quadro"], []).append((chave, x))
-    if "grupos" in pedido:
-        gravar_atomico(DADOS / GRUPOS_MARCADORES, json.dumps(limpar_grupos(pedido["grupos"]), ensure_ascii=False).encode("utf-8"))
+    if "grupos" in pedido or "gruposMudar" in pedido:
+        with TRAVA_GRUPOS:
+            if "grupos" in pedido:   # a lista inteira (reordenar); quem só cria ou muda um grupo manda "gruposMudar"
+                grupos = limpar_grupos(pedido["grupos"])
+            else:
+                # D6 do pacote 1.18: "Grupo novo" mandava a lista inteira que a janela conhecia e apagava um grupo criado
+                # noutra janela ou na galeria nesse meio-tempo. Aqui só os grupos citados entram ou mudam, por id
+                grupos = ler_grupos()
+                for g in limpar_grupos(pedido["gruposMudar"]):
+                    i = next((k for k, o in enumerate(grupos) if o["id"] == g["id"]), None)
+                    if i is None:
+                        grupos.append(g)
+                    else:
+                        grupos[i] = {**grupos[i], **g}
+                grupos = limpar_grupos(grupos)
+            gravar_atomico(DADOS / GRUPOS_MARCADORES, json.dumps(grupos, ensure_ascii=False).encode("utf-8"))
     for bid, ops in por_quadro.items():
         arq = DADOS / f"{bid}.json"
         with trava(bid):
@@ -709,6 +727,11 @@ class Handler(SimpleHTTPRequestHandler):
                              if (not pasta or b.get("folder") == pasta) and busca in b["title"].lower()]
                     registrar_agente("listar_quadros")
                     return self._json({"quadros": lista[:n], "total": len(lista)})
+                if len(partes) == 4 and partes[0] == "quadros" and partes[2] == "paginas" and partes[3].isdigit():
+                    bid = id_ok(partes[1])   # V1: ver a página (a imagem importada e o resumo do que está por cima)
+                    r = pagina_para_agente(bid, ler_quadro_disco(bid), int(partes[3]))
+                    registrar_agente("ver_pagina", bid)
+                    return self._json(r)
                 if len(partes) == 2 and partes[0] == "quadros":
                     bid = id_ok(partes[1])
                     detalhe = q("detalhe", "resumo")
@@ -728,6 +751,14 @@ class Handler(SimpleHTTPRequestHandler):
                     return self._json({"modelos": [m for m in indice()["modelos"] if not area or m["area"] == area],
                                        "areas": sorted({m["area"] for m in indice()["modelos"]})})
                 raise RecusaAgente("rota", 404)
+            if partes == ["importar"]:   # V1 (pacote 1.18): o arquivo vem cru no corpo, até 300 MB
+                precisa(2)
+                corpo = self._corpo("pptx")
+                if corpo is None:
+                    return
+                r = importar_para_agente(corpo, q("nome"), q("quadro"), q("titulo"), q("paginas"), q("pasta"), cfg)
+                registrar_agente("importar_arquivo:" + r["tipo"], r["quadro"])
+                return self._json(r)
             corpo = self._corpo("agente")
             if corpo is None:
                 return
@@ -930,6 +961,11 @@ class Handler(SimpleHTTPRequestHandler):
             if not arq.exists():
                 return self._json({"erro": "não encontrado"}, 404)
             return self._bytes(arq.read_bytes(), "application/json; charset=utf-8")
+        if rota.startswith("/api/pdf-pendente/"):   # V1: o PDF que o agente importou, para a página desenhar
+            arq = arquivo_pdf_pendente(rota[len("/api/pdf-pendente/"):])
+            if not arq or not arq.is_file():
+                return self._json({"erro": "PDF do agente não encontrado"}, 404)
+            return self._bytes(arq.read_bytes(), "application/pdf")
         if rota.startswith("/assets/"):
             nome = rota[len("/assets/"):]
             arq = DADOS / "assets" / nome
@@ -1193,6 +1229,10 @@ class Handler(SimpleHTTPRequestHandler):
                 marcar_aberto(pacote["janela"], pacote.get("quadro"), pacote.get("pendente"))
             if isinstance(pacote, dict) and "prefs" in pacote:
                 guardar_prefs(pacote["prefs"])
+            falhas = pacote.get("semResposta") if isinstance(pacote, dict) else None
+            if isinstance(falhas, int) and not isinstance(falhas, bool) and 0 < falhas < 100000:
+                # P67: a página ficou sem resposta e voltou (rede do Windows, ex.: sem portas livres)
+                diario(f"a página ficou sem resposta do programa em {falhas} aviso(s) seguidos e voltou a falar")
             return self._json({"ok": True})
         if rota in ("/api/atualizacao/verificar", "/api/atualizacao/instalar"):
             if not TRAVA_ATUALIZACAO.acquire(blocking=False):
@@ -1330,7 +1370,9 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"erro": "o agente não exclui quadros"}, 405)
         if not self._escrita_ok():
             return
-        self._rota()
+        rota = self._rota()
+        if rota.startswith("/api/pdf-pendente/"):
+            return self._json({"apagado": apagar_pdf_pendente(rota[len("/api/pdf-pendente/"):])})
         if not self.path.startswith("/api/boards/"):
             return self._json({"erro": "rota"}, 404)
         bid = self._id("/api/boards/")
@@ -1992,6 +2034,242 @@ def adicionar_paginas(board: dict, spec: dict) -> dict:
     L["count"] = n + q
     board["items"], board["layout"] = itens, L
     return {"quadro": None, "paginas": n + q, "paginas_novas": list(range(depois + 1, depois + q + 1)), "itens_criados": []}
+
+
+# ---- V1 (pacote 1.18): o agente importa PDF ou PowerPoint e vê a página ----
+PDF_PENDENTE_OK = re.compile(r"^[0-9a-f]{40}\Z")
+IMPORTAR_EXTENSOES = (".pdf", ".ppt", ".pptx")
+
+
+def pasta_pdf_pendente() -> Path:
+    return DADOS / "agente-pdf"
+
+
+def arquivo_pdf_pendente(nome: str) -> Path | None:
+    return pasta_pdf_pendente() / f"{nome}.pdf" if PDF_PENDENTE_OK.match(nome or "") else None
+
+
+def apagar_pdf_pendente(nome: str) -> bool:
+    """Apaga o PDF já desenhado pela página, se nenhum quadro ainda o espera."""
+    arq = arquivo_pdf_pendente(nome)
+    if not arq or not arq.is_file():
+        return False
+    for q in [*DADOS.glob("*.json"), *(DADOS / "lixeira").glob("*.json")]:   # da lixeira também: restaurar traz o PDF
+        try:
+            if nome in q.read_text(encoding="utf-8"):
+                return False
+        except OSError:
+            return False
+    try:
+        arq.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def limpar_pdfs_pendentes() -> int:
+    """Ao abrir: apaga os PDFs do agente que nenhum quadro espera mais (desenhados, ou o quadro foi para a lixeira e
+    esvaziado). Os da lixeira contam como esperados: restaurar o quadro traz o PDF de volta."""
+    pasta = pasta_pdf_pendente()
+    if not pasta.is_dir():
+        return 0
+    try:
+        textos = [q.read_text(encoding="utf-8") for q in [*DADOS.glob("*.json"), *(DADOS / "lixeira").glob("*.json")]]
+    except OSError:
+        return 0
+    n = 0
+    for arq in pasta.glob("*.pdf"):
+        if not any(arq.stem in t for t in textos):
+            with contextlib.suppress(OSError):
+                arq.unlink()
+                n += 1
+    return n
+
+
+def paginas_pedidas(texto: str, maximo: int = MAX_PAGINAS) -> list | None:
+    """"1-5,8" -> [1, 2, 3, 4, 5, 8] (números de página a partir de 1); vazio -> None (todas)."""
+    texto = (texto or "").replace(" ", "")
+    if not texto:
+        return None
+    if len(texto) > 400 or not re.fullmatch(r"\d+(-\d+)?(,\d+(-\d+)?)*", texto):
+        raise RecusaAgente("paginas: use números e intervalos, como 1-5,8")
+    saida = []
+    for parte in texto.split(","):
+        a, _, b = parte.partition("-")
+        a, b = int(a), int(b or a)
+        if a < 1 or b < a:
+            raise RecusaAgente("paginas: intervalo inválido (" + parte + ")")
+        for n in range(a, min(b, maximo) + 1):
+            if n not in saida:
+                saida.append(n)
+        if len(saida) >= maximo:
+            break
+    return saida[:maximo]
+
+
+def contar_paginas_pdf(conteudo: bytes) -> int | None:
+    """Estimativa sem dependência: o maior /Count de um /Type /Pages. Só serve para o aviso ao agente."""
+    achados = [int(m) for m in re.findall(rb"/Type\s*/Pages\b[^>]{0,400}?/Count\s+(\d+)", conteudo[:50_000_000])]
+    achados += [int(m) for m in re.findall(rb"/Count\s+(\d+)[^>]{0,400}?/Type\s*/Pages\b", conteudo[:50_000_000])]
+    return max(achados) if achados else None
+
+
+def importar_para_agente(conteudo: bytes, nome: str, quadro: str, titulo: str, paginas: str, pasta: str,
+                         cfg: dict) -> dict:
+    """O agente manda um .pdf, .ppt ou .pptx. PowerPoint: o mesmo conversor da importação manual monta as páginas no
+    servidor. PDF (ou PowerPoint convertido pelo LibreOffice): entra como item pendente; a página desenha com o pdf.js
+    quando o professor abre o quadro, como as fórmulas e os gráficos do agente."""
+    nome = os.path.basename(str(nome or "").replace("\\", "/"))[:200]
+    ext = os.path.splitext(nome)[1].lower()
+    if ext not in IMPORTAR_EXTENSOES:
+        raise RecusaAgente("importar_arquivo: só arquivos .pdf, .ppt ou .pptx")
+    if not conteudo:
+        raise RecusaAgente("o arquivo está vazio")
+    if ext == ".pdf":
+        if b"%PDF-" not in conteudo[:1024]:
+            raise RecusaAgente("o conteúdo não é um PDF (falta a marca %PDF no começo)")
+    elif conteudo[:4] != (b"PK\x03\x04" if ext == ".pptx" else bytes.fromhex("d0cf11e0")):
+        raise RecusaAgente(f"o conteúdo não é um arquivo {ext} do PowerPoint")
+    sel = paginas_pedidas(paginas)
+    if quadro:
+        if not ID_OK.match(quadro):
+            raise RecusaAgente("id de quadro inválido")
+        destino = ler_quadro_disco(quadro)
+        if not tem_paginas(destino):
+            raise RecusaAgente("acrescentar páginas: só em quadro com páginas")
+        if quadro in quadros_abertos():
+            raise RecusaAgente("Este quadro está aberto no Giz Livre. Feche-o (volte à galeria) para o agente "
+                               "acrescentar páginas; criar um quadro novo continua liberado.", 409)
+        if cfg["nivel"] < 3 and destino.get("criado_por") != "agente":
+            raise RecusaAgente("No nível 2 (Criar quadros novos) o agente só acrescenta páginas nos quadros que ele "
+                               "criou. Para outros quadros fechados, o professor escolhe o nível 3 no Giz Livre.", 403)
+    pdf = conteudo if ext == ".pdf" else None
+    slides, largura, altura = None, 0.0, 0.0
+    if pdf is None:
+        try:
+            checar_pptx(conteudo)
+        except ValueError as e:
+            raise RecusaAgente(str(e))
+        if not TRAVA_PPTX.acquire(blocking=False):
+            raise RecusaAgente("já há uma conversão de apresentação em andamento; tente de novo daqui a pouco", 429)
+        try:
+            conv = converter_pptx(conteudo, nome)
+        except ValueError as e:
+            raise RecusaAgente(str(e))
+        except Exception as e:
+            registrar(e)
+            raise RecusaAgente("O PowerPoint não conseguiu converter o arquivo.", 500)
+        finally:
+            TRAVA_PPTX.release()
+        if conv.get("pdf"):
+            pdf = base64.b64decode(conv["pdf"])
+        else:
+            slides, largura, altura = conv["slides"], float(conv["width"]), float(conv["height"])
+            if sel:
+                slides = [slides[n - 1] for n in sel if n <= len(slides)]
+            if not slides:
+                raise RecusaAgente("paginas: nenhuma das páginas pedidas existe na apresentação")
+    titulo = re.sub(r"\s+", " ", texto_limpo(titulo or os.path.splitext(nome)[0] or "Importado", 200, "titulo",
+                                                 linhas=False)).strip() or "Importado"
+    agora = int(time.time() * 1000)
+    if slides is not None:
+        w, h = 1280.0, round(1280 * altura / largura) if largura > 0 else 720.0
+    else:
+        w, h = 1280.0, 720.0   # provisório: a página põe o tamanho do PDF quando desenhar
+
+    def itens_dos_slides(L: dict, inicio: int) -> list:
+        passo = L["h"] + L["gap"]
+        out = []
+        for k, src in enumerate(slides):
+            f = min(L["w"] / w, L["h"] / h)
+            iw, ih = w * f, h * f
+            out.append({"id": novo_id_item(), "type": "image", "locked": True, "src": src,
+                        "x": (L["w"] - iw) / 2, "y": (inicio + k) * passo + (L["h"] - ih) / 2, "w": iw, "h": ih})
+        return out
+
+    def pendente_pdf(L: dict, inicio: int, novo: bool) -> dict:
+        sha = hashlib.sha1(pdf).hexdigest()
+        pasta_pdf_pendente().mkdir(exist_ok=True)
+        arq = pasta_pdf_pendente() / f"{sha}.pdf"
+        if not arq.is_file():
+            gravar_atomico(arq, pdf)
+        passo = L["h"] + L["gap"]
+        return {"id": novo_id_item(), "type": "pendente", "gera": "pdf", "pdf": sha, "paginas": sel, "modo":
+                "novo" if novo else "fim", "nome": nome, "x": 40, "y": inicio * passo + 40, "w": 600, "h": 80}
+
+    n_pdf = contar_paginas_pdf(pdf) if pdf is not None else None
+    if quadro:
+        def acrescentar(board):
+            L = dict(board["layout"])
+            inicio = int(numero(L.get("count")) or 1)
+            if slides is not None:
+                if inicio + len(slides) > MAX_PAGINAS:
+                    raise RecusaAgente(f"o quadro pode ter no máximo {MAX_PAGINAS} páginas")
+                L["count"] = inicio + len(slides)
+                board["items"] = [*board["items"], *itens_dos_slides(L, inicio)]
+            else:
+                board["items"] = [*board["items"], pendente_pdf(L, inicio, False)]
+            board["layout"] = L
+            return {}
+        r = alterar_quadro(quadro, cfg, acrescentar)
+        bid = quadro
+    else:
+        if slides is not None:
+            L = {"mode": "pages", "kind": "custom", "w": w, "h": h, "gap": 48, "count": len(slides)}
+            itens = itens_dos_slides(L, 0)
+        else:
+            L = {"mode": "pages", "kind": "s169", "w": 1280, "h": 720, "gap": 48, "count": 1}
+            itens = [pendente_pdf(L, 0, True)]
+        board = {"version": 2, "title": titulo, "criado_por": "agente", "items": itens, "layout": L,
+                 "background": {"color": "#ffffff", "pattern": "none"}, "updated": agora, "_rev": 1}
+        p = nome_pasta(pasta)
+        if p:
+            board["folder"] = p
+
+        def candidatos():
+            while True:
+                yield "ag" + format(int(time.time() * 1000), "x") + secrets.token_hex(3)
+
+        with id_publicavel(candidatos()) as bid:
+            gravar_atomico(DADOS / f"{bid}.json", json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+        r = {"revisao": 1}
+    r.update({"quadro": bid, "tipo": "pptx" if slides is not None else "pdf"})
+    if slides is not None:
+        r["paginas_importadas"] = len(slides)
+    else:
+        total = len(sel) if sel else n_pdf
+        r["paginas_importadas"] = total
+        r["observacao"] = ("o PDF ficou guardado no quadro; as páginas são desenhadas quando o professor abrir o "
+                           "quadro no Giz Livre (até lá, ver_pagina mostra só o aviso)")
+    return r
+
+
+def pagina_para_agente(bid: str, board: dict, pagina: int) -> dict:
+    """A imagem importada da página (o slide ou a página do PDF) e o resumo do que está por cima."""
+    if not tem_paginas(board):
+        raise RecusaAgente("ver_pagina: só em quadro com páginas")
+    L = board["layout"]
+    n = int(numero(L.get("count")) or 1)
+    if not 1 <= pagina <= n:
+        raise RecusaAgente(f"pagina: de 1 a {n}")
+    itens = [i for i in board.get("items", []) if isinstance(i, dict) and pagina_de(L, i) + 1 == pagina]
+    r = {"quadro": bid, "pagina": pagina, "paginas": n, "titulo": board.get("title") or "Sem título",
+         "itens": [resumo_item(i, L) for i in itens[:500]]}
+    if any(i.get("type") == "pendente" and i.get("gera") == "pdf" for i in board.get("items", []) if isinstance(i, dict)):
+        r["aviso"] = "há um PDF importado pelo agente que ainda não foi desenhado: o professor precisa abrir o quadro"
+    fundos = [i for i in itens if i.get("type") == "image" and isinstance(i.get("src"), str)
+              and MINI_OK.match(i["src"])]
+    if fundos:
+        maior = max(fundos, key=lambda i: numero(i.get("w")) * numero(i.get("h")))
+        arq = DADOS / "assets" / maior["src"].rsplit("/", 1)[1]
+        if arq.is_file() and arq.stat().st_size <= 2 * MB:
+            r["imagem"] = {"tipo": "image/png" if arq.suffix == ".png" else "image/jpeg",
+                           "base64": base64.b64encode(arq.read_bytes()).decode("ascii")}
+        else:
+            r["imagem_ausente"] = "a imagem da página passa de 2 MB ou não está mais no computador"
+    else:
+        r["imagem_ausente"] = "esta página não tem imagem importada (só o que foi escrito por cima)"
+    return r
 
 
 def buscar_formas(busca: str, grupo: str, limite: int) -> list:
@@ -3655,6 +3933,7 @@ def main():
     srv = Servidor(("127.0.0.1", PORTA), Handler)
     threading.Thread(target=coletar_assets_orfaos, daemon=True).start()
     threading.Thread(target=limpar_temporarios, args=(DADOS,), daemon=True).start()
+    threading.Thread(target=limpar_pdfs_pendentes, daemon=True).start()
     threading.Thread(target=limpar_miniaturas_soltas, daemon=True).start()
     threading.Thread(target=detectar_reconhecedor, daemon=True).start()
     if sys.stdout:

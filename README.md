@@ -40,12 +40,12 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.17.3**.
+Versão atual: **1.18.0**.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.17.3.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.3/Instalar-GizLivre-1.17.3.zip) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.17.3-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.3/GizLivre-1.17.3-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.18.0.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.18.0/Instalar-GizLivre-1.18.0.zip) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.18.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.18.0/GizLivre-1.18.0-portatil.zip) |
 | Linux (Ubuntu/Debian), em testes | [giz-livre_1.17.2_all.deb](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre_1.17.2_all.deb) · outro Linux (Fedora, Arch...): [giz-livre-1.17.2-linux-usuario.tar.gz](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre-1.17.2-linux-usuario.tar.gz), que instala só para o seu usuário, sem pedir senha de administrador |
 
 Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
@@ -124,7 +124,8 @@ certutil -hashfile Instalar-GizLivre-x.y.z.zip SHA256
   setas ou com um passador de slides, tem tela preta (`B`), canetas com espessura, formas e lupa com nível ajustável.
 - **Captura de janela ao vivo** (experimental): mostra outro programa numa moldura dentro do quadro, para escrever por cima.
 - **Agentes de IA** (experimental, desligado de fábrica): um assistente compatível com MCP pode preparar quadros com
-  textos, fórmulas e gráficos; ele não apaga nada. Ver o [Guia de uso](docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental).
+  textos, fórmulas e gráficos, importar um PDF ou uma apresentação do PowerPoint como páginas e ver uma página; ele não
+  apaga nada. Ver o [Guia de uso](docs/GUIA-DE-USO.md#6-agentes-de-ia-experimental).
 - **Ferramentas de professor:**
   - **plotar função** (digite `x^2 - 4` e o gráfico aparece no plano cartesiano);
   - lupa de escrita (escreve grande, cai pequeno), transferidor, esquadro (45° e 30°/60°), compasso, cortina,

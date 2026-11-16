@@ -67,10 +67,12 @@ function renovarSessao(antigo) {
 export function tokenHeader() { return { 'X-Lousa': TOKEN }; }
 // a página já recebeu o token? (antes disso, um pedido de escrita volta 409 e pareceria "sessão perdida")
 export const temSessao = () => !!TOKEN;
-export function sessionLost(msg, recarregar = true) {
+// motivo 'fechado': o aviso de programa fechado, que some sozinho quando o programa volta a responder (P67)
+export function sessionLost(msg, recarregar = true, motivo = '') {
   let b = document.getElementById('banner');
   if (!b) { b = document.createElement('div'); b.id = 'banner'; document.body.appendChild(b); }
   b.innerHTML = '';
+  if (b.dataset) b.dataset.motivo = motivo;
   const t = document.createElement('span'); t.textContent = msg;
   b.append(t);
   if (recarregar) {

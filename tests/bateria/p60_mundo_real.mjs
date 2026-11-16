@@ -69,7 +69,7 @@ try {
   console.log(`C1: ${MIN_C1} min aberto com o Warsaw (${hora()})`);
   prog = abrir();
   await ate(conexao, 40000);
-  await api('/api/boards/c1', { method: 'PUT', body: JSON.stringify({ board: { title: 'C1', items: [] }, revision: 0 }) });
+  await api('/api/boards/c1', { method: 'PUT', body: JSON.stringify({ board: { title: 'C1', items: [] }, revision: 0, criar: true }) });
   let c = await abrirQuadro('c1');
   const srv = conexao().pid;
   let quedas = 0, warsaw = '', voltas = 0;
@@ -107,7 +107,8 @@ try {
     console.log(`    rodada ${r}: quadro ${legivel ? 'inteiro' : 'DANIFICADO'}; temporários na pasta: ${readdirSync(DADOS).filter(n => n.endsWith('.tmp')).length}`);
   }
   conferir('C2: nas 5 quedas o quadro ficou inteiro e legível', ruins === 0, `${ruins} danificados`);
-  prog = abrir(); await ate(conexao, 40000);
+  // o conexao.json da execução morta continua no disco: espera o programa novo responder de verdade
+  prog = abrir(); await ate(async () => { try { return (await api('/api/info')).ok; } catch { return false; } }, 40000);
   const lista = await (await api('/api/boards')).json();
   conferir('C2: reabre depois das quedas e o quadro aparece na galeria', lista.some(b => b.id === 'c2'));
   fechar(prog.pid); await ate(() => !vivo(prog.pid), 15000);
@@ -115,8 +116,8 @@ try {
   // ---------- C3 + C5 ----------
   console.log(`C3+C5: traço não salvo, página congelada e janela minimizada por ${MIN_C3} min (${hora()})`);
   await espera(2000);
-  prog = abrir(); await ate(conexao, 40000);
-  await api('/api/boards/c3', { method: 'PUT', body: JSON.stringify({ board: { title: 'C3', items: [] }, revision: 0 }) });
+  prog = abrir(); await ate(async () => { try { return (await api('/api/info')).ok; } catch { return false; } }, 40000);
+  await api('/api/boards/c3', { method: 'PUT', body: JSON.stringify({ board: { title: 'C3', items: [] }, revision: 0, criar: true }) });
   c = await abrirQuadro('c3');
   const s3 = conexao().pid;
   await traco(c, 300);

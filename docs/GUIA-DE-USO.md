@@ -110,6 +110,10 @@ textos, notas, formas da biblioteca, fórmulas e gráficos.
    (precisa do Python; o executável próprio vem numa próxima versão).
 3. Peça, por exemplo: "monte um quadro A4 sobre decantação com a lei de Stokes, um decantador e um gráfico".
 4. Abra o quadro na galeria (ele aparece com o selo *agente de IA*). As fórmulas e os gráficos são montados nessa hora.
+5. Desde a 1.18, o agente também importa um PDF ou uma apresentação do PowerPoint deste computador como páginas de
+   slide ("importe C:\Aulas\hidraulica.pptx, só os slides 1 a 20") e vê uma página com a imagem dela. O PowerPoint
+   entra na hora; o PDF é desenhado quando você abre o quadro, com um aviso no rodapé. Se fechar antes, nada se perde: o
+   desenho recomeça na próxima abertura.
 
 O agente não apaga nada e não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
 continuar. Os quadros são gravados no seu computador. O cliente de IA tem suas próprias regras de acesso à rede;

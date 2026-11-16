@@ -10,8 +10,17 @@ export function fillIcons(root = document) {
 }
 
 let toastTimer;
+// A4 (P68 item 7): o aviso some quando o professor continua o trabalho (o próximo toque fora dele); o Ctrl+Z continua
+// valendo. Os primeiros 600 ms não contam: o toque que mostrou o aviso não pode apagá-lo
+let toastDesde = 0;
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('pointerdown', e => {
+  const t = document.getElementById('toast');
+  if (!t || t.hidden || t.contains(e.target) || performance.now() - toastDesde < 600) return;
+  t.hidden = true; clearTimeout(toastTimer);
+}, true);
 export function toast(msg, ms = 2600, act = null) {
   const t = document.getElementById('toast');
+  toastDesde = typeof performance !== 'undefined' ? performance.now() : 0;
   t.textContent = msg;
   if (act) {
     const b = document.createElement('button');
@@ -218,7 +227,8 @@ export function showPop(anchor, html, setup, where = 'below') {
   p.style.top = y + 'px';
   return p;
 }
-export function hidePop() { const p = popEl(); if (p) p.hidden = true; popOwner = null; }
+// o foco que estava num campo do menu sai junto: num campo escondido, as teclas do quadro (Home, setas) paravam
+export function hidePop() { const p = popEl(); if (p) { if (p.contains(document.activeElement)) document.activeElement.blur?.(); p.hidden = true; } popOwner = null; }
 export const popOpen = () => !popEl().hidden;
 
 document.addEventListener('pointerdown', e => {

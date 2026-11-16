@@ -32,14 +32,14 @@ const { PAPERS, ANCHORED, SIZE: PAPER_SIZE, CELL } = PAPER;
 import { compile as compileFn, plotStrokes, fitFrame, faixaY, axesStrokes, animatedCurve, drawPolylines, fmtNum } from './plot.js';
 import { AREAS as FN_AREAS, modelo as fnModelo, valoresPadrao } from './fnmodels.js';
 import * as PG from './pages.js';
-import { paginasEscolhidas, slideItems, uploadAsset } from './importer.js';
+import { paginasEscolhidas, slideItems, uploadAsset, slidesFromPdf } from './importer.js';
 import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk, draggable } from './tools.js';
 import { svgDataUrl } from './library.js';
 import { ESPECIAIS } from './especiais.js';   // elementos didáticos coloridos (menu Formas → Especiais)
 import { initBars, placeAll as placeBars, resetBars, resetBar, recolhivelDeNovo } from './bars.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById, temTexto } from './shapelib.js';
 import { gruposVisiveis, areasVisiveis, escolherDisciplinas, abasOcultas, disciplinasEmDestaque } from './disciplinas.js';
-import { temPendentes, hidratarPendentes, aplicarTrocas, painelAgentes } from './agente.js';
+import { temPendentes, pdfsPendentes, hidratarPendentes, aplicarTrocas, painelAgentes } from './agente.js';
 import { passoDaFolha, origemDaFolha, encaixar, giroPreso, escalaEncaixada } from './encaixe.js';
 import * as ESQ from './esquadro.js';
 import { toggleCalc, calcOpen, closeCalc } from './calc.js';
@@ -125,6 +125,7 @@ let sel = new Set();
 let action = null;
 let ruler = null;        // {x, y, angle} — centro em coordenadas de mundo, ângulo em graus
 let laser = [];          // [{x,y,t}]
+let pilhaVoltar = [], voltando = false;   // A1: slides de onde saiu cada salto por marcador (ver voltarSlide)
 let editing = null;      // {id, isNew}
 let clipboard = null;
 let shapeKind = 'rect';
@@ -371,10 +372,53 @@ export function temPendente() { return failedSnaps.size > 0 || !!(S && (dirtyVer
 
 // conteúdo deixado por um agente de IA (fórmula, gráfico) chega ao abrir o quadro: troca os pendentes pelos itens
 // reais sem passo de Desfazer (é a chegada do conteúdo, não uma edição) e salva
+// V1 (pacote 1.18): PDF importado por um agente de IA. O arquivo ficou guardado no programa; aqui o pdf.js desenha as
+// páginas, como na importação manual, numa entrada só do Desfazer. Se o professor fechar o quadro antes do fim, nada se
+// perde: o pendente continua no quadro e o desenho recomeça na próxima abertura
+async function montarPdfsDoAgente(alvo) {
+  const lista = pdfsPendentes(alvo.items);
+  if (!lista.length) return;
+  const aviso = $('board').appendChild(Object.assign(document.createElement('div'), { className: 'pdf-agente-aviso' }));
+  const diz = t => { aviso.textContent = t; };
+  diz('Desenhando as páginas do PDF que o agente de IA importou… Pode continuar: se fechar o quadro antes, nada se perde.');
+  try {
+    for (const p of lista) {
+      const r = await wfetch('/api/pdf-pendente/' + p.pdf);
+      if (!r.ok) throw new Error(r.status === 404 ? 'o arquivo do PDF não está mais no computador' : 'não consegui ler o PDF');
+      const file = new File([await r.blob()], p.nome || 'agente.pdf', { type: 'application/pdf' });
+      const { size, srcs, sizes } = await slidesFromPdf(file, m => { if (S === alvo) diz(m + ' (PDF do agente de IA)'); }, Array.isArray(p.paginas) ? p.paginas : null);
+      if (S !== alvo) return;   // fechou o quadro: o pendente fica e volta na próxima abertura
+      if (!srcs.length) throw new Error('nenhuma das páginas pedidas existe no PDF');
+      const resto = S.items.filter(i => i.id !== p.id);
+      const L0 = S.board.layout, sozinho = p.modo === 'novo' && !resto.length;
+      let L, items;
+      if (sozinho) {   // quadro novo do agente: o tamanho da página vem do PDF
+        L = PG.makeLayout('custom', srcs.length, size);
+        items = slideItems(L, srcs, 0, sizes);
+      } else {
+        const inicio = Math.min(PG.MAX_PAGINAS ?? 500, L0.count);
+        L = { ...L0, count: Math.min(PG.MAX_PAGINAS ?? 500, L0.count + srcs.length) };
+        items = [...resto, ...slideItems(L, srcs.slice(0, L.count - inicio), inicio, sizes)];
+      }
+      commit(items, L);
+      refreshPanel?.();
+      updatePageBar();
+      if (sozinho) goToPage(0);
+      // o PDF guardado sai depois que o quadro sem o pendente chegou ao disco (o servidor confere que ninguém o espera)
+      flush().then(ok => ok && wfetch('/api/pdf-pendente/' + p.pdf, { method: 'DELETE' })).catch(() => {});
+      toast(`${srcs.length} página(s) do PDF do agente de IA no quadro`, 5000);
+    }
+  } catch (e) {
+    if (S === alvo) toast('Não foi possível desenhar o PDF do agente de IA: ' + e.message, 8000);
+  } finally { aviso.remove(); }
+}
+
 async function hidratarAoAbrir(alvo) {
+  await montarPdfsDoAgente(alvo);
+  if (S !== alvo || !temPendentes(alvo.items.filter(i => !(i.type === 'pendente' && i.gera === 'pdf')))) return;
   const meas = document.createElement('canvas').getContext('2d');
   const medir = (t, s, f = 'Segoe UI') => { meas.font = `${s}px "${f}"`; return meas.measureText(t).width; };
-  if (alvo.items.some(i => i.type === 'pendente')) toast('Montando as fórmulas e gráficos que o agente de IA deixou…', 8000);
+  if (alvo.items.some(i => i.type === 'pendente' && i.gera !== 'pdf')) toast('Montando as fórmulas e gráficos que o agente de IA deixou…', 8000);
   let r;
   try {
     r = await hidratarPendentes(alvo.items, {
@@ -2801,10 +2845,12 @@ function onKey(e) {
   // botão de tela preta do passador (B ou ponto); a mesma tecla, Esc ou um toque voltam
   else if (k === 'b' || e.key === '.') { e.preventDefault(); telaPreta(); }
   else if (present && k === 'n') addBlankAfter();
-  else if (e.key === 'Escape') { if (zoomLens) { if (zoomLens.modo === 'ampliado') sairZoomLens(); else toggleZoomLens(); } else if (present) setPresent(false); else { clearSel(); hidePop(); } }
+  else if (e.key === 'Escape') { if (present) { if (!fecharCamadaDeCima()) setPresent(false); } else if (zoomLens) fecharCamadaDeCima(); else { clearSel(); hidePop(); } }
   else if (e.key === 'Tab') { e.preventDefault(); setClean(!document.getElementById('board').classList.contains('clean')); }
   else if (PG.isPages(S.board) && ['PageDown', 'ArrowRight', 'ArrowDown'].includes(e.key) && (present || e.key === 'PageDown') && !sel.size) { e.preventDefault(); goToPage(curPage() + 1, present); }
   else if (PG.isPages(S.board) && ['PageUp', 'ArrowLeft', 'ArrowUp'].includes(e.key) && (present || e.key === 'PageUp') && !sel.size) { e.preventDefault(); goToPage(curPage() - 1, present); }
+  // A3 (P68 item 3): Home e End vão à primeira e à última página de uma vez
+  else if (PG.isPages(S.board) && (e.key === 'Home' || e.key === 'End') && !sel.size) { e.preventDefault(); goToPage(e.key === 'Home' ? 0 : S.board.layout.count - 1, present); }
   // quadro infinito: avançar e voltar do passador (PageDown/PageUp; setas na apresentação) descem e sobem uma tela
   else if (!PG.isPages(S.board) && !sel.size && (['PageDown', 'PageUp'].includes(e.key) ||
       (present && ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)))) {
@@ -3073,6 +3119,7 @@ function showKeys() {
       ['Ctrl + G / Ctrl + Shift + G', 'Agrupar / desagrupar'], ['Del ou Backspace', 'Excluir a seleção'], ['Backspace sem seleção', 'Apagar o último item desenhado'], ['Del sem seleção', 'Limpar o quadro (pergunta antes)'],
       ['Enter', 'Editar o texto ou a nota selecionada'], ['Esc', 'Tirar a seleção, fechar menus, sair da apresentação']]],
     ['Páginas e apresentação', [['PageDown / PageUp', 'Próxima / página anterior'], ['→ ← (na apresentação)', 'Passar as páginas'],
+      ['Home / End', 'Primeira / última página'], ['Tocar no número da página', 'Ir para uma página (primeira, última, 10 para trás ou para a frente)'],
       ['F5', 'Iniciar a apresentação (botão do passador de slides)'], ['B ou .', 'Tela preta (a mesma tecla, Esc ou um toque voltam)'],
       ['N (na apresentação)', 'Página em branco depois desta'], ['PageDown / PageUp no quadro infinito', 'Descer / subir uma tela'], ['Tab', 'Modo aula: esconde / mostra as barras']]],
     ['Vista e arquivo', [['Espaço + arrastar', 'Mover o quadro'], ['Botão do meio ou direito do mouse', 'Mover o quadro'],
@@ -3119,9 +3166,34 @@ function curPage() {
 
 // vista que enquadra a página i (fill: ocupa a tela toda, para apresentar)
 function vistaDaPagina(i, fill) {
-  const r = PG.pageRect(S.board.layout, i), m = fill ? 0 : 28, top = fill ? 0 : 64, bottom = fill ? 0 : 70;
-  const z = Math.max(0.1, Math.min(4, Math.min((W - m * 2) / r.w, (H - top - bottom) / r.h)));
-  return { zoom: z, x: W / 2 - (r.x + r.w / 2) * z, y: top + (H - top - bottom) / 2 - (r.y + r.h / 2) * z };
+  const r = PG.pageRect(S.board.layout, i);
+  if (fill) {
+    const z = Math.max(0.1, Math.min(4, Math.min(W / r.w, H / r.h)));
+    return { zoom: z, x: W / 2 - (r.x + r.w / 2) * z, y: H / 2 - (r.y + r.h / 2) * z };
+  }
+  const a = areaLivre(), z = Math.max(0.1, Math.min(4, Math.min((a.r - a.l) / r.w, (a.b - a.t) / r.h)));
+  return { zoom: z, x: (a.l + a.r) / 2 - (r.x + r.w / 2) * z, y: (a.t + a.b) / 2 - (r.y + r.h / 2) * z };
+}
+// B1 (P68 item 4): a parte da tela que as barras não cobrem, para a página enquadrada não ficar embaixo delas (numa
+// tela de 890 x 460, as barras das laterais, de cima e de baixo encostavam no slide). Sem barras (modo aula), as
+// margens de antes. Barras soltas no meio da tela não contam se esmagariam a página a menos da metade da tela
+function areaLivre() {
+  let l = 0, r = W, t = 0, b = H, alguma = false;
+  const board = $('board');
+  if (board && !board.classList.contains('clean')) for (const el of board.querySelectorAll('.bar')) {
+    if (el.hidden || el.classList.contains('selbar') || el.classList.contains('presentbar') || !el.offsetWidth) continue;
+    const q = el.getBoundingClientRect();
+    if (q.width < 4 || q.height < 4 || q.right <= 0 || q.left >= W || q.bottom <= 0 || q.top >= H) continue;
+    alguma = true;
+    if (q.height > q.width) { if (q.left + q.width / 2 < W / 2) l = Math.max(l, q.right); else r = Math.min(r, q.left); }
+    else if (q.top + q.height / 2 < H / 2) t = Math.max(t, q.bottom);
+    else b = Math.min(b, q.top);
+  }
+  if (!alguma) return { l: 28, r: W - 28, t: 64, b: H - 70 };
+  l = Math.max(l + 10, 16); r = Math.min(r - 10, W - 16); t = Math.max(t + 10, 16); b = Math.min(b - 10, H - 16);
+  if (r - l < W * 0.5) { l = 28; r = W - 28; }
+  if (b - t < H * 0.5) { t = 64; b = H - 70; }
+  return { l, r, t, b };
 }
 // enquadra a página i (fill: ocupa a tela toda, para apresentar)
 // na apresentação com o quadro ampliado (lupa ou Ctrl+roda), o slide seguinte abre com a mesma
@@ -3130,6 +3202,7 @@ function vistaDaPagina(i, fill) {
 function goToPage(i, fill = false) {
   if (!S || !PG.isPages(S.board)) return;
   animVista++;
+  if (!voltando && pilhaVoltar.length) { pilhaVoltar = []; syncVoltar(); }   // mudou de página à mão: o "Voltar" sai (A1)
   const L = S.board.layout, de = curPage();
   i = Math.max(0, Math.min(L.count - 1, i));
   const alvo = vistaDaPagina(i, fill);
@@ -3189,6 +3262,7 @@ function updatePageBar() {
   if (!$('pagesPanel').hidden) markPanel();
   syncNotasPanel();
   if (notasCanal) enviarNotas();
+  syncMarcarBtn();
 }
 
 // ================= notas do professor (P64 i) =================
@@ -3549,6 +3623,7 @@ function pageMenu(anchor) {
   showPop(anchor, `<div class="menu">
       <div class="menu-cab">Página ${n} de ${tot} <small>(a que está no centro da tela)</small></div>
       <button data-a="ins">${ICON.plus} Nova página depois da página ${n}</button>
+      <button data-a="fim">${ICON.plus} Nova página no fim</button>
       <button data-a="dup">${ICON.copy} Duplicar a página ${n}</button>
       <button data-a="del" class="danger">${ICON.trash} Excluir a página ${n}</button>
       <hr>
@@ -3559,6 +3634,7 @@ function pageMenu(anchor) {
     </div>`, p => {
     p.querySelector('[data-a="trocarImg"]')?.addEventListener('click', () => { hidePop(); escolherImagemDaPagina(i); });
     p.querySelector('[data-a="ins"]').onclick = () => { hidePop(); insertPageAfter(i); };
+    p.querySelector('[data-a="fim"]').onclick = () => { hidePop(); addPageEnd(); };
     p.querySelector('[data-a="dup"]').onclick = () => { hidePop(); duplicatePage(i); };
     p.querySelector('[data-a="del"]').onclick = () => { hidePop(); deletePage(i); };
     p.querySelector('[data-a="all"]').onclick = () => { hidePop(); togglePagesPanel(true); };
@@ -3586,6 +3662,7 @@ addEventListener('keydown', e => {
 function setPresent(on) {
   const saiu = present && !on;
   present = !!on;
+  pilhaVoltar = []; syncVoltar();
   zoomLens = null;
   const b = $('board');
   b.classList.toggle('present', present);
@@ -3598,10 +3675,15 @@ function setPresent(on) {
     toggleNotasPanel(false);
     $('ppNotas').hidden = !temNotas();
     if (PG.isPages(S.board)) abrirJanelaNotas();   // antes da tela cheia, ainda no toque do professor (window.open)
-    document.documentElement.requestFullscreen?.().catch(() => {});
+    // com o Esc preso na tela cheia (WebView2/Chromium), o Esc chega à página e fecha a camada de cima; segurar o Esc
+    // ainda sai da tela cheia. Sem a trava (WebKitGTK), o fullscreenchange abaixo faz o mesmo papel
+    document.documentElement.requestFullscreen?.().then(() => navigator.keyboard?.lock?.(['Escape'])).catch(() => {});
     setTimeout(() => { resize(); if (PG.isPages(S.board)) goToPage(curPage(), true); syncPresentBar(); }, 250);
   } else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  if (!present) setTimeout(() => { if (S) { resize(); if (PG.isPages(S.board)) goToPage(curPage()); } }, 250);
+  // enquadra a página de novo depois de a tela assentar; se um voo ou salto começou nesse meio-tempo (abrir pelo
+  // marcador), ele manda: enquadrar aqui parava o voo no meio, 2 ou 3 slides antes do marcador (P68 item 1)
+  const marca = animVista;
+  if (!present) setTimeout(() => { if (S) { resize(); if (PG.isPages(S.board) && animVista === marca) goToPage(curPage()); } }, 250);
   if (notasCanal) enviarNotas(true);   // a janela das notas sabe que a apresentação acabou
   if (saiu) fimDaApresentacao();
 }
@@ -3654,6 +3736,24 @@ function mudarLupa(dir) {
     animarVista({ zoom: z, x: W / 2 - c.x * z, y: H / 2 - c.y * z }, 200);
   }
   syncPresentBar(); requestRender(false);
+}
+// Esc fecha sempre a camada mais de cima, uma por vez (P68 item 10: com a lupa aberta, o Esc encerrava a
+// apresentação). Devolve true se fechou alguma
+function fecharCamadaDeCima() {
+  if (!$('pop').hidden) { hidePop(); return true; }
+  if (zoomLens) { if (zoomLens.modo === 'ampliado') sairZoomLens(); else toggleZoomLens(); return true; }
+  if (!$('pagesPanel').hidden) { togglePagesPanel(false); return true; }
+  let fechou = true;
+  if (calcOpen()) closeCalc();
+  else if (timerOpen()) toggleTimer();
+  else if (clockOpen()) toggleClock();
+  else if (spot) spotOff();
+  else if (curtain) curtain = null;
+  else if (esquadro || protractor) { esquadro = null; protractor = null; }
+  else if (present && tool === 'laser') setTool(cfg.lastPen || 'pen0');
+  else fechou = false;
+  if (fechou) { requestRender(false); syncTeachBar(); syncPresentBar(); }
+  return fechou;
 }
 function sairZoomLens() {
   const antes = zoomLens?.antes;
@@ -3747,6 +3847,7 @@ function syncParadas() {
 let gruposMarcadores = [];   // os grupos de todos os quadros (vêm do servidor ao abrir o cartão)
 const marcadoresDoQuadro = () => S?.board.marcadores || [];
 function syncFitas() {
+  syncMarcarBtn();   // o "Marcar" da apresentação vira "Desmarcar" no slide marcado (A2)
   const box = $('fitas');
   if (!box) return;
   const ms = marcadoresDoQuadro();
@@ -3772,9 +3873,69 @@ function syncFitas() {
     listaDeMarcadores(b, { so: ids, onde: 'left' });
   });
 }
+// A1 do pacote 1.18 (P66): na apresentação, o salto por um marcador guarda o slide de onde saiu, e "↩ Voltar ao slide N"
+// leva de volta, como o voltar do navegador (de A para B, voltar leva a A e depois à origem). Mudar de página à mão
+// (setas, seletor, N) esvazia a pilha
+function syncVoltar() {
+  const b = $('ppVoltar'), n = present ? pilhaVoltar.at(-1) : undefined;
+  if (!b) return;
+  b.hidden = n === undefined;
+  if (n !== undefined) { b.querySelector('b').textContent = `Voltar ao slide ${n + 1}`; b.title = `Voltar ao slide ${n + 1}, de onde saiu pelo marcador`; }
+}
+function voltarSlide() {
+  const n = pilhaVoltar.pop();
+  if (n === undefined) return;
+  voltando = true;
+  try { goToPage(n, true); } finally { voltando = false; }
+  syncVoltar();
+}
+// A2 (P68 item 6): os marcadores do slide que está na tela; com algum, o "Marcar" da apresentação vira "Desmarcar"
+function marcadoresDaPagina() {
+  if (!S?.view || !PG.isPages(S.board)) return [];
+  const L = S.board.layout, p = curPage();
+  return marcadoresDoQuadro().filter(m => PG.pageIndexAt(L, m.cy) === p);
+}
+function syncMarcarBtn() {
+  const b = $('ppMarcar');
+  if (!b || !S?.view) return;   // o quadro ainda abrindo (o resize do openBoard chama as fitas antes da vista)
+  const n = marcadoresDaPagina().length;
+  b.querySelector('b').textContent = n ? 'Desmarcar' : 'Marcar';
+  b.title = n ? (n === 1 ? 'Tirar o marcador deste slide' : `Tirar um dos ${n} marcadores deste slide`) : 'Marcar este slide com um toque (Ctrl+M abre o nome e o grupo)';
+  b.classList.toggle('on', !!n);
+}
+function desmarcar(lista) {
+  const quadro = S.id, nomes = lista.length === 1 ? lista[0].nome : `${lista.length} marcadores`;
+  mudarMarcadoresDaLista({ apagar: lista.map(m => ({ quadro, id: m.id })) }, `Desmarcado: ${nomes}`,
+    { label: 'Desfazer', fn: () => S?.id === quadro && mudarMarcadoresDaLista({ novos: lista.map(m => ({ quadro, marcador: m })) }, `Marcador de volta: ${nomes}`) });
+}
+// "Marcar" da apresentação: um toque marca o slide (nome sugerido, último grupo usado), sem perguntar nada (A1)
+async function marcarOuDesmarcar() {
+  if (!S) return;
+  const aqui = marcadoresDaPagina(), b = $('ppMarcar');
+  if (aqui.length === 1) return desmarcar(aqui);
+  if (aqui.length > 1) return showPop(b, `<h4>Desmarcar</h4><div class="menu">${aqui.map(m => `<button data-id="${esc(m.id)}">${ICON.fita} ${esc(m.nome)}</button>`).join('')}
+    <button data-a="todos" class="danger">${ICON.trash} Todos deste slide</button></div>`, p => {
+    p.querySelectorAll('[data-id]').forEach(x => x.onclick = () => { hidePop(); desmarcar(aqui.filter(m => m.id === x.dataset.id)); });
+    p.querySelector('[data-a="todos"]').onclick = () => { hidePop(); desmarcar(aqui); };
+  }, 'above');
+  const pagina = PG.isPages(S.board) ? curPage() + 1 : null;
+  const grupo = gruposMarcadores.find(g => g.id === cfg.ultimoGrupoMarcador) || null;
+  await criarMarcador(MK.nomeSugerido(pagina, marcadoresDoQuadro().length), grupo, pagina);
+}
 function voarAoMarcador(id) {
   const m = marcadoresDoQuadro().find(x => x.id === id);
   if (!m) return;
+  if (present && PG.isPages(S.board)) {
+    // na apresentação, o salto é de uma vez (como as setas), para o enquadramento guardado no marcador (P65), e guarda
+    // o slide de onde saiu (A1)
+    const de = curPage(), para = PG.pageIndexAt(S.board.layout, m.cy);
+    if (para !== de) { pilhaVoltar.push(de); if (pilhaVoltar.length > 30) pilhaVoltar.shift(); }
+    animVista++;
+    S.view = MK.vistaDoMarcador(m, W, H);
+    viewChanged();
+    syncVoltar();
+    return;
+  }
   animarVista(MK.vistaDoMarcador(m, W, H), MK.VOO_MS);
   const f = [...$('fitas').querySelectorAll('[data-ids]')].find(x => x.dataset.ids.split(' ').includes(id));
   if (f) { f.classList.remove('brilho'); void f.offsetWidth; f.classList.add('brilho'); }
@@ -3876,7 +4037,7 @@ async function criarMarcador(nome, grupo, pagina) {
   } catch {}
   try {
     if (grupo) cfg.ultimoGrupoMarcador = grupo.id, saveCfg();
-    const novoGrupo = grupo && !gruposMarcadores.slice(0, -1).some(g => g.id === grupo.id) ? { grupos: gruposMarcadores } : {};
+    const novoGrupo = grupo && !gruposMarcadores.slice(0, -1).some(g => g.id === grupo.id) ? { gruposMudar: [grupo] } : {};
     const r = await marcadoresNaFila(quadro, { novos: [{ quadro, marcador: m }], ...novoGrupo });
     // só diz "Marcado" se o marcador voltou na lista gravada (Ordem 21: o servidor podia descartar sem erro)
     toast(r.marcadores.some(x => x.quadro === quadro && x.id === m.id) ? `Marcado: ${m.nome}` : 'Não consegui gravar o marcador');
@@ -3924,7 +4085,7 @@ async function mudarMarcadoresDaLista(pedido, msg, acao = null) {
   if (!S) return;
   try {
     await marcadoresNaFila(S.id, pedido);
-    if (msg) toast(msg, acao ? 8000 : 2600, acao);
+    if (msg) toast(msg, acao ? 5000 : 2600, acao);   // A4: 8 s com Desfazer atrapalhava; some também ao continuar
     if (listaAberta) {
       // as fitas foram refeitas com a lista nova: a lista abre de novo junto da fita dos mesmos marcadores
       let { anchor, opc } = listaAberta;
@@ -3990,7 +4151,7 @@ function menuDoMarcador(anchor, m, comQuadro, grupos) {
           const nome = (await askText('Nome do grupo novo'))?.trim();
           if (!nome) return;
           const g = { id: 'g' + newId(), nome: nome.slice(0, 60), cor: MK.CORES_GRUPO[grupos.length % MK.CORES_GRUPO.length], ordem: grupos.length + 1 };
-          gs = [...grupos, g]; gid = g.id; extra = { grupos: gs };
+          gs = [...grupos, g]; gid = g.id; extra = { gruposMudar: [g] };   // só o novo: a lista inteira apagava grupos de outra janela (D6)
         }
         hidePop();
         mudarMarcadoresDaLista({ ...extra, alterar: MK.soltar(comQuadro, arr, gid, null, gs) }, `“${m.nome}” em ${gid ? gs.find(g => g.id === gid).nome : 'Sem grupo'}`);
@@ -4093,10 +4254,30 @@ function syncPresentBar() {
   document.querySelectorAll('#presentbar .pg-only').forEach(x => x.hidden = !isP);
 }
 
+// A3 (P68 item 3): tocar no número da página abre "Ir para": primeira, última, 10 para trás ou para a frente e o número
+function irParaPagina(anchor) {
+  if (!S || !PG.isPages(S.board)) return;
+  const n = S.board.layout.count, c = curPage() + 1;
+  showPop(anchor, `<h4>Ir para a página</h4>
+    <div class="ir-pg"><input type="number" min="1" max="${n}" value="${c}" aria-label="Número da página"><span>de ${n}</span><button class="btn primary" data-a="ir">Ir</button></div>
+    <div class="seg ir-saltos"><button data-p="1" title="Primeira página (Home)">⏮ 1</button><button data-d="-10" title="10 páginas para trás">−10</button>
+    <button data-d="10" title="10 páginas para a frente">+10</button><button data-p="${n}" title="Última página (End)">${n} ⏭</button></div>`, p => {
+    const ent = p.querySelector('input');
+    const ir = k => { ent.blur(); hidePop(); goToPage(Math.max(1, Math.min(n, k)) - 1, present); };
+    p.querySelector('[data-a="ir"]').onclick = () => ir(Math.round(+ent.value || c));
+    ent.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); ir(Math.round(+ent.value || c)); } else if (ev.key === 'Escape') hidePop(); };
+    p.querySelectorAll('[data-p]').forEach(b => b.onclick = () => ir(+b.dataset.p));
+    p.querySelectorAll('[data-d]').forEach(b => b.onclick = () => ir(c + +b.dataset.d));
+    ent.focus(); ent.select();
+  }, 'above');
+}
+
 function initPagesUI() {
+  for (const id of ['pgLabel', 'ppLabel']) { const l = $(id); l.onclick = () => irParaPagina(l); l.title = 'Ir para uma página (primeira, última ou o número)'; l.setAttribute('role', 'button'); l.tabIndex = 0;
+    l.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); irParaPagina(l); } }; }
   $('pgPrev').onclick = () => goToPage(curPage() - 1);
   $('pgNext').onclick = () => goToPage(curPage() + 1);
-  $('pgAdd').onclick = () => addPageEnd();
+  $('pgAdd').onclick = () => addBlankAfter();   // depois da atual, não no fim (P68 item 2: no 54, ia para o 190)
   $('pgNotas').onclick = () => toggleNotasPanel();
   $('notasFechar').onclick = () => toggleNotasPanel(false);
   $('notasTexto').oninput = () => { notaPendente = true; clearTimeout(notasTimer); notasTimer = setTimeout(gravarNotaJa, 700); };
@@ -4105,7 +4286,7 @@ function initPagesUI() {
   $('pgMore').onclick = () => pageMenu($('pgMore'));
   $('pgAll').onclick = () => togglePagesPanel($('pagesPanel').hidden);
   $('ppClose').onclick = () => togglePagesPanel(false);
-  $('ppAdd').onclick = () => addPageEnd();
+  $('ppAdd').onclick = () => addBlankAfter();
   $('ppDel').onclick = () => deletePages([...panelSel]);
   $('bPresent').onclick = () => setPresent(true);
   $('slideFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await importSlidesIntoBoard(f); });
@@ -4118,7 +4299,8 @@ function initPagesUI() {
   $('ppRevelar').onclick = () => revelar();
   $('tRevelar').onclick = () => revelar();
   $('tMarcar').onclick = () => abrirMarcar($('tMarcar'));
-  $('ppMarcar').onclick = () => abrirMarcar($('ppMarcar'));
+  $('ppMarcar').onclick = () => marcarOuDesmarcar();
+  $('ppVoltar').onclick = () => voltarSlide();
   $('ppMarcadores').onclick = () => listaDeMarcadores($('ppMarcadores'));
   $('zParAnt').onclick = () => irParada(-1);
   $('zParProx').onclick = () => irParada(1);
@@ -4133,7 +4315,13 @@ function initPagesUI() {
     if (x.classList.contains('dot') && tool === x.dataset.pt) return espessuraDaCor(x, x.dataset.pt);
     setTool(x.dataset.pt); syncPresentBar();
   });
-  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && present) setPresent(false); else resize(); });
+  // saiu da tela cheia na apresentação: com uma camada aberta por cima (lupa, cortina…), o Esc era para ela; fecha a
+  // camada e continua apresentando (P68 item 10). Sem camada, encerra a apresentação, como antes
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && present) { if (fecharCamadaDeCima()) { resize(); syncPresentBar(); } else setPresent(false); }
+    else resize();
+    if (!document.fullscreenElement) navigator.keyboard?.unlock?.();
+  });
 }
 
 

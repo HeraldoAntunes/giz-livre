@@ -18,6 +18,7 @@
     <h1>Giz Livre <small id="gVer" class="g-ver" title="Versão instalada"></small></h1>
     <div class="g-abas" role="tablist"><button id="gAbaQuadros" class="on" role="tab">Quadros</button><button id="gAbaMarcadores" role="tab" title="Os pontos marcados em todos os quadros (Ctrl+M dentro do quadro)">Marcadores<b id="gMkN"></b></button></div>
     <div class="g-search"><span data-icon="search"></span><input id="gSearch" type="search" placeholder="Pesquisar quadros" aria-label="Pesquisar quadros"></div>
+    <button id="gExibir" class="btn" title="Exibir: tamanho dos cartões e formas no topo da galeria"><span data-icon="eye"></span><span class="g-rot">Exibir</span></button>
     <select id="gSort" class="btn" aria-label="Ordenar"><option value="date">Mais recentes</option><option value="name">Nome (A–Z)</option></select>
     <button id="gTablet" class="btn" title="Configurar e testar a mesa digitalizadora"><span data-icon="pen"></span><span class="g-rot">Caneta e escrita</span></button>
     <button id="gNewFolder" class="btn" title="Criar uma pasta (ex.: uma disciplina) e mover quadros para ela"><span data-icon="folder"></span><span class="g-rot">Nova pasta</span></button>
@@ -152,7 +153,7 @@
     <button class="ib" id="pgNext" title="Próxima página (PageDown)"><span data-icon="chevR"></span></button>
     <button class="ib" id="pgFit" title="Enquadrar slide (F): a página que está na tela no maior tamanho que cabe; de novo alterna para um pouco menor, com folga"><span data-icon="enquadrar"></span></button>
     <button class="ib" id="pgNotas" title="Notas do professor desta página (só você vê; na apresentação com duas telas, aparecem na sua tela)"><span data-icon="note"></span></button>
-    <button class="ib" id="pgAdd" title="Nova página no fim"><span data-icon="plus"></span></button>
+    <button class="ib" id="pgAdd" title="Nova página em branco depois desta (N)"><span data-icon="plus"></span></button>
     <button class="ib" id="pgMore" title="Mais opções da página"><span data-icon="more"></span></button>
   </div>
 
@@ -171,7 +172,7 @@
   </div>
 
   <aside class="pagespanel" id="pagesPanel" hidden>
-    <div class="pp-head"><b>Páginas</b><button class="ib" id="ppAdd" title="Nova página"><span data-icon="plus"></span></button><button class="ib" id="ppClose" title="Fechar"><span data-icon="close"></span></button></div>
+    <div class="pp-head"><b>Páginas</b><button class="ib" id="ppAdd" title="Nova página em branco depois da atual"><span data-icon="plus"></span></button><button class="ib" id="ppClose" title="Fechar"><span data-icon="close"></span></button></div>
     <div class="pp-sel"><small>Marque ☐ para excluir várias</small><button class="btn danger" id="ppDel" hidden>Excluir</button></div>
     <div class="pp-list" id="ppList"></div>
   </aside>
@@ -202,7 +203,8 @@
     <button class="ib toggle" id="ppStrip" title="Lupa (Z): toque onde quer ampliar; − e + mudam quanto amplia; toque de novo ou Esc para voltar"><span data-icon="search"></span></button>
     <span class="lupactl" hidden><button class="ib" data-lupa="-1" title="Ampliar menos (−)">−</button><b title="Quanto a lupa amplia">3x</b><button class="ib" data-lupa="1" title="Ampliar mais (+)">+</button></span>
     <button class="ib" id="ppUndo" title="Desfazer (Ctrl+Z)"><span data-icon="undo"></span></button>
-    <button class="ib txt" id="ppMarcar" title="Marcar este ponto (Ctrl+M)"><span data-icon="fita"></span><b>Marcar</b></button>
+    <button class="ib txt" id="ppVoltar" hidden title="Voltar ao slide de onde saiu pelo marcador"><span data-icon="undo"></span><b>Voltar</b></button>
+    <button class="ib txt" id="ppMarcar" title="Marcar este slide com um toque (Ctrl+M abre o nome e o grupo)"><span data-icon="fita"></span><b>Marcar</b></button>
     <button class="ib" id="ppMarcadores" title="Marcadores deste quadro: tocar num leva até ele"><span data-icon="lista"></span></button>
     <button class="ib txt" id="ppRevelar" hidden title="Revelar o próximo item escondido (R)"><span data-icon="eye"></span><b>Revelar</b></button>
     <span class="sep pg-only"></span>
