@@ -18,6 +18,7 @@
 //   G1  ocultar a faixa de formas da galeria, lembrando a escolha (volta em Exibir)
 //   G2  tamanho dos cartões de quadros e pastas (P, M, G, GG)
 //   G3  cor e ícone de cada pasta
+//   D9  com ?caiu=1 (a janela recarregou a página depois de uma queda), aparece o aviso e a marca sai do endereço
 //   D4  um aviso ao programa que falha (rede do Windows) não mostra "o programa foi fechado"; o aviso some quando volta
 //   node tests/e2e_118.mjs [--raiz <pasta de outra versão>]
 //   node tests/e2e_117_3.mjs [--raiz <pasta de outra versão>]
@@ -376,6 +377,15 @@ try {
   conferir('três falhas seguidas: o aviso aparece', (await aviso()).includes('foi fechado'), await aviso());
   await avaliar('window.__pingFalha = 0'); await espera(4000);
   conferir('o programa volta a responder: o aviso some sozinho', !(await aviso()), await aviso());
+
+  // ---------- D9 (b) ----------
+  console.log('D9: a página reaberta depois de uma queda avisa e tira a marca do endereço');
+  await avaliar('window.gizFechando = true').catch(() => {}); await cdp('Page.navigate', { url: 'about:blank' }); await espera(300);
+  await cdp('Page.navigate', { url: `${BASE}/?caiu=1#/b/d2` });
+  await ate(`window.__lousa?.S?.id === 'd2'`, 20000); await espera(800);
+  const aviso9 = await avaliar(`(() => { const t = document.getElementById('toast'); return t && !t.hidden ? t.textContent : ''; })()`);
+  conferir('aparece o aviso de que a página caiu e foi reaberta', aviso9.includes('caiu e foi reaberta'), aviso9);
+  conferir('e a marca ?caiu=1 sai do endereço', !(await avaliar('location.search')).includes('caiu'), await avaliar('location.href'));
 
   conferir('nenhum erro na página', !erros.length, erros.join(' | '));
 } catch (e) {

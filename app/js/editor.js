@@ -22,7 +22,7 @@ import { saveBoard, saveThumb, newId, download, safeName, readImageFile, tokenHe
 import * as MK from './marcadores.js';
 import * as NT from './notas.js';
 import { ICON, penIcon } from './icons.js';
-import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc, askText } from './ui.js';
+import { fillIcons, toast, showPop, hidePop, confirmBox, choiceBox, infoBox, aboutBox, esc, askText, tempoAviso, ritmoAvisos, mudarRitmoAvisos } from './ui.js';
 import { VERSION } from './version.js';
 import { DEFAULT_TABLET, openTabletSettings, pressureKind, pressureState, PRESSAO_INICIAL, ocrAviso } from './tablet.js';
 import { createStabilizer, smoothPts, resampleN } from './stabilizer.js';
@@ -32,6 +32,7 @@ const { PAPERS, ANCHORED, SIZE: PAPER_SIZE, CELL } = PAPER;
 import { compile as compileFn, plotStrokes, fitFrame, faixaY, axesStrokes, animatedCurve, drawPolylines, fmtNum } from './plot.js';
 import { AREAS as FN_AREAS, modelo as fnModelo, valoresPadrao } from './fnmodels.js';
 import * as PG from './pages.js';
+import * as CB from './carimbo.js';
 import { paginasEscolhidas, slideItems, uploadAsset, slidesFromPdf } from './importer.js';
 import { toggleTimer, timerOpen, toggleClock, clockOpen, closeFloating, formulaImage, validateLatex, previewLatex, recognizeInk, draggable } from './tools.js';
 import { svgDataUrl } from './library.js';
@@ -57,7 +58,9 @@ const ZOOM_MAX = 16;   // a lupa amplia até 8x por cima de um slide já ampliad
 // lupa: quanto a área escolhida amplia (o retângulo tem 1/x da tela); o último nível fica guardado
 const LUPA_NIVEIS = [1.5, 2, 3, 4, 6, 8];
 // aviso que aparece ao desfazer: desligado de fábrica, porque cobria o quadro no meio da aula
-const AVISO_DESFAZER = [['off', 'Desligado'], ['curto', 'Curto (1 s, só o texto)'], ['normal', 'Normal (3 s, com botão Refazer ou Desfazer)']];
+const AVISO_DESFAZER = [['off', 'Desligado'], ['curto', 'Curto (1 s, só o texto)'], ['normal', 'Normal (5 s, com botão Refazer ou Desfazer)']];
+// D8: quanto tempo os avisos ficam na tela (multiplica os 3 s dos comuns e os 5 s dos que têm botão)
+const RITMO_AVISOS = [['curto', 'Curto (cerca de 2 s e 3 s)'], ['normal', 'Normal (3 s e 5 s com botão)'], ['longo', 'Longo (6 s e 10 s com botão)']];
 // nomes das cores (dica e leitor de tela)
 const COR_NOME = {
   '#000000': 'Preto', '#7a7574': 'Cinza', '#ffffff': 'Branco', '#e81224': 'Vermelho', '#f7630c': 'Laranja', '#ffb900': 'Âmbar',
@@ -322,7 +325,7 @@ function perguntaCanetas() {
     <button class="btn" data-a="manter">Manter</button><button class="btn" data-a="padrao">Voltar ao padrão</button><button class="btn" data-a="estojo">Estojos…</button>`;
   $('board').appendChild(el);
   const fecha = () => { el.remove(); clearTimeout(t); };
-  const t = setTimeout(fecha, 12000);
+  const t = setTimeout(fecha, tempoAviso('botao'));   // aviso com botões: 5 s no ritmo normal (D8; antes 12 s)
   el.querySelector('[data-a="manter"]').onclick = fecha;
   el.querySelector('[data-a="padrao"]').onclick = () => { fecha(); usarEstojo(ESTOJOS_FABRICA[0], false); };
   el.querySelector('[data-a="estojo"]').onclick = () => { fecha(); estojoPop(document.querySelector('#inkbar .estojo-btn')); };
@@ -362,7 +365,11 @@ function usarEstojo(e, comFundo = true) {
 }
 
 // gancho de depuração (testes automatizados)
-window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; }, get sel() { return sel; }, get bitmaps() { return R.bitmapsGuardados(); } };
+window.__lousa = { get S() { return S; }, get pending() { return pendingBeauty; }, get action() { return action; }, get sel() { return sel; }, get bitmaps() { return R.bitmapsGuardados(); }, imagens: () => R.estadoDasImagens().filter(i => i.ok).length,
+  painel: () => ({ vis: [...panelVis].sort((a, b) => a - b), cache: thumbCache.size, ocupado: panelOcupado,
+    topo: [0, 1, 2].map(i => { const g = thumbCache.get(i)?.canvas, b = document.querySelector(`#ppList .pthumb[data-i="${i}"]`)?.firstChild;
+      const px = c => { try { return [...c.getContext('2d').getImageData(c.width / 4 | 0, c.height / 2 | 0, 1, 1).data].join(','); } catch (e) { return e.name; } };
+      return { guardada: !!g, mesma: g === b, pxGuardada: g ? px(g) : null, pxCartao: b ? px(b) : null, w: b?.width, h: b?.height }; }) }) };
 
 export function isOpen() { return !!S && !$('board').hidden; }
 // quadro aberto nesta janela (o ping avisa o servidor, para um agente de IA não gravar nele)
@@ -406,10 +413,10 @@ async function montarPdfsDoAgente(alvo) {
       if (sozinho) goToPage(0);
       // o PDF guardado sai depois que o quadro sem o pendente chegou ao disco (o servidor confere que ninguém o espera)
       flush().then(ok => ok && wfetch('/api/pdf-pendente/' + p.pdf, { method: 'DELETE' })).catch(() => {});
-      toast(`${srcs.length} página(s) do PDF do agente de IA no quadro`, 5000);
+      toast(`${srcs.length} página(s) do PDF do agente de IA no quadro`, 'comum');
     }
   } catch (e) {
-    if (S === alvo) toast('Não foi possível desenhar o PDF do agente de IA: ' + e.message, 8000);
+    if (S === alvo) toast('Não foi possível desenhar o PDF do agente de IA: ' + e.message, 'grave');
   } finally { aviso.remove(); }
 }
 
@@ -418,7 +425,7 @@ async function hidratarAoAbrir(alvo) {
   if (S !== alvo || !temPendentes(alvo.items.filter(i => !(i.type === 'pendente' && i.gera === 'pdf')))) return;
   const meas = document.createElement('canvas').getContext('2d');
   const medir = (t, s, f = 'Segoe UI') => { meas.font = `${s}px "${f}"`; return meas.measureText(t).width; };
-  if (alvo.items.some(i => i.type === 'pendente' && i.gera !== 'pdf')) toast('Montando as fórmulas e gráficos que o agente de IA deixou…', 8000);
+  if (alvo.items.some(i => i.type === 'pendente' && i.gera !== 'pdf')) toast('Montando as fórmulas e gráficos que o agente de IA deixou…', 'comum');
   let r;
   try {
     r = await hidratarPendentes(alvo.items, {
@@ -426,14 +433,14 @@ async function hidratarAoAbrir(alvo) {
       formula: async (latex, color, size) => { const { blob, w, h } = await formulaImage(latex, color, size); return { src: await uploadAsset(blob), w, h }; },
       formaSrc: (lib, tint) => { const m = shapeSvg(lib, tint); return m ? svgDataUrl(m.svg) : null; },
     });
-  } catch (e) { return toast('Não foi possível montar o conteúdo do agente: ' + e.message, 8000); }
+  } catch (e) { return toast('Não foi possível montar o conteúdo do agente: ' + e.message, 'grave'); }
   if (S !== alvo || !r.trocas.size) return;
   // o professor pode ter mexido enquanto as imagens eram geradas: troca por id no estado atual e no histórico
   S.items = aplicarTrocas(S.items, r.trocas);
   for (const h of [...undoStack, ...redoStack]) h.items = aplicarTrocas(h.items, r.trocas);
   changedSemHistorico();
   const qtos = r.chegaram === 1 ? '1 item do agente de IA chegou' : `${r.chegaram} itens do agente de IA chegaram`;
-  if (r.chegaram) toast(r.erros ? `${qtos}; ${r.erros} com erro (texto vermelho com o código)` : `${qtos} ao quadro`, 6000);
+  if (r.chegaram) toast(r.erros ? `${qtos}; ${r.erros} com erro (texto vermelho com o código)` : `${qtos} ao quadro`, 'comum');
 }
 
 // ================= desenho =================
@@ -729,6 +736,7 @@ function drawSelection() {
   if (action?.type === 'transform') { bar.hidden = true; return; }
   const single = sel.size === 1 ? byId([...sel][0]) : null;
   bar.querySelector('[data-sel="edit"]').hidden = !(single && (single.type === 'text' || single.type === 'note'));
+  bar.querySelector('[data-sel="numero"]').hidden = ![...sel].some(id => CB.ehCarimbo(byId(id)));
   bar.querySelector('[data-sel="color"]').hidden = [...sel].every(id => { const it = byId(id); return it?.type === 'image' && !it.lib; });
   const leg = bar.querySelector('[data-sel="legendas"]'), comTexto = [...sel].map(byId).filter(libComTexto);
   leg.hidden = !comTexto.length;
@@ -1250,7 +1258,7 @@ async function iniciarCena() {
   arrastoCena(mold.querySelector('.cm-canto'), (r, dx) => { const k = r.h / r.w; r.w = Math.max(80 / S.view.zoom, r.w + dx); r.h = r.w * k; });
   stream.getVideoTracks()[0]?.addEventListener('ended', () => { if (cena === c) encerrarCena(); });
   montaCenaBar(); syncToolbar(); requestRender();
-  toast('Captura ao vivo: risque por cima. Arraste a faixa azul para mover e o canto para o tamanho. A faixa do navegador some em "Ocultar"', 6000);
+  toast('Captura ao vivo: risque por cima. Arraste a faixa azul para mover e o canto para o tamanho. A faixa do navegador some em "Ocultar"', 'comum');
 }
 // posiciona o vídeo e a moldura (tela) a partir do retângulo no mundo
 function posCena() {
@@ -1631,8 +1639,8 @@ function undo() {
 }
 // avisos de ações repetidas (desfazer, apagar o último item): desligados de fábrica, porque cobriam o quadro na aula
 function avisoAcao(msg, act) {
-  if (cfg.avisoDesfazer === 'curto') toast(msg, 1000);
-  else if (cfg.avisoDesfazer === 'normal') toast(msg, 2600, act);
+  if (cfg.avisoDesfazer === 'curto') toast(msg, 'breve');
+  else if (cfg.avisoDesfazer === 'normal') toast(msg, 'botao', act);
 }
 function redo() {
   if (!redoStack.length) return;
@@ -1732,7 +1740,7 @@ async function reconciliar(snap) {
     failedSnaps.delete(snap.id);
     syncSaveError(); updateUndo(); updatePageBar(); syncToolbar(); syncFitas(); requestRender();
     vistaPendente = true; scheduleSave();
-    toast('O quadro foi atualizado com o que a outra janela gravou', 4000);
+    toast('O quadro foi atualizado com o que a outra janela gravou', 'comum');
     return true;
   } catch { return false; }
 }
@@ -1789,7 +1797,7 @@ async function writeSnapshot(snap) {
       && await reconciliar(snap)) return;
     snap.conflict = !!e.conflict;
     if (S === snap.state) { st.textContent = e.conflict ? e.message : 'Erro ao salvar — tentando de novo'; st.classList.add('err'); }
-    if (e.conflict) toast(e.message, 12000);
+    if (e.conflict) toast(e.message, 'grave');
     syncSaveError(); // aparece também na apresentação e no modo aula
     clearTimeout(retryTimer);
     if ([...failedSnaps.values()].some(f => !f.conflict)) retryTimer = setTimeout(retryFailed, 4000);
@@ -2075,6 +2083,8 @@ function onDown(e) {
       stroke.pts = [q.x, q.y, P.p];
       stroke.pr = false;
     }
+  } else if (t === 'numero') {
+    carimbar(P);
   } else if (t === 'laser') {
     action = { type: 'laser', id: e.pointerId };
     laser.push({ x: P.x, y: P.y, t: performance.now(), brk: true });
@@ -2338,7 +2348,7 @@ function onUp(e) {
         // PDF/slide (retorno da aula de 04/11/2026). Uma vez por quadro aberto, para não incomodar
         if (a.sobrePagina && avisoBorracha !== S.id) {
           avisoBorracha = S.id;
-          toast('A borracha apaga só o que foi escrito no Giz Livre. O que veio no PDF ou no slide faz parte da página importada e não sai; para trocar a página por uma limpa: menu da página (…) → Trocar a imagem da página.', 9000);
+          toast('A borracha apaga só o que foi escrito no Giz Livre. O que veio no PDF ou no slide faz parte da página importada e não sai; para trocar a página por uma limpa: menu da página (…) → Trocar a imagem da página.', 'comum');
         }
       }
       break;
@@ -2574,6 +2584,7 @@ function selAction(k, btn) {
   else if (k === 'ocr') inkToText([...ids]);
   else if (k === 'legendas') alternaLegendas(ids);
   else if (k === 'font') fontPop(btn);
+  else if (k === 'numero') numeroPop(btn, true);
   else if (k === 'encaixe') encaixePop(btn);
   else if (k === 'png') selImagemPop(btn);
   else if (k === 'menor' || k === 'maior') mudaTamanho(k === 'maior');
@@ -2761,13 +2772,13 @@ async function insertFiles(files, at, rascunho = false, canto = false) {
   for (const f of files) {
     try {
       const im = await readImageFile(f);
-      if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 6000);
+      if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 'comum');
       const z = S.view.zoom;
       const k = Math.min(1 / z, (W * 0.6) / z / im.w, (H * 0.6) / z / im.h);
       const w = im.w * k, h = im.h * k;
       let src = im.src;
       try { src = await uploadAsset(im.src); } catch (e) { console.warn('Imagem guardada dentro do quadro (o envio para a pasta de imagens falhou):', e); }
-      if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 6000);
+      if (S !== target) return toast('Importação cancelada: o quadro foi fechado.', 'comum');
       // canto: o ponto é o canto de cima, à esquerda (colar onde a caneta tocou); senão, o centro da imagem
       added.push({ id: newId(), type: 'image', x: canto ? pos.x : pos.x - w / 2, y: canto ? pos.y : pos.y - h / 2, w, h, src, ...(rascunho ? { camada: 'rascunho' } : {}) });
       pos = { x: pos.x + 30 / z, y: pos.y + 30 / z };
@@ -2807,7 +2818,7 @@ function onKey(e) {
   if (!isOpen()) return;
   if (e.key === 'F1') { e.preventDefault(); if (ajudaAberta()) fecharAjuda(); else abreAjuda(); return; }
   if (e.key === 'Escape' && (tourEmAndamento() || ajudaAberta())) { e.preventDefault(); encerrarTour(); fecharAjuda(); return; }
-  if (e.key === 'Escape' && movendoMarcador) { e.preventDefault(); movendoMarcador = null; toast('Mudança de lugar cancelada', 2500); return; }
+  if (e.key === 'Escape' && movendoMarcador) { e.preventDefault(); movendoMarcador = null; toast('Mudança de lugar cancelada', 'comum'); return; }
   const tag = e.target.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.querySelector('dialog[open]')) return;
   const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
@@ -2879,6 +2890,7 @@ function onKey(e) {
   else if (present && k === 'r') revelar();   // na apresentação, R revela o próximo escondido (fora dela, a régua)
   else if (k === 'r') toggleRuler();
   else if (k === 'k') setTool('laser');
+  else if (k === 'u') setTool('numero');   // F1: Números
   else if (k === 'm') setTool('hand');
   else if (k === 'z') toggleZoomLens();
   else if (k === 'f') enquadrarSlide();
@@ -2914,6 +2926,7 @@ function openMenu(anchor) {
       <hr>
       <button data-a="tablet">${ICON.pen} Caneta e escrita</button>
       <button data-a="avisoZ">${ICON.undo} Avisos de desfazer e apagar: ${AVISO_DESFAZER.find(([k]) => k === (cfg.avisoDesfazer || 'off'))[1].replace(/ \(.*/, '').toLowerCase()}…</button>
+      <button data-a="ritmo">${ICON.clock} Tempo dos avisos: ${RITMO_AVISOS.find(([k]) => k === ritmoAvisos())[1].replace(/ \(.*/, '').toLowerCase()}…</button>
       <button data-a="bars">${ICON.restore} Voltar ao layout padrão (barras e painéis)</button>
       <button data-a="disc">${ICON.shapes} Áreas das formas…</button>
       <button data-a="agentes">${ICON.sparkle} Agentes de IA (experimental)…</button>
@@ -2942,6 +2955,7 @@ function openMenu(anchor) {
     p.querySelector('[data-a="tablet"]').onclick = () => { hidePop(); openTabletSettings(cfg.tablet, saveCfg, () => penPress); };
     p.querySelector('[data-a="bars"]').onclick = () => { hidePop(); layoutPadrao(); };
     p.querySelector('[data-a="avisoZ"]').onclick = () => { hidePop(); avisoDesfazerPop(anchor); };
+    p.querySelector('[data-a="ritmo"]').onclick = () => { hidePop(); ritmoAvisosPop(anchor); };
   });
 }
 
@@ -2950,7 +2964,14 @@ function avisoDesfazerPop(anchor) {
   const atual = cfg.avisoDesfazer || 'off';
   showPop(anchor, `<h4>Avisos de desfazer e apagar</h4><small class="tb-note">"Desfeito" (Ctrl+Z) e "Último item apagado" (Backspace)</small><div class="seg seg-col">${AVISO_DESFAZER.map(([k, n]) => `<button data-av="${k}" class="${k === atual ? 'on' : ''}">${n}</button>`).join('')}</div>
     <small class="tb-note">Desfazer e apagar funcionam do mesmo jeito; muda só o texto na tela.</small>`, p => {
-    p.querySelectorAll('[data-av]').forEach(x => x.onclick = () => { cfg.avisoDesfazer = x.dataset.av; saveCfg(); hidePop(); toast(x.dataset.av === 'off' ? 'Avisos de desfazer e apagar: desligados' : 'Avisos de desfazer e apagar: ligados', 1500); });
+    p.querySelectorAll('[data-av]').forEach(x => x.onclick = () => { cfg.avisoDesfazer = x.dataset.av; saveCfg(); hidePop(); toast(x.dataset.av === 'off' ? 'Avisos de desfazer e apagar: desligados' : 'Avisos de desfazer e apagar: ligados', 'comum'); });
+  });
+}
+
+function ritmoAvisosPop(anchor) {
+  const atual = ritmoAvisos();
+  showPop(anchor, `<h4>Tempo dos avisos</h4><small class="tb-note">Quanto tempo as mensagens ficam na tela. Erros e avisos que pedem ação ficam até você tocar.</small><div class="seg seg-col">${RITMO_AVISOS.map(([k, n]) => `<button data-rv="${k}" class="${k === atual ? 'on' : ''}">${n}</button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-rv]').forEach(x => x.onclick = () => { mudarRitmoAvisos(x.dataset.rv); hidePop(); toast('Tempo dos avisos: ' + RITMO_AVISOS.find(([k]) => k === x.dataset.rv)[1].replace(/ \(.*/, '').toLowerCase(), 'comum'); });
   });
 }
 
@@ -3079,7 +3100,7 @@ async function exportLousa() {
   try {
     await embedBoard(data);
     download(new Blob([JSON.stringify(data)], { type: 'application/json' }), safeName(data.title) + '.lousa');
-  } catch (e) { toast(e.message, 8000); }
+  } catch (e) { toast(e.message, 'grave'); }
 }
 export async function embedAssets(items) {
   const cache = new Map();
@@ -3240,7 +3261,7 @@ function enquadrarSlide() {
   if (!S || !PG.isPages(S.board)) return toast('Enquadrar slide vale para quadros com páginas (PDF, apresentação ou caderno)');
   const v = S.view, u = ultimoEnq?.quadro === S ? ultimoEnq.alvo : null;
   const parado = u && [[v.zoom, u.zoom], [v.x, u.x], [v.y, u.y]].every(([p, q]) => Math.abs(p - q) <= Math.max(2, Math.abs(q) * 0.01));
-  if (parado) { cfg.enquadrar = cfg.enquadrar === 'menor' ? 'maior' : 'menor'; saveCfg(); toast(cfg.enquadrar === 'menor' ? 'Enquadrar: menor, com folga' : 'Enquadrar: maior que cabe', 1000); }
+  if (parado) { cfg.enquadrar = cfg.enquadrar === 'menor' ? 'maior' : 'menor'; saveCfg(); toast(cfg.enquadrar === 'menor' ? 'Enquadrar: menor, com folga' : 'Enquadrar: maior que cabe', 'breve'); }
   const a = toWorld(0, 0), b = toWorld(W, H), L = S.board.layout;
   const i = PG.paginaMaisVisivel(L, { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y });
   if (zoomLens) { zoomLens = null; setCursor(); syncPresentBar(); }
@@ -3331,7 +3352,7 @@ function fimDaApresentacao() {
 }
 function abrirJanelaNotas(pediu = false) {
   const o = pediu ? (telaEstendida() ? 'janela' : 'aviso') : NT.abrirNotasAoApresentar(temNotas(), telaEstendida());
-  if (o === 'aviso') return toast(NT.AVISO_UMA_TELA, 7000);
+  if (o === 'aviso') return toast(NT.AVISO_UMA_TELA, 'grave');
   if (o !== 'janela') return;
   canalNotas();
   // na janela própria (Windows), o programa cria esta janela na tela principal e leva a apresentação para a outra
@@ -3345,7 +3366,7 @@ function itemsShift(items, fromY, dy) {
 
 function insertPageAfter(i, extra = []) {
   // o mesmo limite da importação e do PDF (auditoria de 29/10/2026, GL-M2): a 501ª página não abriria em outro PC
-  if (S.board.layout.count >= PG.MAX_PAGINAS) { toast(`Este quadro já tem ${PG.MAX_PAGINAS} páginas, o máximo. Comece um quadro novo.`, 6000); return false; }
+  if (S.board.layout.count >= PG.MAX_PAGINAS) { toast(`Este quadro já tem ${PG.MAX_PAGINAS} páginas, o máximo. Comece um quadro novo.`, 'comum'); return false; }
   const L = S.board.layout, step = L.h + L.gap, cut = PG.pageRect(L, i).y + L.h + L.gap / 2;
   const items = itemsShift(S.items, cut, step);
   commit([...items, ...extra.map(it => R.transformItem(it, 0, 0))], { ...L, count: L.count + 1 });
@@ -3414,12 +3435,12 @@ async function convertToA4() {
 
 async function importSlidesIntoBoard(file) {
   try {
-    toast('Importando ' + file.name + '…', 60000);
+    toast('Importando ' + file.name + '…', 'andamento');
     const alvo = S;
-    const esc = await paginasEscolhidas(file, (m, a) => toast(m, 60000, a));
-    if (!esc) return toast('Importação cancelada.', 3000);
-    if (S !== alvo) return toast('Importação cancelada: o quadro foi fechado durante a conversão.', 6000);
-    toast('Inserindo…', 2000);
+    const esc = await paginasEscolhidas(file, (m, a) => toast(m, 'andamento', a));
+    if (!esc) return toast('Importação cancelada.', 'comum');
+    if (S !== alvo) return toast('Importação cancelada: o quadro foi fechado durante a conversão.', 'comum');
+    toast('Inserindo…', 'comum');
     const { size, srcs, sizes, videos } = esc;
     let L = S.board.layout, items = S.items, start;
     if (!PG.isPages(S.board)) {
@@ -3441,7 +3462,7 @@ async function importSlidesIntoBoard(file) {
     goToPage(start);
     toast(`${srcs.length} página(s) importada(s)`);
     refreshPanel();
-  } catch (e) { toast(e.message, 7000); }
+  } catch (e) { toast(e.message, 'grave'); }
 }
 
 // a imagem travada (PDF/slide importado) que forma o fundo da página i; null se a página não tem
@@ -3461,27 +3482,27 @@ function imagemDaPagina(i) {
 // da pilha: tudo o que foi escrito no Giz Livre continua por cima. Ctrl+Z desfaz.
 async function trocarImagemDaPagina(i, file) {
   const velha = imagemDaPagina(i);
-  if (!velha) return toast('Esta página não tem imagem importada para trocar.', 5000);
+  if (!velha) return toast('Esta página não tem imagem importada para trocar.', 'comum');
   const alvo = S;
   try {
     let src, size;
     if (/^image\//.test(file.type)) {
-      toast('Lendo ' + file.name + '…', 30000);
+      toast('Lendo ' + file.name + '…', 'andamento');
       src = await uploadAsset(file);
       const im = new Image(); im.src = src; await im.decode();
       size = { w: im.naturalWidth, h: im.naturalHeight };
     } else {
-      toast('Lendo ' + file.name + '…', 60000);
-      const esc = await paginasEscolhidas(file, (m, a) => toast(m, 60000, a));
-      if (!esc) return toast('Troca cancelada.', 3000);
-      if (esc.srcs.length > 1) toast('Usei a primeira página marcada.', 4000);
+      toast('Lendo ' + file.name + '…', 'andamento');
+      const esc = await paginasEscolhidas(file, (m, a) => toast(m, 'andamento', a));
+      if (!esc) return toast('Troca cancelada.', 'comum');
+      if (esc.srcs.length > 1) toast('Usei a primeira página marcada.', 'comum');
       src = esc.srcs[0]; size = esc.sizes[0];
     }
-    if (S !== alvo) return toast('Troca cancelada: o quadro foi fechado.', 6000);
+    if (S !== alvo) return toast('Troca cancelada: o quadro foi fechado.', 'comum');
     // durante a leitura o professor pode ter inserido ou excluído páginas: a imagem é achada de novo pelo id (revisão
     // da 1.17.3-rc.1, achado 5); se saiu, nada é trocado e o aviso diz isso
     const atual = S.items.find(it => it.id === velha.id);
-    if (!atual) return toast('Troca cancelada: a página mudou enquanto o arquivo era lido.', 6000);
+    if (!atual) return toast('Troca cancelada: a página mudou enquanto o arquivo era lido.', 'comum');
     const pg = PG.pageOf(S.board.layout, atual), r = PG.pageRect(S.board.layout, pg);
     let w = r.w, h = r.h;
     if (size?.w > 0 && size?.h > 0) { const f = Math.min(r.w / size.w, r.h / size.h); w = size.w * f; h = size.h * f; }
@@ -3491,8 +3512,8 @@ async function trocarImagemDaPagina(i, file) {
     const nova = { ...resto, id: atual.id, type: 'image', locked: true, x: r.x + (r.w - w) / 2, y: r.y + (r.h - h) / 2, w, h, src };
     commit(S.items.map(it => it === atual ? nova : it));
     refreshPanel();
-    toast(`Imagem da página ${pg + 1} trocada. O que foi escrito continua por cima; Ctrl+Z desfaz.`, 5000);
-  } catch (e) { toast(e.message, 7000); }
+    toast(`Imagem da página ${pg + 1} trocada. O que foi escrito continua por cima; Ctrl+Z desfaz.`, 'comum');
+  } catch (e) { toast(e.message, 'grave'); }
 }
 function escolherImagemDaPagina(i) {
   const inp = document.createElement('input');
@@ -3504,11 +3525,11 @@ function escolherImagemDaPagina(i) {
 async function exportPdfFile() {
   const title = S.board.title;
   try {
-    toast('Gerando PDF…', 30000);
+    toast('Gerando PDF…', 'andamento');
     const blob = await PG.exportPdf({ ...S.board, items: visiveis() });
     download(blob, safeName(title) + '.pdf');
     toast('PDF pronto');
-  } catch (e) { toast(e.message, 6000); }
+  } catch (e) { toast(e.message, 'grave'); }
 }
 async function printNow() {
   toast('Preparando impressão…');
@@ -3568,30 +3589,57 @@ function montarListaPaginas(list, L) {
     panelObs.observe(b);
   }
 }
-// desenha, uma por vez, as miniaturas visíveis que estão faltando ou desatualizadas
+// desenha, uma por vez, as miniaturas visíveis que estão faltando ou desatualizadas.
+// D10 (relato de 19/11/2026: "movi para o início, ele não carregava os slides"): a fila é escolhida de novo a cada
+// miniatura, primeiro as que estão na tela (as mais perto do topo da lista), e a que saiu da tela no meio do caminho
+// fica para depois. Uma miniatura desenhada sem a imagem (ainda chegando) não é guardada como pronta: volta para a fila
+// e é refeita em seguida; antes ela ficava em branco para sempre.
+let panelRefazer = 0;
+function proximaMiniatura(list) {
+  const topo = list.scrollTop, base = topo + list.clientHeight, L = S.board.layout;
+  let melhor = -1, dist = Infinity;
+  for (const i of panelVis) {
+    if (i >= L.count) continue;
+    const g = thumbCache.get(i);
+    if (g && (!g.incompleta || g.tentativas >= 6) && g.sig === assinaturaPagina(i)) {   // 6 tentativas: imagem que não vem mais
+      const b = list.querySelector(`.pthumb[data-i="${i}"]`);
+      if (b && b.firstChild !== g.canvas) b.replaceChild(g.canvas, b.firstChild);
+      continue;
+    }
+    const b = list.querySelector(`.pthumb[data-i="${i}"]`);
+    if (!b) continue;
+    const y = b.offsetTop, naTela = y + b.offsetHeight >= topo && y <= base;
+    const d = naTela ? y - topo : 1e6 + Math.abs(y - topo);   // as da tela antes das da margem
+    if (d < dist) { dist = d; melhor = i; }
+  }
+  return melhor;
+}
 async function desenharMiniaturas() {
   if (panelOcupado) { panelDeNovo = true; return; }
   panelOcupado = true;
+  let faltou = false;
   try {
     do {
       panelDeNovo = false;
       const list = $('ppList'), alvo = S;
       if (!list || $('pagesPanel').hidden || !S || !PG.isPages(S.board)) break;
-      for (const i of [...panelVis].sort((a, b) => a - b)) {
-        if (S !== alvo || i >= S.board.layout.count) break;
-        const sig = assinaturaPagina(i), guardada = thumbCache.get(i);
-        let c = guardada?.sig === sig ? guardada.canvas : null;
-        if (!c) {
-          c = await PG.renderPage({ ...S.board, items: visiveis() }, i, 150 / S.board.layout.w);   // sem o escondido até a aula
-          c.className = 'pcanvas';
-          if (S !== alvo) break;
-          thumbCache.set(i, { sig, canvas: c });
-        }
+      for (let n = 0; n < 2000; n++) {
+        if (S !== alvo) break;
+        const i = proximaMiniatura(list);
+        if (i < 0) break;
+        const sig = assinaturaPagina(i);
+        const c = await PG.renderPage({ ...S.board, items: visiveis() }, i, 150 / S.board.layout.w);   // sem o escondido até a aula
+        c.className = 'pcanvas';
+        if (S !== alvo) break;
+        const antes = thumbCache.get(i);
+        thumbCache.set(i, { sig, canvas: c, incompleta: c.incompleta, tentativas: antes?.sig === sig && antes.incompleta ? antes.tentativas + 1 : 1 });
         const b = list.querySelector(`.pthumb[data-i="${i}"]`);
         if (b && b.firstChild !== c) b.replaceChild(c, b.firstChild);
+        if (c.incompleta) { faltou = true; break; }   // a imagem ainda chega: tenta de novo daqui a pouco, sem girar em falso
       }
     } while (panelDeNovo);
   } finally { panelOcupado = false; }
+  if (faltou) { clearTimeout(panelRefazer); panelRefazer = setTimeout(desenharMiniaturas, 400); }
 }
 function refreshPanel(now = false) {
   const p = $('pagesPanel');
@@ -3700,7 +3748,7 @@ function toggleZoomLens() {
   zoomLens = { modo: 'escolher' };
   setCursor('none');
   // na apresentação o aviso cobriria o − e + da própria barra
-  if (!present) toast('Toque onde quer ampliar · − e + na barra mudam quanto amplia · Esc cancela', 2500);
+  if (!present) toast('Toque onde quer ampliar · − e + na barra mudam quanto amplia · Esc cancela', 'comum');
   syncPresentBar(); requestRender(false);
 }
 // a animação para se outra começar, se a página mudar (goToPage) ou se o professor mexer na vista no meio dela
@@ -3987,7 +4035,7 @@ function trocarMarcadores(de, para) {
   S.board.marcadores = [...marcadoresDoQuadro().filter(m => !sai.has(m.id)), ...para];
   syncFitas();
   if (!Object.keys(pedido).length) return;
-  marcadoresNaFila(quadro, pedido).catch(e => toast('Os marcadores não acompanharam as páginas: ' + e.message, 8000));
+  marcadoresNaFila(quadro, pedido).catch(e => toast('Os marcadores não acompanharam as páginas: ' + e.message, 'grave'));
 }
 // cartão de marcar: nome sugerido, grupos em bolinhas de cor, Enter confirma
 async function abrirMarcar(anchor) {
@@ -4085,7 +4133,7 @@ async function mudarMarcadoresDaLista(pedido, msg, acao = null) {
   if (!S) return;
   try {
     await marcadoresNaFila(S.id, pedido);
-    if (msg) toast(msg, acao ? 5000 : 2600, acao);   // A4: 8 s com Desfazer atrapalhava; some também ao continuar
+    if (msg) toast(msg, 'comum', acao);   // com Desfazer, vira 'botao' (D8: 3 s ou 5 s; some também ao continuar)
     if (listaAberta) {
       // as fitas foram refeitas com a lista nova: a lista abre de novo junto da fita dos mesmos marcadores
       let { anchor, opc } = listaAberta;
@@ -4093,7 +4141,7 @@ async function mudarMarcadoresDaLista(pedido, msg, acao = null) {
       hidePop(); listaAberta = null;
       if (anchor) listaDeMarcadores(anchor, opc.so ? { ...opc, so: null } : opc);
     }
-  } catch (e) { toast(e.message, 6000); }
+  } catch (e) { toast(e.message, 'grave'); }
 }
 function arrastarMarcador(e, linha, m, comQuadro, grupos, pop) {
   e.preventDefault(); e.stopPropagation();
@@ -4162,7 +4210,7 @@ function menuDoMarcador(anchor, m, comQuadro, grupos) {
       mudarMarcadoresDaLista({ alterar: MK.soltar(comQuadro, arr, grupoAtual, depois ? noTodo(depois.id) : null, grupos) }); };
     p.querySelector('[data-a="lugar"]').onclick = () => {
       hidePop(); listaAberta = null; movendoMarcador = { m, quadro, ate: Date.now() + 60000 };
-      toast(`Toque no ponto novo do quadro para “${m.nome}” (Esc cancela)`, 60000);
+      toast(`Toque no ponto novo do quadro para “${m.nome}” (Esc cancela)`, 'andamento');
     };
     p.querySelector('[data-a="nome"]').onclick = async () => {
       hidePop();
@@ -4223,7 +4271,7 @@ function presentShapePop(anchor, id) {
 // modo aula: Tab esconde/mostra as barras (qualquer quadro)
 function setClean(on) {
   $('board').classList.toggle('clean', on);
-  if (on) toast('Modo aula: toque em "Mostrar barras" (canto de baixo) ou aperte Tab', 4500);
+  if (on) toast('Modo aula: toque em "Mostrar barras" (canto de baixo) ou aperte Tab', 'comum');
 }
 function syncPresentBar() {
   document.querySelectorAll('#presentbar [data-pt]').forEach(x => {
@@ -4346,8 +4394,11 @@ const TEACH_ITEMS = () => [
     ['plot', ICON.fx, 'Plotar função', 'digite uma função ou escolha um modelo; a curva sai com os eixos', 'Função'],
     ['formula', ICON.formula, 'Fórmula (LaTeX)', 'equações nítidas: \\frac{a}{b}, x^2, \\Delta H', 'Fórmula'],
     ['ocr', ICON.ocr, 'Converter escrita em texto', 'selecione a escrita com o laço antes', 'Escrita→texto'],
+    ['numero', ICON.numero, 'Números', 'cada toque põe o próximo número (1, 2, 3...) na página; toque de novo para o tamanho, a cor e o formato (U)', 'Números'],
 ];
-const teachOn = () => ({ strip: !!strip, protractor: !!protractor, esquadro: !!esquadro, compass: tool === 'compass', curtain: !!curtain, spot: !!spot, timer: timerOpen(), clock: clockOpen(), calc: calcOpen() });
+// F1: as ferramentas que o professor escondeu da barra fixa (menu Ferramentas → "Na barra fixa")
+const teachVisiveis = () => TEACH_ITEMS().filter(([k]) => !(cfg.ferrOcultas || []).includes(k));
+const teachOn = () => ({ numero: tool === 'numero', strip: !!strip, protractor: !!protractor, esquadro: !!esquadro, compass: tool === 'compass', curtain: !!curtain, spot: !!spot, timer: timerOpen(), clock: clockOpen(), calc: calcOpen() });
 
 function toolsPop(anchor) {
   const on = teachOn();
@@ -4359,7 +4410,14 @@ function toolsPop(anchor) {
       <div class="row"><span>Nomes nas barras laterais:</span><div class="seg">${NOMES_BARRAS.map(([k, n]) => `<button data-nb="${k}" class="${k === modoNomes() ? 'on' : ''}" title="${k === 'auto' ? 'Com nomes em tela grande; só os ícones em notebook e projetor' : n}">${n}</button>`).join('')}</div></div></div>
     <div class="menu newkind tools">${TEACH_ITEMS().map(([k, ic, n, d]) =>
     `<button data-k="${k}" class="${on[k] ? 'on' : ''}">${ic}<span><b>${n}</b><small>${d}</small></span></button>`).join('')}</div>
+    <div class="row tb-ocultas"><span>Na barra fixa:</span><div class="chips">${TEACH_ITEMS().map(([k, , n]) => `<button data-mostra="${k}" class="mk-chip${(cfg.ferrOcultas || []).includes(k) ? '' : ' on'}" title="${(cfg.ferrOcultas || []).includes(k) ? 'Escondida da barra fixa: toque para mostrar' : 'Na barra fixa: toque para esconder (continua neste menu)'}">${esc(n)}</button>`).join('')}</div></div>
     <small class="tb-note">Aberta, a barra também pode ir para qualquer lugar: destrave o cadeado (barra de cima) e arraste.</small>`, p => {
+    p.querySelectorAll('[data-mostra]').forEach(x => x.onclick = () => {
+      const k = x.dataset.mostra, oc = new Set(cfg.ferrOcultas || []);
+      oc.has(k) ? oc.delete(k) : oc.add(k);
+      cfg.ferrOcultas = [...oc]; saveCfg(); buildTeachBar(); placeBars();
+      x.classList.toggle('on', !oc.has(k));
+    });
     p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { hidePop(); toolAction(x.dataset.k); });
     p.querySelectorAll('[data-lado]').forEach(x => x.onclick = () => { hidePop(); setTeachBar(true, x.dataset.lado); });
     p.querySelector('[data-fechar]').onclick = () => { hidePop(); setTeachBar(false); };
@@ -4405,7 +4463,7 @@ function buildTeachBar() {
   b.classList.toggle('esq', cfg.teachSide === 'esq');
   const nomes = nomesNasBarras();
   b.classList.toggle('nomes', nomes);
-  b.innerHTML = TEACH_ITEMS().map(([k, ic, n, d, curto]) => nomes
+  b.innerHTML = teachVisiveis().map(([k, ic, n, d, curto]) => nomes
       ? `<button class="cb" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}<small>${esc(curto)}</small></button>`
       : `<button class="ib" data-k="${k}" title="${esc(n)}: ${esc(d)}">${ic}</button>`).join('')
     + `<span class="sep"></span><div class="tb-acoes"><button class="ib" data-lado title="Passar a barra para o outro lado">⇄</button>`
@@ -4464,12 +4522,66 @@ async function inserirImagemPronta(im) {
   toast('Calendário no quadro: arraste para posicionar');
 }
 
+// ================= F1: números (carimbos 1, 2, 3...) =================
+// A contagem é por página e segue o maior número já posto nela; "Recomeçar" faz o próximo ser 1 (ou A) na página
+// atual, e a sequência continua dali. O estilo usado por último fica em cfg.carimbo.
+let carimboSeguinte = null;   // { quadro, pagina, letras, n }
+const estiloCarimbo = () => ({ ...CB.PADRAO, ...(cfg.carimbo || {}) });
+const corDoCarimbo = () => estiloCarimbo().cor || cfg.tools[cfg.lastPen || 'pen0']?.color || '#c50f1f';
+function paginaDoPonto(y) { return PG.isPages(S.board) ? PG.pageIndexAt(S.board.layout, y) : null; }
+function proximoCarimbo(pag, letras) {
+  const L = S.board.layout;
+  if (carimboSeguinte && carimboSeguinte.quadro === S.id && carimboSeguinte.pagina === pag && carimboSeguinte.letras === !!letras) return carimboSeguinte.n;
+  return CB.proximo(S.items, letras, it => pag === null || PG.pageOf(L, it) === pag);
+}
+function carimbar(P) {
+  const st = estiloCarimbo(), pag = paginaDoPonto(P.y), n = proximoCarimbo(pag, st.letras);
+  const it = CB.itemCarimbo({ ...st, n, cor: corDoCarimbo() }, P.x, P.y, newId());
+  commit([...S.items, it]);
+  carimboSeguinte = { quadro: S.id, pagina: pag, letras: !!st.letras, n: n + 1 };
+  requestRender();
+}
+function recomecarCarimbos() {
+  const pag = paginaDoPonto(toWorld(W / 2, H / 2).y), st = estiloCarimbo();
+  carimboSeguinte = { quadro: S.id, pagina: pag, letras: !!st.letras, n: 1 };
+  toast(`O próximo número${pag !== null ? ` da página ${pag + 1}` : ''} é ${CB.rotulo(1, st.letras)}`, 'comum');
+}
+// estilo dos números: o da ferramenta (próximos carimbos) ou, com aSelecao, também o dos carimbos selecionados
+function numeroPop(anchor, aSelecao = false) {
+  const st = estiloCarimbo(), cor = corDoCarimbo();
+  const cores = [...new Set([...PEN_KEYS.map(k => cfg.tools[k]?.color).filter(Boolean), '#000000', '#c50f1f', '#0f6cbd', '#107c10', '#ca5010', '#8764b8', '#ffb900', '#ffffff'])].slice(0, 20);   // as cores das canetas e a paleta básica
+  const prox = CB.rotulo(proximoCarimbo(paginaDoPonto(toWorld(W / 2, H / 2).y), st.letras), st.letras);
+  showPop(anchor, `<h4>Números${aSelecao ? ' (os selecionados e os próximos)' : ''}</h4>
+    <div class="row"><span>Tamanho</span><div class="seg">${Object.keys(CB.TAMANHOS).map(k => `<button data-tam="${k}" class="${k === st.tam ? 'on' : ''}">${k}</button>`).join('')}</div></div>
+    <div class="row"><span>Formato</span><div class="seg">${CB.FORMAS.map(([k, n]) => `<button data-forma="${k}" class="${k === st.forma ? 'on' : ''}" title="${n}"><img alt="${n}" width="26" height="26" src="${CB.srcCarimbo({ n: 1, forma: k, preenchido: st.preenchido, tam: 'P', cor })}"></button>`).join('')}</div></div>
+    <div class="row"><span>Fundo</span><div class="seg"><button data-cheio="1" class="${st.preenchido ? 'on' : ''}">Preenchido</button><button data-cheio="0" class="${st.preenchido ? '' : 'on'}">Só contorno</button></div></div>
+    <div class="row"><span>Cor</span><div class="swatches">${cores.map(c => `<button class="sw${c === cor ? ' on' : ''}" data-cor="${c}" style="background:${c}" title="${corNome(c)}" aria-label="${corNome(c)}"></button>`).join('')}</div></div>
+    ${aSelecao ? '' : `<div class="row"><span>Contagem</span><div class="seg"><button data-letras="0" class="${st.letras ? '' : 'on'}">1, 2, 3</button><button data-letras="1" class="${st.letras ? 'on' : ''}">A, B, C</button></div></div>
+    <div class="row"><span>Próximo: <b>${esc(prox)}</b></span><button class="btn" data-a="recomecar">Recomeçar do ${CB.rotulo(1, st.letras)}</button></div>`}`, p => {
+    const muda = m => {
+      cfg.carimbo = { ...estiloCarimbo(), ...m }; saveCfg();
+      if (aSelecao) {
+        const ids = new Set([...sel].filter(id => CB.ehCarimbo(byId(id))));
+        if (ids.size) commit(S.items.map(i => ids.has(i.id) ? CB.reestilizar(i, m) : i));
+      }
+      hidePop(); numeroPop(anchor, aSelecao);
+    };
+    p.querySelectorAll('[data-tam]').forEach(b => b.onclick = () => muda({ tam: b.dataset.tam }));
+    p.querySelectorAll('[data-forma]').forEach(b => b.onclick = () => muda({ forma: b.dataset.forma }));
+    p.querySelectorAll('[data-cheio]').forEach(b => b.onclick = () => muda({ preenchido: b.dataset.cheio === '1' }));
+    p.querySelectorAll('[data-cor]').forEach(b => b.onclick = () => muda({ cor: b.dataset.cor }));
+    p.querySelectorAll('[data-letras]').forEach(b => b.onclick = () => { cfg.carimbo = { ...estiloCarimbo(), letras: b.dataset.letras === '1' }; saveCfg(); hidePop(); numeroPop(anchor); });
+    p.querySelector('[data-a="recomecar"]')?.addEventListener('click', () => { hidePop(); recomecarCarimbos(); });
+  });
+}
+
 function toolAction(k, anchor) {
   const c = toWorld(W / 2, H / 2);
   if (k === 'protractor') protractor = protractor ? null : { x: c.x, y: c.y + 60 / S.view.zoom, angle: 0 };
   else if (k === 'esquadro') esquadro = esquadro ? null : { x: c.x - 150 / S.view.zoom, y: c.y + 90 / S.view.zoom, angle: 0, tipo: cfg.esquadroTipo || '45' };
   else if (k === 'compass') { if (tool === 'compass') setTool(cfg.lastPen || 'pen0'); else { setTool('compass'); toast('Compasso: arraste do centro até o raio; depois arraste em volta para desenhar o arco'); } }
   else if (k === 'curtain') curtain = curtain ? null : { y: H * 0.45 };
+  else if (k === 'numero') { if (tool === 'numero' && anchor) return numeroPop(anchor); setTool(tool === 'numero' ? (cfg.lastPen || 'pen0') : 'numero'); if (tool === 'numero') toast('Números: toque onde quer o próximo número. Toque de novo na ferramenta para o estilo.', 'comum'); }
   else if (k === 'spot') toggleSpot();
   else if (k === 'timer') toggleTimer();
   else if (k === 'calc') toggleCalc(txt => { if (S) { textoNoCentro(txt); syncTeachBar(); } });
@@ -4847,15 +4959,15 @@ async function formulaDialog(edit = null) {
 // ---------- escrita → texto ----------
 async function inkToText(ids) {
   const target = S;
-  if (serverInfo().ocr === false) return toast(ocrAviso(serverInfo()) || 'A conversão de escrita em texto usa o reconhecedor do Windows e não está disponível neste sistema.', 9000);
+  if (serverInfo().ocr === false) return toast(ocrAviso(serverInfo()) || 'A conversão de escrita em texto usa o reconhecedor do Windows e não está disponível neste sistema.', 'grave');
   const strokes = S.items.filter(i => ids.includes(i.id) && i.type === 'stroke' && i.tool === 'pen');
   if (!strokes.length) return toast('Selecione a escrita (traços de caneta) com o laço');
   const z = S.view.zoom;
-  toast('Reconhecendo a escrita…', 20000);
+  toast('Reconhecendo a escrita…', 'andamento');
   let palavras;
   try { palavras = await recognizeInk(strokes.map(s => { const o = []; for (let i = 0; i < s.pts.length; i += 3) o.push(s.pts[i] * z, s.pts[i + 1] * z); return o; })); }
-  catch (e) { return toast(e.message, 6000); }
-  if (S !== target) return toast('Reconhecimento cancelado: o quadro foi fechado.', 6000);
+  catch (e) { return toast(e.message, 'grave'); }
+  if (S !== target) return toast('Reconhecimento cancelado: o quadro foi fechado.', 'comum');
   if (!palavras.length) return toast('Não reconheci texto nessa seleção');
   const box = R.unionBox(strokes);
   const hs = strokes.map(s => R.bbox(s).h).sort((a, b) => a - b);
@@ -4892,7 +5004,7 @@ async function inkToText(ids) {
     sel = new Set([it.id]);
     setTool('select');
   };
-  toast('Pronto: confira o texto', 1500);
+  toast('Pronto: confira o texto', 'comum');
   d.showModal();
   inp.focus();
 }

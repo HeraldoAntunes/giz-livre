@@ -33,7 +33,7 @@ function loadExtraFolders() {
 }
 function saveExtraFolders() {
   try { localStorage.setItem(foldersKey(), JSON.stringify([...extraFolders])); }
-  catch { toast('Não foi possível guardar as pastas vazias neste perfil.', 6000); }
+  catch { toast('Não foi possível guardar as pastas vazias neste perfil.', 'grave'); }
 }
 
 // ---- aparência da galeria (pacote 1.18, P68 item 9) ----
@@ -130,7 +130,7 @@ async function showGallery(folder = '') {
   $('gallery').hidden = false;
   document.title = 'Giz Livre';
   try { boards = await listBoards(); }
-  catch { boards = []; toast('Servidor local não respondeu. Abra pelo atalho "Giz Livre".', 6000); }
+  catch { boards = []; toast('Servidor local não respondeu. Abra pelo atalho "Giz Livre".', 'grave'); }
   if (!jaEscolheu()) setTimeout(() => escolherDisciplinas({ primeira: true }), 300);   // primeira abertura: "Quais áreas te interessam?"
   renderGrid();
 }
@@ -199,7 +199,7 @@ function renderGrid() {
     ${empty}`;
   $('gNew').onclick = createBoard;
   const ocultar = $('gGrid').querySelector('.gv-ocultar');
-  if (ocultar) ocultar.onclick = e => { e.preventDefault(); mudarGal({ vitrine: false }); toast('Formas ocultas da galeria. Para mostrar de novo: Exibir, no alto.', 4000); };
+  if (ocultar) ocultar.onclick = e => { e.preventDefault(); mudarGal({ vitrine: false }); toast('Formas ocultas da galeria. Para mostrar de novo: Exibir, no alto.', 'comum'); };
   bindBack();
   if ($('gPick')) $('gPick').onclick = () => pickBoards(curFolder);
   $('gGrid').querySelectorAll('.fcard').forEach(c => {
@@ -328,7 +328,7 @@ function folderMenu(anchor, name) {
 async function moveBoards(ids, folder) {
   let falhas = 0;
   for (const id of ids) { try { await setBoardFolder(id, folder); } catch { falhas++; } }
-  if (falhas) toast(`${falhas} quadro(s) não puderam ser movidos.`, 5000);
+  if (falhas) toast(`${falhas} quadro(s) não puderam ser movidos.`, 'grave');
 }
 
 // "Mover para pasta…": uma pasta existente, uma nova ou sem pasta
@@ -384,22 +384,22 @@ function createBoard() {
         if (curFolder) board.folder = curFolder;   // criado dentro da pasta aberta
         await saveBoard(id, board, null, true);
         location.hash = '#/b/' + id;
-      } catch (e) { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 5000); }
+      } catch (e) { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 'grave'); }
     });
   }, 'right');
 }
 
 async function createFromSlides(file) {
   try {
-    toast('Importando ' + file.name + '…', 120000);
-    const board = await boardFromSlides(file, (m, a) => toast(m, 120000, a));
+    toast('Importando ' + file.name + '…', 'andamento');
+    const board = await boardFromSlides(file, (m, a) => toast(m, 'andamento', a));
     if (curFolder) board.folder = curFolder;
     const id = newId();
     const c = await boardThumb(board);
     await saveBoard(id, board, c.toDataURL('image/png'), true);
     toast(`${board.layout.count} página(s) importada(s)`);
     location.hash = '#/b/' + id;
-  } catch (e) { toast(e.message, 8000); }
+  } catch (e) { toast(e.message, 'grave'); }
 }
 
 function cardMenu(anchor, id) {
@@ -445,9 +445,9 @@ function cardMenu(anchor, id) {
     on('del', async () => {
       if (!await confirmBox('Excluir quadro?', `"${b.title}" vai para a Lixeira da galeria; dá para restaurar depois.`, 'Excluir', true)) return;
       let nome;
-      try { nome = await deleteBoard(id); } catch (e) { toast(e.message, 8000); return; }
+      try { nome = await deleteBoard(id); } catch (e) { toast(e.message, 'grave'); return; }
       await refresh();
-      if (nome) toast('Quadro excluído', 8000, { label: 'Desfazer', fn: () => restore(nome) });
+      if (nome) toast('Quadro excluído', 'botao', { label: 'Desfazer', fn: () => restore(nome) });
     });
   }, 'above');
 }
@@ -532,7 +532,7 @@ async function usarForma(anchor, fid, gid) {
         await saveBoard(id, board, null, true);
         formaAoAbrir = { quadro: id, forma: fid };
         location.hash = '#/b/' + id;
-      } catch { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 5000); }
+      } catch { toast('Não foi possível criar o quadro: o servidor local não respondeu.', 'grave'); }
     };
     p.querySelectorAll('[data-q]').forEach(x => x.onclick = () => {
       hidePop();
@@ -549,9 +549,9 @@ async function restore(nome) {
   try {
     const r = await restoreTrash(nome);
     await refresh();
-    toast(r.renomeado ? 'Quadro restaurado (já havia um quadro com o mesmo código: entrou como quadro separado)' : 'Quadro restaurado', 5000,
+    toast(r.renomeado ? 'Quadro restaurado (já havia um quadro com o mesmo código: entrou como quadro separado)' : 'Quadro restaurado', 'botao',
       { label: 'Abrir', fn: () => { location.hash = '#/b/' + r.id; } });
-  } catch (e) { toast(e.message, 5000); refresh(); }
+  } catch (e) { toast(e.message, 'grave'); refresh(); }
 }
 
 async function showTrash() {
@@ -562,7 +562,7 @@ async function showTrash() {
   $('board').hidden = true;
   $('gallery').hidden = false;
   document.title = 'Lixeira — Giz Livre';
-  try { trash = await listTrash(); } catch (e) { trash = []; toast(e.message, 5000); }
+  try { trash = await listTrash(); } catch (e) { trash = []; toast(e.message, 'grave'); }
   renderTrash();
 }
 
@@ -610,7 +610,7 @@ async function importFiles(files) {
         // miniaturas dos marcadores: vêm embutidas e vão para a pasta de imagens deste PC (Ordem 21)
         if (Array.isArray(board.marcadores)) board.marcadores = await MK.subirMinis(board.marcadores.slice(0, 500), uploadAsset);
       } else if (isPptx(f) || isPdf(f)) {
-        board = await boardFromSlides(f, (m, a) => toast(m, 120000, a));
+        board = await boardFromSlides(f, (m, a) => toast(m, 'andamento', a));
       } else {
         const im = await readImageFile(f, 3200);
         board = emptyBoard(f.name.replace(/\.[^.]+$/, ''));
@@ -625,7 +625,7 @@ async function importFiles(files) {
       const c = await boardThumb(board);
       await saveBoard(newId(), board, c.toDataURL('image/png'), true);
       n++;
-    } catch (e) { toast(e.message, 5000); }
+    } catch (e) { toast(e.message, 'grave'); }
   }
   if (n) toast(`${n} quadro(s) importado(s)`);
   refresh();
@@ -660,7 +660,7 @@ async function aplicarMarcadores(pedido, desfazer = null) {
     marcadores = await mudarMarcadores(pedido);
     $('gMkN').textContent = marcadores.marcadores.length ? String(marcadores.marcadores.length) : '';
     renderMarcadores();
-    if (desfazer) toast(desfazer.msg, 6000, { label: 'Desfazer', fn: () => aplicarMarcadores(desfazer.pedido) });
+    if (desfazer) toast(desfazer.msg, 'botao', { label: 'Desfazer', fn: () => aplicarMarcadores(desfazer.pedido) });
   } catch (e) { toast(e.message); }
 }
 function renderMarcadores() {
@@ -808,7 +808,7 @@ async function route() {
   const marcador = location.hash.match(/^#\/b\/[A-Za-z0-9_-]+\?m=([A-Za-z0-9_-]+)/)?.[1];   // aberto pela aba Marcadores
   const ok = await closeBoard();
   if (seq !== routeSeq) return;   // outra navegação começou enquanto fechava
-  if (!ok) toast('Atenção: as últimas mudanças ainda não foram salvas. Vou continuar tentando.', 6000);
+  if (!ok) toast('Atenção: as últimas mudanças ainda não foram salvas. Vou continuar tentando.', 'grave');
   if (!m) ping();   // o quadro foi fechado: o servidor já pode deixar um agente gravar nele
   $('gSearch').placeholder = 'Pesquisar quadros';   // a aba Marcadores troca o texto
   abas(location.hash === '#/marcadores' ? 'marcadores' : 'quadros');
@@ -994,4 +994,9 @@ async function atualizarGaleria() {
 setInterval(atualizarGaleria, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { ping(); atualizarGaleria(); } });
 addEventListener('hashchange', route);
-initSession().then(() => { loadExtraFolders(); route(); if (serverInfo().aviso) toast(serverInfo().aviso, 12000); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });
+// D9 (19/11/2026): a janela própria recarrega a página sozinha quando o processo dela cai (STATUS_ACCESS_VIOLATION e
+// afins) e marca o endereço com ?caiu=1; aqui o aviso discreto, e a marca sai do endereço
+const PAGINA_CAIU = new URLSearchParams(location.search).has('caiu');
+if (PAGINA_CAIU) try { history.replaceState(null, '', location.pathname + location.hash); } catch {}
+initSession().then(() => { loadExtraFolders(); route(); if (serverInfo().aviso) toast(serverInfo().aviso, 'grave');
+  else if (PAGINA_CAIU) toast('A página do Giz Livre caiu e foi reaberta sozinha. O que estava salvo continua no quadro.', 'botao', { label: 'Ok', fn() {} }); }, () => { route(); sessionLost('Não consegui falar com o programa Giz Livre. Abra-o pelo atalho.'); });

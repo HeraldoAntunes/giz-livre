@@ -53,6 +53,7 @@ Windows Ink* no driver.
 |---|---|
 | Escrever | canetas no topo (teclas `1`–`4`); toque de novo na caneta para cor, espessura, estilo (tinteiro, caligrafia, pincel), ponteiro da tela e **Restaurar padrão** |
 | Marcar | marca-texto (`H`) · ponteiro laser (`K`) |
+| Numerar (1, 2, 3) | **Números** (`U`, na barra do professor): cada toque põe o próximo número da página. Toque de novo na ferramenta para o tamanho (P, M, G, GG), o formato (círculo, quadrado, losango ou sem fundo), preenchido ou só contorno, a cor, letras (A, B, C) e **Recomeçar**. Com números selecionados, o botão **Números** da barra da seleção muda o estilo deles |
 | Apagar | botão lateral da caneta ou `E`; toque de novo na borracha para o **tamanho** (P, M, G, GG) e para "traço inteiro" ou "só onde passar" |
 | Selecionar, mover, girar | laço (`L`) ou seleção (`V`); alça redonda de cima = girar; canto de baixo = tamanho |
 | Encaixe | botão de grade na barra da seleção: **Na grade da folha** faz o canto do que você move ou aumenta cair na linha mais próxima da folha (nas folhas sem malha, como a lisa e a pautada, uma grade invisível de 20 em 20 px); **Girar** de 15° em 15° ou de 45° em 45°, sem precisar do teclado. Fica ligado até você desligar |
@@ -72,7 +73,8 @@ Windows Ink* no driver.
 | Formas técnicas | tecla **/** e o nome da forma (busca rápida), ou **Formas**: abre na **Vitrine** das suas áreas; depois **área → disciplina**; use a busca, **⚑ Mais usadas** e **↺ Recentes**. Em Engenharias estão Hidráulica, Saneamento, Recursos Hídricos e Topografia, além de Elétrica, Eletrônica e Embarcados |
 | Páginas | barra embaixo: anterior/próxima (`PageUp`/`PageDown`), nova página, duplicar, excluir, ver todas. Em "ver todas", marque várias miniaturas e toque em **Excluir** (ex.: tirar 2 páginas de um PDF). **Enquadrar slide** (botão ao lado das setas, ou `F`): depois de mover e ampliar, a página que está na tela volta centralizada, no maior tamanho que cabe entre as barras abertas; apertar de novo alterna para um nível um pouco menor (85%), com folga em volta, e o nível fica guardado |
 | Lupa | `Z` ou o botão de lupa (no modo normal e na apresentação): toque onde quer ampliar. Ao lado aparecem **− 3x +** para escolher quanto amplia (de 1,5x a 8x; também `+` e `−`, ou a roda do mouse); depois de ampliado, **+** amplia mais. O último nível fica guardado |
-| Avisos de desfazer e apagar | o `Ctrl+Z` e o `Backspace` sem seleção não mostram mais "Desfeito" nem "Último item apagado". Para ligar: menu `…` → **Avisos de desfazer e apagar**: desligado (padrão), curto (1 s) ou normal (3 s, com Refazer) |
+| Avisos de desfazer e apagar | o `Ctrl+Z` e o `Backspace` sem seleção não mostram mais "Desfeito" nem "Último item apagado". Para ligar: menu `…` → **Avisos de desfazer e apagar**: desligado (padrão), curto (1 s) ou normal (5 s, com Refazer) |
+| Mensagens somem rápido ou devagar demais | as mensagens ficam 3 s, ou 5 s quando têm um botão (Desfazer, Abrir); erros e avisos que pedem ação ficam até você tocar, com uma faixa vermelha. Menu `…` → **Tempo dos avisos**: curto, normal (padrão) ou longo |
 | Apresentar | botão **Apresentar**: setas ou passador mudam de slide; `B` = página em branco; `Esc` sai. Na mini-bandeja: cor, espessura (bolinha com anel tracejado; `[` e `]` também mudam), formas (linha, seta, retângulo, elipse, triângulo: a forma continua ativa para desenhar várias setas seguidas; toque numa caneta para voltar a escrever), "tinta vira forma" (desligado = desenho livre) e lupa |
 | Esconder as barras | `Tab` (modo aula); para voltar, `Tab` de novo ou o botão **Mostrar barras** no canto de baixo |
 | Limpar o quadro | tecla Del sem nada selecionado, lixeira da barra de cima ou menu `…`: pergunta se apaga só a página que está na tela (quadro com várias páginas), só o que foi escrito ou tudo, inclusive PDF |
@@ -115,7 +117,8 @@ textos, notas, formas da biblioteca, fórmulas e gráficos.
    entra na hora; o PDF é desenhado quando você abre o quadro, com um aviso no rodapé. Se fechar antes, nada se perde: o
    desenho recomeça na próxima abertura.
 
-O agente não apaga nada e não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
+O agente nunca apaga nada de vez: ele pode renomear um quadro e movê-lo para a lixeira da galeria, de onde você
+restaura. Ele não grava num quadro que está aberto na tela: feche o quadro (volte à galeria) para ele
 continuar. Os quadros são gravados no seu computador. O cliente de IA tem suas próprias regras de acesso à rede;
 a janela WebView2 também pode abrir conexão própria com a Microsoft.
 

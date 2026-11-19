@@ -1245,12 +1245,14 @@ dependencies = [
 
 [[package]]
 name = "giz-livre-janela"
-version = "1.18.0"
+version = "1.19.0"
 dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-single-instance",
+ "webview2-com",
+ "windows-core",
  "zip",
 ]
 

@@ -369,9 +369,60 @@ fn criar_janela(app: &AppHandle) -> tauri::Result<()> {
     let j = r?;
     j.set_cookie(cookie_de_acesso(&srv))?;
     j.navigate(url)?;
+    vigiar_queda_da_pagina(&j);
     let _ = j.set_focus();
     diario(&format!("janela lousa{n}: aberta"));
     Ok(())
+}
+
+// D9 (19/11/2026): a página da lousa mostrou "Esta página está com problemas" (STATUS_ACCESS_VIOLATION) no meio da
+// aula. O processo da página do WebView2 caiu; a janela e o servidor continuaram. Agora a janela ouve o ProcessFailed:
+// anota no janela.log e, se foi o processo da página que saiu, recarrega o mesmo endereço com a marca ?caiu=1 (a
+// página mostra o aviso e recupera do disco o que estava salvo). Se cair de novo em menos de 1 minuto, não entra em
+// laço: fica a página de erro do próprio WebView2, que tem o botão Recarregar.
+static ULTIMA_QUEDA: Mutex<Option<Instant>> = Mutex::new(None);
+fn endereco_depois_da_queda(atual: &str) -> String {
+    let (antes, hash) = match atual.find('#') { Some(i) => (&atual[..i], &atual[i..]), None => (atual, "") };
+    if antes.contains("caiu=1") { return atual.to_string(); }
+    format!("{antes}{}caiu=1{hash}", if antes.contains('?') { '&' } else { '?' })
+}
+fn vigiar_queda_da_pagina(j: &tauri::WebviewWindow) {
+    let rotulo = j.label().to_string();
+    let _ = j.with_webview(move |wv| unsafe {
+        use webview2_com::Microsoft::Web::WebView2::Win32::*;
+        let Ok(core) = wv.controller().CoreWebView2() else { return };
+        let rot = rotulo.clone();
+        let tratador = webview2_com::ProcessFailedEventHandler::create(Box::new(move |remetente, args| {
+            let mut tipo = COREWEBVIEW2_PROCESS_FAILED_KIND::default();
+            if let Some(a) = args { let _ = a.ProcessFailedKind(&mut tipo); }
+            diario(&format!("janela {rot}: o processo da página do WebView2 falhou (tipo {})", tipo.0));
+            if tipo != COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED { return Ok(()); }
+            let agora = Instant::now();
+            let repetida = {
+                let mut u = ULTIMA_QUEDA.lock().unwrap();
+                let r = u.map_or(false, |t| agora.duration_since(t) < Duration::from_secs(60));
+                *u = Some(agora);
+                r
+            };
+            if repetida {
+                diario(&format!("janela {rot}: caiu de novo em menos de 1 minuto; fica a página de erro com o botão Recarregar"));
+                return Ok(());
+            }
+            if let Some(w) = remetente {
+                let mut fonte = windows_core::PWSTR::null();
+                let _ = w.Source(&mut fonte);
+                let atual = webview2_com::take_pwstr(fonte);
+                let novo = endereco_depois_da_queda(&atual);
+                diario(&format!("janela {rot}: página recarregada sozinha depois da queda"));
+                let _ = w.Navigate(&windows_core::HSTRING::from(novo.as_str()));
+            }
+            Ok(())
+        }));
+        let mut ficha = 0i64;
+        if core.add_ProcessFailed(&tratador, &mut ficha).is_err() {
+            diario(&format!("janela {rotulo}: não deu para vigiar a queda da página"));
+        }
+    });
 }
 
 // Fechar a janela: a página termina de gravar (window.gizAntesDeFechar, em app/js/main.js) e avisa trocando o próprio
@@ -585,6 +636,15 @@ fn main() {
 #[cfg(test)]
 mod testes {
     use super::*;
+
+    // D9: depois da queda, o mesmo endereço com ?caiu=1 antes do # (a página mostra o aviso); sem repetir a marca
+    #[test]
+    fn endereco_depois_da_queda_marca_caiu_antes_do_hash() {
+        assert_eq!(endereco_depois_da_queda("http://127.0.0.1:8765/#/b/abc"), "http://127.0.0.1:8765/?caiu=1#/b/abc");
+        assert_eq!(endereco_depois_da_queda("http://127.0.0.1:8765/?x=2#/b/abc"), "http://127.0.0.1:8765/?x=2&caiu=1#/b/abc");
+        assert_eq!(endereco_depois_da_queda("http://127.0.0.1:8765/"), "http://127.0.0.1:8765/?caiu=1");
+        assert_eq!(endereco_depois_da_queda("http://127.0.0.1:8765/?caiu=1#/b/a"), "http://127.0.0.1:8765/?caiu=1#/b/a");
+    }
 
     // auditoria de 29/10/2026 (rodada 2): o fechamento esperava 5 s fixos, mesmo com uma gravação a caminho
     #[test]

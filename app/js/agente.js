@@ -110,15 +110,15 @@ export function aplicarTrocas(items, trocas) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const DESCR = {
   1: 'lista e lê os quadros e a biblioteca de formas; não grava nada',
-  2: 'cria quadros novos e só mexe nos quadros que ele mesmo criou',
-  3: 'também acrescenta conteúdo em quadros seus que estejam fechados (nunca apaga)',
+  2: 'cria quadros novos e só mexe nos quadros que ele mesmo criou (inclusive renomear e mover para a lixeira)',
+  3: 'também acrescenta conteúdo, renomeia e move para a lixeira quadros seus que estejam fechados (nunca apaga de vez)',
 };
 
 // wfetch: o mesmo do api.js (leva o token da página). O token de agente nunca passa pela página.
 export async function painelAgentes(wfetch, toast) {
   const ler = async () => { const r = await wfetch('/api/agentes'); if (!r.ok) throw new Error('O servidor não respondeu'); return r.json(); };
   let st;
-  try { st = await ler(); } catch (e) { return toast(e.message, 5000); }
+  try { st = await ler(); } catch (e) { return toast(e.message, 'grave'); }
   const d = document.createElement('dialog');
   d.className = 'agentes';
   d.style.width = 'min(620px, 94vw)';

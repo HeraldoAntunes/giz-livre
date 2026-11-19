@@ -1,5 +1,30 @@
 # Histórico de versões
 
+## 1.19.0 (19/11/2026)
+Números carimbados como no Giz na Tela, mensagens mais curtas, a página que cai volta sozinha, o seletor de slides
+que carrega o que está na tela e o agente de IA que renomeia e move para a lixeira.
+- **Números (1, 2, 3), como no Giz na Tela:** a ferramenta **Números** (`U`, na barra do professor) põe o próximo número
+  da página a cada toque. Tamanho P, M, G ou GG; formato círculo, quadrado, losango ou sem fundo; preenchido ou só
+  contorno; a cor; letras (A, B, C) e **Recomeçar**. O último estilo fica lembrado, e o botão **Números** da barra da
+  seleção muda o estilo dos que já estão no quadro. Eles se movem, apagam, desfazem e saem no PDF como qualquer item;
+  num Giz Livre anterior, aparecem como imagem.
+- **Barra do professor sob medida:** no menu Ferramentas, "Na barra fixa" esconde da barra lateral as ferramentas que
+  você não usa (elas continuam no menu).
+- **Agentes de IA:** o agente pode renomear um quadro (`renomear_quadro`) e movê-lo para a lixeira da galeria
+  (`mover_para_lixeira`), de onde você restaura. Ele continua sem apagar nada de vez, e não mexe em quadro aberto na
+  tela.
+- **A página que cai volta sozinha:** se a página do quadro cair no meio da aula (a tela "Esta página está com
+  problemas"), a janela do Giz Livre a abre de novo sozinha, no mesmo quadro, com o que estava salvo, e avisa. Se cair
+  de novo logo em seguida, fica o botão Atualizar.
+- **Seletor de slides mais rápido em quadros grandes:** ao voltar ao início da lista de páginas, as miniaturas da tela
+  aparecem primeiro e nenhuma fica em branco. Num quadro de 180 slides, as do topo levavam mais de um minuto (ou não
+  vinham); agora vêm em menos de meio segundo. O programa também guarda menos imagens na memória.
+- **Pasta no OneDrive:** quando o OneDrive ou o antivírus segura o arquivo por um instante, gravar o quadro tenta de
+  novo em vez de falhar.
+- **Mensagens mais curtas:** os avisos ficam 3 s na tela, ou 5 s quando têm um botão (Desfazer, Abrir); antes, alguns
+  ficavam 8 ou 12 s. Erros e avisos que pedem ação (gravação que falhou, importação que não deu certo) ficam até você
+  tocar, com uma faixa vermelha. Novo ajuste no menu …: **Tempo dos avisos** (curto, normal ou longo).
+
 ## 1.18.0 (15/11/2026)
 Pacote do retorno das aulas de 10 a 12/11/2026 e o conector de agentes de IA importando arquivos.
 - **Correções:**

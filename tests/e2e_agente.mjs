@@ -370,6 +370,37 @@ try {
   conferir(`as formas dos ${quadrosGrupo.length} grupos abrem sem erro`, !gruposComErro.length, gruposComErro.slice(0, 6).join(' | '));
   conferir('console do navegador limpo durante o teste', !errosConsole.length, errosConsole.slice(0, 5).join(' | '));
 
+  etapa('10b. Renomear e mover para a lixeira (F2, 17/11/2026)');
+  await pagina('/api/agentes', 'PUT', { ligado: true, nivel: 2 });
+  r = await ferramenta('criar_quadro', { titulo: 'F2 rascunho', formato: 'a4' });
+  const f2 = r.dados?.quadro;
+  conferir('o agente cria um quadro para o F2', !!f2, r.erro);
+  r = await ferramenta('renomear_quadro', { quadro: f2, titulo: 'F2 com nome novo' });
+  conferir('renomear_quadro muda o título no disco, sem mexer no desenho', !r.erro && lerArquivo(f2).title === 'F2 com nome novo' && lerArquivo(f2)._rev === 1, r.erro || JSON.stringify(lerArquivo(f2)).slice(0, 200));
+  r = await ferramenta('renomear_quadro', { quadro: 'quadro-do-professor', titulo: 'intruso' });
+  conferir('nível 2 não renomeia quadro do professor', !!r.erro && /nível 3/.test(r.erro), r.erro);
+  r = await ferramenta('mover_para_lixeira', { quadro: 'quadro-do-professor' });
+  conferir('nível 2 não move quadro do professor para a lixeira', !!r.erro && /nível 3/.test(r.erro) && existsSync(join(DADOS, 'quadro-do-professor.json')), r.erro);
+  await irPara('#/b/' + f2);
+  await espera(4500);   // o aviso periódico conta o quadro como aberto
+  const ra = await ferramenta('renomear_quadro', { quadro: f2, titulo: 'não pode' });
+  const rl = await ferramenta('mover_para_lixeira', { quadro: f2 });
+  conferir('com o quadro aberto na tela, renomear e mover são recusados', /aberto/.test(ra.erro || '') && /aberto/.test(rl.erro || '') && existsSync(join(DADOS, f2 + '.json')), `${ra.erro} | ${rl.erro}`);
+  await irPara('#/');
+  await espera(2500);
+  r = await ferramenta('mover_para_lixeira', { quadro: f2 });
+  const nomeLixo = r.dados?.lixeira;
+  conferir('mover_para_lixeira leva o quadro para a lixeira e diz que dá para restaurar', !r.erro && !!nomeLixo && /restaura/.test(r.dados.observacao || '')
+    && !existsSync(join(DADOS, f2 + '.json')) && existsSync(join(DADOS, 'lixeira', nomeLixo + '.json')), r.erro || JSON.stringify(r.dados));
+  r = await ferramenta('listar_quadros');
+  conferir('o quadro sai da lista do agente', !r.erro && !r.dados.quadros.some(q => q.quadro === f2));
+  const rest = await pagina('/api/lixeira/restaurar', 'POST', { nome: nomeLixo });
+  const volta = rest.dados?.id || rest.dados?.quadro || f2;
+  conferir('a galeria restaura o quadro da lixeira, com o nome novo', rest.status === 200 && existsSync(join(DADOS, volta + '.json')) && lerArquivo(volta).title === 'F2 com nome novo', JSON.stringify(rest));
+  const tools = (await rpc('tools/list', {})).result.tools.map(t => t.name);
+  conferir('não há ferramenta de esvaziar a lixeira nem de apagar de vez', tools.includes('mover_para_lixeira') && !tools.some(t => /esvaziar|apagar|excluir/.test(t)), tools.join(','));
+  await pagina('/api/agentes', 'PUT', { ligado: true, nivel: 3 });
+
   etapa('11. Desligar no meio da conversa');
   await pagina('/api/agentes', 'PUT', { ligado: false });
   conferir('desligar apaga o token na hora', !tokenAgenteExiste());

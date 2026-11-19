@@ -141,6 +141,8 @@ export async function renderPage(board, i, scale = 2) {
     ctx.setTransform(scale, 0, 0, scale, view.x, view.y);
     for (const it of daPagina) R.drawItem(ctx, it);
   });
+  // D10: desenhada sem alguma imagem (ainda chegando ou que falhou): quem guarda a miniatura sabe que tem de refazer
+  c.incompleta = daPagina.some(it => it.type === 'image' && !R.imagemPronta(it));
   return c;
 }
 

@@ -1160,5 +1160,93 @@ console.log('Autoria igual no Sobre, no README e no AUTORES');
   });
 }
 
+// ------------------------------------------------------------------
+console.log('Tempo dos avisos (ui.js, D8 de 18/11/2026)');
+{
+  const { readFileSync, readdirSync } = await import('node:fs');
+  globalThis.document.addEventListener ??= () => {};
+  const guardado = new Map();
+  globalThis.localStorage = { getItem: k => guardado.has(k) ? guardado.get(k) : null, setItem: (k, v) => guardado.set(k, String(v)) };
+  const UI = await mod('ui.js');
+  teste('cada categoria tem o tempo certo em cada ajuste (curto 0,6; normal 1; longo 2)', () => {
+    const esperado = { curto: { comum: 1800, botao: 3000 }, normal: { comum: 3000, botao: 5000 }, longo: { comum: 6000, botao: 10000 } };
+    for (const ritmo of ['curto', 'normal', 'longo']) {
+      UI.mudarRitmoAvisos(ritmo);
+      igual(UI.ritmoAvisos(), ritmo, 'ajuste guardado');
+      igual(UI.tempoAviso('comum'), esperado[ritmo].comum, `comum, ${ritmo}`);
+      igual(UI.tempoAviso('botao'), esperado[ritmo].botao, `com botão, ${ritmo}`);
+      igual(UI.tempoAviso('breve'), 1000, `breve (ajuste de avisos de desfazer), ${ritmo}`);
+      igual(UI.tempoAviso('grave'), 0, `grave fica até um toque, ${ritmo}`);
+      igual(UI.tempoAviso('andamento'), 0, `andamento fica até a próxima mensagem, ${ritmo}`);
+    }
+    UI.mudarRitmoAvisos('qualquer coisa');
+    igual(UI.ritmoAvisos(), 'normal', 'valor estranho volta ao normal');
+  });
+  teste('aviso com botão vira "com botão" sozinho; tipo desconhecido ou número vira comum', () => {
+    const faixa = { hidden: true, dataset: {}, textContent: '', appendChild() {} }, doc = globalThis.document;
+    globalThis.document = { ...doc, getElementById: () => faixa, createElement: () => ({}) };
+    try {
+      UI.toast('x', 'comum', { label: 'Desfazer', fn() {} }); igual(faixa.dataset.tipo, 'botao', 'com botão');
+      UI.toast('x', 'inventado'); igual(faixa.dataset.tipo, 'comum', 'desconhecido');
+      UI.toast('x', 9000); igual(faixa.dataset.tipo, 'comum', 'número solto');
+      UI.toast('x', 'grave'); igual(faixa.dataset.tipo, 'grave', 'grave');
+    } finally { globalThis.document = doc; }
+  });
+  teste('nenhuma chamada a toast com número solto (o tempo vem da categoria)', () => {
+    const soltos = [];
+    for (const f of readdirSync(raiz).filter(n => n.endsWith('.js'))) {
+      readFileSync(path.join(raiz, f), 'utf8').split('\n').forEach((l, i) => {
+        if (/toast\(/.test(l) && !/function toast/.test(l) && /toast\((?:[^()]|\([^()]*\))*,\s*\d{3,}/.test(l)) soltos.push(`${f}:${i + 1}`);
+      });
+    }
+    igual(soltos.join(', '), '', 'chamadas com tempo em número');
+  });
+  teste('o aviso do estojo (quadro novo) usa o tempo dos avisos com botão, não 12 s', () => {
+    const ed = readFileSync(path.join(raiz, 'editor.js'), 'utf8');
+    igual(/setTimeout\(fecha, tempoAviso\('botao'\)\)/.test(ed), true, 'estojo');
+  });
+}
+
+// ------------------------------------------------------------------
+console.log('Números carimbados (carimbo.js, F1 de 19/11/2026)');
+{
+  const CB = await mod('carimbo.js');
+  teste('números e letras: 1, 2, 27 e A, Z, AA', () => {
+    igual([1, 2, 27].map(n => CB.rotulo(n)).join(), '1,2,27', 'números');
+    igual([1, 26, 27, 52, 53].map(n => CB.rotulo(n, true)).join(), 'A,Z,AA,AZ,BA', 'letras');
+  });
+  teste('o próximo da página é o maior dela mais um, separado entre números e letras', () => {
+    const it = (n, letras, pg) => ({ type: 'image', carimbo: { n, letras }, pg });
+    const itens = [it(1, false, 0), it(5, false, 0), it(2, false, 1), it(3, true, 0), { type: 'image' }, { type: 'text' }];
+    igual(CB.proximo(itens, false, i => i.pg === 0), 6, 'página 1');
+    igual(CB.proximo(itens, false, i => i.pg === 1), 3, 'página 2');
+    igual(CB.proximo(itens, true, i => i.pg === 0), 4, 'letras');
+    igual(CB.proximo([], false, () => true), 1, 'página vazia');
+  });
+  teste('cada estilo vira o SVG certo; o tamanho é o do estilo', () => {
+    for (const [tam, lado] of Object.entries(CB.TAMANHOS)) igual(CB.svgCarimbo({ n: 1, tam }).w, lado, `tamanho ${tam}`);
+    igual(/<circle/.test(CB.svgCarimbo({ n: 3, forma: 'circulo' }).svg), true, 'círculo');
+    igual(/<rect/.test(CB.svgCarimbo({ n: 3, forma: 'quadrado' }).svg), true, 'quadrado');
+    igual(/<polygon/.test(CB.svgCarimbo({ n: 3, forma: 'losango' }).svg), true, 'losango');
+    igual(/<(circle|rect|polygon)/.test(CB.svgCarimbo({ n: 3, forma: 'nenhum' }).svg), false, 'sem fundo');
+    const cheio = CB.svgCarimbo({ n: 7, cor: '#c50f1f', preenchido: true }).svg, contorno = CB.svgCarimbo({ n: 7, cor: '#c50f1f', preenchido: false }).svg;
+    igual(/fill="#c50f1f"/.test(cheio) && /fill="#ffffff">7</.test(cheio), true, 'preenchido: fundo na cor e número branco');
+    igual(/fill="none" stroke="#c50f1f"/.test(contorno) && /fill="#c50f1f">7</.test(contorno), true, 'só contorno: número na cor');
+    igual(/fill="#111111">7</.test(CB.svgCarimbo({ n: 7, cor: '#ffb900' }).svg), true, 'cor clara: número escuro');
+  });
+  teste('estilo vindo do arquivo é limpo; texto não escapa do SVG', () => {
+    const e = CB.estilo({ n: -3, forma: 'x', tam: 'XXL', cor: 'red', preenchido: 'não' });
+    igual(`${e.n},${e.forma},${e.tam},${e.cor}`, '1,circulo,M,#c50f1f', 'estilo limpo');
+    igual(CB.svgCarimbo({ n: 1 }).svg.includes('<script'), false, 'sem script');
+  });
+  teste('o item é uma imagem SVG centrada, e mudar o estilo mantém o centro', () => {
+    const it = CB.itemCarimbo({ n: 2, tam: 'G' }, 100, 200, 'x');
+    igual(it.type === 'image' && it.src.startsWith('data:image/svg+xml') && it.x + it.w / 2 === 100 && it.y + it.h / 2 === 200, true, 'item');
+    igual(CB.ehCarimbo(it), true, 'reconhecido');
+    const p = CB.reestilizar(it, { tam: 'P' });
+    igual(p.w === CB.TAMANHOS.P && p.x + p.w / 2 === 100 && p.y + p.h / 2 === 200 && p.carimbo.n === 2, true, 'reestilizado');
+  });
+}
+
 console.log(`\n${ok} testes passaram, ${falhas} falharam`);
 process.exit(falhas ? 1 : 0);

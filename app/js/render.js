@@ -377,8 +377,24 @@ export function tentarImagensDeNovo() {
   falhas.clear();
   onImageLoad();
 }
+// D9/D10 (19/11/2026): o cache guardava para sempre cada imagem já vista; num quadro de 195 slides, depois de passar
+// por todos, a página segurava 195 imagens inteiras (cada slide decodificado ocupa ~8 MB) e o processo da página caía
+// (STATUS_ACCESS_VIOLATION). Agora ficam as IMG_MAX usadas por último (o que está na tela é pedido a cada quadro e
+// fica); as outras saem do cache e o navegador libera a memória. Se a página voltar, a imagem vem do cache HTTP.
+const IMG_MAX = 48;
+function usarImagem(src, img) {
+  imgCache.delete(src); imgCache.set(src, img);   // a mais recente vai para o fim
+  if (imgCache.size <= IMG_MAX) return;
+  for (const [s, im] of imgCache) {
+    if (imgCache.size <= IMG_MAX) break;
+    if (s === src || s.startsWith('data:') || !im.complete) continue;   // formas (SVG) são pequenas; a que está chegando fica
+    imgCache.delete(s);
+  }
+}
+export const imagemPronta = it => { const img = imgCache.get(srcOf(it)); return !!(bitmaps.get(srcOf(it)) || (img?.complete && img.naturalWidth)); };
 function getImage(it, src = it.src) {
   let img = imgCache.get(src);
+  if (img) usarImagem(src, img);
   const f = falhas.get(src);
   if (img && f && img.complete && !img.naturalWidth && performance.now() - f.t > Math.min(30000, 500 * 4 ** (f.n - 1))) {
     imgCache.delete(src);
@@ -394,7 +410,7 @@ function getImage(it, src = it.src) {
       setTimeout(() => { if (imgCache.get(src) === nova) onImageLoad(); }, Math.min(30000, 500 * 4 ** (n - 1)) + 50);
     };
     nova.src = renovacoes && src.startsWith('/assets/') ? src + '?s=' + renovacoes : src;
-    imgCache.set(src, nova);
+    usarImagem(src, nova);
   }
   return img;
 }

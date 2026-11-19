@@ -18,9 +18,28 @@ if (typeof document !== 'undefined' && document.addEventListener) document.addEv
   if (!t || t.hidden || t.contains(e.target) || performance.now() - toastDesde < 600) return;
   t.hidden = true; clearTimeout(toastTimer);
 }, true);
-export function toast(msg, ms = 2600, act = null) {
+// D8 (18/11/2026, "as mensagens do giz livre demoram muito para sumir"): o tempo vem da categoria, nunca de um número
+// solto na chamada (o teste confere). comum 3 s; botao 5 s (Desfazer, Abrir…; um aviso com botão vira botao sozinho);
+// breve 1 s (o "curto" do ajuste de avisos de desfazer); grave e andamento ficam até um toque ou a próxima mensagem
+// (grave: falha de gravação, operação que não aconteceu, aviso que pede ação; andamento: "Importando…", trocado no fim).
+// O ajuste "Tempo dos avisos" (Curto, Normal, Longo) multiplica comum e botao por 0,6, 1 ou 2.
+export const TEMPO_AVISO = { comum: 3000, botao: 5000, breve: 1000 };
+export const FATOR_AVISOS = { curto: 0.6, normal: 1, longo: 2 };
+const SEM_PRAZO = ['grave', 'andamento'];
+export function ritmoAvisos() { try { const v = localStorage.getItem('lousa.avisos'); return v in FATOR_AVISOS ? v : 'normal'; } catch { return 'normal'; } }
+export function mudarRitmoAvisos(v) { try { localStorage.setItem('lousa.avisos', v in FATOR_AVISOS ? v : 'normal'); } catch {} }
+/** Quanto um aviso da categoria fica na tela (ms); 0 = até um toque ou a próxima mensagem. */
+export function tempoAviso(tipo) {
+  if (SEM_PRAZO.includes(tipo)) return 0;
+  const base = TEMPO_AVISO[tipo] ?? TEMPO_AVISO.comum;
+  return tipo === 'breve' ? base : Math.round(base * FATOR_AVISOS[ritmoAvisos()]);
+}
+export function toast(msg, tipo = 'comum', act = null) {
+  if (typeof tipo !== 'string' || !(tipo in TEMPO_AVISO || SEM_PRAZO.includes(tipo))) tipo = 'comum';
+  if (act && tipo === 'comum') tipo = 'botao';
   const t = document.getElementById('toast');
   toastDesde = typeof performance !== 'undefined' ? performance.now() : 0;
+  if (t.dataset) t.dataset.tipo = tipo;
   t.textContent = msg;
   if (act) {
     const b = document.createElement('button');
@@ -30,7 +49,8 @@ export function toast(msg, ms = 2600, act = null) {
   }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.hidden = true), ms);
+  const ms = tempoAviso(tipo);
+  if (ms) toastTimer = setTimeout(() => (t.hidden = true), ms);
 }
 
 export function dialog(html, onOpen) {

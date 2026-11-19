@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-VERSAO = "1.18.0"
+VERSAO = "1.19.0"
 PROTOCOLOS = ["2025-06-18", "2025-03-26", "2024-11-05"]
 CONGELADO = getattr(sys, "frozen", False)
 RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).resolve().parent.parent
@@ -25,7 +25,8 @@ RAIZ = Path(sys.executable).resolve().parent if CONGELADO else Path(__file__).re
 INSTRUCOES = (
     "Ferramentas para preparar aulas no Giz Livre (lousa digital offline). O agente cria quadros novos e acrescenta "
     "textos, notas, formas, fórmulas LaTeX e gráficos; importa PDF e PowerPoint deste computador como páginas "
-    "(importar_arquivo) e vê uma página com a imagem dela (ver_pagina); não exclui nada. Posições em px (96 por polegada): com "
+    "(importar_arquivo), vê uma página com a imagem dela (ver_pagina), renomeia quadros e move para a lixeira da "
+    "galeria (o professor restaura por lá); nunca apaga nada de vez. Posições em px (96 por polegada): com "
     "`pagina` (1, 2...), x e y contam a partir do canto da página; sem x/y, o item entra abaixo do último item da "
     "página. Para vários itens no mesmo quadro, prefira adicionar_itens (uma chamada, uma gravação, tudo ou nada) "
     "em vez de uma chamada por item. Notas são para lembretes curtos (de 120 a 600 px de largura, altura de 0,75 a 2 "
@@ -233,6 +234,10 @@ FERRAMENTAS += [
     ferramenta("ver_pagina", "Mostra uma página de um quadro com páginas: a imagem importada (o slide ou a página do "
                "PDF) e a lista do que foi escrito por cima.", {
         "quadro": QUADRO, "pagina": {"type": "integer", "minimum": 1}}, ["quadro", "pagina"], leitura=True),
+    ferramenta("mover_para_lixeira", "Move um quadro fechado para a lixeira da galeria, de onde o professor restaura. "
+               "Nada é apagado de vez (não existe ferramenta para esvaziar a lixeira).", {"quadro": QUADRO}, ["quadro"]),
+    ferramenta("renomear_quadro", "Muda o título de um quadro fechado, sem mexer no desenho.", {
+        "quadro": QUADRO, "titulo": {"type": "string", "minLength": 1, "maxLength": 200}}, ["quadro", "titulo"]),
 ]
 NOMES = {f["name"] for f in FERRAMENTAS}
 IMPORTAR_MAX = 300 * 1024 * 1024
@@ -290,6 +295,10 @@ def executar(cli: Cliente, nome: str, a: dict) -> dict:
     q = a.get("quadro")
     if not isinstance(q, str) or not q:
         raise Falha("quadro: obrigatório (id de criar_quadro ou listar_quadros)")
+    if nome == "mover_para_lixeira":
+        return cli.pedir("POST", f"quadros/{q}/lixeira", {})
+    if nome == "renomear_quadro":
+        return cli.pedir("POST", f"quadros/{q}/renomear", {"titulo": a.get("titulo")})
     if nome == "ver_pagina":
         p = a.get("pagina")
         if not isinstance(p, int) or isinstance(p, bool) or p < 1:

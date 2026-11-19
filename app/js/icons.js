@@ -55,6 +55,7 @@ export const ICON = {
   collapse: s('<path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/>'),
   hand: s('<path d="M8 13V5.5a1.5 1.5 0 013 0V11"/><path d="M11 11V4a1.5 1.5 0 013 0v7"/><path d="M14 11V5.5a1.5 1.5 0 013 0V12"/><path d="M17 12V8.5a1.5 1.5 0 013 0V14c0 4-2.5 7-7 7h-1c-2.5 0-4-1-5.5-3L3.3 14a1.5 1.5 0 012.3-2L8 14.5"/>'),
   clock: s('<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>'),
+  numero: s('<circle cx="12" cy="12" r="8.5"/><path d="M10.2 9.4L12.6 7.8V16.4M10.2 16.4h4.8"/>'),
   group: s('<rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2.5"/><rect x="6.5" y="6.5" width="6" height="6" rx="1"/><circle cx="15" cy="15" r="3"/>'),
   ungroup: s('<rect x="3" y="3" width="9" height="9" rx="1.5"/><circle cx="16.5" cy="16.5" r="4"/><path d="M14 4h6v6M10 20H4v-6" stroke-dasharray="2 2"/>'),
   folder: s('<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>'),

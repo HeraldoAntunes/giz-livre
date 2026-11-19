@@ -252,6 +252,8 @@ async function abrirQuadro(id, src0) {
   await abrirUrl(`${BASE}/#/b/${id}`);
   await esperarQue(`window.__lousa?.S?.id === ${JSON.stringify(id)}`, 60000, 50);
   const tEditor = Date.now();
+  // logo depois de gerar muitos slides, a leitura às vezes chegava antes da página nova (o gancho sumia): espera de novo
+  await esperarQue(`!!window.__lousa?.S?.board`, 30000, 50);
   // a página visível (o quadro reabre onde estava): o slide no centro da tela
   const src = await avaliar(`(() => { const S = window.__lousa.S, L = S.board.layout, v = S.view;
     const i = Math.max(0, Math.min(L.count - 1, Math.floor(((${ALT / 2} - v.y) / v.zoom) / (L.h + L.gap))));

@@ -3244,5 +3244,63 @@ class ImportarAgenteTests(unittest.TestCase):
                 f(ruim)
 
 
+# D9 (19/11/2026): com a pasta dos quadros no OneDrive, o os.replace dava PermissionError [WinError 5] por um instante.
+class ArquivoPresoTests(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("servidor_preso", ROOT / "server.py")
+        self.s = s = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(s)
+        self.diario = []
+        s.diario = self.diario.append
+        s.registrar = lambda *a, **kw: None
+        s.ESPERAS_PRESO = (0.001,) * 5
+        self.temp = tempfile.TemporaryDirectory(prefix="giz-preso-")
+        s.DADOS = Path(self.temp.name)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def preso(self, vezes):
+        real, cont = os.replace, {"n": 0}
+
+        def falso(a, b):
+            cont["n"] += 1
+            if cont["n"] <= vezes:
+                raise PermissionError(13, "Acesso negado (WinError 5)")
+            return real(a, b)
+        return patch.object(self.s.os, "replace", falso), cont
+
+    def test_quadro_preso_por_um_instante_grava_e_anota(self):
+        alvo = self.s.DADOS / "q.json"
+        p, cont = self.preso(2)
+        with p:
+            self.s.gravar_atomico(alvo, b'{"items": []}')
+        self.assertEqual(alvo.read_bytes(), b'{"items": []}')
+        self.assertEqual(cont["n"], 3)
+        self.assertTrue(any("tentativa 3" in m for m in self.diario), self.diario)
+        self.assertFalse(list(self.s.DADOS.glob("*.tmp")))
+
+    def test_miniatura_presa_tambem_tenta_de_novo(self):
+        p, cont = self.preso(4)
+        with p:
+            self.s.gravar_atomico(self.s.DADOS / "q.png", b"png")
+        self.assertEqual((self.s.DADOS / "q.png").read_bytes(), b"png")
+
+    def test_preso_demais_desiste_sem_sobrar_temporario(self):
+        p, cont = self.preso(99)
+        with p, self.assertRaises(PermissionError):
+            self.s.gravar_atomico(self.s.DADOS / "q.json", b"x")
+        self.assertEqual(cont["n"], 6)
+        self.assertTrue(any("continuou preso" in m for m in self.diario), self.diario)
+        self.assertFalse(list(self.s.DADOS.glob("*.tmp")))
+
+    def test_outros_arquivos_uma_tentativa_so(self):
+        (self.s.DADOS / "sub").mkdir()
+        p, cont = self.preso(1)
+        with p, self.assertRaises(PermissionError):
+            self.s.gravar_atomico(self.s.DADOS / "sub" / "x.json", b"x")
+        self.assertEqual(cont["n"], 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

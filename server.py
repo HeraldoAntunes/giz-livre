@@ -71,7 +71,7 @@ def pasta_dados_padrao() -> Path:
 
 DADOS = pasta_dados_padrao()
 LIXEIRA = DADOS / "lixeira"
-VERSAO = "1.18.0"
+VERSAO = "1.19.0"
 # nomes reservados do Windows (CON, NUL, COM1...) não viram nome de arquivo; \Z e não $, que aceita uma quebra de linha no fim
 ID_OK = re.compile(r"^(?!(?:con|prn|aux|nul|com[0-9]|lpt[0-9])\Z)[A-Za-z0-9_-]{1,64}\Z", re.IGNORECASE)
 # arquivo da lixeira: <id>_<AAAAMMDD-HHMMSS>[-n] (o DELETE dá esse nome); barra e ponto nunca passam
@@ -138,6 +138,29 @@ def token_matches(recebido: str, esperado: str) -> bool:
     return recebido.isascii() and secrets.compare_digest(recebido, esperado)
 
 
+# D9 (19/11/2026): com a pasta dos quadros no OneDrive, o os.replace às vezes dá PermissionError [WinError 5] por um
+# instante (o OneDrive ou o antivírus está lendo o arquivo). Para o quadro e a miniatura (os arquivos da pasta dos
+# quadros), tenta de novo algumas vezes com espera curta (cerca de 1,4 s no total, dentro do prazo de 3 s da gravação)
+# e anota no giz-livre.log; os outros arquivos continuam com uma tentativa só.
+ESPERAS_PRESO = (0.05, 0.1, 0.2, 0.4, 0.6)
+
+
+def trocar_com_paciencia(tmp: str, caminho: Path) -> None:
+    paciencia = caminho.parent == DADOS and caminho.suffix in (".json", ".png")
+    for n, espera in enumerate((*ESPERAS_PRESO, None) if paciencia else (None,), 1):
+        try:
+            os.replace(tmp, caminho)
+            if n > 1:
+                diario(f"gravação de {caminho.name}: o arquivo estava preso (OneDrive ou antivírus); deu certo na tentativa {n}")
+            return
+        except PermissionError as e:
+            if espera is None:
+                if paciencia:
+                    diario(f"gravação de {caminho.name}: o arquivo continuou preso depois de {n} tentativas ({e})")
+                raise
+            time.sleep(espera)
+
+
 def gravar_atomico(caminho: Path, dados: bytes) -> None:
     fd, tmp = tempfile.mkstemp(dir=caminho.parent, prefix=caminho.name + ".", suffix=".tmp")
     try:
@@ -145,7 +168,7 @@ def gravar_atomico(caminho: Path, dados: bytes) -> None:
             f.write(dados)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, caminho)
+        trocar_com_paciencia(tmp, caminho)
     except BaseException:
         try:
             os.unlink(tmp)
@@ -247,6 +270,52 @@ def gravar_miniatura(bid: str, png: bytes, board: dict | None = None) -> bool:
         registrar(e)
         apagar_ou_registrar(alvo)
         return False
+
+
+def mover_para_lixeira(bid: str) -> str | None:
+    """Excluir pela galeria (e, desde o F2, pelo agente): o quadro e a miniatura vão para a lixeira, de onde a galeria
+    restaura. Devolve o nome na lixeira (None se o quadro já não estava lá). Nunca apaga de vez."""
+    carimbo = time.strftime("%Y%m%d-%H%M%S")
+    with trava(bid):
+        nome = f"{bid}_{carimbo}"
+        n = 1   # dois envios do mesmo quadro no mesmo segundo (excluir, desfazer, excluir): não sobrescreve
+        while (LIXEIRA / f"{nome}.json").exists() or (LIXEIRA / f"{nome}.png").exists():
+            n += 1
+            nome = f"{bid}_{carimbo}-{n}"
+        # troca dentro do mesmo disco (a lixeira fica na pasta dos quadros): ou o quadro foi, ou ficou; um mover que
+        # vira copiar e apagar podia deixá-lo nos dois lugares
+        movido = False
+        if (DADOS / f"{bid}.json").exists():
+            try:
+                os.replace(DADOS / f"{bid}.json", LIXEIRA / f"{nome}.json")
+            except OSError as e:
+                registrar(e)
+                raise
+            movido = True
+        mover_miniatura(DADOS / f"{bid}.png", LIXEIRA / f"{nome}.png")
+    return nome if movido else None
+
+
+def mudar_nome_ou_pasta(bid: str, titulo: str | None, pasta: str | None) -> dict:
+    """Renomear e mudar de pasta (galeria e, desde o F2, o agente): só o nome e a pasta, sem mexer no desenho, na data
+    de edição nem na revisão; o contador _meta faz uma janela aberta manter o nome novo ao salvar."""
+    arq = DADOS / f"{bid}.json"
+    with trava(bid):
+        if not arq.exists():
+            raise FileNotFoundError(bid)
+        with open(arq, encoding="utf-8") as f:
+            board = json.load(f)
+        if pasta is not None:
+            if pasta:
+                board["folder"] = pasta
+            else:
+                board.pop("folder", None)
+        if titulo is not None:
+            board["title"] = titulo
+        meta = board.get("_meta", 0)
+        board["_meta"] = (meta if type(meta) is int else 0) + 1
+        gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
+    return board
 
 
 def mover_miniatura(origem: Path, destino: Path) -> None:
@@ -774,6 +843,28 @@ class Handler(SimpleHTTPRequestHandler):
                 r = criar_quadro_agente(spec)
                 registrar_agente("criar_quadro", r["quadro"])
                 return self._json(r)
+            if len(partes) == 3 and partes[0] == "quadros" and partes[2] in ("lixeira", "renomear"):
+                # F2 (17/11/2026): mover para a lixeira (restaura pela galeria) e renomear, com as regras das outras
+                # gravações do agente; nunca apagar de vez nem esvaziar a lixeira
+                bid = id_ok(partes[1])
+                conferir_quadro_para_agente(bid, cfg)
+                if partes[2] == "lixeira":
+                    try:
+                        nome = mover_para_lixeira(bid)
+                    except OSError:
+                        raise RecusaAgente("não consegui mover agora; o quadro continua na galeria", 500)
+                    registrar_agente("mover_para_lixeira", bid)
+                    return self._json({"quadro": bid, "lixeira": nome, "observacao": "o quadro está na lixeira da "
+                                       "galeria; o professor restaura por lá (nada foi apagado de vez)"})
+                titulo = re.sub(r"\s+", " ", texto_limpo(spec.get("titulo"), 200, "titulo", linhas=False)).strip()
+                if not titulo:
+                    raise RecusaAgente("titulo: obrigatório")
+                try:
+                    board = mudar_nome_ou_pasta(bid, titulo, None)
+                except FileNotFoundError:
+                    raise RecusaAgente("quadro não encontrado", 404)
+                registrar_agente("renomear_quadro", bid)
+                return self._json({"quadro": bid, "titulo": board.get("title", "")})
             if len(partes) == 3 and partes[0] == "quadros" and partes[2] in ("itens", "paginas"):
                 bid = id_ok(partes[1])
                 if partes[2] == "paginas":
@@ -1080,25 +1171,12 @@ class Handler(SimpleHTTPRequestHandler):
                         raise ValueError("nome vazio")
             except Exception as e:
                 return self._json({"erro": str(e)}, 400)
-            arq = DADOS / f"{bid}.json"
-            with trava(bid):
-                if not arq.exists():
-                    return self._json({"erro": "não encontrado"}, 404)
-                try:
-                    with open(arq, encoding="utf-8") as f:
-                        board = json.load(f)
-                    if pasta is not None:
-                        if pasta:
-                            board["folder"] = pasta
-                        else:
-                            board.pop("folder", None)
-                    if titulo is not None:
-                        board["title"] = titulo
-                    meta = board.get("_meta", 0)
-                    board["_meta"] = (meta if type(meta) is int else 0) + 1
-                    gravar_atomico(arq, json.dumps(board, ensure_ascii=False, allow_nan=False).encode("utf-8"))
-                except Exception as e:
-                    return self._json({"erro": str(e)}, 500)
+            try:
+                board = mudar_nome_ou_pasta(bid, titulo, pasta)
+            except FileNotFoundError:
+                return self._json({"erro": "não encontrado"}, 404)
+            except Exception as e:
+                return self._json({"erro": str(e)}, 500)
             return self._json({"ok": True, "folder": board.get("folder", ""), "title": board.get("title", "")})
         if not rota.startswith("/api/boards/"):
             return self._json({"erro": "rota"}, 404)
@@ -1366,8 +1444,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_DELETE(self):
         if not self._host_ok() or not self._canal_ok(self.path.split("?")[0]):
             return
-        if self.path.startswith("/api/agente/"):   # o agente não exclui quadro nem move para a lixeira
-            return self._json({"erro": "o agente não exclui quadros"}, 405)
+        if self.path.startswith("/api/agente/"):   # o agente move para a lixeira por POST .../lixeira; apagar de vez, nunca
+            return self._json({"erro": "o agente não apaga quadros de vez; use mover_para_lixeira"}, 405)
         if not self._escrita_ok():
             return
         rota = self._rota()
@@ -1378,25 +1456,11 @@ class Handler(SimpleHTTPRequestHandler):
         bid = self._id("/api/boards/")
         if bid is None:
             return
-        carimbo = time.strftime("%Y%m%d-%H%M%S")
-        with trava(bid):
-            nome = f"{bid}_{carimbo}"
-            n = 1   # dois envios do mesmo quadro no mesmo segundo (excluir, desfazer, excluir): não sobrescreve
-            while (LIXEIRA / f"{nome}.json").exists() or (LIXEIRA / f"{nome}.png").exists():
-                n += 1
-                nome = f"{bid}_{carimbo}-{n}"
-            # troca dentro do mesmo disco (a lixeira fica na pasta dos quadros): ou o quadro foi, ou ficou; um mover que
-            # vira copiar e apagar podia deixá-lo nos dois lugares
-            movido = False
-            if (DADOS / f"{bid}.json").exists():
-                try:
-                    os.replace(DADOS / f"{bid}.json", LIXEIRA / f"{nome}.json")
-                except OSError as e:
-                    registrar(e)
-                    return self._json({"erro": "Não consegui excluir agora; o quadro continua na galeria."}, 500)
-                movido = True
-            mover_miniatura(DADOS / f"{bid}.png", LIXEIRA / f"{nome}.png")
-        return self._json({"ok": True, "lixeira": nome if movido else None})
+        try:
+            nome = mover_para_lixeira(bid)
+        except OSError:
+            return self._json({"erro": "Não consegui excluir agora; o quadro continua na galeria."}, 500)
+        return self._json({"ok": True, "lixeira": nome})
 
     def _restaurar(self):
         """Devolve um quadro da lixeira para a galeria. Se o id já estiver em uso, ganha um id novo."""
@@ -1958,16 +2022,24 @@ def ler_quadro_disco(bid: str) -> dict:
     return board
 
 
-def alterar_quadro(bid: str, cfg: dict, mudar) -> dict:
-    """Lê, confere permissão e quadro aberto, aplica `mudar(board)` e grava com a mesma revisão do PUT da página."""
+def conferir_quadro_para_agente(bid: str, cfg: dict, board: dict | None = None) -> dict:
+    """As regras de toda gravação do agente: quadro aberto na tela recusa; no nível 2, só os quadros que ele criou."""
     if bid in quadros_abertos():
         raise RecusaAgente("Este quadro está aberto no Giz Livre. Feche-o (volte à galeria) ou use o controle ao "
                            "vivo, quando existir. Criar quadros novos e ler continuam liberados.", 409)
+    board = board if board is not None else ler_quadro_disco(bid)
+    if cfg["nivel"] < 3 and board.get("criado_por") != "agente":
+        raise RecusaAgente("No nível 2 (Criar quadros novos) o agente só mexe nos quadros que ele criou. Para "
+                           "editar outros quadros fechados, o professor escolhe o nível 3 no Giz Livre.", 403)
+    return board
+
+
+def alterar_quadro(bid: str, cfg: dict, mudar) -> dict:
+    """Lê, confere permissão e quadro aberto, aplica `mudar(board)` e grava com a mesma revisão do PUT da página."""
+    if bid in quadros_abertos():
+        conferir_quadro_para_agente(bid, cfg, {})
     with trava(bid):
-        board = ler_quadro_disco(bid)
-        if cfg["nivel"] < 3 and board.get("criado_por") != "agente":
-            raise RecusaAgente("No nível 2 (Criar quadros novos) o agente só mexe nos quadros que ele criou. Para "
-                               "editar outros quadros fechados, o professor escolhe o nível 3 no Giz Livre.", 403)
+        board = conferir_quadro_para_agente(bid, cfg, ler_quadro_disco(bid))
         resultado = mudar(board)
         board["updated"] = int(time.time() * 1000)
         board["_rev"] = board.get("_rev", 0) + 1
