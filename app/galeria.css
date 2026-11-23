@@ -183,3 +183,17 @@ dialog .choices .btn small { color: #605e5c; }
 .g-icones { display: grid; grid-template-columns: repeat(6, 40px); gap: 4px; margin: 8px 0; }
 .g-icones .ib { width: 40px; height: 40px; }
 .g-icones .ib.on { outline: 2px solid var(--accent); }
+.g-areas { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 0 0 12px; padding: 10px 14px;
+  background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 13.5px; }
+.g-areas .g-areas-txt { flex: 1; min-width: 240px; color: var(--muted); }
+.g-areas > svg { width: 22px; height: 22px; color: var(--accent); flex: none; }
+.g-areas .g-areas-txt b { color: var(--text); }
+/* P-ABERTURA C: a galeria aparece na hora (js/abertura.js), com o esqueleto dos cartões até os quadros chegarem; o
+   mesmo desenho da primeira tela da janela (janela/web/espera-galeria.html) */
+html.abrindo-galeria #gallery[hidden] { display: block !important; }   /* vence o [hidden] global do style.css */
+.esq-vitrine { grid-column: 1 / -1; height: 150px; border-radius: 12px; }
+.esq-cartao { height: 186px; border-radius: 6px; }
+.esq-vitrine, .esq-cartao { background: linear-gradient(100deg, #f4f4f4 30%, #fbfbfb 50%, #f4f4f4 70%) 0 0 / 300% 100%;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08); animation: esq-brilho 1.4s ease-in-out infinite; }
+@keyframes esq-brilho { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .esq-vitrine, .esq-cartao { animation: none; } }

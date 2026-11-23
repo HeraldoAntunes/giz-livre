@@ -13,7 +13,7 @@ import { embedBoard } from './editor.js';
 import { ICON } from './icons.js';
 import { fillIcons, toast, askText, confirmBox, showPop, hidePop, popOpen, aboutBox, dialog } from './ui.js';
 import { VERSION } from './version.js';
-import { jaEscolheu, escolherDisciplinas, agruparPorArea, abasOcultas, amostraDaVitrine } from './disciplinas.js';
+import { jaEscolheu, marcarEscolhido, escolherDisciplinas, agruparPorArea, abasOcultas, amostraDaVitrine } from './disciplinas.js';
 import { GROUPS as SHAPE_GROUPS, ALL_SHAPES, shapeSvg, shapeById } from './shapelib.js';
 import { svgDataUrl } from './library.js';
 
@@ -131,8 +131,22 @@ async function showGallery(folder = '') {
   document.title = 'Giz Livre';
   try { boards = await listBoards(); }
   catch { boards = []; toast('Servidor local não respondeu. Abra pelo atalho "Giz Livre".', 'grave'); }
-  if (!jaEscolheu()) setTimeout(() => escolherDisciplinas({ primeira: true }), 300);   // primeira abertura: "Quais áreas te interessam?"
+  // primeira abertura: a escolha das áreas é uma faixa no alto da galeria (P-ABERTURA E), não mais uma janela por cima
+  if (!jaEscolheu()) { faixaAreas = true; marcarEscolhido(); }
   renderGrid();
+  avisarGaleriaPronta();
+}
+// P-ABERTURA B: na janela própria, a tela de abertura nativa fica por cima até a galeria pintar; a marca no título é o
+// aviso (o programa não a mostra na barra de título) e o título volta em seguida
+let galeriaAvisada = false;
+function avisarGaleriaPronta() {
+  if (galeriaAvisada) return;
+  galeriaAvisada = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const t = document.title;
+    document.title = 'giz-livre:galeria-pronta';
+    setTimeout(() => { if (document.title === 'giz-livre:galeria-pronta') document.title = t; }, 60);
+  }));
 }
 
 const boardCard = (b, showFolder) => `
@@ -171,6 +185,15 @@ function vitrineFormas() {
   </section>`;
 }
 
+// faixa "Escolha as áreas das formas" (só na abertura em que o Giz ainda não tinha a escolha; ver showGallery)
+let faixaAreas = false;
+function faixaDasAreas() {
+  if (!faixaAreas) return '';
+  return `<div class="g-areas" role="note">${ICON.shapes}
+    <span class="g-areas-txt"><b>Escolha as áreas das formas</b> que aparecem no menu Formas. As outras ficam guardadas e a busca acha tudo.</span>
+    <button class="btn primary" data-areas="escolher">Escolher áreas</button><button class="btn" data-areas="fechar">Agora não</button></div>`;
+}
+
 function renderGrid() {
   const q = plain($('gSearch').value.trim());
   const order = $('gSort').value;
@@ -192,12 +215,19 @@ function renderGrid() {
         ${fora ? `<div><button class="btn primary" id="gPick">${ICON_FOLDER} Escolher quadros…</button></div>` : ''}</div>` : '';
   const gal = galCfg();
   $('gGrid').dataset.tam = TAMANHOS_CARTAO.some(([k]) => k === gal.tam) ? gal.tam : 'M';
-  $('gGrid').innerHTML = `${q || curFolder || !gal.vitrine ? '' : vitrineFormas()}${path}${fcards}
+  $('gGrid').removeAttribute('aria-busy');
+  $('gGrid').innerHTML = `${q || curFolder ? '' : faixaDasAreas()}${q || curFolder || !gal.vitrine ? '' : vitrineFormas()}${path}${fcards}
     ${fcards && !q ? '<div class="g-sec">Quadros sem pasta</div>' : ''}
     <div class="card new" id="gNew"><div class="plus">${ICON.plus}</div>${curFolder ? 'Criar quadro nesta pasta' : 'Criar novo quadro'}</div>
     ${list.map(b => boardCard(b, !!q)).join('')}
     ${empty}`;
   $('gNew').onclick = createBoard;
+  $('gGrid').querySelectorAll('[data-areas]').forEach(b => b.onclick = async () => {
+    const escolher = b.dataset.areas === 'escolher';
+    faixaAreas = false;
+    if (escolher) await escolherDisciplinas();
+    renderGrid();
+  });
   const ocultar = $('gGrid').querySelector('.gv-ocultar');
   if (ocultar) ocultar.onclick = e => { e.preventDefault(); mudarGal({ vitrine: false }); toast('Formas ocultas da galeria. Para mostrar de novo: Exibir, no alto.', 'comum'); };
   bindBack();
@@ -804,6 +834,7 @@ function mostrarNotas(quadro) {
 
 async function route() {
   const seq = ++routeSeq;
+  document.documentElement.classList.remove('abrindo-galeria');   // P-ABERTURA C: daqui em diante a rota manda
   const m = location.hash.match(/^#\/b\/([A-Za-z0-9_-]+)/);
   const marcador = location.hash.match(/^#\/b\/[A-Za-z0-9_-]+\?m=([A-Za-z0-9_-]+)/)?.[1];   // aberto pela aba Marcadores
   const ok = await closeBoard();

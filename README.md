@@ -40,12 +40,12 @@ folhas técnicas, fórmulas e ferramentas de professor. Livre, gratuita e sem in
 
 ### Qual arquivo baixar?
 
-Versão atual: **1.19.0**.
+Versão atual: **1.20.0**.
 
 | Para quê | Baixar |
 |---|---|
-| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.19.0.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.19.0/Instalar-GizLivre-1.19.0.zip) |
-| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.19.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.19.0/GizLivre-1.19.0-portatil.zip) |
+| **Instalar no computador (Windows)** | [**Instalar-GizLivre-1.20.0.zip**](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.20.0/Instalar-GizLivre-1.20.0.zip) |
+| Usar sem instalar (versão portátil, para pendrive) | [GizLivre-1.20.0-portatil.zip](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.20.0/GizLivre-1.20.0-portatil.zip) |
 | Linux (Ubuntu/Debian), em testes | [giz-livre_1.17.2_all.deb](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre_1.17.2_all.deb) · outro Linux (Fedora, Arch...): [giz-livre-1.17.2-linux-usuario.tar.gz](https://github.com/HeraldoAntunes/giz-livre/releases/download/v1.17.2/giz-livre-1.17.2-linux-usuario.tar.gz), que instala só para o seu usuário, sem pedir senha de administrador |
 
 Para instalar: extraia o zip inteiro (botão direito, "Extrair tudo") e abra o `GizLivre.exe` da pasta. Ele pergunta
@@ -149,7 +149,8 @@ certutil -hashfile Instalar-GizLivre-x.y.z.zip SHA256
   amostras das suas áreas, o catálogo do quadro abre na **Vitrine** com o melhor de cada disciplina, e a tecla `/`
   procura uma forma pelo nome sem abrir menus.
   Cada forma entra na cor escolhida, pode ser recolorida, movida e redimensionada, e a borracha a apaga.
-- **Barras móveis:** cada barra arrasta pela alça ⠿; o cadeado trava tudo no lugar (barras e painéis).
+- **Barras móveis:** cada barra arrasta pela alça ⠿; o cadeado trava tudo no lugar (barras e painéis). As barras
+  laterais podem ficar com nomes, só com ícones ou no modo **Compacto** (finas, no estilo dos programas de desenho).
 - **Organização:** galeria com miniaturas, busca, salvamento automático, desfazer/refazer, exportar PNG/PDF/`.lousa`
   e importar imagens do Microsoft Whiteboard.
 - **Ajuda dentro do programa:** botão **?** ou `F1`, com temas ilustrados pelos próprios botões, **Mostrar na tela** e um

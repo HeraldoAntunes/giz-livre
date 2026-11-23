@@ -249,6 +249,29 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .create.sem-nomes .cb small { display: none; }
 .create.sem-nomes.apertada .cb { padding: 4px 0; }
 #board.barras-icones .teachbar.esq, #board.barras-icones .drawbar { left: 64px; }
+/* B4 (P-ABERTURA, 22/11/2026): modo Compacto das barras laterais (criar, desenho, professor). Coluna de 42 px,
+   ícones de 18 px, fundo neutro, traço fino entre os grupos, ativa com um filete na cor de destaque; o triângulo no
+   canto marca os botões que abrem um menu de escolhas (data-mais). Os nomes ficam na dica */
+#board.barras-compacto :is(.create, .teachbar) { background: #f3f3f3; border-radius: 6px; padding: 4px 3px; gap: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06); }
+#board.barras-compacto :is(.create, .teachbar) :is(.cb, .ib) { position: relative; width: 36px; height: 34px; min-height: 0; padding: 0;
+  border-radius: 4px; color: #3a3a3a; display: grid; place-items: center; }
+#board.barras-compacto :is(.create, .teachbar) :is(.cb, .ib) small { display: none; }
+#board.barras-compacto :is(.create, .teachbar) :is(.cb, .ib) svg { width: 18px; height: 18px; }
+#board.barras-compacto :is(.create, .teachbar) :is(.cb, .ib):hover { background: #e4e4e4; }
+#board.barras-compacto :is(.create, .teachbar) :is(.cb, .ib):is(.on, .active) { background: #dcdcdc; color: #111;
+  box-shadow: inset 2px 0 0 var(--accent); }
+#board.barras-compacto .create .cb[data-mais]::after { content: ''; position: absolute; right: 3px; bottom: 3px;
+  border-left: 4px solid transparent; border-bottom: 4px solid #777; }
+#board.barras-compacto :is(.create, .teachbar) .sep { width: 22px; height: 1px; background: #c8c8c8; margin: 4px auto; }
+#board.barras-compacto .teachbar .tb-acoes { flex-direction: column; align-items: center; }
+#board.barras-compacto .teachbar .tb-acoes .ib { width: 30px; height: 26px; font-size: 11px; color: #666; }
+#board.barras-compacto .bar .bar-min { width: 22px; height: 18px; }
+#board.barras-compacto .drawbar.duas-col { grid-template-columns: repeat(2, 36px); }
+#board.barras-compacto .teachbar.esq { left: 62px; }
+/* seletor dos quatro modos: rótulo numa linha e os botões inteiros embaixo (nenhum nome quebrado) */
+.tb-fixar .tb-nomes { flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; }
+.tb-fixar .tb-nomes .seg button { white-space: nowrap; }
 /* notebook: barra de desenho em duas colunas, embaixo da barra de criar */
 .drawbar.duas-col { display: grid; grid-template-columns: repeat(2, auto); }
 .drawbar.duas-col::before, .drawbar.duas-col .bar-min { grid-column: 1 / -1; justify-self: center; }

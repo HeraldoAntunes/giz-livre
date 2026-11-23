@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- Giz Livre — © 2026 Heraldo Antunes — Licença MIT (ver LICENSE). Primeira tela da lousa enquanto o programa abre:
+     o esqueleto da galeria (P-ABERTURA C), no mesmo desenho do index.html, para a troca pela galeria de verdade não pular -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Giz Livre</title>
+<style>
+  html, body { height: 100%; margin: 0; background: #e8e8e8; font: 14px "Segoe UI", system-ui, sans-serif; color: #242424; overflow: hidden; }
+  .g-head { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: #f5f5f5; border-bottom: 1px solid #e0e0e0; min-height: 37px; }
+  .g-head h1 { font-size: 18px; font-weight: 600; margin: 0 auto 0 0; white-space: nowrap; }
+  .g-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(234px, 1fr)); gap: 24px; padding: 24px 32px 48px; max-width: 1600px; margin: 0 auto; }
+  .esq-vitrine { grid-column: 1 / -1; height: 150px; border-radius: 12px; }
+  .esq-cartao { height: 186px; border-radius: 6px; }
+  .esq-vitrine, .esq-cartao { background: linear-gradient(100deg, #f4f4f4 30%, #fbfbfb 50%, #f4f4f4 70%) 0 0 / 300% 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); animation: brilho 1.4s ease-in-out infinite; }
+  @keyframes brilho { from { background-position: 100% 0; } to { background-position: 0 0; } }
+  @media (prefers-reduced-motion: reduce) { .esq-vitrine, .esq-cartao { animation: none; } }
+</style>
+</head>
+<body aria-busy="true">
+  <header class="g-head"><h1>Giz Livre</h1></header>
+  <main class="g-grid" aria-label="Abrindo o Giz Livre…">
+    <div class="esq-vitrine"></div>
+    <div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div>
+    <div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div>
+    <div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div>
+  </main>
+</body>
+</html>

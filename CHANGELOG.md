@@ -1,5 +1,21 @@
 # Histórico de versões
 
+## 1.20.0 (23/11/2026)
+Abertura de programa profissional, modo Compacto das barras e correções.
+- **Abertura profissional:** ao abrir, aparece na hora uma tela de abertura com o ícone, o nome, a versão e uma barra
+  de progresso, até a galeria ficar pronta. Antes, passava um a dois segundos sem nada na tela e depois piscavam uma
+  janela pequena fora do lugar, uma tela preta com um quadro branco e uma página vazia. Agora a janela já nasce no
+  tamanho e no lugar da última vez, na cor da galeria e com a barra de título clara, e a galeria mostra o desenho dos
+  cartões enquanto os quadros chegam.
+- **Modo Compacto das barras:** no menu Ferramentas, "Nomes nas barras laterais" ganhou o modo **Compacto**: barras
+  finas, só os ícones (o nome aparece ao parar o mouse em cima), no estilo dos programas de desenho. O modo com nomes
+  continua.
+- **Áreas das formas sem janela por cima:** na primeira abertura, a escolha das áreas das formas aparece numa faixa no
+  alto da galeria, uma vez só, em vez de uma janela que cobria tudo.
+- **Números:** sem a barra fixa do professor, tocar de novo em Números (no menu Ferramentas ou com `U`) abre o estilo
+  (tamanho, formato, cor) em vez de desligar a ferramenta.
+- **Apresentação:** voltar à galeria logo depois de começar a apresentação não dá mais erro.
+
 ## 1.19.0 (19/11/2026)
 Números carimbados como no Giz na Tela, mensagens mais curtas, a página que cai volta sozinha, o seletor de slides
 que carrega o que está na tela e o agente de IA que renomeia e move para a lixeira.

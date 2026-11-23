@@ -75,7 +75,8 @@ try {
   ws.onmessage = ev => { const m = JSON.parse(ev.data);
     if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id); return; }
     if (m.method === 'Page.fileChooserOpened') escolhas.push(m.params);
-    if (m.method === 'Runtime.exceptionThrown') erros.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text); };
+    if (m.method === 'Runtime.exceptionThrown') { const d = m.params.exceptionDetails, f = d.stackTrace?.callFrames?.[0];   // onde: arquivo, linha e função
+    erros.push((d.exception?.description || d.text).split(/\r?\n/)[0] + (f ? ` [${f.url.split('/').pop()}:${f.lineNumber + 1} ${f.functionName}]` : '')); } };
   const cdp = (method, params = {}) => { const id = ++n; ws.send(JSON.stringify({ id, method, params }));
     return new Promise((res, rej) => pend.set(id, m => m.error ? rej(new Error(method + ': ' + m.error.message)) : res(m.result))); };
   const avaliar = async e => { const r = await cdp('Runtime.evaluate', { expression: e, awaitPromise: true, returnByValue: true });
@@ -144,6 +145,8 @@ try {
     await cdp('Page.navigate', { url: `${BASE}/#/b/d1?m=${mk}` });
     await ate(`window.__lousa?.S?.id === 'd1'`, 30000); await espera(2500);
     await avaliar(`document.querySelectorAll('dialog[open]').forEach(d => d.close())`);
+    // com o PC carregado, o quadro de 195 slides demora a chegar à página (antes: espera fixa, falhava às vezes)
+    for (let t = 0; t < 40 && !(await pagina()).startsWith(`Página ${pg} `); t++) await espera(250);
     conferir(`o marcador do slide ${pg} abre o quadro na página ${pg}`, (await pagina()).startsWith(`Página ${pg} `), await pagina());
   }
 
@@ -152,19 +155,21 @@ try {
   await abrir('d2');
   const apresentando = () => avaliar(`document.getElementById('board').classList.contains('present')`);
   const lupa = () => avaliar(`!!document.getElementById('zLens')?.classList.contains('on')`);
-  await avaliar(`document.getElementById('bPresent').click()`); await espera(700);
-  conferir('a apresentação começou', await apresentando());
-  await tecla('z', 'KeyZ', 90); await espera(300);
-  conferir('a lupa abriu', await lupa());
-  await tecla('Escape', 'Escape', 27); await espera(400);
-  conferir('o 1º Esc fecha a lupa e a apresentação continua', !(await lupa()) && await apresentando());
+  // esperas até a condição (antes, fixas de 300 a 700 ms: com o PC carregado, falhavam às vezes)
+  const ateQue = async f => { for (let t = 0; t < 40 && !(await f()); t++) await espera(250); return f(); };
+  await avaliar(`document.getElementById('bPresent').click()`);
+  conferir('a apresentação começou', await ateQue(apresentando));
+  await espera(300); await tecla('z', 'KeyZ', 90);
+  conferir('a lupa abriu', await ateQue(lupa));
+  await tecla('Escape', 'Escape', 27);
+  conferir('o 1º Esc fecha a lupa e a apresentação continua', await ateQue(async () => !(await lupa())) && await apresentando());
   await tecla('Escape', 'Escape', 27); await espera(400);
   conferir('o 2º Esc sai da apresentação', !(await apresentando()));
   // o navegador tirou a tela cheia (o Esc dele) com a lupa aberta: fecha a lupa e continua apresentando
-  await avaliar(`document.getElementById('bPresent').click()`); await espera(700);
-  await tecla('z', 'KeyZ', 90); await espera(300);
-  await avaliar(`document.dispatchEvent(new Event('fullscreenchange'))`); await espera(400);
-  conferir('sair da tela cheia com a lupa aberta só fecha a lupa', !(await lupa()) && await apresentando());
+  await avaliar(`document.getElementById('bPresent').click()`); await ateQue(apresentando);
+  await espera(300); await tecla('z', 'KeyZ', 90); await ateQue(lupa);
+  await avaliar(`document.dispatchEvent(new Event('fullscreenchange'))`);
+  conferir('sair da tela cheia com a lupa aberta só fecha a lupa', await ateQue(async () => !(await lupa())) && await apresentando());
   await avaliar(`document.dispatchEvent(new Event('fullscreenchange'))`); await espera(400);
   conferir('sem camada aberta, sair da tela cheia encerra a apresentação, como antes', !(await apresentando()));
 

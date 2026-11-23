@@ -39,6 +39,9 @@ export function amostraDaVitrine(n = 10, sorteio = Math.random) {
   for (let i = pares.length - 1; i > 0; i--) { const j = Math.floor(sorteio() * (i + 1)); [pares[i], pares[j]] = [pares[j], pares[i]]; }
   return pares.slice(0, n);
 }
+// P-ABERTURA E: a primeira escolha das áreas é uma faixa na galeria, mostrada numa abertura só; ao aparecer, a escolha
+// atual (todas as áreas) já fica valendo, e a faixa some na próxima abertura mesmo sem resposta
+export function marcarEscolhido() { salvar(abasOcultas()); }
 function salvar(ocultas) { try { localStorage.setItem(KEY, JSON.stringify({ ocultas: [...ocultas], escolhido: true })); } catch {} }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

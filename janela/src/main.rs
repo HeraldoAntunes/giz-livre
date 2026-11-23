@@ -8,6 +8,7 @@
 // Docs: docs/P60-PLANO-JANELA-PROPRIA.md
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod abertura;
 mod instalacao;
 
 use serde_json::Value;
@@ -211,6 +212,7 @@ fn nova_janela(app: &AppHandle) {
             }
         }
     }
+    abertura::fechar();
     avisar("O Giz Livre não conseguiu abrir a janela.\n\nFeche este aviso e abra o Giz Livre de novo pelo atalho. Se acontecer outra vez, reinicie o computador. Os quadros não foram afetados.");
     if app.webview_windows().is_empty() {
         diario("sem nenhuma janela: encerrando");
@@ -253,6 +255,9 @@ fn abrir_notas(app: &AppHandle, de: &str, url: tauri::Url) {
     let r = WebviewWindowBuilder::new(app, "notas", WebviewUrl::App("espera.html".into()))
         .title("Notas do professor — Giz Livre")
         .inner_size(900.0, 640.0)
+        .background_color(FUNDO)
+        // P-ABERTURA F: barra de título clara, combinando com a galeria (com o Windows no tema escuro, ela vinha preta)
+        .theme(Some(tauri::Theme::Light))
         .data_directory(pasta_da_janela())
         .additional_browser_args(SEM_REDE)
         .on_new_window(|u, _| {
@@ -320,18 +325,90 @@ fn fim_da_apresentacao(lousa: &tauri::WebviewWindow) {
     }
 }
 
+// P-ABERTURA A2 (22/11/2026): a janela nasce no tamanho e no lugar finais. Antes ela nascia com 1280x800 num lugar
+// qualquer (deslocado a cada abertura) e só depois maximizava: a "janela fantasma" do filme da abertura. Agora o lugar
+// da última vez fica em <perfil da janela>/lugar.json (gravado ao fechar; na apresentação com duas telas, o lugar do
+// notebook, não o do projetor), e a janela nasce já com ele; sem lugar (ou numa tela que não existe mais), nasce
+// maximizada na tela principal, com o tamanho da área de trabalho dela.
+/// Retângulo da área de trabalho de uma tela, em pixels físicos, e a escala dela.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Tela { x: i32, y: i32, w: u32, h: u32, escala: f64 }
+/// Onde e como a janela nasce: posição e tamanho em pixels lógicos (os do construtor da janela) e se maximizada.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Nascer { x: f64, y: f64, w: f64, h: f64, maximizada: bool }
+// moldura do Windows 10/11 em pixels lógicos: barra de título (31) e borda invisível (8). A janela maximizada passa
+// 8 px da área de trabalho em cima e dos lados; nascendo já com esse retângulo, não há salto ao maximizar
+const BARRA_TITULO: f64 = 31.0;
+const BORDA: f64 = 8.0;
+fn lugar_ao_nascer(telas: &[Tela], principal: usize, salvo: Option<Lugar>) -> Option<Nascer> {
+    let cheia = |t: &Tela| Nascer { x: t.x as f64 / t.escala - BORDA, y: t.y as f64 / t.escala - BORDA, w: t.w as f64 / t.escala,
+        h: (t.h as f64 / t.escala - BARRA_TITULO + BORDA).max(480.0), maximizada: true };
+    if let Some(l) = salvo {
+        // a tela onde estava o centro da janela; se nenhuma tem mais esse ponto (projetor desligado), a principal
+        let (cx, cy) = (l.x as i64 + l.w as i64 / 2, l.y as i64 + l.h as i64 / 2);
+        if let Some(t) = telas.iter().find(|t| cx >= t.x as i64 && cx < t.x as i64 + t.w as i64 && cy >= t.y as i64 && cy < t.y as i64 + t.h as i64) {
+            if l.maximizada { return Some(cheia(t)); }
+            // não maximizada: o tamanho de antes, sem passar da tela, e inteira dentro dela
+            let (w, h) = (l.w.min(t.w).max(640), l.h.min(t.h).max(480));
+            let x = l.x.clamp(t.x, (t.x + t.w as i32 - w as i32).max(t.x));
+            let y = l.y.clamp(t.y, (t.y + t.h as i32 - h as i32).max(t.y));
+            return Some(Nascer { x: x as f64 / t.escala, y: y as f64 / t.escala, w: w as f64 / t.escala, h: h as f64 / t.escala, maximizada: false });
+        }
+    }
+    telas.get(principal).or(telas.first()).map(cheia)
+}
+fn arquivo_lugar() -> PathBuf { pasta_da_janela().join("lugar.json") }
+fn ler_lugar() -> Option<Lugar> {
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(arquivo_lugar()).ok()?).ok()?;
+    Some(Lugar { x: v["x"].as_i64()? as i32, y: v["y"].as_i64()? as i32, w: v["w"].as_u64()? as u32, h: v["h"].as_u64()? as u32,
+        maximizada: v["maximizada"].as_bool().unwrap_or(true) })
+}
+/// Guarda o lugar da lousa ao fechar. Na apresentação com duas telas, o de antes dela (o notebook).
+fn guardar_lugar_ao_fechar(w: &tauri::Window) {
+    let l = LUGARES.lock().unwrap().get(w.label()).copied().or_else(|| {
+        if w.is_minimized().unwrap_or(false) { return None; }
+        let (pos, tam) = (w.outer_position().ok()?, w.outer_size().ok()?);
+        Some(Lugar { x: pos.x, y: pos.y, w: tam.width, h: tam.height, maximizada: w.is_maximized().unwrap_or(true) })
+    });
+    if let Some(l) = l {
+        let _ = std::fs::create_dir_all(pasta_da_janela());
+        let _ = std::fs::write(arquivo_lugar(), serde_json::json!({ "x": l.x, "y": l.y, "w": l.w, "h": l.h, "maximizada": l.maximizada }).to_string());
+    }
+}
+fn telas_do_sistema(app: &AppHandle) -> (Vec<Tela>, usize) {
+    let ms = app.available_monitors().unwrap_or_default();
+    let p = app.primary_monitor().ok().flatten().map(|p| *p.position());
+    let telas: Vec<Tela> = ms.iter().map(|m| { let a = m.work_area();
+        Tela { x: a.position.x, y: a.position.y, w: a.size.width, h: a.size.height, escala: m.scale_factor() } }).collect();
+    let principal = p.and_then(|p| ms.iter().position(|m| *m.position() == p)).unwrap_or(0);
+    (telas, principal)
+}
+
+// P-ABERTURA A1 (22/11/2026): a janela e o WebView nascem na cor da galeria (--page do style.css), nunca no preto da
+// janela nem no branco do WebView. No filme da 1.19.0, a janela maximizada aparecia preta com um retângulo branco de
+// 1280x800 por cerca de meio segundo antes da página
+const FUNDO: tauri::window::Color = tauri::window::Color(0xe8, 0xe8, 0xe8, 0xff);
+
 fn criar_janela(app: &AppHandle) -> tauri::Result<()> {
     let srv = app.state::<Servidor>();
     let url: tauri::Url = format!("http://127.0.0.1:{}/", srv.porta).parse().unwrap();
     let n = JANELAS.fetch_add(1, Ordering::SeqCst) + 1;
     let porta = srv.porta;
     let (h, rotulo) = (app.clone(), format!("lousa{n}"));
+    let (telas, principal) = telas_do_sistema(app);
+    let nascer = lugar_ao_nascer(&telas, principal, ler_lugar())
+        .unwrap_or(Nascer { x: 80.0, y: 60.0, w: 1280.0, h: 800.0, maximizada: true });
     // começa na página de espera do próprio exe; o cookie de acesso entra antes de ir para o servidor
-    let r = WebviewWindowBuilder::new(app, format!("lousa{n}"), WebviewUrl::App("espera.html".into()))
+    // a primeira tela é o esqueleto da galeria (P-ABERTURA C), no desenho da galeria de verdade
+    let r = WebviewWindowBuilder::new(app, format!("lousa{n}"), WebviewUrl::App("espera-galeria.html".into()))
         .title("Giz Livre")
-        .inner_size(1280.0, 800.0)
+        .inner_size(nascer.w, nascer.h)
+        .position(nascer.x, nascer.y)
         .min_inner_size(640.0, 480.0)
-        .maximized(true)
+        .maximized(nascer.maximizada)
+        .background_color(FUNDO)
+        // P-ABERTURA F: barra de título clara, combinando com a galeria (com o Windows no tema escuro, ela vinha preta)
+        .theme(Some(tauri::Theme::Light))
         .data_directory(pasta_da_janela())
         .additional_browser_args(SEM_REDE)
         // o título acompanha o da página ("Aula 3 — Giz Livre"), como na janela do Edge
@@ -342,6 +419,7 @@ fn criar_janela(app: &AppHandle) -> tauri::Result<()> {
                 MARCA_FIM => fim_da_apresentacao(&w),
                 MARCA_RECEBIDO => { FECHANDO.lock().unwrap().insert(w.label().to_string(), Fechando::Gravando); }
                 MARCA_PERGUNTA => { FECHANDO.lock().unwrap().insert(w.label().to_string(), Fechando::Perguntando); }
+                MARCA_PRONTA => abertura::fechar(),
                 MARCA_FICA => { FECHANDO.lock().unwrap().remove(w.label()); diario(&format!("janela {}: fica aberta (não salvou)", w.label())); }
                 _ => { let _ = w.set_title(&t); }
             }
@@ -371,6 +449,8 @@ fn criar_janela(app: &AppHandle) -> tauri::Result<()> {
     j.navigate(url)?;
     vigiar_queda_da_pagina(&j);
     let _ = j.set_focus();
+    // segurança: se a página não avisar, a tela de abertura sai em 10 s
+    std::thread::spawn(|| { std::thread::sleep(Duration::from_secs(10)); abertura::fechar(); });
     diario(&format!("janela lousa{n}: aberta"));
     Ok(())
 }
@@ -439,6 +519,8 @@ const MARCA_FIM: &str = "giz-livre:fim-apresentacao";
 // a gravação falhou e a página está perguntando se fecha mesmo assim: a resposta é do professor, sem prazo (antes,
 // passados os 2 min de ESPERA_GRAVANDO, a janela fechava com a pergunta na tela; auditoria de 30/10/2026)
 const MARCA_PERGUNTA: &str = "giz-livre:perguntando";
+// P-ABERTURA B: a galeria pintou (main.js, showGallery): a tela de abertura sai
+const MARCA_PRONTA: &str = "giz-livre:galeria-pronta";
 const ESPERA_GRAVANDO: Duration = Duration::from_secs(120);
 #[derive(Clone, Copy, PartialEq)]
 enum Fechando { Pedido, Gravando, Perguntando }
@@ -526,6 +608,8 @@ fn main() {
         instalacao::avisar_sem_webview2();
         return;
     }
+    // P-ABERTURA B: a tela de abertura nativa aparece já, na tela onde a lousa vai nascer
+    abertura::mostrar(ler_lugar().map(|l| (l.x + l.w as i32 / 2, l.y + l.h as i32 / 2)));
     let app = tauri::Builder::default();
     // abrir o atalho com o programa aberto: outra janela neste mesmo programa
     // (fora da thread principal: criar a janela dentro do aviso do plugin não abria nada)
@@ -545,7 +629,9 @@ fn main() {
             }
             esquecer_registro_do_perfil();
             // os motivos de subir_servidor são nossos, em português e dizem o que fazer: aparecem como estão
-            let srv = subir_servidor(None).map_err(|e| { avisar(&e); AVISADO.store(true, Ordering::SeqCst); e })?;
+            abertura::estado("Iniciando…");
+            let srv = subir_servidor(None).map_err(|e| { abertura::fechar(); avisar(&e); AVISADO.store(true, Ordering::SeqCst); e })?;
+            abertura::estado("Abrindo a galeria…");
             app.manage(srv);
             let h = app.handle().clone();
             std::thread::spawn(move || vigiar_servidor(h));
@@ -562,6 +648,7 @@ fn main() {
             }
             if let WindowEvent::CloseRequested { api, .. } = ev {
                 let rot = w.label().to_string();
+                if rot.starts_with("lousa") && !LIBERADAS.lock().unwrap().contains(&rot) { guardar_lugar_ao_fechar(w); }
                 let mut lib = LIBERADAS.lock().unwrap();
                 if let Some(i) = lib.iter().position(|l| *l == rot) {
                     lib.remove(i);   // a página já gravou: fecha de verdade
@@ -636,6 +723,40 @@ fn main() {
 #[cfg(test)]
 mod testes {
     use super::*;
+
+    // P-ABERTURA A2
+    const T1: Tela = Tela { x: 0, y: 0, w: 1920, h: 1040, escala: 1.0 };
+    const T2: Tela = Tela { x: 1920, y: 0, w: 1280, h: 720, escala: 1.0 };
+    #[test]
+    fn nasce_maximizada_na_principal_sem_lugar() {
+        let n = lugar_ao_nascer(&[T2, T1], 1, None).unwrap();
+        assert!(n.maximizada);
+        assert_eq!((n.x, n.y, n.w, n.h), (-BORDA, -BORDA, 1920.0, 1040.0 - BARRA_TITULO + BORDA));
+    }
+    #[test]
+    fn nasce_onde_estava() {
+        let n = lugar_ao_nascer(&[T1, T2], 0, Some(Lugar { x: 100, y: 50, w: 1000, h: 700, maximizada: false })).unwrap();
+        assert_eq!(n, Nascer { x: 100.0, y: 50.0, w: 1000.0, h: 700.0, maximizada: false });
+        // maximizada na segunda tela: a área de trabalho dela
+        let n = lugar_ao_nascer(&[T1, T2], 0, Some(Lugar { x: 1912, y: -8, w: 1296, h: 736, maximizada: true })).unwrap();
+        assert!(n.maximizada && n.x == 1920.0 - BORDA && n.w == 1280.0);
+    }
+    #[test]
+    fn tela_que_sumiu_volta_para_a_principal() {
+        // estava no projetor (à direita), que foi desligado
+        let n = lugar_ao_nascer(&[T1], 0, Some(Lugar { x: 2000, y: 100, w: 800, h: 600, maximizada: false })).unwrap();
+        assert!(n.maximizada && n.x == -BORDA && n.w == 1920.0);
+    }
+    #[test]
+    fn janela_maior_que_a_tela_cabe_nela() {
+        let n = lugar_ao_nascer(&[T2], 0, Some(Lugar { x: 1900, y: 10, w: 1600, h: 900, maximizada: false })).unwrap();
+        assert_eq!((n.w, n.h), (1280.0, 720.0));
+        assert_eq!((n.x, n.y), (1920.0, 0.0));
+        // com escala de 150%: pixels lógicos
+        let t = Tela { x: 0, y: 0, w: 2880, h: 1560, escala: 1.5 };
+        let n = lugar_ao_nascer(&[t], 0, None).unwrap();
+        assert_eq!((n.w, n.h), (1920.0, 1040.0 - BARRA_TITULO + BORDA));
+    }
 
     // D9: depois da queda, o mesmo endereço com ?caiu=1 antes do # (a página mostra o aviso); sem repetir a marca
     #[test]

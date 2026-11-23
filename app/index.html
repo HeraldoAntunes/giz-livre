@@ -9,6 +9,7 @@
 <link rel="icon" href="icon.svg?v=2"><!-- ?v muda quando o ícone muda: o Edge guarda o ícone pelo endereço -->
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="galeria.css">
+<script src="js/abertura.js"></script>
 </head>
 <body>
 
@@ -29,7 +30,8 @@
     <button id="gAgentes" class="btn" title="Permitir que agentes de IA preparem quadros (experimental)"><span data-icon="sparkle"></span><span class="g-rot">Agentes de IA</span></button>
     <button id="gAbout" class="btn" title="Versão, licença e aviso">Sobre</button>
   </header>
-  <div id="gGrid" class="g-grid"></div>
+  <!-- esqueleto até os quadros chegarem (P-ABERTURA C); renderGrid() troca tudo -->
+  <div id="gGrid" class="g-grid" aria-busy="true"><div class="esq-vitrine"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div><div class="esq-cartao"></div></div>
   <input id="gImportFile" type="file" accept="image/*,.lousa,.json,.pptx,.ppt,.ppsx,.pps,.potx,.odp,.otp,.key,.pdf" multiple hidden>
   <input id="gPacoteFile" type="file" accept=".zip,application/zip" hidden>
   <input id="gSlideFile" type="file" accept=".pptx,.ppt,.ppsx,.pps,.potx,.odp,.otp,.key,.pdf,application/pdf" hidden>
@@ -96,9 +98,9 @@
 
   <div class="bar create" id="createbar">
     <button class="cb" data-create="text" title="Texto (T)"><span data-icon="text"></span><small>Texto</small></button>
-    <button class="cb" data-create="note" title="Nota adesiva"><span data-icon="note"></span><small>Nota</small></button>
+    <button class="cb" data-create="note" data-mais title="Nota adesiva"><span data-icon="note"></span><small>Nota</small></button>
     <button class="cb" data-create="draw" title="Desenho: linha, seta, retângulo, elipse, triângulo (mostra ou esconde a barra de desenho)"><span data-icon="arrow"></span><small>Desenho</small></button>
-    <button class="cb" data-create="shapes" title="Biblioteca de formas técnicas, por área"><span data-icon="shapes"></span><small>Formas</small></button>
+    <button class="cb" data-create="shapes" data-mais title="Biblioteca de formas técnicas, por área"><span data-icon="shapes"></span><small>Formas</small></button>
     <button class="cb" data-create="image" title="Imagem"><span data-icon="image"></span><small>Imagem</small></button>
     <button class="cb" data-create="pdf" title="Inserir PDF ou apresentação (PowerPoint .pptx/.ppt, LibreOffice .odp, Keynote .key); você escolhe as páginas. Também dá para arrastar o arquivo para o quadro"><span data-icon="slides"></span><small>PDF/Slides</small></button>
     <button class="cb" data-create="cena" title="Captura (experimental): uma janela, aba ou tela aparece ao vivo por baixo do quadro, para riscar por cima"><span data-icon="cena"></span><small>Captura</small></button>

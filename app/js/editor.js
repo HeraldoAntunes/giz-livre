@@ -2890,7 +2890,7 @@ function onKey(e) {
   else if (present && k === 'r') revelar();   // na apresentação, R revela o próximo escondido (fora dela, a régua)
   else if (k === 'r') toggleRuler();
   else if (k === 'k') setTool('laser');
-  else if (k === 'u') setTool('numero');   // F1: Números
+  else if (k === 'u') { if (tool === 'numero') numeroPop($('tTools')); else setTool('numero'); }   // F1: Números; U de novo abre o estilo
   else if (k === 'm') setTool('hand');
   else if (k === 'z') toggleZoomLens();
   else if (k === 'f') enquadrarSlide();
@@ -3726,7 +3726,8 @@ function setPresent(on) {
     // com o Esc preso na tela cheia (WebView2/Chromium), o Esc chega à página e fecha a camada de cima; segurar o Esc
     // ainda sai da tela cheia. Sem a trava (WebKitGTK), o fullscreenchange abaixo faz o mesmo papel
     document.documentElement.requestFullscreen?.().then(() => navigator.keyboard?.lock?.(['Escape'])).catch(() => {});
-    setTimeout(() => { resize(); if (PG.isPages(S.board)) goToPage(curPage(), true); syncPresentBar(); }, 250);
+    // o quadro pode ter fechado nesse meio-tempo (voltar à galeria logo depois de começar): sem ele, nada a enquadrar
+    setTimeout(() => { if (!S) return; resize(); if (PG.isPages(S.board)) goToPage(curPage(), true); syncPresentBar(); }, 250);
   } else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   // enquadra a página de novo depois de a tela assentar; se um voo ou salto começou nesse meio-tempo (abrir pelo
   // marcador), ele manda: enquadrar aqui parava o voo no meio, 2 ou 3 slides antes do marcador (P68 item 1)
@@ -4407,7 +4408,7 @@ function toolsPop(anchor) {
       <button data-lado="dir" class="${cfg.teachBar && lado === 'dir' ? 'on' : ''}">À direita</button>
       <button data-lado="esq" class="${cfg.teachBar && lado === 'esq' ? 'on' : ''}">À esquerda</button>
       <button data-fechar class="${cfg.teachBar ? '' : 'on'}">Só neste menu</button></div>
-      <div class="row"><span>Nomes nas barras laterais:</span><div class="seg">${NOMES_BARRAS.map(([k, n]) => `<button data-nb="${k}" class="${k === modoNomes() ? 'on' : ''}" title="${k === 'auto' ? 'Com nomes em tela grande; só os ícones em notebook e projetor' : n}">${n}</button>`).join('')}</div></div></div>
+      <div class="row tb-nomes"><span>Nomes nas barras laterais:</span><div class="seg">${NOMES_BARRAS.map(([k, n]) => `<button data-nb="${k}" class="${k === modoNomes() ? 'on' : ''}" title="${k === 'auto' ? 'Com nomes em tela grande; só os ícones em notebook e projetor' : k === 'compacto' ? 'Barras finas, só os ícones, no estilo dos programas de desenho' : n}">${n}</button>`).join('')}</div></div></div>
     <div class="menu newkind tools">${TEACH_ITEMS().map(([k, ic, n, d]) =>
     `<button data-k="${k}" class="${on[k] ? 'on' : ''}">${ic}<span><b>${n}</b><small>${d}</small></span></button>`).join('')}</div>
     <div class="row tb-ocultas"><span>Na barra fixa:</span><div class="chips">${TEACH_ITEMS().map(([k, , n]) => `<button data-mostra="${k}" class="mk-chip${(cfg.ferrOcultas || []).includes(k) ? '' : ' on'}" title="${(cfg.ferrOcultas || []).includes(k) ? 'Escondida da barra fixa: toque para mostrar' : 'Na barra fixa: toque para esconder (continua neste menu)'}">${esc(n)}</button>`).join('')}</div></div>
@@ -4418,7 +4419,8 @@ function toolsPop(anchor) {
       cfg.ferrOcultas = [...oc]; saveCfg(); buildTeachBar(); placeBars();
       x.classList.toggle('on', !oc.has(k));
     });
-    p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { hidePop(); toolAction(x.dataset.k); });
+    // Números ativo: tocar de novo no menu abre o estilo (sem a barra fixa, era o único caminho além da seleção)
+    p.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { hidePop(); toolAction(x.dataset.k, x.dataset.k === 'numero' && tool === 'numero' ? anchor : undefined); });
     p.querySelectorAll('[data-lado]').forEach(x => x.onclick = () => { hidePop(); setTeachBar(true, x.dataset.lado); });
     p.querySelector('[data-fechar]').onclick = () => { hidePop(); setTeachBar(false); };
     p.querySelectorAll('[data-nb]').forEach(x => x.onclick = () => { mudarNomesBarras(x.dataset.nb); p.querySelectorAll('[data-nb]').forEach(y => y.classList.toggle('on', y === x)); });
@@ -4426,10 +4428,12 @@ function toolsPop(anchor) {
 }
 
 // barra do professor "explodida": todas as ferramentas à vista (opcional, móvel como as outras barras)
-// nomes embaixo dos ícones das barras laterais (criar, desenho, professor): "com nomes", "só ícones" ou "automático"
-// (o padrão: com nomes só em tela grande; em notebook e projetor, só os ícones, e a barra fica com cerca de metade da
-// largura). O nome continua na dica ao pairar
-const NOMES_BARRAS = [['nomes', 'Com nomes'], ['icones', 'Só ícones'], ['auto', 'Automático']];
+// nomes embaixo dos ícones das barras laterais (criar, desenho, professor): "com nomes", "só ícones", "compacto" ou
+// "automático" (o padrão: com nomes só em tela grande; em notebook e projetor, só os ícones, e a barra fica com cerca de
+// metade da largura). O nome continua na dica ao pairar. Compacto (B4, P-ABERTURA, 22/11/2026): coluna fina de 42 px,
+// ícones de 18 px de um só traço, fundo neutro, grupos separados por um traço fino e a ferramenta ativa com um filete
+// na cor de destaque, como nos programas de desenho profissionais
+const NOMES_BARRAS = [['nomes', 'Com nomes'], ['icones', 'Só ícones'], ['compacto', 'Compacto'], ['auto', 'Automático']];
 const modoNomes = () => (NOMES_BARRAS.some(([k]) => k === cfg.barNomes) ? cfg.barNomes : 'auto');
 function nomesNasBarras() {
   const m = modoNomes();
@@ -4437,11 +4441,12 @@ function nomesNasBarras() {
 }
 let nomesAplicados = null;
 function aplicarNomesBarras(forcar = false) {
-  const n = nomesNasBarras();
-  if (!forcar && n === nomesAplicados) return;
-  nomesAplicados = n;
+  const n = nomesNasBarras(), compacto = modoNomes() === 'compacto', chave = `${n}:${compacto}`;
+  if (!forcar && chave === nomesAplicados) return;
+  nomesAplicados = chave;
   for (const id of ['createbar', 'drawbar']) $(id)?.classList.toggle('sem-nomes', !n);
   $('board')?.classList.toggle('barras-icones', !n);
+  $('board')?.classList.toggle('barras-compacto', compacto);
   buildTeachBar(); placeBars();
 }
 function mudarNomesBarras(m) { cfg.barNomes = m; saveCfg(); aplicarNomesBarras(true); }

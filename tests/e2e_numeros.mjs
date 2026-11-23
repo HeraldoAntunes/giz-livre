@@ -67,6 +67,7 @@ try {
     await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: vk, modifiers }); };
   const tela = (w, h) => cdp('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
   await cdp('Runtime.enable'); await cdp('Page.enable');
+  await cdp('Emulation.setFocusEmulationEnabled', { enabled: true }); await cdp('Page.bringToFront');   // o Edge sem janela às vezes esconde a aba
   await tela(1920, 1080);
   await entrarNoNavegador(cdp, BASE, token);
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: `try { localStorage.setItem('lousa.abas', '{"ocultas":[],"escolhido":true}'); localStorage.setItem('lousa.ajuda', '{"tourVisto":true}'); } catch {}
@@ -173,6 +174,19 @@ try {
   conferir('Ferramentas → Na barra fixa: Números some da barra (e continua no menu)', !(await avaliar(`!!document.querySelector('#teachbar [data-k="numero"]')`)) && await avaliar(`!!document.querySelector('#pop [data-k="numero"]')`));
   await clicarPop('[data-mostra="numero"]'); await espera(300);
   conferir('e volta', await avaliar(`!!document.querySelector('#teachbar [data-k="numero"]')`));
+  await tecla('Escape', 'Escape', 27);
+  console.log('Sem a barra fixa (instalação nova)');
+  await avaliar(`document.getElementById('tTools').click()`); await espera(300);
+  await clicarPop('[data-fechar]'); await espera(400);
+  conferir('barra fixa fechada', !(await avaliar(`!!document.querySelector('#teachbar:not([hidden]) [data-k="numero"]')`)));
+  await tecla('Escape', 'Escape', 27); await avaliar(`document.getElementById('pop').hidden = true`);
+  await tecla('u', 'KeyU', 85); await espera(200);
+  await tecla('u', 'KeyU', 85); await espera(400);
+  conferir('U com Números ativo abre o estilo', (await pop()).includes('Tamanho') && (await pop()).includes('Formato'), await pop());
+  await tecla('Escape', 'Escape', 27); await avaliar(`document.getElementById('pop').hidden = true`); await espera(200);
+  await avaliar(`document.getElementById('tTools').click()`); await espera(300);
+  await clicarPop('[data-k="numero"]'); await espera(400);
+  conferir('menu Ferramentas → Números, com a ferramenta ativa, abre o estilo (não desliga)', (await pop()).includes('Formato') && await avaliar(`document.querySelector('[data-a="recomecar"]') !== null`), await pop());
   await tecla('Escape', 'Escape', 27);
   conferir('nenhum erro na página', !erros.length, erros.join(' | '));
 } catch (e) {
